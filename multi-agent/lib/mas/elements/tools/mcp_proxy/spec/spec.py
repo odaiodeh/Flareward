@@ -1,9 +1,10 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
-from ..config import McpProxyToolConfig
-from ..mcp_proxy_factory import McpProxyToolFactory
-from ..identifiers import Identifier, META
 from mas.elements.tools.common.card_builder import ToolCardBuilder
+
+from ..config import McpProxyToolConfig
+from ..identifiers import META, Identifier
+from ..mcp_proxy_factory import McpProxyToolFactory
 
 
 class McpProxyToolElementSpec(BaseElementSpec):

@@ -1,4 +1,19 @@
 import type { ReactNode } from "react";
+import type { ResourceExecutionDefaults } from './workspace';
+
+export interface ExecutionSelection {
+  profile?: string | null;
+  environment?: string | null;
+}
+
+export interface WorkflowPlacement {
+  execution_profile: string | null;
+  environments: Record<string, string>;
+  steps: Record<string, {
+    execution?: ExecutionSelection | null;
+    condition_execution?: ExecutionSelection | null;
+  }>;
+}
 
 export interface BuildingBlock {
   id: string;
@@ -15,6 +30,7 @@ export interface WorkspaceData {
   category: string;
   type: string;
   config: Record<string, unknown>;
+  execution?: ResourceExecutionDefaults;
   version: number;
   created: string;
   updated: string;
@@ -82,6 +98,7 @@ export interface YamlFlowNode {
   name: string;
   type?: string;
   config?: Record<string, unknown>;
+  execution?: ResourceExecutionDefaults;
 }
 
 export interface YamlFlowPlanStep {
@@ -90,6 +107,8 @@ export interface YamlFlowPlanStep {
   after?: string | string[] | null;
   branches?: Record<string, string>;
   exit_condition?: string;
+  execution?: ExecutionSelection | null;
+  condition_execution?: ExecutionSelection | null;
 }
 
 export interface YamlFlowCondition {
@@ -97,6 +116,7 @@ export interface YamlFlowCondition {
   name: string;
   type?: string;
   config?: Record<string, unknown>;
+  execution?: ResourceExecutionDefaults;
 }
 
 export interface YamlFlowState {
@@ -105,4 +125,6 @@ export interface YamlFlowState {
   nodes: YamlFlowNode[];
   plan: YamlFlowPlanStep[];
   conditions?: YamlFlowCondition[];
+  execution_profile?: string | null;
+  environments?: Record<string, string>;
 }

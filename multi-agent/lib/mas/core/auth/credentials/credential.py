@@ -10,7 +10,7 @@ All methods are async because credential operations may involve I/O
 
 from __future__ import annotations
 
-from typing import Dict, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 from .models import RecoveryResult
 
@@ -19,7 +19,7 @@ from .models import RecoveryResult
 class AuthCredential(Protocol):
     """Minimal contract for presenting credentials in HTTP requests."""
 
-    async def get_headers(self) -> Dict[str, str]:
+    async def get_headers(self) -> dict[str, str]:
         """Return HTTP headers (e.g. ``{"Authorization": "Bearer …"}``)."""
         ...
 

@@ -20,6 +20,7 @@ export interface ReconstructedGraph {
   name: string;
   description: string;
   promptShortcuts: PromptShortcutInput[];
+  version?: number;
 }
 
 function stripRef(rid: string): string {
@@ -363,6 +364,8 @@ export function reconstructBlueprintGraph(
     nodes: specNodes,
     plan,
     conditions: specConditions,
+    execution_profile: specDict.execution_profile ?? null,
+    environments: specDict.environments ?? {},
   };
 
   const nodeDefByRef = new Map<string, YamlFlowNode>();
@@ -438,8 +441,9 @@ export async function loadBlueprintForEditing(
   blueprintId: string,
   allBlocksData: BuildingBlock[],
   conditionsData: BuildingBlock[],
+  teamId?: string,
 ): Promise<ReconstructedGraph> {
-  const blueprintInfo = await getBlueprintInfo(blueprintId);
+  const blueprintInfo = await getBlueprintInfo(blueprintId, teamId);
   const specDict = blueprintInfo.spec_dict;
   const graph = reconstructBlueprintGraph(
     specDict,
@@ -448,6 +452,7 @@ export async function loadBlueprintForEditing(
   );
   return {
     ...graph,
+    version: blueprintInfo.version,
     promptShortcuts: Array.isArray(specDict.prompt_shortcuts) ? specDict.prompt_shortcuts : [],
   };
 }

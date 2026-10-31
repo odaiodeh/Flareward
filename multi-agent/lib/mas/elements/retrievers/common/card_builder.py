@@ -4,8 +4,9 @@ Default card builder for retrievers.
 A retriever represents itself as a capability.
 """
 
-from mas.elements.common.card.models import ElementCard, Capability, CardBuildInput
-from mas.elements.common.card.interface import CardBuilder
+from mas.application.elements.cards.interface import CardBuilder
+from mas.application.elements.cards.models import CardBuildInput
+from mas.domain.element_card import Capability, ElementCard
 
 
 class RetrieverCardBuilder(CardBuilder):
@@ -17,10 +18,7 @@ class RetrieverCardBuilder(CardBuilder):
 
     def build(self, input: CardBuildInput) -> ElementCard:
         """Build card with this retriever as a capability."""
-        capability = Capability(
-            name=input.name,
-            description=input.spec_metadata.description
-        )
+        capability = Capability(name=input.name, description=input.spec_metadata.description)
 
         return ElementCard(
             uid=input.rid,
@@ -31,5 +29,5 @@ class RetrieverCardBuilder(CardBuilder):
             skills=[],
             capabilities=[capability],
             configuration={},
-            metadata=None
+            metadata=None,
         )

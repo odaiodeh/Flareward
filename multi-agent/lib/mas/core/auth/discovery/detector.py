@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional
+
+from mas.core.auth.ports import HttpClient
 
 from .models import DetectionResult
 
@@ -23,9 +24,9 @@ class DetectionStrategy(ABC):
     async def detect(
         self,
         url: str,
-        response_headers: Dict[str, str],
-        http_client: "HttpClient",
-    ) -> Optional[DetectionResult]: ...
+        response_headers: dict[str, str],
+        http_client: HttpClient,
+    ) -> DetectionResult | None: ...
 
 
 class AuthDetector:
@@ -33,8 +34,8 @@ class AuthDetector:
 
     def __init__(
         self,
-        strategies: Optional[List[DetectionStrategy]] = None,
-        http_client: Optional["HttpClient"] = None,
+        strategies: list[DetectionStrategy] | None = None,
+        http_client: HttpClient | None = None,
     ):
         self._strategies = strategies or []
         self._http_client = http_client
@@ -42,8 +43,8 @@ class AuthDetector:
     async def detect(
         self,
         url: str,
-        response_headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[DetectionResult]:
+        response_headers: dict[str, str] | None = None,
+    ) -> DetectionResult | None:
         headers = response_headers or {}
         for strategy in self._strategies:
             try:
@@ -53,6 +54,8 @@ class AuthDetector:
             except Exception as exc:
                 logger.warning(
                     "Detection strategy %s failed for %s: %s",
-                    type(strategy).__name__, url, exc,
+                    type(strategy).__name__,
+                    url,
+                    exc,
                 )
         return None

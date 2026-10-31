@@ -1,57 +1,74 @@
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
 
 import pymongo
-from pymongo.errors import DuplicateKeyError
-
+from global_utils.utils.util import get_mongo_url
 from mas.blueprints.exceptions import BlueprintDuplicateNameError
-from mas.blueprints.models.blueprint import BlueprintDraft, BlueprintDocument, BlueprintSummary
+from mas.blueprints.models.blueprint import BlueprintDocument, BlueprintDraft, BlueprintSummary
 from mas.blueprints.models.prompt_shortcuts import PromptShortcuts
 from mas.blueprints.repository.repository import BlueprintRepository
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
+from pymongo.database import Database
+from pymongo.errors import DuplicateKeyError
 
-from global_utils.utils.util import get_mongo_url
 from outbound.mongo.helpers import identity_q
 
 
 class MongoBlueprintRepository(BlueprintRepository):
-    def __init__(self,
-                 db_name="UnifAI",
-                 coll_name="blueprints"):
-        mongo_uri = get_mongo_url()
-        client = pymongo.MongoClient(mongo_uri)
-        self._col = client[db_name][coll_name]
+    def __init__(
+        self, db_name="UnifAI", coll_name="blueprints", *, database: Database | None = None
+    ):
+        self._client = None
+        if database is None:
+            self._client = pymongo.MongoClient(get_mongo_url(), serverSelectionTimeoutMS=5000)
+            database = self._client[db_name]
+        self._col = database[coll_name]
         self._col.create_index([("blueprint_id", pymongo.ASCENDING)], unique=True)
         self._col.create_index("rid_refs")
         self._col.create_index(
-            [("identity.type", pymongo.ASCENDING),
-             ("identity.id", pymongo.ASCENDING),
-             ("updated_at", pymongo.DESCENDING)],
+            [
+                ("identity.type", pymongo.ASCENDING),
+                ("identity.id", pymongo.ASCENDING),
+                ("updated_at", pymongo.DESCENDING),
+            ],
             background=True,
         )
+
         self._col.create_index(
-            [("identity.type", pymongo.ASCENDING),
-             ("identity.id", pymongo.ASCENDING),
-             ("spec_dict.name", pymongo.ASCENDING)],
+            [
+                ("identity.type", pymongo.ASCENDING),
+                ("identity.id", pymongo.ASCENDING),
+                ("spec_dict.name", pymongo.ASCENDING),
+            ],
             unique=True,
             background=True,
         )
 
-    def save(self, identity: Identity, spec: BlueprintDraft,
-             rid_refs: list[str], metadata: dict[str, Any] | None = None) -> str:
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
+
+    def save(
+        self,
+        identity: Identity,
+        spec: BlueprintDraft,
+        rid_refs: list[str],
+        metadata: dict[str, Any] | None = None,
+    ) -> str:
         if metadata is None:
             metadata = {}
         new_id = str(uuid4())
         doc = {
             "blueprint_id": new_id,
             "identity": identity.model_dump(mode="json"),
-            "created_at": getattr(spec, "created_at", datetime.now(timezone.utc)),
-            "updated_at": datetime.now(timezone.utc),
+            "created_at": getattr(spec, "created_at", datetime.now(UTC)),
+            "updated_at": datetime.now(UTC),
             "spec_dict": spec.model_dump(mode="json"),
             "rid_refs": rid_refs,
             "metadata": metadata,
+            "version": 1,
         }
         try:
             self._col.insert_one(doc)
@@ -59,40 +76,43 @@ class MongoBlueprintRepository(BlueprintRepository):
             raise BlueprintDuplicateNameError(spec.name) from None
         return new_id
 
-    def update(self, *, blueprint_id: str, spec: BlueprintDraft,
-               rid_refs: list[str]) -> bool:
+    def update(self, *, blueprint_id: str, spec: BlueprintDraft, rid_refs: list[str]) -> bool:
         try:
             res = self._col.update_one(
                 {"blueprint_id": blueprint_id},
-                {"$set": {
-                    "spec_dict": spec.model_dump(mode="json"),
-                    "rid_refs": rid_refs,
-                    "updated_at": datetime.now(timezone.utc),
-                }}
+                {
+                    "$set": {
+                        "spec_dict": spec.model_dump(mode="json"),
+                        "rid_refs": rid_refs,
+                        "updated_at": datetime.now(UTC),
+                    },
+                    "$inc": {"version": 1},
+                },
             )
         except DuplicateKeyError:
             raise BlueprintDuplicateNameError(spec.name) from None
         return res.modified_count == 1
-    
+
     def set_metadata(self, *, blueprint_id: str, metadata: dict[str, Any]) -> bool:
         """Set individual metadata keys using dot-notation (key-level merge)."""
         if not isinstance(metadata, dict):
             raise ValueError(f"metadata must be a dictionary, got: {type(metadata)}")
         update_fields = {f"metadata.{k}": v for k, v in metadata.items()}
-        update_fields["updated_at"] = datetime.now(timezone.utc)
+        update_fields["updated_at"] = datetime.now(UTC)
         res = self._col.update_one(
             {"blueprint_id": blueprint_id},
-            {"$set": update_fields},
+            {"$set": update_fields, "$inc": {"version": 1}},
         )
         return res.modified_count == 1
 
     def set_prompt_shortcuts(self, *, blueprint_id: str, shortcuts: PromptShortcuts) -> bool:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         storage = shortcuts.to_storage()
         if storage:
             op = {"$set": {"spec_dict.prompt_shortcuts": storage, "updated_at": now}}
         else:
             op = {"$unset": {"spec_dict.prompt_shortcuts": ""}, "$set": {"updated_at": now}}
+        op["$inc"] = {"version": 1}
         res = self._col.update_one({"blueprint_id": blueprint_id}, op)
         return res.matched_count >= 1
 
@@ -126,8 +146,7 @@ class MongoBlueprintRepository(BlueprintRepository):
     # --------- listing & counting with identity filter -------
 
     def list_ids(
-            self, *, identity: Optional[Identity] = None,
-            skip=0, limit=100, sort_desc=True
+        self, *, identity: Identity | None = None, skip=0, limit=100, sort_desc=True
     ) -> list[str]:
         cur = (
             self._col.find(identity_q(identity), {"blueprint_id": 1})
@@ -138,9 +157,12 @@ class MongoBlueprintRepository(BlueprintRepository):
         return [d["blueprint_id"] for d in cur]
 
     def list_docs(
-            self, *,
-            identity: Optional[Identity] = None,
-            skip: int = 0, limit: int = 100, sort_desc: bool = True,
+        self,
+        *,
+        identity: Identity | None = None,
+        skip: int = 0,
+        limit: int = 100,
+        sort_desc: bool = True,
     ) -> list[BlueprintDocument]:
         """Return BlueprintDocument objects for bulk operations."""
         cursor = (
@@ -152,9 +174,12 @@ class MongoBlueprintRepository(BlueprintRepository):
         return [BlueprintDocument(**raw) for raw in cursor]
 
     def list_summaries(
-            self, *,
-            identity: Optional[Identity] = None,
-            skip: int = 0, limit: int = 100, sort_desc: bool = True,
+        self,
+        *,
+        identity: Identity | None = None,
+        skip: int = 0,
+        limit: int = 100,
+        sort_desc: bool = True,
     ) -> list[BlueprintSummary]:
         projection = {
             "_id": 0,
@@ -175,15 +200,17 @@ class MongoBlueprintRepository(BlueprintRepository):
         summaries = []
         for doc in cursor:
             spec = doc.get("spec_dict", {})
-            summaries.append(BlueprintSummary(
-                blueprint_id=doc["blueprint_id"],
-                identity=Identity(**doc["identity"]),
-                name=spec.get("name", "Untitled blueprint"),
-                description=spec.get("description", ""),
-                created_at=doc["created_at"],
-                updated_at=doc["updated_at"],
-                metadata=doc.get("metadata", {}),
-            ))
+            summaries.append(
+                BlueprintSummary(
+                    blueprint_id=doc["blueprint_id"],
+                    identity=Identity(**doc["identity"]),
+                    name=spec.get("name", "Untitled blueprint"),
+                    description=spec.get("description", ""),
+                    created_at=doc["created_at"],
+                    updated_at=doc["updated_at"],
+                    metadata=doc.get("metadata", {}),
+                )
+            )
         return summaries
 
     def list_direct_usage(self, rid: str) -> list[str]:
@@ -191,19 +218,18 @@ class MongoBlueprintRepository(BlueprintRepository):
         return [doc["blueprint_id"] for doc in cur]
 
     def count_usage(self, rid: str) -> int:
-        fields = [
-                     f"spec_dict.{cat}.rid"
-                     for cat in ResourceCategory.list_values()
-                 ] + [
-                     f"spec_dict.{cat}.config.rid"
-                     for cat in ResourceCategory.list_values()
-                 ]
+        fields = [f"spec_dict.{cat}.rid" for cat in ResourceCategory.list_values()] + [
+            f"spec_dict.{cat}.config.rid" for cat in ResourceCategory.list_values()
+        ]
         ors = [{fld: rid} for fld in fields]
         return self._col.count_documents({"$or": ors})
 
     def name_exists_for_identity(
-            self, identity: Identity, name: str,
-            *, exclude_blueprint_id: str | None = None,
+        self,
+        identity: Identity,
+        name: str,
+        *,
+        exclude_blueprint_id: str | None = None,
     ) -> bool:
         filt = {
             **identity_q(identity),
@@ -213,5 +239,5 @@ class MongoBlueprintRepository(BlueprintRepository):
             filt["blueprint_id"] = {"$ne": exclude_blueprint_id}
         return self._col.count_documents(filt, limit=1) >= 1
 
-    def count(self, identity: Optional[Identity] = None) -> int:
+    def count(self, identity: Identity | None = None) -> int:
         return self._col.count_documents(identity_q(identity))

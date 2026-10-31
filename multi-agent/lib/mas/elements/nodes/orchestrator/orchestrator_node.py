@@ -9,32 +9,32 @@ This node coordinates work execution by:
 """
 
 import logging
-from typing import Optional, Any, List, ClassVar, Dict
+from typing import Any, ClassVar
+
+from mas.application.agents.config import AgentConfig
+from mas.application.agents.constants import StrategyType
+from mas.application.agents.delegation_policy import DelegationPolicy, PermissiveDelegationPolicy
+from mas.application.agents.execution import ExecutionMode
+from mas.application.capabilities.agent_capable import AgentCapableMixin
+from mas.application.capabilities.iem_capable import IEMCapableMixin
+from mas.application.capabilities.llm_capable import LlmCapableMixin
+from mas.application.capabilities.workload_capable import WorkloadCapableMixin
+from mas.application.elements.node import BaseNode
+from mas.application.ports.tool import BaseTool
+from mas.application.tools.config import ExecutorConfig
+from mas.domain.messages import ChatMessage, Role
+from mas.domain.workloads import AgentResult, Task, WorkItemKind, WorkItemStatus
 from mas.graph.state.state_view import StateView
-from mas.elements.llms.common.chat.message import ChatMessage, Role
-from mas.elements.tools.common.base_tool import BaseTool
-from mas.elements.nodes.common.base_node import BaseNode
-from mas.elements.nodes.common.capabilities.iem_capable import IEMCapableMixin
-from mas.elements.nodes.common.capabilities.llm_capable import LlmCapableMixin
-from mas.elements.nodes.common.capabilities.agent_capable import AgentCapableMixin
-from mas.elements.nodes.common.capabilities.workload_capable import WorkloadCapableMixin
-from mas.elements.nodes.common.agent import AgentConfig
-from mas.elements.nodes.common.agent.execution import ExecutionMode
-from mas.elements.nodes.common.agent.constants import StrategyType
-from mas.elements.nodes.common.agent.delegation_policy import DelegationPolicy, PermissiveDelegationPolicy
-from mas.elements.tools.common.execution.models import ExecutorConfig
-from mas.elements.nodes.common.workload import Task, WorkItemStatus, WorkItemKind, AgentResult
-from .orchestrator_phase_provider import OrchestratorPhaseProvider
-from .delegation_policy import OrchestratorDelegationPolicy
-from .context import PendingCycle, CycleTrigger, CycleTriggerReason, OrchestratorContextBuilder, OrchestratorCycle
-from mas.elements.tools.builtin import (
-    CreateOrUpdateWorkPlanTool,
-    AssignWorkItemTool,
-    MarkWorkItemStatusTool,
-    ListAdjacentNodesTool,
-    GetNodeCardTool,
-    DelegateTaskTool
+
+from .context import (
+    CycleTrigger,
+    CycleTriggerReason,
+    OrchestratorContextBuilder,
+    OrchestratorCycle,
+    PendingCycle,
 )
+from .delegation_policy import OrchestratorDelegationPolicy
+from .orchestrator_phase_provider import OrchestratorPhaseProvider
 
 logger = logging.getLogger(__name__)
 
@@ -43,21 +43,17 @@ logger = logging.getLogger(__name__)
 
 
 class OrchestratorNode(
-    WorkloadCapableMixin,
-    IEMCapableMixin,
-    AgentCapableMixin,
-    LlmCapableMixin,
-    BaseNode
+    WorkloadCapableMixin, IEMCapableMixin, AgentCapableMixin, LlmCapableMixin, BaseNode
 ):
     """
     Orchestrator node that plans and delegates work.
-    
+
     Uses PlanAndExecuteStrategy to:
     - Decompose tasks into work items
     - Delegate to adjacent nodes based on capabilities
     - Monitor execution progress
     - Handle responses and update plans
-    
+
     Key features:
     - Re-entrant: maintains state in workspace between visits
     - Flexible: can execute local work or delegate
@@ -68,17 +64,17 @@ class OrchestratorNode(
     WRITES: ClassVar[set[str]] = set()
 
     def __init__(
-            self,
-            *,
-            llm: Any,
-            tools: List[BaseTool] = None,
-            system_message: str = "",
-            max_rounds: int = 20,
-            **kwargs: Any
+        self,
+        *,
+        llm: Any,
+        tools: list[BaseTool] = None,
+        system_message: str = "",
+        max_rounds: int = 20,
+        **kwargs: Any,
     ):
         """
         Initialize orchestrator node.
-        
+
         Args:
             llm: Language model for planning and decision making
             tools: Domain-specific tools (orchestration tools added automatically)
@@ -89,44 +85,40 @@ class OrchestratorNode(
         # Store domain specialization separately for adjacency info
         self.domain_specialization = system_message
 
-        super().__init__(
-            llm=llm,
-            system_message=self._build_complete_system_message(),
-            **kwargs
-        )
+        super().__init__(llm=llm, system_message=self._build_complete_system_message(), **kwargs)
         self.max_rounds = max_rounds
         self.base_tools = tools or []
-        
-        # Orchestration cycles (one per thread, accumulates triggers)
-        self._orchestration_cycles: Dict[str, OrchestratorCycle] = {}
-        
-        # Context builder for rich orchestration context (lazy init per thread)
-        self._context_builders: Dict[str, OrchestratorContextBuilder] = {}
 
-    def run(self, state: StateView) -> StateView:
+        # Orchestration cycles (one per thread, accumulates triggers)
+        self._orchestration_cycles: dict[str, OrchestratorCycle] = {}
+
+        # Context builder for rich orchestration context (lazy init per thread)
+        self._context_builders: dict[str, OrchestratorContextBuilder] = {}
+
+    async def run(self, state: StateView) -> StateView:
         """
         Main orchestrator execution.
-        
+
         Process:
         1. Handle incoming task packets (batch processing)
         2. Update work plan based on responses
         3. Run planning/execution if needed (once per thread)
         """
         # Process all incoming packets with batching
-        self.process_packets_batched(state)
+        await self.process_packets_batched(state)
 
         return state
 
-    def process_packets_batched(self, state: StateView) -> None:
+    async def process_packets_batched(self, state: StateView) -> None:
         """
         Process all incoming packets with intelligent batching.
-        
+
         Benefits of batching:
         1. Ingest all responses before planning - better decision making
         2. Accumulate all triggers per thread into one cycle
         3. Run orchestration cycle once per thread - reduces redundant cycles
         4. Better resource utilization and lower latency
-        
+
         Key improvement: Multiple events for same thread automatically merge
         into one cycle via dict key uniqueness. LLM sees ALL triggers.
         """
@@ -141,22 +133,22 @@ class OrchestratorNode(
 
         for i, packet in enumerate(packets):
             try:
-                self.handle_task_packet(packet)
+                await self.handle_task_packet(packet)
             finally:
                 self.acknowledge(packet.id)
 
         # Execute one cycle per thread (handles all accumulated triggers)
         for cycle in self._orchestration_cycles.values():
-            self._execute_cycle(cycle)
+            await self._execute_cycle(cycle)
 
-    def handle_task_packet(self, packet) -> None:
+    async def handle_task_packet(self, packet) -> None:
         """
         Handle task packet - designed for batch processing.
-        
+
         This method is called by process_packets_batched() for each packet.
         It extracts and processes the task, updating the work plan as needed.
         Orchestration cycles are accumulated in self._orchestration_cycles.
-        
+
         Args:
             packet: Task packet to handle
         """
@@ -165,83 +157,94 @@ class OrchestratorNode(
 
         if task.is_response():
             # This is a response to delegated work
-            logger.info("orchestrator.packet_received", extra={"node_uid": self.uid, "packet_type": "response"})
+            logger.info(
+                "orchestrator.packet_received",
+                extra={"node_uid": self.uid, "packet_type": "response"},
+            )
             self._handle_task_response(task)
         else:
             # This is a new work request
-            logger.info("orchestrator.packet_received", extra={"node_uid": self.uid, "packet_type": "new_work"})
+            logger.info(
+                "orchestrator.packet_received",
+                extra={"node_uid": self.uid, "packet_type": "new_work"},
+            )
             self._handle_new_work(task)
 
     def _record_trigger(
-        self,
-        thread_id: str,
-        reason: CycleTriggerReason,
-        changed_items: List[str] = None
+        self, thread_id: str, reason: CycleTriggerReason, changed_items: list[str] = None
     ) -> None:
         """
         Record a trigger event for a thread's orchestration cycle.
-        
+
         Automatically creates cycle if it doesn't exist. This is the clean
         high-level API - callers don't need to think about cycle management.
-        
+
         Design:
         - One cycle per thread (dict key ensures uniqueness)
         - Multiple triggers accumulate into same cycle
         - LLM sees all triggers for complete context awareness
         - No prioritization - LLM decides what matters
-        
+
         Args:
             thread_id: Thread that needs orchestration
             reason: Why orchestration is needed
             changed_items: Work items affected by this trigger (optional)
-        
+
         Example:
             # Two responses arrive for same thread in one batch:
             self._record_trigger(tid, RESPONSE_ARRIVED, ["jira_search"])
             self._record_trigger(tid, RESPONSE_ARRIVED, ["confluence_search"])
-            # Result: One cycle with summary "2 responses arrived for: jira_search, confluence_search"
+            # Both responses contribute to one orchestration cycle.
         """
         # Create cycle if doesn't exist (dict key ensures one per thread)
         if thread_id not in self._orchestration_cycles:
             self._orchestration_cycles[thread_id] = OrchestratorCycle(thread_id=thread_id)
-        
+
         # Add this trigger event
         self._orchestration_cycles[thread_id].add_trigger(reason, changed_items)
 
-    def _execute_cycle(self, cycle: OrchestratorCycle) -> None:
+    async def _execute_cycle(self, cycle: OrchestratorCycle) -> None:
         """
         Execute one orchestration cycle.
-        
+
         The cycle contains all accumulated triggers. The LLM sees
         complete context: "2 responses arrived + new request".
-        
+
         Design:
         - Converts OrchestratorCycle to PendingCycle for backward compatibility
         - Prints clear summary of all triggers for debugging
         - Runs orchestration with full trigger context
         - Finalizes work if complete
-        
+
         Args:
             cycle: OrchestratorCycle with accumulated triggers
         """
-        logger.info("orchestrator.cycle_start", extra={"node_uid": self.uid, "thread_id": cycle.thread_id, "triggers": cycle.get_trigger_summary(), "changed_items": list(cycle.all_changed_items) if cycle.all_changed_items else []})
-        
+        logger.info(
+            "orchestrator.cycle_start",
+            extra={
+                "node_uid": self.uid,
+                "thread_id": cycle.thread_id,
+                "triggers": cycle.get_trigger_summary(),
+                "changed_items": list(cycle.all_changed_items) if cycle.all_changed_items else [],
+            },
+        )
+
         # Get current status
         status = self.workspaces.get_work_plan_status(cycle.thread_id, self.uid)
-        
+
         # Resolve content for cycle (user message or guidance)
         content = self._resolve_cycle_content(cycle.thread_id)
-        
+
         # Convert to PendingCycle for backward compatibility with strategy
         pending_cycle = cycle.to_pending_cycle()
-        
+
         # Run orchestration (uses PendingCycle internally for now)
-        self._run_orchestration_cycle(pending_cycle, content)
-        
+        await self._run_orchestration_cycle(pending_cycle, content)
+
         # Re-check status after orchestration
         status = self.workspaces.get_work_plan_status(cycle.thread_id, self.uid)
         final_result = self._get_final_orchestration_result(cycle.thread_id)
-        
+
         # Finalize if orchestrator produced a result AND:
         # 1. Work is complete (all items DONE/FAILED), OR
         # 2. Work incomplete but no delegation packets sent (error/partial result case)
@@ -252,10 +255,10 @@ class OrchestratorNode(
             if status.is_complete or not self.has_outgoing_packets():
                 self._finalize_completed_work(cycle.thread_id, final_result)
 
-    def _handle_task_response(self, task: Task) -> Optional[str]:
+    def _handle_task_response(self, task: Task) -> str | None:
         """
         Handle response from delegated work.
-        
+
         Enhanced to handle child thread responses:
         - If response comes from child thread, updates parent thread's work plan
         - Stores response as context for LLM interpretation instead of auto-marking DONE
@@ -265,14 +268,33 @@ class OrchestratorNode(
         # Find correlation in task data
         correlation_task_id = task.correlation_task_id
         if not correlation_task_id:
-            logger.warning("orchestrator.packet_received", extra={"node_uid": self.uid, "packet_type": "response", "detail": "no correlation_task_id, skipping"})
+            logger.warning(
+                "orchestrator.packet_received",
+                extra={
+                    "node_uid": self.uid,
+                    "packet_type": "response",
+                    "detail": "no correlation_task_id, skipping",
+                },
+            )
             return None
 
-        logger.info("orchestrator.packet_received", extra={"node_uid": self.uid, "packet_type": "response", "correlation_task_id": correlation_task_id, "from_thread": task.thread_id, "created_by": task.created_by})
+        logger.info(
+            "orchestrator.packet_received",
+            extra={
+                "node_uid": self.uid,
+                "packet_type": "response",
+                "correlation_task_id": correlation_task_id,
+                "from_thread": task.thread_id,
+                "created_by": task.created_by,
+            },
+        )
 
         # Determine which thread to update (parent vs child thread handling)
         target_thread_id = self._resolve_target_thread_for_response(task)
-        logger.info("orchestrator.packet_received", extra={"node_uid": self.uid, "target_thread_id": target_thread_id})
+        logger.info(
+            "orchestrator.packet_received",
+            extra={"node_uid": self.uid, "target_thread_id": target_thread_id},
+        )
 
         # Update work plan and workspace context
         service = self.workspaces
@@ -283,7 +305,7 @@ class OrchestratorNode(
             # Handle AgentResult properly (use .content field, not str())
             if isinstance(task.result, AgentResult):
                 response_content = task.result.content
-                
+
                 # Append error information if present and execution failed
                 # Only add error indicator if:
                 # 1. Execution was not successful
@@ -328,7 +350,7 @@ class OrchestratorNode(
                             break
             if not from_uid:
                 from_uid = "unknown"
-        
+
         # Store response in delegation exchange
         success = service.store_task_response_for_work_item(
             thread_id=target_thread_id,
@@ -336,24 +358,46 @@ class OrchestratorNode(
             correlation_task_id=correlation_task_id,
             response_content=response_content,
             from_uid=from_uid,
-            result_data=task.result
+            result_data=task.result,
         )
-        
+
         if success:
-            logger.info("orchestrator.response_stored", extra={"node_uid": self.uid, "thread_id": target_thread_id, "correlation_task_id": correlation_task_id})
-            
+            logger.info(
+                "orchestrator.response_stored",
+                extra={
+                    "node_uid": self.uid,
+                    "thread_id": target_thread_id,
+                    "correlation_task_id": correlation_task_id,
+                },
+            )
+
             # Find which work items got responses
             changed_item_ids = self._find_items_for_task(target_thread_id, correlation_task_id)
-            
+
             # Record trigger (automatically accumulates into existing cycle if one exists)
             self._record_trigger(
                 thread_id=target_thread_id,
                 reason=CycleTriggerReason.RESPONSE_ARRIVED,
-                changed_items=changed_item_ids
+                changed_items=changed_item_ids,
             )
-            logger.info("orchestrator.response_stored", extra={"node_uid": self.uid, "thread_id": target_thread_id, "detail": "response trigger recorded"})
+            logger.info(
+                "orchestrator.response_stored",
+                extra={
+                    "node_uid": self.uid,
+                    "thread_id": target_thread_id,
+                    "detail": "response trigger recorded",
+                },
+            )
         else:
-            logger.error("orchestrator.response_stored", extra={"node_uid": self.uid, "thread_id": target_thread_id, "correlation_task_id": correlation_task_id, "detail": "failed to store response, delegation exchange not found"})
+            logger.error(
+                "orchestrator.response_stored",
+                extra={
+                    "node_uid": self.uid,
+                    "thread_id": target_thread_id,
+                    "correlation_task_id": correlation_task_id,
+                    "detail": "failed to store response, delegation exchange not found",
+                },
+            )
 
         # Return thread_id if we updated the work plan
         return target_thread_id if success else None
@@ -361,52 +405,89 @@ class OrchestratorNode(
     def _resolve_target_thread_for_response(self, task: Task) -> str:
         """
         Resolve the target thread for updating work plan from a response.
-        
+
         Enhanced to handle nested thread hierarchies by using ThreadService.
         Walks up the thread hierarchy to find where this orchestrator's work plan lives.
-        
+
         Args:
             task: Response task (may be from deeply nested child thread)
-            
+
         Returns:
             Thread ID where this orchestrator's work plan is stored
         """
         response_thread_id = task.thread_id
         if not response_thread_id:
             # No thread context, use current orchestrator thread
-            logger.warning("orchestrator.packet_received", extra={"node_uid": self.uid, "detail": "no thread_id in response, using default"})
-            return getattr(self, '_current_thread_id', None) or 'default'
+            logger.warning(
+                "orchestrator.packet_received",
+                extra={"node_uid": self.uid, "detail": "no thread_id in response, using default"},
+            )
+            return getattr(self, "_current_thread_id", None) or "default"
 
         try:
             # Use thread service to find where THIS orchestrator's work plan is
-            logger.info("orchestrator.packet_received", extra={"node_uid": self.uid, "response_thread_id": response_thread_id, "detail": "resolving work plan owner"})
+            logger.info(
+                "orchestrator.packet_received",
+                extra={
+                    "node_uid": self.uid,
+                    "response_thread_id": response_thread_id,
+                    "detail": "resolving work plan owner",
+                },
+            )
             target_thread_id = self.threads.find_work_plan_owner(response_thread_id, self.uid)
             if target_thread_id:
                 if target_thread_id != response_thread_id:
-                    logger.info("orchestrator.packet_received", extra={"node_uid": self.uid, "target_thread_id": target_thread_id, "detail": "found in parent thread"})
+                    logger.info(
+                        "orchestrator.packet_received",
+                        extra={
+                            "node_uid": self.uid,
+                            "target_thread_id": target_thread_id,
+                            "detail": "found in parent thread",
+                        },
+                    )
                 else:
-                    logger.info("orchestrator.packet_received", extra={"node_uid": self.uid, "target_thread_id": target_thread_id, "detail": "found in same thread"})
+                    logger.info(
+                        "orchestrator.packet_received",
+                        extra={
+                            "node_uid": self.uid,
+                            "target_thread_id": target_thread_id,
+                            "detail": "found in same thread",
+                        },
+                    )
             else:
-                logger.warning("orchestrator.packet_received", extra={"node_uid": self.uid, "detail": "work plan owner not found, falling back to response thread"})
+                logger.warning(
+                    "orchestrator.packet_received",
+                    extra={
+                        "node_uid": self.uid,
+                        "detail": "work plan owner not found, falling back to response thread",
+                    },
+                )
             return target_thread_id or response_thread_id
         except Exception as e:
-            logger.error("orchestrator.packet_received", extra={"node_uid": self.uid, "error": str(e), "detail": "error during thread resolution"})
+            logger.error(
+                "orchestrator.packet_received",
+                extra={
+                    "node_uid": self.uid,
+                    "error": str(e),
+                    "detail": "error during thread resolution",
+                },
+            )
             return response_thread_id
 
-    def _find_items_for_task(self, thread_id: str, correlation_task_id: str) -> List[str]:
+    def _find_items_for_task(self, thread_id: str, correlation_task_id: str) -> list[str]:
         """
         Find work item IDs that match the given correlation task ID.
-        
+
         Args:
             thread_id: Thread containing the work plan
             correlation_task_id: Task ID to search for
-        
+
         Returns:
             List of work item IDs that have delegations matching the task ID
         """
         changed_item_ids = []
         plan = self.workspaces.load_work_plan(thread_id, self.uid)
-        
+
         if plan:
             for item in plan.items.values():
                 if item.result and item.result.delegations:
@@ -414,13 +495,13 @@ class OrchestratorNode(
                         if exchange.task_id == correlation_task_id:
                             changed_item_ids.append(item.id)
                             break  # Found match, move to next item
-        
+
         return changed_item_ids
 
     def _handle_new_work(self, task: Task) -> None:
         """
         Handle new work request.
-        
+
         Sets up thread and workspace context. Orchestration runs in batch processing phase.
         This ensures all packets are processed before orchestration begins.
         """
@@ -430,9 +511,7 @@ class OrchestratorNode(
         thread_id = task.thread_id
         if not thread_id:
             thread = self.threads.create_root_thread(
-                title="Orchestrated Work",
-                objective=task.content[:100],
-                initiator=self.uid
+                title="Orchestrated Work", objective=task.content[:100], initiator=self.uid
             )
             thread_id = thread.thread_id
             # Update task with the new thread_id
@@ -450,7 +529,7 @@ class OrchestratorNode(
         self._record_trigger(
             thread_id=thread_id,
             reason=CycleTriggerReason.NEW_REQUEST,
-            changed_items=[]  # No specific items for new requests
+            changed_items=[],  # No specific items for new requests
         )
 
         # ✅ Orchestration will run in the batch processing loop
@@ -463,43 +542,55 @@ class OrchestratorNode(
     def _resolve_cycle_content(self, thread_id: str) -> str:
         """
         Get the original user request for reference across all cycles.
-        
+
         With focused prompts now handling cycle-specific instructions,
         this method preserves the original request for context.
-        
+
         Args:
             thread_id: Thread ID
-            
+
         Returns:
             Original user request or empty string
         """
         # Return the original request (don't clear it - keep for all cycles)
         return self.workspaces.get_variable(thread_id, "_current_request", "") or ""
 
-    def _run_orchestration_cycle(self, cycle: PendingCycle, content: str) -> AgentResult:
+    async def _run_orchestration_cycle(self, cycle: PendingCycle, content: str) -> AgentResult:
         """
         Run a planning and execution cycle.
-        
+
         Uses PlanAndExecuteStrategy with orchestration tools.
         Returns AgentResult with the orchestration outcome.
-        
+
         Args:
             cycle: PendingCycle containing thread_id, reason, and changed_items
             content: Orchestration content (user request or guidance message)
         """
-        logger.info("orchestrator.cycle_start", extra={"node_uid": self.uid, "thread_id": cycle.thread_id, "trigger": cycle.reason.value, "changed_items": cycle.changed_items or []})
+        logger.info(
+            "orchestrator.cycle_start",
+            extra={
+                "node_uid": self.uid,
+                "thread_id": cycle.thread_id,
+                "trigger": cycle.reason.value,
+                "changed_items": cycle.changed_items or [],
+            },
+        )
 
-        return self._run_orchestration_cycle_traced(cycle, content)
+        return await self._run_orchestration_cycle_traced(cycle, content)
 
-    def _run_orchestration_cycle_traced(self, cycle: PendingCycle, content: str) -> AgentResult:
+    async def _run_orchestration_cycle_traced(
+        self, cycle: PendingCycle, content: str
+    ) -> AgentResult:
         with self._tracing.trace_node(
             node_uid=f"{self.uid}/cycle/{cycle.thread_id[:8]}",
             node_type="orchestration_cycle",
             display_name=f"Orchestration: {cycle.reason.value}",
         ):
-            return self._run_orchestration_cycle_inner(cycle, content)
+            return await self._run_orchestration_cycle_inner(cycle, content)
 
-    def _run_orchestration_cycle_inner(self, cycle: PendingCycle, content: str) -> AgentResult:
+    async def _run_orchestration_cycle_inner(
+        self, cycle: PendingCycle, content: str
+    ) -> AgentResult:
         # Build conversation context
         messages = self._build_context_messages(cycle.thread_id, content)
 
@@ -523,26 +614,25 @@ class OrchestratorNode(
             node_uid=self.uid,
             thread_id=cycle.thread_id,
             get_workload_service=self.get_workload_service,  # Clean dependency injection
-            context_builder=context_builder  # For recording phase transitions
+            context_builder=context_builder,  # For recording phase transitions
             # Uses default PhaseIterationLimits (all phases = 10 iterations)
         )
-        
+
         # Build rich orchestrator context with trigger information
         trigger = CycleTrigger(
             reason=cycle.reason,
             description=f"Orchestration cycle: {cycle.reason.value}",
             new_user_message=content if cycle.reason == CycleTriggerReason.NEW_REQUEST else None,
             response_task_ids=[],  # Task IDs not needed currently
-            changed_items=cycle.changed_items
+            changed_items=cycle.changed_items,
         )
         orch_context = context_builder.build_context(
-            trigger=trigger,
-            phase_state=phase_provider.get_phase_context()
+            trigger=trigger, phase_state=phase_provider.get_phase_context()
         )
-        
+
         # Store context for phase provider to access via dynamic context messages
         phase_provider._current_orch_context = orch_context
-        
+
         # Store user request for focused prompts
         phase_provider.set_current_user_request(content)
 
@@ -552,13 +642,12 @@ class OrchestratorNode(
             strategy_type=StrategyType.PLAN_AND_EXECUTE.value,
             system_message=self._build_complete_system_message(),
             max_steps=self.max_rounds,
-            phase_provider=phase_provider
+            phase_provider=phase_provider,
         )
 
         # Configure execution
         config = AgentConfig(
-            execution_mode=ExecutionMode.AUTO,
-            executor_config=ExecutorConfig.create_balanced()
+            execution_mode=ExecutionMode.AUTO, executor_config=ExecutorConfig.create_balanced()
         )
 
         # Ensure all phase provider tools are available to the executor
@@ -572,11 +661,7 @@ class OrchestratorNode(
             strategy.all_tools[tool.name] = tool
 
         # Run agent
-        result = self.run_agent(
-            messages=messages,
-            strategy=strategy,
-            config=config
-        )
+        result = await self.run_agent(messages=messages, strategy=strategy, config=config)
 
         # Create AgentResult directly with the information we need
         agent_result = AgentResult(
@@ -587,8 +672,10 @@ class OrchestratorNode(
             error=result.get("error"),
             reasoning=result.get("reasoning", ""),
             execution_metadata=result.get("metadata", {}),
-            artifacts=result.get("artifacts", []) if isinstance(result.get("artifacts"), list) else [],
-            metrics=result.get("metrics", {})
+            artifacts=result.get("artifacts", [])
+            if isinstance(result.get("artifacts"), list)
+            else [],
+            metrics=result.get("metrics", {}),
         )
 
         # Add agent result to workspace
@@ -597,23 +684,25 @@ class OrchestratorNode(
         # Display work plan snapshot
         self._print_work_plan_snapshot(cycle.thread_id)
 
-        logger.info("orchestrator.cycle_end", extra={"node_uid": self.uid, "thread_id": cycle.thread_id})
+        logger.info(
+            "orchestrator.cycle_end", extra={"node_uid": self.uid, "thread_id": cycle.thread_id}
+        )
 
         return agent_result
 
-    def _build_context_messages(self, thread_id: str, content: str) -> List[ChatMessage]:
+    def _build_context_messages(self, thread_id: str, content: str) -> list[ChatMessage]:
         """
         Build STATIC context messages (set once per orchestration cycle).
-        
+
         With the focused prompt system, this now provides minimal static context:
         - Conversation history: Public user messages from graph state
         - Original user request: For reference across all cycles
-        
+
         Phase-specific context is now handled by the phase provider:
         - Adjacent nodes: Added per phase by get_phase_static_context()
         - Work plan: Added dynamically by get_dynamic_context_messages()
         - Focused prompts: Added by build_focused_prompt()
-        
+
         Returns:
             List of static ChatMessage objects
         """
@@ -643,88 +732,95 @@ class OrchestratorNode(
     def _build_adjacency_summary(self) -> str:
         """
         Build a comprehensive summary of delegable adjacent nodes.
-        
+
         Respects orchestrator's delegation policy - only shows nodes that
         can receive delegated work (excludes finalization path nodes).
-        
+
         Provides enough detail for informed delegation decisions.
         Shows description and raw skills data without parsing.
-        
+
         Returns:
             Formatted string with node info and skills
         """
         try:
             # Get orchestrator's delegation policy
             delegation_policy = self._create_delegation_policy()
-            
+
             # Get all adjacent nodes and filter by policy
             all_adjacent = self.get_adjacent_nodes()
             delegable_nodes = delegation_policy.filter_delegable_nodes(all_adjacent)
-            
+
             if not delegable_nodes:
                 return "No delegable nodes available."
 
             lines = ["Available nodes for delegation:\n"]
-            
+
             for uid, card in delegable_nodes.items():
                 lines.append(f"## {card.name} (uid: {uid})")
                 lines.append(f"   Type: {card.type_key}")
                 lines.append(f"   Description: {card.description}")
-                
+
                 # Skills - Show raw data as-is
                 if card.skills:
                     lines.append(f"   Skills: {card.skills}")
-                
+
                 lines.append("")  # Blank line between nodes
-            
+
             return "\n".join(lines)
-            
+
         except Exception as e:
-            logger.error("orchestrator.cycle_start", extra={"node_uid": self.uid, "error": str(e), "detail": "error building adjacency summary"})
+            logger.error(
+                "orchestrator.cycle_start",
+                extra={
+                    "node_uid": self.uid,
+                    "error": str(e),
+                    "detail": "error building adjacency summary",
+                },
+            )
             # Fallback: show all adjacent nodes
             adjacent_nodes = self.get_adjacent_nodes()
             if not adjacent_nodes:
                 return "No adjacent nodes available."
-            
+
             lines = ["Available nodes (fallback - all adjacent):\n"]
             for uid, card in adjacent_nodes.items():
                 lines.append(f"## {card.name} (uid: {uid})")
                 lines.append("")
-            
+
             return "\n".join(lines)
 
     # NOTE: _build_workspace_summary and _build_plan_snapshot moved to
     # OrchestratorPhaseProvider as _build_workspace_summary_internal and
     # _build_plan_snapshot_internal to support dynamic context refresh
 
-    def _get_final_orchestration_result(self, thread_id: str) -> Optional[AgentResult]:
+    def _get_final_orchestration_result(self, thread_id: str) -> AgentResult | None:
         """
         Get the final orchestration result from the completed synthesis phase.
-        
+
         The synthesis phase should have:
         1. Called workplan.summarize tool
         2. Returned AgentFinish with the LLM's summary
         3. Created an AgentResult with that summary as content
-        
+
         We retrieve the most recent successful result from this orchestrator.
         """
         results = self.workspaces.get_results(thread_id)
-        
+
         # Find the most recent result from this orchestrator
         for result in reversed(results):
             if result.agent_id == self.uid:
                 return result
-        
+
         return None
 
     def _finalize_completed_work(self, thread_id: str, agent_result: AgentResult) -> None:
         """
         Finalize completed orchestration work.
-        
+
         Args:
             thread_id: Thread ID
             agent_result: Final orchestration result to route
-        
+
         Note:
             No idempotency check needed - caller (batch processing) already
             ensures this is called once per thread per batch, and only when
@@ -739,12 +835,12 @@ class OrchestratorNode(
         else:
             self._route_to_finalizer(thread_id, agent_result)
 
-    def _send_response(self, thread_id: str, agent_result: AgentResult, original_task: Task) -> None:
+    def _send_response(
+        self, thread_id: str, agent_result: AgentResult, original_task: Task
+    ) -> None:
         """Send response using original task info."""
         response_task = Task.respond_success(
-            original_task=original_task,
-            result=agent_result,
-            processed_by=self.uid
+            original_task=original_task, result=agent_result, processed_by=self.uid
         )
 
         destination = original_task.response_to or original_task.created_by
@@ -771,51 +867,82 @@ class OrchestratorNode(
                 should_respond=False,
                 thread_id=thread_id,
                 created_by=self.uid,
-                processed_by=self.uid
+                processed_by=self.uid,
             )
 
             self.send_task(next_hop_uid, task)
-        except Exception as e:
+        except Exception:
             pass
 
     def _print_work_plan_snapshot(self, thread_id: str) -> None:
         """Print a compact snapshot of the current work plan."""
         service = self.workspaces
         plan = service.load_work_plan(thread_id, self.uid)
-        
+
         if not plan or not plan.items:
             return
-        
+
         status = service.get_work_plan_status(thread_id, self.uid)
-        
-        logger.info("phase.transition", extra={"node_uid": self.uid, "thread_id": thread_id, "detail": "work_plan_final", "total_items": status.total_items})
-        
-        logger.info("phase.transition", extra={"node_uid": self.uid, "thread_id": thread_id, "pending_items": status.pending_items, "in_progress_items": status.in_progress_items, "done_items": status.done_items, "failed_items": status.failed_items})
-        
+
+        logger.info(
+            "phase.transition",
+            extra={
+                "node_uid": self.uid,
+                "thread_id": thread_id,
+                "detail": "work_plan_final",
+                "total_items": status.total_items,
+            },
+        )
+
+        logger.info(
+            "phase.transition",
+            extra={
+                "node_uid": self.uid,
+                "thread_id": thread_id,
+                "pending_items": status.pending_items,
+                "in_progress_items": status.in_progress_items,
+                "done_items": status.done_items,
+                "failed_items": status.failed_items,
+            },
+        )
+
         if status.blocked_items > 0 or status.waiting_items > 0:
-            logger.info("phase.transition", extra={"node_uid": self.uid, "thread_id": thread_id, "blocked_items": status.blocked_items, "waiting_items": status.waiting_items})
-        
+            logger.info(
+                "phase.transition",
+                extra={
+                    "node_uid": self.uid,
+                    "thread_id": thread_id,
+                    "blocked_items": status.blocked_items,
+                    "waiting_items": status.waiting_items,
+                },
+            )
+
         # Show ALL items compactly
-        for status in [WorkItemStatus.PENDING, WorkItemStatus.IN_PROGRESS, WorkItemStatus.DONE, WorkItemStatus.FAILED]:
+        for status in [
+            WorkItemStatus.PENDING,
+            WorkItemStatus.IN_PROGRESS,
+            WorkItemStatus.DONE,
+            WorkItemStatus.FAILED,
+        ]:
             items = plan.get_items_by_status(status)
             if not items:
                 continue
-            
+
             for item in items:
                 status_icon = {
                     WorkItemStatus.PENDING: "⏸️",
                     WorkItemStatus.IN_PROGRESS: "🔄",
                     WorkItemStatus.DONE: "✅",
-                    WorkItemStatus.FAILED: "❌"
+                    WorkItemStatus.FAILED: "❌",
                 }.get(status, "❓")
-                
+
                 # Compact one-line per item
                 kind = "local" if item.kind == WorkItemKind.LOCAL else f"→{item.assigned_uid}"
                 item_line = f"{status_icon} {item.title[:50]}"
                 if len(item.title) > 50:
                     item_line += "..."
                 item_line += f" ({kind})"
-                
+
                 # Add dependency info
                 if item.dependencies:
                     completed_deps = plan.get_completed_item_ids()
@@ -823,7 +950,11 @@ class OrchestratorNode(
                     for dep_id in item.dependencies:
                         dep_item = plan.items.get(dep_id)
                         if dep_item:
-                            dep_title = dep_item.title[:20] + "..." if len(dep_item.title) > 20 else dep_item.title
+                            dep_title = (
+                                dep_item.title[:20] + "..."
+                                if len(dep_item.title) > 20
+                                else dep_item.title
+                            )
                             if dep_id in completed_deps:
                                 dep_status.append(f"✓{dep_title}")
                             else:
@@ -832,46 +963,74 @@ class OrchestratorNode(
                             # Fallback if dependency not found
                             dep_status.append(f"?{dep_id}")
                     item_line += f" [depends on: {', '.join(dep_status)}]"
-                
+
                 # Show delegation history if present
                 if item.result and item.result.delegations:
                     delegation_count = len(item.result.delegations)
                     pending_count = sum(1 for ex in item.result.delegations if ex.is_pending)
-                    unprocessed_count = sum(1 for ex in item.result.delegations if ex.needs_attention)
-                    
+                    unprocessed_count = sum(
+                        1 for ex in item.result.delegations if ex.needs_attention
+                    )
+
                     if delegation_count == 1:
                         # Single exchange - show query and response
                         ex = item.result.delegations[0]
-                        query_preview = ex.query[:80].replace('\n', ' ')
-                        item_line += f"\n      📤 Q: {query_preview}{'...' if len(ex.query) > 80 else ''}"
-                        
+                        query_preview = ex.query[:80].replace("\n", " ")
+                        item_line += (
+                            f"\n      📤 Q: {query_preview}{'...' if len(ex.query) > 80 else ''}"
+                        )
+
                         if ex.is_pending:
                             item_line += f"\n      ⏳ Waiting for response from {ex.delegated_to}"
                         elif ex.needs_attention:
-                            resp_preview = ex.response_content[:100].replace('\n', ' ')
-                            item_line += f"\n      🔔 A: {resp_preview}{'...' if len(ex.response_content) > 100 else ''}"
+                            resp_preview = ex.response_content[:100].replace("\n", " ")
+                            item_line += (
+                                f"\n      🔔 A: {resp_preview}"
+                                f"{'...' if len(ex.response_content) > 100 else ''}"
+                            )
                         else:
-                            resp_preview = ex.response_content[:100].replace('\n', ' ')
-                            item_line += f"\n      ✓ A: {resp_preview}{'...' if len(ex.response_content) > 100 else ''}"
+                            resp_preview = ex.response_content[:100].replace("\n", " ")
+                            item_line += (
+                                f"\n      ✓ A: {resp_preview}"
+                                f"{'...' if len(ex.response_content) > 100 else ''}"
+                            )
                     else:
                         # Multiple exchanges - show summary and each turn
-                        item_line += f"\n      💬 {delegation_count} turns ({unprocessed_count}🔔 need attention, {pending_count}⏳ pending)"
+                        item_line += (
+                            f"\n      💬 {delegation_count} turns "
+                            f"({unprocessed_count}🔔 need attention, {pending_count}⏳ pending)"
+                        )
                         for i, ex in enumerate(item.result.delegations):
-                            query_preview = ex.query[:60].replace('\n', ' ')
-                            item_line += f"\n      [{i}] Q: {query_preview}{'...' if len(ex.query) > 60 else ''}"
-                            
+                            query_preview = ex.query[:60].replace("\n", " ")
+                            item_line += (
+                                f"\n      [{i}] Q: {query_preview}"
+                                f"{'...' if len(ex.query) > 60 else ''}"
+                            )
+
                             if ex.is_pending:
                                 item_line += f"\n          ⏳ Waiting for {ex.delegated_to}"
                             elif ex.needs_attention:
-                                resp_preview = ex.response_content[:80].replace('\n', ' ')
-                                item_line += f"\n          🔔 A: {resp_preview}{'...' if len(ex.response_content) > 80 else ''}"
+                                resp_preview = ex.response_content[:80].replace("\n", " ")
+                                item_line += (
+                                    f"\n          🔔 A: {resp_preview}"
+                                    f"{'...' if len(ex.response_content) > 80 else ''}"
+                                )
                             else:
-                                resp_preview = ex.response_content[:80].replace('\n', ' ')
-                                item_line += f"\n          ✓ A: {resp_preview}{'...' if len(ex.response_content) > 80 else ''}"
-                
-                logger.info("phase.transition", extra={"node_uid": self.uid, "thread_id": thread_id, "item_line": item_line})
-        
-        logger.info("phase.transition", extra={"node_uid": self.uid, "thread_id": thread_id, "detail": "work_plan_final_end"})
+                                resp_preview = ex.response_content[:80].replace("\n", " ")
+                                item_line += (
+                                    f"\n          ✓ A: {resp_preview}"
+                                    f"{'...' if len(ex.response_content) > 80 else ''}"
+                                )
+
+                logger.info(
+                    "phase.transition",
+                    extra={"node_uid": self.uid, "thread_id": thread_id, "item_line": item_line},
+                )
+
+        logger.info(
+            "phase.transition",
+            extra={"node_uid": self.uid, "thread_id": thread_id, "detail": "work_plan_final_end"},
+        )
 
     @staticmethod
     def _get_orchestrator_behavior_message() -> str:
@@ -902,39 +1061,37 @@ Key principles:
         else:
             # No specialization provided
             return behavior_msg
-    
+
     def _get_or_create_context_builder(self, thread_id: str) -> OrchestratorContextBuilder:
         """
         Lazy initialization of context builder per thread.
-        
+
         Context builder maintains state (progress tracking, history) across cycles,
         so we create one per thread and reuse it.
-        
+
         Args:
             thread_id: Thread identifier
-        
+
         Returns:
             OrchestratorContextBuilder for this thread
         """
         if thread_id not in self._context_builders:
             self._context_builders[thread_id] = OrchestratorContextBuilder(
-                get_workload_service=lambda: self.workspaces,
-                node_uid=self.uid,
-                thread_id=thread_id
+                get_workload_service=lambda: self.workspaces, node_uid=self.uid, thread_id=thread_id
             )
         return self._context_builders[thread_id]
 
     def _create_delegation_policy(self) -> DelegationPolicy:
         """
         Create orchestrator's delegation policy.
-        
+
         ORCHESTRATOR'S CHOICE: Exclude finalization path nodes from delegation.
-        
+
         This is where the orchestrator makes the decision about which nodes
         can receive delegated work. The policy encapsulates the business rule:
         "Don't delegate to finalization path nodes because I route to them
         programmatically when work completes."
-        
+
         Returns:
             OrchestratorDelegationPolicy or fallback to permissive policy
         """
@@ -943,27 +1100,34 @@ Key principles:
             context = self.get_context()
             topology = context.topology if context else None
             adjacent_nodes = self.get_adjacent_nodes()
-            
+
             # Create orchestrator-specific policy
-            return OrchestratorDelegationPolicy(
-                topology=topology,
-                adjacent_nodes=adjacent_nodes
-            )
-            
+            return OrchestratorDelegationPolicy(topology=topology, adjacent_nodes=adjacent_nodes)
+
         except Exception as e:
-            logger.error("orchestrator.cycle_start", extra={"node_uid": self.uid, "error": str(e), "detail": "error creating delegation policy"})
-            logger.warning("orchestrator.cycle_start", extra={"node_uid": self.uid, "detail": "falling back to permissive policy"})
-            
+            logger.error(
+                "orchestrator.cycle_start",
+                extra={
+                    "node_uid": self.uid,
+                    "error": str(e),
+                    "detail": "error creating delegation policy",
+                },
+            )
+            logger.warning(
+                "orchestrator.cycle_start",
+                extra={"node_uid": self.uid, "detail": "falling back to permissive policy"},
+            )
+
             # Fallback: Allow all adjacent nodes
             return PermissiveDelegationPolicy(self.get_adjacent_nodes())
 
-    def _get_original_task(self, thread_id: str) -> Optional[Task]:
+    def _get_original_task(self, thread_id: str) -> Task | None:
         """
         Get the original task that started this orchestration thread.
-        
+
         Args:
             thread_id: Thread ID to get original task for
-            
+
         Returns:
             Original task or None if not found
         """
@@ -981,5 +1145,5 @@ Key principles:
                 pass
 
             return None
-        except Exception as e:
+        except Exception:
             return None

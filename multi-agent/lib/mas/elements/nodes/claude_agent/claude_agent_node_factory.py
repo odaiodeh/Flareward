@@ -2,10 +2,11 @@
 Claude Agent Node Factory
 """
 
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
-from .config import ClaudeAgentNodeConfig
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .claude_agent_node import ClaudeAgentNode
+from .config import ClaudeAgentNodeConfig
 from .identifiers import Identifier
 
 
@@ -54,10 +55,9 @@ class ClaudeAgentNodeFactory(BaseFactory[ClaudeAgentNodeConfig, ClaudeAgentNode]
                 execution_holder=execution_holder,
                 shared_storage=shared_storage,
                 # Integration
-                tools=deps.pop("tools"),
-                mcp_providers=deps.pop("providers"),
-                retriever=deps.pop("retriever"),
-                sandbox=deps.pop("sandbox", None),
+                tools=deps.get("tools"),
+                mcp_providers=deps.get("providers"),
+                retriever=deps.get("retriever"),
                 retries=cfg.retries,
             )
         except Exception as e:

@@ -83,7 +83,7 @@ Injection chain:
 container.py → WorkflowSessionFactory(element_registry, engine_name, auth_service, file_retrieve_tool_factory)
   → factory.build_session(record, spec)
     → ElementDeps(execution_ctx=holder, auth_service, file_retrieve_tool_factory)
-    → SessionElementBuilder.build(spec, deps) → SessionRegistry
+    → SessionElementBuilder.build(spec, deps) → ElementInstances
 ```
 
 Build order (topological): Auth → Provider → LLM → Retriever → Condition → Tool → Node

@@ -6,37 +6,52 @@ build-backend = "setuptools.build_meta"
 name = "mas"
 version = "0.1.0"
 description = "MAS — Multi-Agent System orchestration engine"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 license = {text = "Proprietary"}
 
 dependencies = [
-    "pydantic",
+    "pydantic>=2.12",
     "pydantic-core",
     "pyyaml",
     "python-dotenv",
     "typer",
+    "runengine>=0.2,<0.3",
+    "jsonschema>=4.23",
 ]
 
 [project.optional-dependencies]
+api = [
+    "fastapi>=0.115", "uvicorn>=0.30", "httpx>=0.28", "itsdangerous>=2.2",
+    "pydantic-settings>=2.7", "pymongo>=4.11", "redis>=5",
+    "cryptography>=43",
+]
+blueprints = ["a2a-sdk>=0.3,<1"]
+credentials = ["authlib>=1.3", "cryptography>=43", "pymongo>=4.11"]
+dev = ["mas[api,blueprints,credentials,temporal,mcp,telemetry,openai,gemini,tools]", "pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.9", "mypy>=2,<3"]
+e2e = ["mas[dev]", "runengine[kubernetes,openshell]>=0.2,<0.3", "openshell>=0.0.104"]
 flask = ["flask", "flask-cors", "gunicorn"]
-mongo = ["pymongo"]
-temporal = ["temporalio"]
+mongo = ["pymongo>=4.11"]
+temporal = ["runengine[temporal]>=0.2,<0.3", "temporalio>=1.35,<2"]
 langgraph = ["langgraph", "langchain", "langchain-core", "deepagents"]
-llms = ["openai", "langchain-openai", "langchain-google-genai"]
-tools = ["paramiko", "openshift-client", "mcp>=1.0,<2", "httptools", "safehttpx", "html-to-markdown", "yarl", "anyio", "authlib"]
+openai = ["openai>=2,<3"]
+gemini = ["google-genai>=2.34,<3"]
+llms = ["mas[openai,gemini]", "langchain-openai", "langchain-google-genai"]
+mcp = ["mcp>=1.30,<2", "yarl>=1.20"]
+tools = ["mas[mcp]", "paramiko", "openshift-client", "httptools", "safehttpx", "html-to-markdown", "anyio", "authlib"]
 a2a = ["a2a-sdk[all]<1.0", "typing-inspection"]
 claude = ["claude-agent-sdk>=0.2.0", "anthropic[vertex]>=0.40.0"]
-openshell = ["openshell>=0.0.59"]
-rag = ["jsonschema"]
+rag = ["jsonschema", "httpx>=0.28"]
 redis = ["redis"]
 tracing = ["langfuse>=3.0.0"]
+telemetry = ["opentelemetry-sdk>=1.45,<2", "opentelemetry-exporter-otlp-proto-http>=1.45,<2"]
 all = [
-    "mas[flask,mongo,temporal,langgraph,llms,tools,a2a,claude,rag,redis,openshell,tracing]",
+    "mas[api,credentials,flask,mongo,temporal,langgraph,llms,tools,a2a,claude,rag,redis,tracing,telemetry]",
 ]
 test = ["pytest>=6.0"]
 
 [project.scripts]
 mas = "bootstrap.cli:app"
+mas-platform = "bootstrap.http_cli:main"
 
 # ---------------------------------------------------------------------------
 # Package discovery
@@ -53,6 +68,9 @@ mas = "bootstrap.cli:app"
 where = ["lib", "adapters", "."]
 include = ["mas*", "inbound*", "outbound*", "temporal*", "bootstrap*", "config*", "run*"]
 
+[tool.setuptools.package-data]
+config = ["policies/*.json"]
+
 # ---------------------------------------------------------------------------
 # Pytest
 # ---------------------------------------------------------------------------
@@ -61,13 +79,13 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-pythonpath = ["lib", "adapters", "."]
+pythonpath = ["lib", "adapters", ".", "tests"]
 addopts = "-v --tb=short --strict-markers --disable-warnings --color=yes --import-mode=importlib"
 console_output_style = "progress"
 junit_family = "xunit2"
 minversion = "6.0"
-timeout = 300
-timeout_method = "thread"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
@@ -90,3 +108,10 @@ markers = [
     "performance: Performance and load tests",
     "asyncio: Async tests (pytest-asyncio)",
 ]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

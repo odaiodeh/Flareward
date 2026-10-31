@@ -1,11 +1,11 @@
-import requests
-from typing import Any, Optional
+from typing import Any
 
-from mas.elements.retrievers.common.base_retriever import BaseRetriever
-from mas.elements.retrievers.common.protocols import RetrievalIdentity
-from pydantic import HttpUrl
+import httpx
 from global_utils.constants import INTERNAL_AUTH_HEADER
+from pydantic import HttpUrl
 
+from mas.application.ports.retrieval import BaseRetriever
+from mas.application.ports.retrieval_identity import RetrievalIdentity
 
 
 class SlackRetriever(BaseRetriever):
@@ -22,17 +22,20 @@ class SlackRetriever(BaseRetriever):
         top_k_results: int,
         threshold: float,
         timeout: float = 30.0,
-        identity: Optional[RetrievalIdentity] = None,
+        identity: RetrievalIdentity | None = None,
+        client: httpx.AsyncClient | None = None,
     ):
         self.api_url = str(api_url)
         self.top_k = top_k_results
         self.threshold = threshold
         self.timeout = timeout
         self._identity = identity
+        self._owns_client = client is None
+        self._client = client or httpx.AsyncClient(timeout=timeout)
 
     _AUTH_HEADER = INTERNAL_AUTH_HEADER
 
-    def retrieve(self, query: str) -> Any:
+    async def retrieve(self, query: str) -> Any:
         user_id = self._identity.identity_id if self._identity else ""
 
         params = {
@@ -42,11 +45,8 @@ class SlackRetriever(BaseRetriever):
 
         headers = {self._AUTH_HEADER: user_id} if user_id else {}
 
-        resp = requests.get(
-            self.api_url,
-            params=params,
-            headers=headers,
-            timeout=self.timeout,
+        resp = await self._client.get(
+            self.api_url, params=params, headers=headers, timeout=self.timeout
         )
         resp.raise_for_status()
         data = resp.json()
@@ -55,3 +55,7 @@ class SlackRetriever(BaseRetriever):
         if isinstance(data, list):
             return [item for item in data if item.get("score", 0.0) >= self.threshold]
         return data
+
+    async def aclose(self) -> None:
+        if self._owns_client:
+            await self._client.aclose()

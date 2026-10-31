@@ -1,0 +1,246 @@
+diff --git a/pyproject.toml b/pyproject.toml
+index 4dbeb37..3eafd97 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -29,7 +29,7 @@ dependencies = [
+ 
+ [project.optional-dependencies]
+ temporal = ["temporalio>=1.31.0"]
+-openshell = ["openshell>=0.0.50"]
++openshell = ["openshell>=0.0.104"]
+ celery = ["celery[redis]>=5.6.3"]
+ kubernetes = ["kubernetes>=28.0"]
+ postgres = ["asyncpg>=0.29.0"]
+diff --git a/src/runengine/adapters/invocation/openshell/README.md b/src/runengine/adapters/invocation/openshell/README.md
+index 28f5754..4a30ec3 100644
+--- a/src/runengine/adapters/invocation/openshell/README.md
++++ b/src/runengine/adapters/invocation/openshell/README.md
+@@ -117,3 +117,14 @@ open grants prevent normal release and remain discoverable for recovery.
+ 
+ See [ownership contracts](../../../SCOPES.md) for durable worker setup, serialization,
+ closing order and administrative reconciliation.
++
++## Certificate-authenticated gateways
++
++Install `runengine[openshell]` with OpenShell SDK 0.0.104 or newer. Configure
++`OpenShellRunnerConfig(tls=OpenShellTLSConfig(ca_path="ca.crt",
++cert_path="client.crt", key_path="client.key"), ...)` for a gateway requiring
++client certificates. Certificate and key paths must be supplied together; paths
++refer to files on the dispatcher, not private key contents or receiver files.
++The adapter translates these portable values to the SDK TLS configuration for
++both ordinary invocations and retained environments. Omitted TLS configuration
++preserves the previous wire shape and SDK constructor call.
+diff --git a/src/runengine/adapters/invocation/openshell/environment.py b/src/runengine/adapters/invocation/openshell/environment.py
+index 2a1ac0e..bc7459a 100644
+--- a/src/runengine/adapters/invocation/openshell/environment.py
++++ b/src/runengine/adapters/invocation/openshell/environment.py
+@@ -8,6 +8,7 @@ import grpc
+ from openshell import SandboxClient
+ from openshell._proto import openshell_pb2
+ 
++from runengine.adapters.invocation.openshell.connection import create_client
+ from runengine.adapters.invocation.openshell.executor import _WORKER_CMD, OpenShellExecutor
+ from runengine.core.completion import await_completion
+ from runengine.invocation.codec import decode_invocation
+@@ -19,11 +20,11 @@ from runengine.invocation.models import InvocationOutcome, InvocationRequest
+ class OpenShellEnvironmentDriver:
+     def __init__(self, config: OpenShellRunnerConfig) -> None:
+         self._config = OpenShellRunnerConfig.model_validate(config)
+-        if config.sandbox_id:
++        if self._config.sandbox_id:
+             raise ValueError("Managed environments cannot adopt sandbox_id")
+-        if not config.image:
++        if not self._config.image:
+             raise ValueError("Retained environments require a managed image")
+-        self._client = SandboxClient(config.endpoint)
++        self._client = create_client(self._config, SandboxClient)
+ 
+     def resource_name(self, ownership_key: str) -> str:
+         # The gateway reserves part of its DNS name budget for its own suffix.
+diff --git a/src/runengine/adapters/invocation/openshell/factory.py b/src/runengine/adapters/invocation/openshell/factory.py
+index ab282c9..7da9b6e 100644
+--- a/src/runengine/adapters/invocation/openshell/factory.py
++++ b/src/runengine/adapters/invocation/openshell/factory.py
+@@ -7,6 +7,7 @@ from typing import Any, ClassVar
+ 
+ from openshell import SandboxClient
+ 
++from runengine.adapters.invocation.openshell.connection import create_client
+ from runengine.adapters.invocation.openshell.environment import OpenShellEnvironmentDriver
+ from runengine.adapters.invocation.openshell.executor import OpenShellExecutor
+ from runengine.invocation.config import OpenShellRunnerConfig
+@@ -28,7 +29,7 @@ class Factory:
+     @classmethod
+     def create(cls, config: OpenShellRunnerConfig) -> OpenShellExecutor:
+         config = OpenShellRunnerConfig.model_validate(config)
+-        client = SandboxClient(config.endpoint)
++        client = create_client(config, SandboxClient)
+         try:
+             return cls.executor_type(
+                 sandbox_client=client,
+diff --git a/src/runengine/invocation/config.py b/src/runengine/invocation/config.py
+index ae3ec12..58c73d3 100644
+--- a/src/runengine/invocation/config.py
++++ b/src/runengine/invocation/config.py
+@@ -9,9 +9,16 @@ Each config maps 1:1 to a Factory in the corresponding runner subpackage.
+ 
+ from __future__ import annotations
+ 
+-from typing import Literal, Self
++from typing import Any, Literal, Self
+ 
+-from pydantic import BaseModel, ConfigDict, Field, model_validator
++from pydantic import (
++    BaseModel,
++    ConfigDict,
++    Field,
++    SerializerFunctionWrapHandler,
++    model_serializer,
++    model_validator,
++)
+ 
+ DEFAULT_CELERY_QUEUE = "runengine-invocations"
+ 
+@@ -123,6 +130,21 @@ class OpenShellPolicy(BaseModel):
+     network_policies: dict[str, OpenShellNetworkRule] = Field(default_factory=dict)
+ 
+ 
++class OpenShellTLSConfig(BaseModel):
++    """Dispatcher-local certificate paths; private key contents never travel in requests."""
++
++    model_config = ConfigDict(extra="forbid", revalidate_instances="always")
++    ca_path: str | None = Field(default=None, min_length=1)
++    cert_path: str | None = Field(default=None, min_length=1)
++    key_path: str | None = Field(default=None, min_length=1)
++
++    @model_validator(mode="after")
++    def paired_identity(self) -> Self:
++        if bool(self.cert_path) != bool(self.key_path):
++            raise ValueError("Client certificate and private key paths must be supplied together")
++        return self
++
++
+ class OpenShellRunnerConfig(ExecutorConfig):
+     """Config for the OpenShell sandbox executor.
+ 
+@@ -138,6 +160,7 @@ class OpenShellRunnerConfig(ExecutorConfig):
+     model_config = ConfigDict(extra="forbid", revalidate_instances="always")
+     runner_type: Literal["openshell"] = "openshell"
+     endpoint: str = Field(min_length=1)
++    tls: OpenShellTLSConfig | None = None
+     image: str | None = None
+     sandbox_id: str | None = None
+     workspace: str = "default"
+@@ -146,6 +169,13 @@ class OpenShellRunnerConfig(ExecutorConfig):
+     env: dict[str, str] | None = None
+     policy: OpenShellPolicy | None = None
+ 
++    @model_serializer(mode="wrap")
++    def omit_unconfigured_tls(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
++        data: dict[str, Any] = handler(self)
++        if self.tls is None:
++            data.pop("tls", None)
++        return data
++
+     @model_validator(mode="after")
+     def validate_sandbox_mode(self) -> Self:
+         if bool(self.image) == bool(self.sandbox_id):
+diff --git a/src/runengine/adapters/invocation/openshell/connection.py b/src/runengine/adapters/invocation/openshell/connection.py
+new file mode 100644
+--- /dev/null
++++ b/src/runengine/adapters/invocation/openshell/connection.py
+@@ -0,0 +1,24 @@
++"""Translate portable certificate paths only at the OpenShell SDK boundary."""
++
++from collections.abc import Callable
++from pathlib import Path
++
++from openshell import SandboxClient, TlsConfig
++
++from runengine.invocation.config import OpenShellRunnerConfig
++
++
++def create_client(
++    config: OpenShellRunnerConfig, factory: Callable[..., SandboxClient]
++) -> SandboxClient:
++    if config.tls is None:
++        return factory(config.endpoint)
++    tls = config.tls
++    return factory(
++        config.endpoint,
++        tls=TlsConfig(
++            ca_path=Path(tls.ca_path) if tls.ca_path else None,
++            cert_path=Path(tls.cert_path) if tls.cert_path else None,
++            key_path=Path(tls.key_path) if tls.key_path else None,
++        ),
++    )
+diff --git a/tests/unit/adapters/test_openshell_tls.py b/tests/unit/adapters/test_openshell_tls.py
+new file mode 100644
+--- /dev/null
++++ b/tests/unit/adapters/test_openshell_tls.py
+@@ -0,0 +1,65 @@
++"""TLS stays an SDK adapter concern and preserves unconfigured wire compatibility."""
++
++from pathlib import Path
++from unittest.mock import Mock
++
++import pytest
++from pydantic import ValidationError
++
++pytest.importorskip("openshell")
++from openshell import TlsConfig
++
++from runengine.adapters.invocation.openshell import environment, factory
++from runengine.invocation.config import OpenShellRunnerConfig, OpenShellTLSConfig
++
++
++def test_tls_paths_round_trip_without_changing_default_payloads():
++    plain = OpenShellRunnerConfig(endpoint="gateway", image="test:image")
++    assert "tls" not in plain.model_dump(mode="json")
++    secured = OpenShellRunnerConfig(
++        endpoint="gateway",
++        image="test:image",
++        tls=OpenShellTLSConfig(ca_path="ca.crt", cert_path="client.crt", key_path="client.key"),
++    )
++    assert OpenShellRunnerConfig.model_validate_json(secured.model_dump_json()) == secured
++    secured.tls.cert_path = None
++    with pytest.raises(ValidationError):
++        OpenShellRunnerConfig.model_validate(secured)
++
++
++@pytest.mark.parametrize("driver", [False, True])
++def test_managed_and_invocation_clients_receive_sdk_tls_paths(monkeypatch, driver):
++    module = environment if driver else factory
++    client = Mock()
++    constructor = Mock(return_value=client)
++    monkeypatch.setattr(module, "SandboxClient", constructor)
++    config = OpenShellRunnerConfig(
++        endpoint="gateway",
++        image="test:image",
++        tls={"ca_path": "ca.crt", "cert_path": "client.crt", "key_path": "client.key"},
++    )
++    owner = module.OpenShellEnvironmentDriver(config) if driver else factory.Factory.create(config)
++    args, kwargs = constructor.call_args
++    assert args == ("gateway",)
++    assert isinstance(kwargs["tls"], TlsConfig)
++    assert kwargs["tls"].ca_path == Path("ca.crt")
++    assert kwargs["tls"].cert_path == Path("client.crt")
++    assert kwargs["tls"].key_path == Path("client.key")
++    owner.close() if driver else owner.clean()
++    client.close.assert_called_once()
++
++
++@pytest.mark.parametrize("identity", [{"cert_path": "client.crt"}, {"key_path": "client.key"}])
++def test_partial_client_identity_is_rejected_before_allocating_a_client(monkeypatch, identity):
++    constructor = Mock()
++    monkeypatch.setattr(factory, "SandboxClient", constructor)
++    with pytest.raises(ValidationError):
++        factory.Factory.create_from_dict(
++            {
++                "runner_type": "openshell",
++                "endpoint": "gateway",
++                "image": "test:image",
++                "tls": identity,
++            }
++        )
++    constructor.assert_not_called()

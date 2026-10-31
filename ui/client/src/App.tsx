@@ -61,8 +61,8 @@ function AppRoutes() {
 
   if (isAgenticRoute || isTeamBlockedRagRoute) {
     return (
-      <AgenticAIProvider>
-        <AgenticLayout>
+      <AgenticLayout>
+        <AgenticAIProvider>
           <Switch>
             <Route path="/agentic-overview" component={AgenticOverview} />
             <Route path="/agentic-ai" component={AgenticWorkflows} />
@@ -72,8 +72,8 @@ function AppRoutes() {
             <Route path="/scheduled-workflows" component={ScheduledWorkflows} />
             <Route path="/templates" component={AgenticTemplates} />
           </Switch>
-        </AgenticLayout>
-      </AgenticAIProvider>
+        </AgenticAIProvider>
+      </AgenticLayout>
     );
   }
 
@@ -140,6 +140,22 @@ function AppContent() {
   );
 }
 
+/** Resource, notification and sharing state belong to one authenticated workspace. */
+function WorkspaceContent() {
+  const { viewMode, selectedTeam } = useView();
+  const { user } = useAuth();
+  const workspaceKey = JSON.stringify([user?.username, viewMode, viewMode === 'team' ? selectedTeam?.id : null]);
+  return (
+    <SharedProvider key={workspaceKey}>
+      <ProjectProvider>
+        <NotificationProvider>
+          <AppContent />
+        </NotificationProvider>
+      </ProjectProvider>
+    </SharedProvider>
+  );
+}
+
 function App() {
   // Set document title
   useEffect(() => {
@@ -149,15 +165,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <SharedProvider>
-          <ViewProvider>
-            <ProjectProvider>
-              <NotificationProvider>
-                <AppContent />
-              </NotificationProvider>
-            </ProjectProvider>
-          </ViewProvider>
-        </SharedProvider>
+        <ViewProvider>
+          <WorkspaceContent />
+        </ViewProvider>
       </AuthProvider>
       <Toaster />
     </ThemeProvider>

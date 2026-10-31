@@ -8,37 +8,47 @@ Tool-call permissions are managed by the HITL system (via a
 mode — the SDK always runs with ``bypassPermissions``.
 """
 
+import asyncio
 import logging
 import os
 import shutil
 import subprocess
 import tempfile
 from copy import deepcopy
-from typing import Optional, Any, List, ClassVar, Dict
+from typing import Any, ClassVar
+
 from claude_agent_sdk import (
-    query, ClaudeAgentOptions, SdkMcpTool, create_sdk_mcp_server,
-    AssistantMessage, ResultMessage, TextBlock,
-    ToolUseBlock, ToolResultBlock,
-    ServerToolUseBlock, ServerToolResultBlock,
+    AssistantMessage,
+    ClaudeAgentOptions,
     HookMatcher,
+    ResultMessage,
+    SdkMcpTool,
+    ServerToolUseBlock,
+    TextBlock,
+    ToolResultBlock,
+    ToolUseBlock,
     UserMessage,
+    create_sdk_mcp_server,
+    query,
 )
-from global_utils.utils.async_bridge import get_async_bridge
+
+from mas.application.agents.approvals import HITLToolGatekeeper
+from mas.application.capabilities.hitl_capable import HITLCapableMixin
+from mas.application.capabilities.iem_capable import IEMCapableMixin
+from mas.application.capabilities.retriever_capable import RetrieverCapableMixin
+from mas.application.capabilities.workload_capable import WorkloadCapableMixin
+from mas.application.elements.node import BaseNode
+from mas.application.ports.tool import BaseTool
+from mas.application.ports.tool_provider import ToolProvider
+from mas.core.async_work import await_owned
 from mas.core.hitl.models import HITLMode, RequestOrigin
-from mas.graph.state.state_view import StateView
-from mas.elements.llms.common.chat.message import ChatMessage, Role
-from mas.elements.nodes.common.base_node import BaseNode
-from mas.elements.nodes.common.capabilities.hitl_capable import HITLCapableMixin
-from mas.elements.nodes.common.capabilities.hitl_gatekeeper import HITLToolGatekeeper
-from mas.elements.nodes.common.capabilities.iem_capable import IEMCapableMixin
-from mas.elements.nodes.common.capabilities.retriever_capable import RetrieverCapableMixin
-from mas.elements.nodes.common.capabilities.workload_capable import WorkloadCapableMixin
-from mas.elements.nodes.common.workload import Task, AgentResult
-from mas.elements.sandboxes.common.base_sandbox import BaseSandbox
-from mas.elements.tools.common.base_tool import BaseTool
-from mas.elements.tools.common.claude_sdk_converter import ClaudeSDKConverter
+from mas.domain.messages import ChatMessage, Role
+from mas.domain.workloads import AgentResult, Task
 from mas.elements.nodes.claude_agent.identifiers import EffortLevel
-from .hitl_hook import HITLHook, CLAUDE_BUILTIN_ACCESS_MODES
+from mas.elements.tools.common.claude_sdk_converter import ClaudeSDKConverter
+from mas.graph.state.state_view import StateView
+
+from .hitl_hook import CLAUDE_BUILTIN_ACCESS_MODES, HITLHook
 
 logger = logging.getLogger(__name__)
 
@@ -71,34 +81,33 @@ class ClaudeAgentNode(
     WRITES: ClassVar[set[str]] = set()
 
     def __init__(
-            self,
-            *,
-            # Auth (Vertex AI)
-            vertex_project_id: str = "",
-            vertex_region: str = "us-east5",
-            # Model
-            model: str = "claude-sonnet-4-6",
-            effort: EffortLevel = EffortLevel.MEDIUM,
-            # Agent behavior
-            system_prompt: str = "",
-            max_turns: Optional[int] = 200,
-            # Skills
-            skills_repos: Optional[Dict[str, str]] = None,
-            cwd: Optional[str] = None,
-            # Advanced
-            env_vars: Optional[Dict[str, str]] = None,
-            # Integration
-            tools: Optional[List[BaseTool]] = None,
-            mcp_providers: Optional[List[Any]] = None,
-            # Runtime context
-            shared_storage: str = "/app/shared",
-            # HITL + execution context (forwarded to HITLCapableMixin)
-            hitl_mode: HITLMode = HITLMode.SKIP,
-            execution_holder: Any = None,
-            # Standard
-            retriever: Any = None,
-            sandbox: Optional[BaseSandbox] = None,
-            **kwargs: Any,
+        self,
+        *,
+        # Auth (Vertex AI)
+        vertex_project_id: str = "",
+        vertex_region: str = "us-east5",
+        # Model
+        model: str = "claude-sonnet-4-6",
+        effort: EffortLevel = EffortLevel.MEDIUM,
+        # Agent behavior
+        system_prompt: str = "",
+        max_turns: int | None = 200,
+        # Skills
+        skills_repos: dict[str, str] | None = None,
+        cwd: str | None = None,
+        # Advanced
+        env_vars: dict[str, str] | None = None,
+        # Integration
+        tools: list[BaseTool] | None = None,
+        mcp_providers: list[ToolProvider] | None = None,
+        # Runtime context
+        shared_storage: str = "/app/shared",
+        # HITL + execution context (forwarded to HITLCapableMixin)
+        hitl_mode: HITLMode = HITLMode.SKIP,
+        execution_holder: Any = None,
+        # Standard
+        retriever: Any = None,
+        **kwargs: Any,
     ):
         super().__init__(
             retriever=retriever,
@@ -116,32 +125,21 @@ class ClaudeAgentNode(
         self._skills_repos = skills_repos or {}
         self._cwd = cwd
         self._env_vars = env_vars or {}
-        self._domain_tools: List[BaseTool] = tools or []
+        self._domain_tools: list[BaseTool] = tools or []
         self._mcp_providers = mcp_providers or []
         self._shared_storage = shared_storage
-        self._sandbox = sandbox
 
         self._max_context_messages = 20
 
-
-    def run(self, state: StateView) -> StateView:
+    async def run(self, state: StateView) -> StateView:
         """Main entry point - process all incoming TaskPackets."""
-        from mas.elements.nodes.common.context_binder import close_tools
 
-        try:
-            self.process_packets(state)
-        finally:
-            close_tools(self._domain_tools)
-            if self._sandbox is not None:
-                try:
-                    self._sandbox.close()
-                except Exception:
-                    pass
+        await self.process_packets(state)
         return state
 
     # ========== TASK PROCESSING ==========
 
-    def handle_task_packet(self, packet) -> None:
+    async def handle_task_packet(self, packet) -> None:
         """Process task by running a Claude Agent SDK session."""
         task = None
         try:
@@ -151,21 +149,29 @@ class ClaudeAgentNode(
             if task.thread_id:
                 self.workspaces.add_task(task.thread_id, task)
 
-            prompt = self._build_prompt(task)
+            prompt = await self._build_prompt(task)
 
-            response_text, execution_metadata = self._execute_claude_session(prompt)
+            response_text, execution_metadata = await self._execute_claude_session(prompt)
 
-            agent_result = self._create_agent_result(
-                response_text, execution_metadata
-            )
+            agent_result = self._create_agent_result(response_text, execution_metadata)
 
             if task.thread_id:
                 self.workspaces.add_result(task.thread_id, agent_result)
 
             self._route_response(task, agent_result, packet)
 
-            duration_s = (execution_metadata.get('duration_ms') or 0) / 1000
-            logger.info("claude.session_completed", extra={"node_uid": self.uid, "turns": execution_metadata.get('num_turns'), "cost_usd": execution_metadata.get('total_cost_usd', 0), "input_tokens": execution_metadata.get('input_tokens', 0), "output_tokens": execution_metadata.get('output_tokens', 0), "duration_s": round(duration_s, 1)})
+            duration_s = (execution_metadata.get("duration_ms") or 0) / 1000
+            logger.info(
+                "claude.session_completed",
+                extra={
+                    "node_uid": self.uid,
+                    "turns": execution_metadata.get("num_turns"),
+                    "cost_usd": execution_metadata.get("total_cost_usd", 0),
+                    "input_tokens": execution_metadata.get("input_tokens", 0),
+                    "output_tokens": execution_metadata.get("output_tokens", 0),
+                    "duration_s": round(duration_s, 1),
+                },
+            )
 
         except Exception as e:
             logger.error("ClaudeAgent %s: Error processing task: %s", self.uid, e)
@@ -183,7 +189,7 @@ class ClaudeAgentNode(
 
     # ========== CONTEXT BUILDING ==========
 
-    def _build_prompt(self, task: Task) -> str:
+    async def _build_prompt(self, task: Task) -> str:
         """Build prompt from task content, workspace history, and retriever."""
         context_parts = []
 
@@ -202,35 +208,27 @@ class ClaudeAgentNode(
                 history.pop()
 
             if history:
-                context_parts.append(
-                    self._format_conversation_history(history)
-                )
+                context_parts.append(self._format_conversation_history(history))
 
-            agent_results_msg = self._build_agent_results_context(
-                task.thread_id
-            )
+            agent_results_msg = self._build_agent_results_context(task.thread_id)
             if agent_results_msg:
                 context_parts.append(agent_results_msg.content)
 
         user_msg = ChatMessage(role=Role.USER, content=task.content)
         if self.retriever:
-            user_msg = self.augment_with_context(user_msg)
+            user_msg = await self.augment_with_context(user_msg)
         context_parts.append(user_msg.content)
 
         return "\n\n".join(context_parts)
 
-    def _format_conversation_history(
-        self, messages: List[ChatMessage]
-    ) -> str:
+    def _format_conversation_history(self, messages: list[ChatMessage]) -> str:
         parts = ["CONVERSATION CONTEXT:"]
         for msg in messages:
             role_label = msg.role.value.upper()
             parts.append(f"[{role_label}]: {msg.content}")
         return "\n".join(parts)
 
-    def _build_agent_results_context(
-        self, thread_id: str
-    ) -> Optional[ChatMessage]:
+    def _build_agent_results_context(self, thread_id: str) -> ChatMessage | None:
         if not thread_id:
             return None
 
@@ -246,26 +244,23 @@ class ClaudeAgentNode(
 
     # ========== CLAUDE SDK EXECUTION ==========
 
-    def _execute_claude_session(
-        self, prompt: str
-    ) -> tuple[str, Dict[str, Any]]:
+    async def _execute_claude_session(self, prompt: str) -> tuple[str, dict[str, Any]]:
         """Execute Claude Agent SDK session synchronously.
 
         Uses AsyncBridge to run the async query() generator.
         Streams text blocks as llm_token events if streaming is active.
         """
-        options = self._build_options()
-        with get_async_bridge() as bridge:
-            return bridge.run(self._async_execute(prompt, options))
+        options = await self._build_options()
+        return await self._async_execute(prompt, options)
 
     async def _async_execute(
-        self, prompt: str, options: "ClaudeAgentOptions"
-    ) -> tuple[str, Dict[str, Any]]:
+        self, prompt: str, options: ClaudeAgentOptions
+    ) -> tuple[str, dict[str, Any]]:
         """Async execution of Claude Agent SDK query."""
         accumulated_text = ""
-        execution_metadata: Dict[str, Any] = {}
+        execution_metadata: dict[str, Any] = {}
         emitted_tool_call_ids: set[str] = set()
-        tool_id_to_name: Dict[str, str] = {}
+        tool_id_to_name: dict[str, str] = {}
 
         async for message in query(prompt=prompt, options=options):
             if isinstance(message, AssistantMessage):
@@ -273,38 +268,40 @@ class ClaudeAgentNode(
                     if isinstance(block, TextBlock):
                         accumulated_text += block.text
                         if self.is_streaming():
-                            self._stream({
-                                "type": "llm_token",
-                                "chunk": block.text,
-                            })
+                            self._stream(
+                                {
+                                    "type": "llm_token",
+                                    "chunk": block.text,
+                                }
+                            )
 
                     elif isinstance(block, (ToolUseBlock, ServerToolUseBlock)):
                         tool_id_to_name[block.id] = block.name
                         if block.id not in emitted_tool_call_ids:
                             emitted_tool_call_ids.add(block.id)
                             if self.is_streaming():
-                                self._stream({
-                                    "type": "tool_calling",
-                                    "tool": block.name,
-                                    "call_id": block.id,
-                                    "args": block.input,
-                                })
+                                self._stream(
+                                    {
+                                        "type": "tool_calling",
+                                        "tool": block.name,
+                                        "call_id": block.id,
+                                        "args": block.input,
+                                    }
+                                )
 
             elif isinstance(message, UserMessage):
                 if isinstance(message.content, list):
                     for block in message.content:
                         if isinstance(block, ToolResultBlock):
                             if self.is_streaming():
-                                self._stream({
-                                    "type": "tool_result",
-                                    "tool": tool_id_to_name.get(
-                                        block.tool_use_id, "unknown"
-                                    ),
-                                    "call_id": block.tool_use_id,
-                                    "output": self._extract_tool_result_text(
-                                        block.content
-                                    ),
-                                })
+                                self._stream(
+                                    {
+                                        "type": "tool_result",
+                                        "tool": tool_id_to_name.get(block.tool_use_id, "unknown"),
+                                        "call_id": block.tool_use_id,
+                                        "output": self._extract_tool_result_text(block.content),
+                                    }
+                                )
 
             elif isinstance(message, ResultMessage):
                 execution_metadata = {
@@ -320,12 +317,8 @@ class ClaudeAgentNode(
                 }
                 usage = getattr(message, "usage", None)
                 if usage and isinstance(usage, dict):
-                    execution_metadata["input_tokens"] = usage.get(
-                        "input_tokens", 0
-                    )
-                    execution_metadata["output_tokens"] = usage.get(
-                        "output_tokens", 0
-                    )
+                    execution_metadata["input_tokens"] = usage.get("input_tokens", 0)
+                    execution_metadata["output_tokens"] = usage.get("output_tokens", 0)
 
                 result_text = getattr(message, "result", None)
                 if result_text:
@@ -335,7 +328,7 @@ class ClaudeAgentNode(
 
     @staticmethod
     def _extract_tool_result_text(
-        content: "str | list[Dict[str, Any]] | Dict[str, Any] | None",
+        content: str | list[dict[str, Any]] | dict[str, Any] | None,
     ) -> str:
         """Extract displayable text from tool result content, truncated to 500 chars."""
         max_len = 500
@@ -355,48 +348,19 @@ class ClaudeAgentNode(
             return text[:max_len]
         return str(content)[:max_len]
 
-    def _collect_tools(self) -> List[BaseTool]:
-        """Gather all tools (domain + MCP providers).
+    async def _collect_tools(self) -> list[BaseTool]:
+        """Collect configured tools in this invocation's execution environment."""
+        tools = list(self._domain_tools)
+        for provider in self._mcp_providers:
+            tools.extend(await provider.get_tools())
+        return tools
 
-        When a sandbox is attached, MCP tools are wrapped in
-        SandboxToolProxy so they execute inside the sandbox.
-        """
-        from mas.elements.nodes.common.context_binder import get_sandbox_wrapped_mcp_tools
-
-        all_tools: List[BaseTool] = list(self._domain_tools)
-        wrapped = get_sandbox_wrapped_mcp_tools(self._sandbox, self._mcp_providers)
-        if wrapped is not None:
-            all_tools.extend(wrapped)
-        else:
-            for provider in self._mcp_providers:
-                all_tools.extend(provider.get_tools())
-        return all_tools
-
-    def _build_options(self) -> "ClaudeAgentOptions":
-        """Build ClaudeAgentOptions from node configuration.
-
-        When a sandbox is attached via ``self._sandbox``,
-        activates Mode 3: disables built-in file/shell tools and
-        injects sandbox-backed MCP replacements.
-        """
-        from mas.elements.nodes.common.context_binder import bind_tool_context
-
-        bind_tool_context(
-            self._domain_tools,
-            session_id=self.hitl_session_id,
-            agent_id=self.uid,
-        )
-
-        if self._sandbox is not None:
-            self._sandbox.bind_context(
-                session_id=self.hitl_session_id,
-                agent_id=self.uid,
-            )
-
+    async def _build_options(self) -> ClaudeAgentOptions:
+        """Build SDK options for the current invocation environment."""
         env = self._build_env()
-        work_dir = self._prepare_working_directory()
+        work_dir = await await_owned(asyncio.to_thread(self._prepare_working_directory))
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": self._model,
             "permission_mode": "bypassPermissions",
             "effort": self._effort.value,
@@ -408,25 +372,22 @@ class ClaudeAgentNode(
         if self._system_prompt:
             kwargs["system_prompt"] = self._system_prompt
 
-        if self._sandbox is not None:
-            self._configure_sandbox_tools(kwargs, self._sandbox)
-
-        sdk_tools = self._collect_sdk_tools()
+        sdk_tools = await self._collect_sdk_tools()
         if sdk_tools:
-            kwargs.setdefault("mcp_servers", {})["mas-tools"] = (
-                create_sdk_mcp_server("mas-tools", tools=sdk_tools)
+            kwargs.setdefault("mcp_servers", {})["mas-tools"] = create_sdk_mcp_server(
+                "mas-tools", tools=sdk_tools
             )
 
-        hitl_hook = self._build_hitl_hook()
+        hitl_hook = await self._build_hitl_hook()
         if hitl_hook is not None:
             kwargs["hooks"] = {"PreToolUse": [hitl_hook]}
             logger.info(
-                "ClaudeAgent %s: PreToolUse HITL hook attached", self.uid,
+                "ClaudeAgent %s: PreToolUse HITL hook attached",
+                self.uid,
             )
         else:
             logger.info(
-                "ClaudeAgent %s: HITL hook NOT attached "
-                "(hitl_mode=%s, gate=%s, policy=%s)",
+                "ClaudeAgent %s: HITL hook NOT attached (hitl_mode=%s, gate=%s, policy=%s)",
                 self.uid,
                 self._hitl_mode.value,
                 self._approval_gate is not None,
@@ -437,7 +398,7 @@ class ClaudeAgentNode(
 
     # ========== HITL HOOK ==========
 
-    def _build_hitl_hook(self) -> Optional[HookMatcher]:
+    async def _build_hitl_hook(self) -> HookMatcher | None:
         """Build a ``PreToolUse`` HookMatcher if HITL is active."""
         if not self._should_activate_hitl():
             return None
@@ -448,9 +409,9 @@ class ClaudeAgentNode(
             session_id=self.hitl_session_id,
         )
 
-        tool_registry: Dict[str, BaseTool] = {t.name: t for t in self._domain_tools}
+        tool_registry: dict[str, BaseTool] = {t.name: t for t in self._domain_tools}
         for provider in self._mcp_providers:
-            for tool in provider.get_tools():
+            for tool in await provider.get_tools():
                 tool_registry[tool.name] = tool
 
         gatekeeper = HITLToolGatekeeper(
@@ -463,44 +424,23 @@ class ClaudeAgentNode(
 
         logger.info(
             "ClaudeAgent %s: HITL hook enabled (hitl_mode=%s) with %d registered tools",
-            self.uid, self._hitl_mode.value, len(tool_registry),
+            self.uid,
+            self._hitl_mode.value,
+            len(tool_registry),
         )
 
         return HookMatcher(hooks=[HITLHook(gatekeeper)])
 
-    # ========== SDK TOOLS & SANDBOX ==========
+    # ========== SDK TOOLS ==========
 
-    def _collect_sdk_tools(self) -> List[SdkMcpTool]:
+    async def _collect_sdk_tools(self) -> list[SdkMcpTool]:
         """Collect domain + MCP tools and convert to Claude SDK format."""
-        collected = self._collect_tools()
+        collected = await self._collect_tools()
         return ClaudeSDKConverter.to_sdk(collected)
-
-    def _configure_sandbox_tools(
-        self,
-        kwargs: Dict[str, Any],
-        sandbox_tool: BaseSandbox,
-    ) -> None:
-        """Configure Mode 3: disable built-ins, inject sandbox replacements."""
-        from mas.elements.nodes.claude_agent.sandbox_tools import (
-            create_sandbox_mcp_tools,
-            DISABLED_BUILTINS,
-        )
-
-        kwargs["disallowed_tools"] = list(DISABLED_BUILTINS)
-
-        sandbox_mcp_tools = create_sandbox_mcp_tools(sandbox_tool)
-
-        if sandbox_mcp_tools:
-            sandbox_server = create_sdk_mcp_server(
-                "sandbox", tools=sandbox_mcp_tools,
-            )
-            kwargs.setdefault("mcp_servers", {})["sandbox"] = sandbox_server
-
-        logger.info("claude.sandbox_mode_active", extra={"node_uid": self.uid, "disabled_tools": list(DISABLED_BUILTINS), "sandbox_tool_count": len(sandbox_mcp_tools)})
 
     # ========== ENVIRONMENT ==========
 
-    def _build_env(self) -> Dict[str, str]:
+    def _build_env(self) -> dict[str, str]:
         """Build environment variables for Vertex AI SDK authentication."""
         env = dict(self._env_vars)
 
@@ -515,9 +455,7 @@ class ClaudeAgentNode(
         if self._cwd:
             work_dir = self._cwd
         elif self.hitl_session_id:
-            work_dir = os.path.join(
-                self._shared_storage, self.hitl_session_id, self.uid
-            )
+            work_dir = os.path.join(self._shared_storage, self.hitl_session_id, self.uid)
         else:
             work_dir = tempfile.mkdtemp(prefix="claude_agent_")
 
@@ -542,12 +480,13 @@ class ClaudeAgentNode(
             except Exception as e:
                 logger.error(
                     "ClaudeAgent %s: Failed to install skill from %s (path: %s): %s",
-                    self.uid, repo_url, skill_path, e,
+                    self.uid,
+                    repo_url,
+                    skill_path,
+                    e,
                 )
 
-    def _install_skill(
-        self, repo_url: str, skill_path: str, skills_dir: str
-    ) -> None:
+    def _install_skill(self, repo_url: str, skill_path: str, skills_dir: str) -> None:
         """Clone a repo to temp, copy only the skill subfolder to skills_dir."""
         tmp_dir = tempfile.mkdtemp(prefix="claude_skill_clone_")
         try:
@@ -560,9 +499,7 @@ class ClaudeAgentNode(
 
             source_path = os.path.join(tmp_dir, skill_path)
             if not os.path.isdir(source_path):
-                raise FileNotFoundError(
-                    f"Skill path '{skill_path}' not found in repo {repo_url}"
-                )
+                raise FileNotFoundError(f"Skill path '{skill_path}' not found in repo {repo_url}")
 
             skill_name = os.path.basename(source_path.rstrip(os.sep))
             target_dir = os.path.join(skills_dir, skill_name)
@@ -578,7 +515,7 @@ class ClaudeAgentNode(
     def _create_agent_result(
         self,
         response_text: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
     ) -> AgentResult:
         is_error = metadata.get("is_error", False)
 
@@ -621,9 +558,7 @@ class ClaudeAgentNode(
         else:
             adjacent_nodes_uids = self._get_adjacent_nodes_uids()
             if task.response_to and task.response_to in adjacent_nodes_uids:
-                self._execute_direct_response(
-                    task, agent_result, original_packet
-                )
+                self._execute_direct_response(task, agent_result, original_packet)
             else:
                 self._execute_broadcast_with_response(task, agent_result)
 

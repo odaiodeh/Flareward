@@ -350,7 +350,6 @@ const sessionsQueryKey = useMemo(
           sessionId: runId,
           inputs: sessionPayload.inputs || {},
           scope: 'public',
-          userId: user?.username || '',
         });
 
         await streamCompletePromise;

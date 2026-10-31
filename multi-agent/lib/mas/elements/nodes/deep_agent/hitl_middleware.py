@@ -11,13 +11,17 @@ Deep Agents come with built-in tools (``write_file``, ``edit_file``,
 ``DEEP_AGENT_BUILTIN_ACCESS_MODES`` maps these to the correct
 ``ToolAccessMode`` so they are properly gated.
 """
+
 import logging
-from typing import Any, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from langchain.agents.middleware import AgentMiddleware
 from langchain.messages import ToolMessage
 from langchain.tools.tool_node import ToolCallRequest
 
+from mas.application.agents.approvals import HITLToolGatekeeper
+from mas.application.ports.tool import BaseTool
 from mas.core.hitl.models import (
     ApprovalDecision,
     RequestOrigin,
@@ -25,13 +29,11 @@ from mas.core.hitl.models import (
     ToolApprovalPolicy,
 )
 from mas.core.hitl.ports import ApprovalGate
-from mas.elements.nodes.common.capabilities.hitl_gatekeeper import HITLToolGatekeeper
-from mas.elements.tools.common.base_tool import BaseTool
 
 logger = logging.getLogger(__name__)
 
 
-DEEP_AGENT_BUILTIN_ACCESS_MODES: Dict[str, ToolAccessMode] = {
+DEEP_AGENT_BUILTIN_ACCESS_MODES: dict[str, ToolAccessMode] = {
     "ls": ToolAccessMode.READ,
     "read_file": ToolAccessMode.READ,
     "glob": ToolAccessMode.READ,
@@ -65,7 +67,7 @@ class HITLMiddleware(AgentMiddleware):
         *,
         gate: ApprovalGate,
         policy: ToolApprovalPolicy,
-        tool_registry: Dict[str, BaseTool],
+        tool_registry: dict[str, BaseTool],
         origin: RequestOrigin,
         default_access_mode: ToolAccessMode = ToolAccessMode.WRITE,
     ) -> None:
@@ -83,26 +85,26 @@ class HITLMiddleware(AgentMiddleware):
     # wrap_tool_call — the single integration point
     # ------------------------------------------------------------------
 
-    def wrap_tool_call(
+    async def awrap_tool_call(
         self,
         request: ToolCallRequest,
-        handler: Callable[[ToolCallRequest], Any],
+        handler: Callable[[ToolCallRequest], Awaitable[Any]],
     ) -> Any:
         tool_name = request.tool_call["name"]
         tool_args = request.tool_call.get("args", {})
         tool_call_id = request.tool_call.get("id", "")
 
-        response = self._gatekeeper.check(tool_name, tool_args)
+        response = await self._gatekeeper.check(tool_name, tool_args)
 
         if response is None:
-            return handler(request)
+            return await handler(request)
 
         match response.decision:
             case ApprovalDecision.APPROVE:
-                return handler(request)
+                return await handler(request)
 
             case ApprovalDecision.MODIFY:
-                return self._handle_modify(request, response, handler)
+                return await self._handle_modify(request, response, handler)
 
             case ApprovalDecision.REJECT:
                 return self._rejection_message(
@@ -123,21 +125,21 @@ class HITLMiddleware(AgentMiddleware):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _handle_modify(
+    async def _handle_modify(
         request: ToolCallRequest,
         response: Any,
-        handler: Callable[[ToolCallRequest], Any],
+        handler: Callable[[ToolCallRequest], Awaitable[Any]],
     ) -> Any:
         modified_args = response.modified_args
         if not modified_args:
-            return handler(request)
+            return await handler(request)
 
         modified_tool_call = {
             **request.tool_call,
             "args": modified_args,
         }
         modified_request = request.override(tool_call=modified_tool_call)
-        return handler(modified_request)
+        return await handler(modified_request)
 
     @staticmethod
     def _rejection_message(tool_call_id: str, content: str) -> ToolMessage:

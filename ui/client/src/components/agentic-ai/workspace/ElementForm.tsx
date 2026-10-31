@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +30,8 @@ import {
   releaseTeamEditLock,
 } from "@/api/collaborationEditLock";
 import { LoaderCircle } from "lucide-react";
-import OpenShellSandboxGuidelines from "./OpenShellSandboxGuidelines";
+import { ExecutionProfileField } from "./ExecutionProfileField";
+import { toElementInstance } from "@/lib/resource-editor";
 
 function normalizeElementName(v: string): string {
   return v.trim().toLowerCase();
@@ -62,6 +63,12 @@ export const ElementForm: React.FC<ElementFormProps> = ({
   builtinOnly = false,
 }) => {
   const [isSaving, setIsSaving] = useState(false);
+  const [executionProfile, setExecutionProfile] = useState('');
+  const supportsPlacement = !builtinOnly && ['nodes', 'conditions'].includes(elementType.category);
+
+  useEffect(() => {
+    if (isOpen) setExecutionProfile(editingElement?.execution?.profile ?? '');
+  }, [isOpen, editingElement]);
   const fieldActions = useConfigFieldActions(elementSchema?.config_schema?.properties);
   const {
     formData,
@@ -97,28 +104,33 @@ export const ElementForm: React.FC<ElementFormProps> = ({
   const { isTeam: isTeamWorkspace, userId: teamId } = useWorkspaceIdentity();
   const { toast } = useToast();
   const needsResourceEditLock =
-    isOpen && isTeamWorkspace && !!editingElement?.rid && !!user?.username;
+    isOpen && !builtinOnly && editingElement?.ownership !== 'builtin'
+    && isTeamWorkspace && !!editingElement?.rid && !!user?.username;
   const [resourceEditLockReady, setResourceEditLockReady] = useState(true);
-  const [resourceLockHeld, setResourceLockHeld] = useState(false);
+  const [resourceLeaseId, setResourceLeaseId] = useState<string | null>(null);
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  const closeEditor = useCallback(() => closeRef.current(), []);
 
   useEffect(() => {
     if (!isOpen) {
       setResourceEditLockReady(true);
-      setResourceLockHeld(false);
+      setResourceLeaseId(null);
       return;
     }
     if (!needsResourceEditLock || !user?.username) {
       setResourceEditLockReady(true);
-      setResourceLockHeld(false);
+      setResourceLeaseId(null);
       return;
     }
 
     setResourceEditLockReady(false);
-    setResourceLockHeld(false);
+    setResourceLeaseId(null);
     let cancelled = false;
     let lockTaken = false;
     const rid = editingElement!.rid;
     const displayName = user.name?.trim() || user.username;
+    const leaseId = crypto.randomUUID();
 
     (async () => {
       try {
@@ -128,19 +140,25 @@ export const ElementForm: React.FC<ElementFormProps> = ({
           entityId: rid,
           userId: user.username,
           displayName,
+          leaseId,
         });
-        if (cancelled) return;
+        if (cancelled) {
+          if (result.acquired) await releaseTeamEditLock({
+            teamId, entityKind: 'resource', entityId: rid, userId: user.username, leaseId,
+          });
+          return;
+        }
         if (!result.acquired) {
           toast({
             title: "Someone else is editing this element",
             description: `Currently being edited by ${result.lockedBy.displayName || result.lockedBy.userId}.`,
             variant: "destructive",
           });
-          onClose();
+          closeEditor();
           return;
         }
         lockTaken = true;
-        setResourceLockHeld(true);
+        setResourceLeaseId(leaseId);
         setResourceEditLockReady(true);
       } catch {
         if (cancelled) return;
@@ -149,7 +167,7 @@ export const ElementForm: React.FC<ElementFormProps> = ({
           description: "Failed to acquire edit lock. Try again.",
           variant: "destructive",
         });
-        onClose();
+        closeEditor();
       }
     })();
 
@@ -161,8 +179,9 @@ export const ElementForm: React.FC<ElementFormProps> = ({
           entityKind: "resource",
           entityId: rid,
           userId: user.username,
-        });
-        setResourceLockHeld(false);
+          leaseId,
+        }).catch(() => { /* An unavailable release remains bounded by the lease TTL. */ });
+        setResourceLeaseId(null);
       }
     };
   }, [
@@ -172,17 +191,18 @@ export const ElementForm: React.FC<ElementFormProps> = ({
     editingElement?.rid,
     user?.username,
     user?.name,
-    onClose,
+    closeEditor,
     toast,
   ]);
 
   useEffect(() => {
-    if (!resourceLockHeld || !needsResourceEditLock || !user?.username || !editingElement?.rid) {
+    if (!resourceLeaseId || !needsResourceEditLock || !user?.username || !editingElement?.rid) {
       return;
     }
     const rid = editingElement.rid;
     const displayName = user.name?.trim() || user.username;
-    let interval: ReturnType<typeof setInterval> | undefined;
+    let interval: number | undefined;
+    let active = true;
     interval = window.setInterval(() => {
       void heartbeatTeamEditLock({
         teamId,
@@ -190,32 +210,35 @@ export const ElementForm: React.FC<ElementFormProps> = ({
         entityId: rid,
         userId: user.username,
         displayName,
+        leaseId: resourceLeaseId,
       }).catch((err: unknown) => {
+        if (!active) return;
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (status === 501) return;
         if (interval != null) window.clearInterval(interval);
         interval = undefined;
-        setResourceLockHeld(false);
+        setResourceLeaseId(null);
         toast({
           title: "Edit lock lost",
           description: "We could not renew the team edit lock. The editor will close.",
           variant: "destructive",
         });
-        onClose();
+        closeEditor();
       });
     }, 45_000);
     return () => {
+      active = false;
       if (interval != null) window.clearInterval(interval);
     };
   }, [
-    resourceLockHeld,
+    resourceLeaseId,
     needsResourceEditLock,
     teamId,
     editingElement?.rid,
     user?.username,
     user?.name,
     toast,
-    onClose,
+    closeEditor,
   ]);
 
   const existingNamesSet = useMemo(
@@ -405,17 +428,7 @@ export const ElementForm: React.FC<ElementFormProps> = ({
       if (!resource || !schema) return;
 
       setRefEditState({
-        element: {
-          rid: resource.rid,
-          name: resource.name,
-          config: resource.cfg_dict,
-          category: resource.category,
-          type: resource.type,
-          version: resource.version,
-          created: resource.created,
-          updated: resource.updated,
-          nested_refs: resource.nested_refs,
-        },
+        element: toElementInstance(resource),
         schema,
         actions: actions || [],
         elementType: {
@@ -498,6 +511,7 @@ export const ElementForm: React.FC<ElementFormProps> = ({
   };
 
   const handleSave = async () => {
+    if (needsResourceEditLock && !resourceLeaseId) return;
     try {
       setIsSaving(true);
 
@@ -549,9 +563,6 @@ export const ElementForm: React.FC<ElementFormProps> = ({
         if (!isFieldConditionallyVisible(fieldSchema)) {
           return;
         }
-
-        // Define which fields are first-level fields from resource schema
-        const firstLevelResourceFields = ['name', 'category', 'type', 'cfg_dict', 'version', 'created', 'updated', 'nested_refs', 'rid', 'user_id'];
 
         // Only include 'name' as a first-level field for saving (exclude version and system fields)
         const isFirstLevelField = fieldName === 'name';
@@ -638,6 +649,8 @@ export const ElementForm: React.FC<ElementFormProps> = ({
 
       // Add cfg_dict to save data
       saveData.cfg_dict = configForSave;
+      if (supportsPlacement) saveData.execution = { profile: executionProfile || null };
+      if (editingElement?.version !== undefined) saveData.expected_version = editingElement.version;
 
       const result = await onSave(saveData);
 
@@ -684,15 +697,6 @@ export const ElementForm: React.FC<ElementFormProps> = ({
     );
   };
 
-  const renderFormGuidelines = (): React.ReactNode => {
-    switch (elementType.type) {
-      case "openshell_sandbox":
-        return <OpenShellSandboxGuidelines />;
-      default:
-        return null;
-    }
-  };
-
   if (!elementSchema) return null;
 
   return (
@@ -708,7 +712,6 @@ export const ElementForm: React.FC<ElementFormProps> = ({
             {editingElement ? "Edit" : "Create"} {elementType.name}
           </DialogTitle>
           <DialogDescription>{elementSchema.description}</DialogDescription>
-          {renderFormGuidelines()}
         </DialogHeader>
 
         {needsResourceEditLock && !resourceEditLockReady ? (
@@ -796,6 +799,9 @@ export const ElementForm: React.FC<ElementFormProps> = ({
                   </div>
                 );
               })}
+            {isOpen && supportsPlacement && (
+              <ExecutionProfileField value={executionProfile} onChange={setExecutionProfile} />
+            )}
           </div>
 
           <DialogFooter className="px-6 pb-6 pt-4 flex-shrink-0 border-t border-gray-800">
@@ -808,7 +814,7 @@ export const ElementForm: React.FC<ElementFormProps> = ({
               <Button
                 type="submit"
                 className="bg-primary hover:bg-opacity-80"
-                disabled={isSaving || !isFormValid()}
+                disabled={isSaving || !isFormValid() || (needsResourceEditLock && !resourceLeaseId)}
               >
                 {isSaving ? "Saving..." : "Save"}
               </Button>
@@ -820,6 +826,7 @@ export const ElementForm: React.FC<ElementFormProps> = ({
     </Dialog>
     {refEditState && (
       <ElementForm
+        key={refEditState.element.rid}
         isOpen={!!refEditState}
         onClose={() => setRefEditState(null)}
         elementType={refEditState.elementType}

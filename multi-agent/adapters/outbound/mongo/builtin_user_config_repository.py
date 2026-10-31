@@ -1,13 +1,12 @@
 import logging
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 import pymongo
-
 from mas.resources.builtin_models import BuiltinUserConfig
 from mas.resources.repository.builtin_user_config_repository import (
     BuiltinUserConfigRepository as BuiltinUserConfigRepositoryPort,
 )
+from pymongo.database import Database
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +20,17 @@ class MongoBuiltinUserConfigRepository(BuiltinUserConfigRepositoryPort):
         mongodb_ip: str = "localhost",
         db_name: str = "UnifAI",
         coll_name: str = "builtin_user_configs",
+        *,
+        database: Database | None = None,
     ) -> None:
-        mongo_uri = f"mongodb://{mongodb_ip}:{mongodb_port}/"
-        self._client = pymongo.MongoClient(
-            mongo_uri,
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=5000,
-        )
-        self.col = self._client[db_name][coll_name]
+        self._client = None
+        if database is None:
+            mongo_uri = f"mongodb://{mongodb_ip}:{mongodb_port}/"
+            self._client = pymongo.MongoClient(
+                mongo_uri, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000
+            )
+            database = self._client[db_name]
+        self.col = database[coll_name]
         # Bounded by the client timeouts above, so a Mongo outage at startup
         # fails fast rather than hanging. The index creation is retried on
         # every process start, so a transient failure here just means the
@@ -44,28 +46,37 @@ class MongoBuiltinUserConfigRepository(BuiltinUserConfigRepositoryPort):
         except pymongo.errors.PyMongoError:
             logger.warning(
                 "Could not create indexes on '%s' — MongoDB may be unreachable",
-                coll_name, exc_info=True,
+                coll_name,
+                exc_info=True,
             )
 
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
+
     def save(self, config: BuiltinUserConfig) -> str:
-        config.updated = datetime.now(timezone.utc)
+        config.updated = datetime.now(UTC)
         fields = config.model_dump(mode="json")
         fields.pop("config_id", None)
+        fields.pop("version", None)
         filter_doc = {"resource_id": config.resource_id, "identity_key": config.identity_key}
         update_doc = {
             "$set": fields,
             "$setOnInsert": {"_id": config.config_id, "config_id": config.config_id},
+            "$inc": {"version": 1},
         }
         try:
             doc = self.col.find_one_and_update(
-                filter_doc, update_doc,
+                filter_doc,
+                update_doc,
                 upsert=True,
                 return_document=pymongo.ReturnDocument.AFTER,
             )
         except pymongo.errors.DuplicateKeyError:
             try:
                 doc = self.col.find_one_and_update(
-                    filter_doc, update_doc,
+                    filter_doc,
+                    update_doc,
                     upsert=True,
                     return_document=pymongo.ReturnDocument.AFTER,
                 )
@@ -85,13 +96,16 @@ class MongoBuiltinUserConfigRepository(BuiltinUserConfigRepositoryPort):
             raise RuntimeError(
                 f"Failed to save BuiltinUserConfig for resource={config.resource_id}"
             ) from e
+        config.version = doc["version"]
         return doc["config_id"]
 
-    def get(self, resource_id: str, identity_key: str) -> Optional[BuiltinUserConfig]:
-        raw = self.col.find_one({
-            "resource_id": resource_id,
-            "identity_key": identity_key,
-        })
+    def get(self, resource_id: str, identity_key: str) -> BuiltinUserConfig | None:
+        raw = self.col.find_one(
+            {
+                "resource_id": resource_id,
+                "identity_key": identity_key,
+            }
+        )
         return BuiltinUserConfig(**raw) if raw else None
 
     def get_by_id(self, config_id: str) -> BuiltinUserConfig:
@@ -101,17 +115,16 @@ class MongoBuiltinUserConfigRepository(BuiltinUserConfigRepositoryPort):
         return BuiltinUserConfig(**raw)
 
     def delete(self, resource_id: str, identity_key: str) -> None:
-        self.col.delete_one({
-            "resource_id": resource_id,
-            "identity_key": identity_key,
-        })
+        self.col.delete_one(
+            {
+                "resource_id": resource_id,
+                "identity_key": identity_key,
+            }
+        )
 
     def delete_all_for_resource(self, resource_id: str) -> int:
         result = self.col.delete_many({"resource_id": resource_id})
         return result.deleted_count
 
-    def find_by_identity(self, identity_key: str) -> List[BuiltinUserConfig]:
-        return [
-            BuiltinUserConfig(**doc)
-            for doc in self.col.find({"identity_key": identity_key})
-        ]
+    def find_by_identity(self, identity_key: str) -> list[BuiltinUserConfig]:
+        return [BuiltinUserConfig(**doc) for doc in self.col.find({"identity_key": identity_key})]

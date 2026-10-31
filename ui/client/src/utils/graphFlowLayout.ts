@@ -8,6 +8,7 @@ import type {
   NodeDefinition,
   PlanItem,
 } from "@/components/agentic-ai/graphs/interfaces";
+import { isRecord } from "@/lib/json";
 
 /** Resolved reference: display name + id for modal/details. */
 export interface ResolvedElement {
@@ -122,7 +123,7 @@ function buildDefinitionLookup(
     (list || []).forEach((d: any) => {
       if (!d || typeof d !== "object" || !d.rid) return;
       const id = extractUidFromRef(d.rid);
-      const cfg = d.config && typeof d.config === "object" ? d.config as Record<string, unknown> : undefined;
+      const cfg = isRecord(d.config) ? d.config : undefined;
       lookup.set(id, { type, name: d.name || id, config: cfg });
       if (id !== d.rid) lookup.set(d.rid, { type, name: d.name || id, config: cfg });
     });
@@ -131,7 +132,6 @@ function buildDefinitionLookup(
   register(graphFlow.tools as unknown[] | undefined, "tool");
   register(graphFlow.retrievers as unknown[] | undefined, "retriever");
   register(graphFlow.providers as unknown[] | undefined, "provider");
-  register(graphFlow.sandboxes as unknown[] | undefined, "sandbox");
   return lookup;
 }
 
@@ -141,7 +141,7 @@ function buildDefinitionLookup(
  * lookup.
  */
 function getResolvedElements(
-  lookup: Map<string, { type: ResolvedElement["type"]; name: string }>,
+  lookup: Map<string, { type: ResolvedElement["type"]; name: string; config?: Record<string, unknown> }>,
   nodeDef: NodeDefinition | null,
 ): ResolvedElement[] {
   if (!nodeDef?.config) return [];

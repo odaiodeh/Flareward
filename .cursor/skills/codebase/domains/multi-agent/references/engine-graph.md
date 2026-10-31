@@ -51,7 +51,7 @@ lib/mas/graph/
 
 ```
 PlanBuilder.build(spec) → GraphPlan (pure topology)
-  → RTGraphPlan (+ callables from SessionRegistry + StepContext)
+  → RTGraphPlan (+ callables from ElementInstances + StepContext)
   → GraphBuilderFactory.create(engine).compile_from_plan(rt_plan)
   → BaseGraphExecutor (engine-specific compiled graph)
 ```

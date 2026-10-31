@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from mas.resources.builtin_models import BuiltinUserConfig
 
@@ -13,7 +12,7 @@ class BuiltinUserConfigRepository(ABC):
         ...
 
     @abstractmethod
-    def get(self, resource_id: str, identity_key: str) -> Optional[BuiltinUserConfig]:
+    def get(self, resource_id: str, identity_key: str) -> BuiltinUserConfig | None:
         """Find the user config for a given resource + identity. Returns None if not found."""
         ...
 

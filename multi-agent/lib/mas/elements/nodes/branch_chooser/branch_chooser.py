@@ -1,8 +1,7 @@
-from mas.elements.nodes.common.base_node import BaseNode
 import logging
-from mas.graph.state.graph_state import Channel
+
+from mas.application.elements.node import BaseNode
 from mas.graph.state.state_view import StateView
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -12,17 +11,15 @@ class BranchChooserNode(BaseNode):
     Mock node that looks at target branches from step context and chooses the first one.
     Writes the chosen branch to the target_branch state channel.
     """
+
     READS = set()  # We don't read from state channels, we read from step context
     WRITES = {"target_branch"}  # Write to the target_branch channel
 
-    def __init__(self,
-                 *,
-                 default_branch: Optional[str] = None,
-                 **kwargs):
+    def __init__(self, *, default_branch: str | None = None, **kwargs):
         super().__init__(**kwargs)
         self.default_branch = default_branch
 
-    def run(self, state: StateView) -> StateView:
+    async def run(self, state: StateView) -> StateView:
         # Get target branches from step context
         chosen_branch = None
 

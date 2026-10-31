@@ -1,25 +1,27 @@
-from datetime import datetime, timezone
-from typing import List, Tuple, Dict, Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from mas.resources.models import Resource, ResourceQuery
-from mas.resources.repository.base import ResourceRepository
-from mas.blueprints.repository.repository import BlueprintRepository
-from mas.resources.errors import ResourceInUseError
-from mas.core.identity import Identity
+from mas.core.auth.credentials.ports import TokenCipher
 from mas.core.dto import GroupedCount
+from mas.core.identity import Identity
+from mas.resources.errors import ResourceInUseError
+from mas.resources.field_encryption import decrypt_values
+from mas.resources.models import Resource, ResourceQuery
+from mas.resources.ports import BlueprintUsageReader
+from mas.resources.repository.base import ResourceRepository
 
 
 class ResourcesRegistry:
     """Low-level CRUD + business rules (no Pydantic parsing)."""
 
     def __init__(
-            self,
-            repo: ResourceRepository,
-            bp_repo: BlueprintRepository,
-            cipher: Optional[Any] = None,
+        self,
+        repo: ResourceRepository,
+        blueprint_usage: BlueprintUsageReader,
+        cipher: TokenCipher | None = None,
     ):
         self._repo = repo
-        self._bp_repo = bp_repo
+        self._blueprint_usage = blueprint_usage
         self._cipher = cipher
 
     # ---------- write ----------
@@ -38,20 +40,19 @@ class ResourcesRegistry:
             raise ValueError(f"{doc.category}:{doc.type}:{doc.name} exists for user")
 
         doc.version += 1
-        doc.updated = datetime.now(timezone.utc)
+        doc.updated = datetime.now(UTC)
         self._repo.update(doc)
         return doc
 
     def delete(self, rid: str) -> None:
-        direct_bps = self._bp_repo.list_direct_usage(rid)
+        direct_bps = self._blueprint_usage.list_direct_usage(rid)
         nested_res = self._repo.list_nested_usage(rid)
 
         if direct_bps or nested_res:
-            raise ResourceInUseError(by_blueprints=direct_bps,
-                                     by_resources=nested_res)
+            raise ResourceInUseError(by_blueprints=direct_bps, by_resources=nested_res)
         self._repo.delete(rid)
 
-    def list_nested_usage(self, rid: str) -> List[str]:
+    def list_nested_usage(self, rid: str) -> list[str]:
         """Return resource IDs whose `nested_refs` array contains *rid*."""
         return self._repo.list_nested_usage(rid)
 
@@ -59,7 +60,7 @@ class ResourcesRegistry:
     def get(self, rid: str) -> Resource:
         return self._repo.get(rid)
 
-    def find_resources(self, query: ResourceQuery) -> Tuple[List[Resource], int]:
+    def find_resources(self, query: ResourceQuery) -> tuple[list[Resource], int]:
         """Find resources with pagination info."""
         resources = self._repo.find_resources(query)
         total_count = self._repo.count_resources(query)
@@ -77,16 +78,11 @@ class ResourcesRegistry:
     def raw_config_for(self, resource: Resource) -> dict:
         """Return *resource*'s cfg_dict with encrypted string fields decrypted.
 
-        Uses a shallow copy so the in-memory Resource is not mutated.
+        Returns detached containers so the in-memory Resource is not mutated.
         FieldCipher.decrypt() is prefix-aware: non-encrypted values
         pass through unchanged, making this safe for all resource types.
         """
-        cfg = dict(resource.cfg_dict)
-        if self._cipher:
-            for key, value in cfg.items():
-                if isinstance(value, str):
-                    cfg[key] = self._cipher.decrypt(value)
-        return cfg
+        return decrypt_values(resource.cfg_dict, self._cipher)
 
     def meta(self, rid: str) -> tuple[str, str]:
         return self._repo.meta(rid)
@@ -104,22 +100,20 @@ class ResourcesRegistry:
         """Count resources where cfg_dict.<field> == value for the given owner identity."""
         return self._repo.count_by_config_field(identity, field, value, exclude_rid)
 
-    def exists_by_name(
-        self, identity: Identity, category: str, type_: str, name: str
-    ) -> bool:
+    def exists_by_name(self, identity: Identity, category: str, type_: str, name: str) -> bool:
         return self._repo.find_by_name(identity, category, type_, name) is not None
 
     # ---------- statistics ----------
-    def count(self, identity: Identity, filter: Dict[str, Any] | None = None) -> int:
+    def count(self, identity: Identity, filter: dict[str, Any] | None = None) -> int:
         """Count resources matching filter criteria for an identity."""
         return self._repo.count(identity, filter or {})
 
     def group_count(
         self,
         identity: Identity,
-        group_by: List[str],
-        filter: Dict[str, Any] | None = None,
-    ) -> List[GroupedCount]:
+        group_by: list[str],
+        filter: dict[str, Any] | None = None,
+    ) -> list[GroupedCount]:
         """
         Group resources by specified fields and return counts.
         Performs efficient server-side grouping via the repository.

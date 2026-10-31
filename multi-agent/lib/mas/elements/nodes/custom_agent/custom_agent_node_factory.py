@@ -1,5 +1,7 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from typing import Any
+
+from mas.application.elements.factory import BaseFactory
+
 from .config import CustomAgentNodeConfig
 from .custom_agent import CustomAgentNode
 from .identifiers import Identifier
@@ -21,27 +23,18 @@ class CustomAgentNodeFactory(BaseFactory[CustomAgentNodeConfig, CustomAgentNode]
     def accepts(self, cfg: CustomAgentNodeConfig, element_type: str) -> bool:
         return element_type == Identifier.TYPE
 
-    def create(self, cfg, **deps):
-        try:
-            element_deps = deps.pop("deps", None)
-            execution_holder = element_deps.execution_ctx if element_deps else None
-            tracing_service = element_deps.tracing_service if element_deps else None
-
-            return CustomAgentNode(
-                llm=deps.pop("llm"),
-                retriever=deps.pop("retriever"),
-                tools=deps.pop("tools"),
-                mcp_providers=deps.pop("providers"),
-                system_message=cfg.system_message,
-                strategy_type=cfg.strategy_type,
-                max_rounds=cfg.max_rounds,
-                retries=cfg.retries,
-                hitl_mode=cfg.hitl_mode,
-                execution_holder=execution_holder,
-                tracing_service=tracing_service,
-            )
-        except Exception as e:
-            raise PluginConfigurationError(
-                f"CustomAgentNodeFactory.create failed: {e}",
-                cfg.dict()
-            ) from e
+    def create(self, cfg: CustomAgentNodeConfig, **deps: Any) -> CustomAgentNode:
+        element_deps = deps.get("deps")
+        return CustomAgentNode(
+            llm=deps["llm"],
+            retriever=deps.get("retriever"),
+            tools=deps.get("tools"),
+            mcp_providers=deps.get("providers"),
+            system_message=cfg.system_message,
+            strategy_type=cfg.strategy_type,
+            max_rounds=cfg.max_rounds,
+            retries=cfg.retries,
+            hitl_mode=cfg.hitl_mode,
+            execution_holder=element_deps.execution_ctx if element_deps else None,
+            tracing_service=element_deps.tracing_service if element_deps else None,
+        )

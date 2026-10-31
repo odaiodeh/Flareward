@@ -1,57 +1,39 @@
-"""
-Path enumeration for GraphPlan objects.
+"""Deterministic, bounded path enumeration for authoring analysis."""
 
-Clean OOP design for path analysis.
-"""
+from mas.graph.graph_plan import GraphPlan
 
-from typing import Dict, Set, List
 from .graph_builder import GraphAnalyzer
 
 
+class GraphAnalysisLimit(ValueError):
+    def __init__(self) -> None:
+        super().__init__("Graph exceeds the path analysis limit")
+
+
 class PathEnumerator:
-    """
-    Path enumerator that works with GraphPlan objects.
-    
-    Clean interface for path enumeration operations.
-    """
-    
-    def __init__(self, plan: 'GraphPlan'):
+    def __init__(self, plan: GraphPlan, *, max_paths: int = 1024, max_depth: int = 256) -> None:
+        if max_paths < 1 or max_depth < 1:
+            raise ValueError("Path analysis limits must be positive")
         self.analyzer = GraphAnalyzer(plan)
-    
-    def enumerate_paths(self) -> Dict[str, List[str]]:
-        """Generate all execution paths through the graph."""
-        paths = {}
-        root_nodes = self.analyzer.get_root_nodes()
+        self._max_paths, self._max_depth = max_paths, max_depth
 
-        # DFS from each root
-        for root in root_nodes:
-            self._dfs_path_enumeration(root, [], paths)
-
+    def enumerate_paths(self) -> dict[str, list[str]]:
+        paths: dict[str, list[str]] = {}
+        pending = [(root, ()) for root in sorted(self.analyzer.get_root_nodes(), reverse=True)]
+        while pending:
+            current, path = pending.pop()
+            if len(path) >= self._max_depth:
+                raise GraphAnalysisLimit()
+            cyclic = current in path
+            current_path = (*path, current)
+            successors = self.analyzer.adjacency.get(current, set())
+            if cyclic or not successors:
+                if len(paths) >= self._max_paths:
+                    raise GraphAnalysisLimit()
+                suffix = "_cyclic" if cyclic else ""
+                paths[f"path_{len(paths) + 1}{suffix}"] = list(current_path)
+            else:
+                pending.extend(
+                    (successor, current_path) for successor in sorted(successors, reverse=True)
+                )
         return paths
-    
-    def _dfs_path_enumeration(
-        self,
-        current: str,
-        path: List[str],
-        paths: Dict[str, List[str]]
-    ) -> None:
-        """DFS traversal to enumerate paths."""
-        # Check for cycle in current path
-        if current in path:
-            # Found cycle - record cyclic path and stop recursion
-            path_id = f"path_{len(paths) + 1}_cyclic"
-            paths[path_id] = path + [current]
-            return
-        
-        current_path = path + [current]
-        successors = self.analyzer.adjacency.get(current, set())
-
-        if not successors:
-            # Terminal node - complete path
-            path_id = f"path_{len(paths) + 1}"
-            paths[path_id] = current_path
-        else:
-            # Continue to successors
-            for next_node in successors:
-                self._dfs_path_enumeration(next_node, current_path, paths)
-    

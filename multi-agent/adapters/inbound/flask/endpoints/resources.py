@@ -388,6 +388,7 @@ def get_resource_cards(identity: Identity, resource_ids: list[str]) -> tuple[Res
 
 
 @resources_bp.route("/config.validate", methods=["POST"])
+@with_require_identity_authorization
 @from_body({
     "category": fields.Str(required=True),
     "type": fields.Str(required=True),
@@ -395,7 +396,7 @@ def get_resource_cards(identity: Identity, resource_ids: list[str]) -> tuple[Res
     "config": fields.Dict(required=True),
     "timeout_seconds": fields.Float(data_key="timeoutSeconds", load_default=10.0),
 })
-def validate_config(category, type, config, name=None, timeout_seconds=10.0):
+def validate_config(identity: Identity, category, type, config, name=None, timeout_seconds=10.0):
     """
     Validate a resource config before saving.
 
@@ -410,6 +411,9 @@ def validate_config(category, type, config, name=None, timeout_seconds=10.0):
             config=config,
             name=name,
             timeout_seconds=timeout_seconds,
+            caller=resolve_caller_scope(identity),
+            user_id=identity.id,
+            credential_user_id=getattr(g, G_IDENTITY_USERNAME, ""),
         )
         return jsonify(result.model_dump()), 200
     except ValueError as e:

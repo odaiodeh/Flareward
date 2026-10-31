@@ -2,14 +2,15 @@
 Claude Agent Node Specification
 """
 
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
-from ..config import ClaudeAgentNodeConfig
+
+from ..card_builder import ClaudeAgentCardBuilder
 from ..claude_agent_node import ClaudeAgentNode
 from ..claude_agent_node_factory import ClaudeAgentNodeFactory
-from ..identifiers import Identifier, META
+from ..config import ClaudeAgentNodeConfig
+from ..identifiers import META, Identifier
 from ..validator import ClaudeAgentNodeValidator
-from ..card_builder import ClaudeAgentCardBuilder
 
 
 class ClaudeAgentNodeElementSpec(BaseElementSpec):

@@ -1,6 +1,6 @@
 from typing import Dict, List, Any, Optional
 from mcp.types import Tool, CallToolResult
-from .transport import BaseTransportManager
+from .transport.base_transport import BaseTransportManager
 
 
 class McpToolError(Exception):

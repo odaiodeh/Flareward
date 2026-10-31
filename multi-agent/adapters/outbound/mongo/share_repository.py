@@ -3,7 +3,8 @@ import pymongo
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from mas.sharing.repository.base import ShareRepository
-from mas.sharing.models import ShareInvite, ShareStatus, ShareCleanupConfig, ShareCleanupResult
+from mas.domain.sharing import ShareInvite, ShareStatus
+from mas.sharing.models import ShareCleanupConfig, ShareCleanupResult
 from mas.core.identity import Identity
 from global_utils.utils.util import get_mongo_url
 

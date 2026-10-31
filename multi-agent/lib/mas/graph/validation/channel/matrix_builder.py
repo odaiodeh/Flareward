@@ -1,7 +1,7 @@
-from typing import Set
-from mas.catalog.element_registry import ElementRegistry
+from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.core.enums import ResourceCategory
 from mas.graph.state.graph_state import GraphState
+
 from .models import DependencyMatrix
 
 
@@ -36,13 +36,13 @@ class MatrixBuilder:
         return DependencyMatrix(
             producer_map=producer_map,
             consumer_map=consumer_map,
-            external_channels=GraphState.get_external_channels()
+            external_channels=GraphState.get_external_channels(),
         )
 
-    def _get_reads(self, spec) -> Set[str]:
+    def _get_reads(self, spec) -> set[str]:
         """Extract read channels from element spec."""
-        return getattr(spec, 'reads', set())
+        return getattr(spec, "reads", set())
 
-    def _get_writes(self, spec) -> Set[str]:
+    def _get_writes(self, spec) -> set[str]:
         """Extract write channels from element spec."""
-        return getattr(spec, 'writes', set())
+        return getattr(spec, "writes", set())

@@ -1,9 +1,10 @@
-from typing import Any, Optional
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from typing import Any
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 from mas.elements.llms.openai.config import OpenAIConfig
-from mas.elements.llms.openai.openai import OpenAILLM
 from mas.elements.llms.openai.identifiers import Identifier
+from mas.elements.llms.openai.openai import OpenAILLM
 
 
 class OpenAIFactory(BaseFactory[OpenAIConfig, OpenAILLM]):
@@ -29,10 +30,8 @@ class OpenAIFactory(BaseFactory[OpenAIConfig, OpenAILLM]):
                 max_tokens=cfg.max_tokens,
                 reasoning_effort=cfg.reasoning_effort,
                 tracing=tracing,
-                **cfg.extra
+                **cfg.extra,
             )
             return llm
         except Exception as e:
-            raise PluginConfigurationError(
-                f"Failed to create OpenAI LLM: {e}", cfg
-            ) from e
+            raise PluginConfigurationError(f"Failed to create OpenAI LLM: {e}", cfg) from e

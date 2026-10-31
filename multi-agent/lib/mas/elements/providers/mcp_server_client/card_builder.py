@@ -4,9 +4,9 @@ Card builder for MCP Provider.
 Extracts tool_names from config as skills.
 """
 
-from typing import List
-from mas.elements.common.card.models import ElementCard, Skill, CardBuildInput
-from mas.elements.common.card.interface import CardBuilder
+from mas.application.elements.cards.interface import CardBuilder
+from mas.application.elements.cards.models import CardBuildInput
+from mas.domain.element_card import ElementCard, Skill
 
 
 class McpProviderCardBuilder(CardBuilder):
@@ -30,12 +30,12 @@ class McpProviderCardBuilder(CardBuilder):
             skills=skills,
             capabilities=[],
             configuration={},
-            metadata=None
+            metadata=None,
         )
 
-    def _extract_tools_as_skills(self, config) -> List[Skill]:
+    def _extract_tools_as_skills(self, config) -> list[Skill]:
         """Extract tool_names from config as skills."""
-        skills: List[Skill] = []
+        skills: list[Skill] = []
 
         tool_names = config.tool_names
         if tool_names:

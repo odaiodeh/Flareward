@@ -1,9 +1,11 @@
 from typing import Any
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import SshExecToolConfig
-from .ssh_exec import SshExecTool
 from .identifiers import Identifier
+from .ssh_exec import SshExecTool
 
 
 class SshExecToolFactory(BaseFactory[SshExecToolConfig, SshExecTool]):
@@ -22,13 +24,11 @@ class SshExecToolFactory(BaseFactory[SshExecToolConfig, SshExecTool]):
         :raises PluginConfigurationError: if instantiation fails
         """
         try:
-            client = SshExecTool(host=cfg.host,
-                                 port=cfg.port,
-                                 username=cfg.username,
-                                 password=cfg.password)
+            client = SshExecTool(
+                host=cfg.host, port=cfg.port, username=cfg.username, password=cfg.password
+            )
             return client
         except Exception as e:
             raise PluginConfigurationError(
-                f"SshExecToolFactory.create() failed: {e}",
-                cfg.dict()
+                f"SshExecToolFactory.create() failed: {e}", cfg.dict()
             ) from e

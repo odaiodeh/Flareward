@@ -4,7 +4,17 @@ export interface CatalogResponse {
   elements: { [category: string]: any[] };
 }
 
+export interface ExecutionProfileCatalog {
+  profiles: string[];
+  default_profile: string;
+  environment_profiles: string[];
+}
+
 export const catalogService = {
+  async fetchExecutionProfiles(signal?: AbortSignal): Promise<ExecutionProfileCatalog> {
+    const response = await axios.get<ExecutionProfileCatalog>("/catalog/execution-profiles", { signal });
+    return response.data;
+  },
   /**
    * Fetch all available element categories and types from the catalog.
    * Returns a map of category names to arrays of element types.
@@ -25,7 +35,7 @@ export const catalogService = {
     } catch (err: any) {
       console.warn("Failed to fetch categories from catalog, using fallback:", err);
       // Fallback categories if API call fails
-      return ['nodes', 'llms', 'tools', 'sandboxes', 'providers', 'retrievers', 'conditions'];
+      return ['nodes', 'llms', 'tools', 'providers', 'retrievers', 'conditions'];
     }
   },
 };

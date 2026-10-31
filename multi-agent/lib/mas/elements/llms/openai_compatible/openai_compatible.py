@@ -11,20 +11,23 @@ For newer OpenAI models (GPT-5+) that require the Responses API, use the
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Iterator, List, Optional, Union
+from collections.abc import AsyncGenerator
+from typing import Any
 
-from openai import OpenAI
+from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionToolParam
 
-from ..common.base_llm import BaseLLM
-from ..common.chat.message import ChatMessage, Role
+from mas.application.ports.llm import BaseLLM
+from mas.core.tracing import NoOpTracingService, TracingService
+from mas.domain.messages import ChatMessage, Role
+from mas.domain.tools import ToolDefinition
+
+from ..common.errors import provider_errors
 from ..common.name_sanitizer import build_name_maps, map_name
 from ..common.tool_name_restorer import restore_tool_names
-from ...tools.common.tool_definition import ToolDefinition
 from .message_converter import OpenAIMessageConverter
-from .tools_converter import OpenAIToolsConverter
 from .stream_aggregator import StreamToolCallAggregator
-from mas.core.tracing import TracingService
+from .tools_converter import OpenAIToolsConverter
 
 
 class OpenAICompatibleLLM(BaseLLM):
@@ -55,42 +58,38 @@ class OpenAICompatibleLLM(BaseLLM):
         self._model = model_name
         self._temperature = temperature
         self._max_tokens = max_tokens
-        self._tools: Optional[List[ChatCompletionToolParam]] = None
-        self._fwd_names: Dict[str, str] = {}
-        self._rev_names: Dict[str, str] = {}
-        self._client = OpenAI(api_key=api_key, base_url=base_url, **extra)
-        self._tracing = tracing
+        self._tools: list[ChatCompletionToolParam] | None = None
+        self._fwd_names: dict[str, str] = {}
+        self._rev_names: dict[str, str] = {}
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url, **extra)
+        self._tracing = tracing or NoOpTracingService()
+        self._owns_client = True
 
     # ------------------------------------------------------------------
     # BaseLLM interface
     # ------------------------------------------------------------------
 
-    def chat(self, messages: List[ChatMessage]) -> ChatMessage:
+    async def chat(self, messages: list[ChatMessage]) -> ChatMessage:
         raw_messages = OpenAIMessageConverter.to_openai(messages)
         self._sanitize_outbound_names(raw_messages)
 
-        with self._tracing.trace_llm(
-            model=self._model,
-            provider="openai_compatible",
-            input_messages=[
-                {"role": m.role.value, "content": m.content}
-                for m in messages[-5:]
-            ],
-        ) as gen:
-            try:
-                response = self._client.chat.completions.create(
-                    model=self._model,
-                    messages=raw_messages,
-                    temperature=self._temperature,
-                    max_completion_tokens=self._max_tokens,
-                    tools=self._tools or [],
-                )
-            except Exception as e:
-                gen.update(
-                    level="ERROR",
-                    status_message=f"OpenAI API error: {type(e).__name__}: {e}",
-                )
-                raise
+        with (
+            self._tracing.trace_llm(
+                model=self._model,
+                provider="openai_compatible",
+                input_messages=[
+                    {"role": m.role.value, "content": m.content} for m in messages[-5:]
+                ],
+            ) as gen,
+            provider_errors(gen, self.name),
+        ):
+            response = await self._client.chat.completions.create(
+                model=self._model,
+                messages=raw_messages,
+                temperature=self._temperature,
+                max_completion_tokens=self._max_tokens,
+                tools=self._tools or [],
+            )
             result_msg = OpenAIMessageConverter.from_openai(
                 response.choices[0].message,
             )
@@ -105,56 +104,54 @@ class OpenAICompatibleLLM(BaseLLM):
             gen.update(output=result_msg.content, usage_details=usage or None)
         return result_msg
 
-    def stream(
+    async def stream(
         self,
-        messages: List[ChatMessage],
+        messages: list[ChatMessage],
         **call_params: Any,
-    ) -> Iterator[Union[str, ChatMessage]]:
+    ) -> AsyncGenerator[str | ChatMessage]:
         raw_messages = OpenAIMessageConverter.to_openai(messages)
         self._sanitize_outbound_names(raw_messages)
         aggregator = StreamToolCallAggregator()
         accumulated_content = ""
 
-        with self._tracing.trace_llm(
-            model=self._model,
-            provider="openai_compatible",
-            input_messages=[
-                {"role": m.role.value, "content": m.content}
-                for m in messages[-5:]
-            ],
-            metadata={"streaming": True},
-        ) as gen:
-            try:
-                stream_iter = self._client.chat.completions.create(
-                    model=self._model,
-                    messages=raw_messages,
-                    temperature=self._temperature,
-                    max_completion_tokens=self._max_tokens,
-                    tools=self._tools or [],
-                    stream=True,
-                    **call_params,
-                )
-            except Exception as e:
-                gen.update(
-                    level="ERROR",
-                    status_message=f"OpenAI API error: {type(e).__name__}: {e}",
-                )
-                raise
-            for chunk in stream_iter:
-                if not chunk.choices:
-                    if hasattr(chunk, "usage") and chunk.usage:
-                        gen.update(usage_details={
-                            "input_tokens": chunk.usage.prompt_tokens,
-                            "output_tokens": chunk.usage.completion_tokens,
-                            "total_tokens": chunk.usage.total_tokens,
-                        })
-                    continue
-                delta = chunk.choices[0].delta
-                if delta.content:
-                    accumulated_content += delta.content
-                    yield delta.content
-                if delta.tool_calls:
-                    aggregator.absorb(delta.tool_calls)
+        with (
+            self._tracing.trace_llm(
+                model=self._model,
+                provider="openai_compatible",
+                input_messages=[
+                    {"role": m.role.value, "content": m.content} for m in messages[-5:]
+                ],
+                metadata={"streaming": True},
+            ) as gen,
+            provider_errors(gen, self.name),
+        ):
+            stream_iter = await self._client.chat.completions.create(
+                model=self._model,
+                messages=raw_messages,
+                temperature=self._temperature,
+                max_completion_tokens=self._max_tokens,
+                tools=self._tools or [],
+                stream=True,
+                **call_params,
+            )
+            async with stream_iter:
+                async for chunk in stream_iter:
+                    if not chunk.choices:
+                        if hasattr(chunk, "usage") and chunk.usage:
+                            gen.update(
+                                usage_details={
+                                    "input_tokens": chunk.usage.prompt_tokens,
+                                    "output_tokens": chunk.usage.completion_tokens,
+                                    "total_tokens": chunk.usage.total_tokens,
+                                }
+                            )
+                        continue
+                    delta = chunk.choices[0].delta
+                    if delta.content:
+                        accumulated_content += delta.content
+                        yield delta.content
+                    if delta.tool_calls:
+                        aggregator.absorb(delta.tool_calls)
             gen.update(output=accumulated_content)
 
         if aggregator.has_tool_calls:
@@ -166,11 +163,15 @@ class OpenAICompatibleLLM(BaseLLM):
             )
             yield restore_tool_names(self._rev_names, result)
 
-    def bind_tools(self, tools: List[ToolDefinition]) -> OpenAICompatibleLLM:
+    async def aclose(self) -> None:
+        if self._owns_client:
+            self._owns_client = False
+            await self._client.close()
+
+    def bind_tools(self, tools: list[ToolDefinition]) -> OpenAICompatibleLLM:
         clone = copy.copy(self)
-        clone._fwd_names, clone._rev_names = build_name_maps(
-            t.name for t in tools
-        )
+        clone._owns_client = False
+        clone._fwd_names, clone._rev_names = build_name_maps(t.name for t in tools)
         clone._tools = OpenAIToolsConverter.to_openai(tools)
         self._sanitize_tool_defs(clone._tools, clone._fwd_names)
         return clone
@@ -185,8 +186,8 @@ class OpenAICompatibleLLM(BaseLLM):
 
     @staticmethod
     def _sanitize_tool_defs(
-        tools: Optional[List[ChatCompletionToolParam]],
-        fwd_names: Dict[str, str],
+        tools: list[ChatCompletionToolParam] | None,
+        fwd_names: dict[str, str],
     ) -> None:
         """Sanitize function names inside Chat Completions tool defs (in-place)."""
         if not tools:
@@ -195,10 +196,9 @@ class OpenAICompatibleLLM(BaseLLM):
             name = tool["function"]["name"]
             tool["function"]["name"] = map_name(name, fwd_names)
 
-    def _sanitize_outbound_names(self, messages: List[Dict[str, Any]]) -> None:
+    def _sanitize_outbound_names(self, messages: list[dict[str, Any]]) -> None:
         """Sanitize tool-call names in outbound messages (in-place)."""
         for msg in messages:
             for tc in msg.get("tool_calls", []):
                 name = tc["function"]["name"]
                 tc["function"]["name"] = map_name(name, self._fwd_names)
-

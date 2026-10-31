@@ -11,19 +11,25 @@ at build time so they can call ``get_headers()`` with no args.
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from typing import Any, Callable, Dict, List, Optional, Union, TYPE_CHECKING
+from collections.abc import Callable
+from typing import Any
 
-from .errors import TokenExpiredError
-from .credentials.models import (
-    StoredCredential, TokenStatus, RecoveryResult, ClientConfig,
-)
-from .credentials.ports import CredentialStore, ServerConfigStore
+from mas.core.async_work import await_owned
+
 from .credentials.credential import AuthCredential
-from .ports import AuthStrategy, AuthChallenge
+from .credentials.models import (
+    ClientConfig,
+    RecoveryResult,
+    StoredCredential,
+    TokenStatus,
+)
+from .credentials.ports import CredentialStore, ServerConfigStore, TokenCipher
 from .discovery.detector import AuthDetector
 from .discovery.models import DetectionResult
-from global_utils.utils.crypto import FieldCipher
+from .errors import TokenExpiredError
+from .ports import AuthChallenge, AuthStrategy
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +38,7 @@ class AuthStrategyRegistry:
     """Maps scheme_type strings to AuthStrategy instances."""
 
     def __init__(self) -> None:
-        self._strategies: Dict[str, AuthStrategy] = {}
+        self._strategies: dict[str, AuthStrategy] = {}
 
     def register(self, strategy: AuthStrategy) -> None:
         self._strategies[strategy.scheme_type] = strategy
@@ -60,11 +66,11 @@ class AuthHandle:
     def __init__(
         self,
         auth_service: AuthService,
-        user_id: Union[str, Callable[[], str]],
+        user_id: str | Callable[[], str],
         server_identifier: str,
         scheme_type: str = "",
-        config: Optional[Dict[str, Any]] = None,
-    ):
+        config: dict[str, Any] | None = None,
+    ) -> None:
         self._svc = auth_service
         self._user_id_or_resolver = user_id
         self._server_id = server_identifier
@@ -81,15 +87,19 @@ class AuthHandle:
         except RuntimeError:
             return ""
 
-    async def get_headers(self) -> Dict[str, str]:
+    async def get_headers(self) -> dict[str, str]:
         return await self._svc.get_headers(
-            self._user_id, self._server_id, self._config,
+            self._user_id,
+            self._server_id,
+            self._config,
             scheme_type=self._scheme_type,
         )
 
     async def get_token(self) -> str:
         token = await self._svc.get_valid_token(
-            self._user_id, self._server_id, self._config,
+            self._user_id,
+            self._server_id,
+            self._config,
             scheme_type=self._scheme_type,
         )
         if not token:
@@ -98,39 +108,43 @@ class AuthHandle:
 
     async def attempt_recovery(self) -> RecoveryResult:
         return await self._svc.attempt_recovery(
-            self._user_id, self._server_id, self._config,
+            self._user_id,
+            self._server_id,
+            self._config,
         )
 
 
 class AuthService:
-
     def __init__(
         self,
         credential_store: CredentialStore,
         strategy_registry: AuthStrategyRegistry,
-        server_config_store: Optional[ServerConfigStore] = None,
-        detector: Optional[AuthDetector] = None,
-        encryption_key: str = "",
-    ):
+        server_config_store: ServerConfigStore | None = None,
+        detector: AuthDetector | None = None,
+        cipher: TokenCipher | None = None,
+    ) -> None:
         self._store = credential_store
         self._strategies = strategy_registry
         self._configs = server_config_store
         self._detector = detector
-        self._cipher = FieldCipher(encryption_key) if encryption_key else None
+        self._cipher = cipher
 
-    def seal_token(self, token: Optional[str]) -> Optional[str]:
+    def seal_token(self, token: str | None) -> str | None:
         """Encrypt a token for transit to the browser."""
         return self._cipher.encrypt(token) if self._cipher else token
 
-    def unseal_token(self, token: Optional[str]) -> Optional[str]:
+    def unseal_token(self, token: str | None) -> str | None:
         """Decrypt a token received from the browser."""
         return self._cipher.decrypt(token) if self._cipher else token
 
-    # ── Credential CRUD (sync — pure DB, no external I/O) ────────────
+    # Synchronous storage entrypoints are used by legacy callers off-loop.
 
     def get_credential(
-        self, user_id: str, server_identifier: str, scheme_type: str = "",
-    ) -> Optional[StoredCredential]:
+        self,
+        user_id: str,
+        server_identifier: str,
+        scheme_type: str = "",
+    ) -> StoredCredential | None:
         if not user_id or not server_identifier:
             return None
         return self._store.find_by_server(user_id, server_identifier, scheme_type)
@@ -143,22 +157,29 @@ class AuthService:
             self._store.delete(user_id, server_identifier)
 
     def update_status(
-        self, user_id: str, server_identifier: str, status: TokenStatus,
+        self,
+        user_id: str,
+        server_identifier: str,
+        status: TokenStatus,
     ) -> None:
         cred = self._store.find_by_server(user_id, server_identifier)
         if cred:
             self._store.update_status(
-                cred.user_id, cred.server_identifier, status.value,
+                cred.user_id,
+                cred.server_identifier,
+                status.value,
             )
 
     def get_client_config(
-        self, user_id: str, server_identifier: str,
-    ) -> Optional[ClientConfig]:
+        self,
+        user_id: str,
+        server_identifier: str,
+    ) -> ClientConfig | None:
         if not self._configs:
             return None
         return self._configs.find_by_server(user_id, server_identifier)
 
-    def list_server_configs(self, category: str) -> List[ClientConfig]:
+    def list_server_configs(self, category: str) -> list[ClientConfig]:
         """Return all pre-configured auth servers for the given category."""
         if not self._configs:
             return []
@@ -170,11 +191,13 @@ class AuthService:
         self,
         user_id: str,
         server_identifier: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         scheme_type: str = "",
-    ) -> Optional[str]:
+    ) -> str | None:
         """Return a valid access token, attempting recovery if expired."""
-        cred = self.get_credential(user_id, server_identifier, scheme_type)
+        cred = await await_owned(
+            asyncio.to_thread(self.get_credential, user_id, server_identifier, scheme_type)
+        )
         if cred and cred.is_valid():
             return cred.access_token
 
@@ -188,19 +211,21 @@ class AuthService:
         self,
         user_id: str,
         server_identifier: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
         scheme_type: str = "",
-    ) -> Dict[str, str]:
-        cred = self.get_credential(user_id, server_identifier, scheme_type)
+    ) -> dict[str, str]:
+        cred = await await_owned(
+            asyncio.to_thread(self.get_credential, user_id, server_identifier, scheme_type)
+        )
         if not cred:
-            raise TokenExpiredError(
-                f"No credential for user={user_id} server={server_identifier}"
-            )
+            raise TokenExpiredError(f"No credential for user={user_id} server={server_identifier}")
 
         if not cred.is_valid():
             recovery = await self.attempt_recovery(user_id, server_identifier, config)
             if recovery.recovered:
-                cred = self.get_credential(user_id, server_identifier, scheme_type)
+                cred = await await_owned(
+                    asyncio.to_thread(self.get_credential, user_id, server_identifier, scheme_type)
+                )
             if not cred or not cred.is_valid():
                 raise TokenExpiredError(
                     f"Credential expired and recovery failed for server={server_identifier}"
@@ -215,27 +240,23 @@ class AuthService:
         self,
         user_id: str,
         server_identifier: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ) -> RecoveryResult:
         """Delegate recovery to the appropriate strategy and persist the result."""
-        cred = self.get_credential(user_id, server_identifier)
+        cred = await await_owned(asyncio.to_thread(self.get_credential, user_id, server_identifier))
         if not cred:
             return RecoveryResult(
-                recovered=False, should_retry=False,
+                recovered=False,
+                should_retry=False,
                 reason="No credential found",
             )
 
         strategy = self._strategies.get(cred.scheme_type)
-        resolved = config or self._resolve_config(user_id, server_identifier)
+        resolved = config or await await_owned(
+            asyncio.to_thread(self._resolve_config, user_id, server_identifier)
+        )
 
-        try:
-            result = await strategy.attempt_recovery(cred, resolved)
-        except Exception as exc:
-            logger.info("Recovery failed for server=%s: %s", server_identifier, exc)
-            return RecoveryResult(
-                recovered=False, should_retry=False,
-                reason=f"Recovery error: {exc}",
-            )
+        result = await strategy.attempt_recovery(cred, resolved)
 
         if result.recovered and result.new_token_set:
             updated = StoredCredential(
@@ -250,10 +271,11 @@ class AuthService:
                 scheme_type=cred.scheme_type,
                 status=TokenStatus.ACTIVE,
             )
-            self._store.upsert(updated)
+            await await_owned(asyncio.to_thread(self._store.upsert, updated))
             logger.debug(
                 "Credential recovered for user=%s server=%s",
-                cred.user_id, cred.server_identifier,
+                cred.user_id,
+                cred.server_identifier,
             )
 
         return result
@@ -265,17 +287,19 @@ class AuthService:
         user_id: str,
         server_identifier: str,
         scheme_type: str,
-        config: Optional[Dict[str, Any]] = None,
+        config: dict[str, Any] | None = None,
     ) -> AuthChallenge:
         """Start credential acquisition — delegates entirely to the strategy."""
         strategy = self._strategies.get(scheme_type)
-        resolved = config or self._resolve_config(user_id, server_identifier)
+        resolved = config or await await_owned(
+            asyncio.to_thread(self._resolve_config, user_id, server_identifier)
+        )
         return await strategy.initiate(user_id, server_identifier, resolved)
 
     async def complete(
         self,
-        raw_callback_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        raw_callback_data: dict[str, Any],
+    ) -> dict[str, Any]:
         """Complete the credential-acquisition flow.
 
         Delegates entirely to the strategy. The strategy validates state,
@@ -287,7 +311,7 @@ class AuthService:
 
         result = await strategy.complete(raw_callback_data)
 
-        self._store.upsert(StoredCredential(
+        credential = StoredCredential(
             user_id=result.user_id,
             server_identifier=result.server_identifier,
             access_token=result.token_set.access_token,
@@ -297,11 +321,13 @@ class AuthService:
             scopes=result.scopes,
             status=TokenStatus.ACTIVE,
             scheme_type=result.scheme_type,
-        ))
+        )
+        await await_owned(asyncio.to_thread(self._store.upsert, credential))
 
         logger.info(
             "Token stored for user=%s server=%s",
-            result.user_id, result.server_identifier,
+            result.user_id,
+            result.server_identifier,
         )
         return {"success": True, "server_identifier": result.server_identifier}
 
@@ -310,8 +336,8 @@ class AuthService:
     async def discover(
         self,
         url: str,
-        response_headers: Optional[Dict[str, str]] = None,
-    ) -> Optional[DetectionResult]:
+        response_headers: dict[str, str] | None = None,
+    ) -> DetectionResult | None:
         """Detect what auth a server requires. Returns DetectionResult or None."""
         if not self._detector:
             return None
@@ -319,9 +345,20 @@ class AuthService:
 
     # ── Binding ───────────────────────────────────────────────────────
 
+    async def bind_async(
+        self, user_id: str, server_identifier: str, scheme_type: str = ""
+    ) -> AuthCredential | None:
+        """Bind credentials without blocking an async caller on the retained stores."""
+        return await await_owned(
+            asyncio.to_thread(self.bind, user_id, server_identifier, scheme_type)
+        )
+
     def bind(
-        self, user_id: str, server_identifier: str, scheme_type: str = "",
-    ) -> Optional[AuthCredential]:
+        self,
+        user_id: str,
+        server_identifier: str,
+        scheme_type: str = "",
+    ) -> AuthCredential | None:
         if not user_id or not server_identifier:
             return None
         if not self.get_credential(user_id, server_identifier, scheme_type):
@@ -341,7 +378,7 @@ class AuthService:
         user_id_resolver: Callable[[], str],
         server_identifier: str,
         scheme_type: str = "",
-    ) -> Optional[AuthCredential]:
+    ) -> AuthCredential | None:
         """Create a credential handle with deferred user_id resolution.
 
         The resolver is called at runtime when the credential is actually
@@ -363,7 +400,9 @@ class AuthService:
     # ── Internals ─────────────────────────────────────────────────────
 
     def _resolve_config(
-        self, user_id: str, server_identifier: str,
-    ) -> Dict[str, Any]:
+        self,
+        user_id: str,
+        server_identifier: str,
+    ) -> dict[str, Any]:
         cfg = self.get_client_config(user_id, server_identifier)
         return cfg.model_dump() if cfg else {}

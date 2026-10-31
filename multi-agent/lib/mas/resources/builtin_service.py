@@ -15,17 +15,18 @@ Existence of a ``BuiltinResourceDescriptor`` for a given ``rid`` *is* the
 "this resource is a built-in" signal — there is no ``ownership`` field on
 ``Resource`` to check anymore.
 """
+
 import logging
 from collections import deque
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from pydantic import BaseModel, ValidationError as PydanticValidationError
+from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
-from mas.core.identity import Identity
+from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.core.enums import ResourceCategory, ResourceOwnership, ResourceVisibility
+from mas.core.identity import Identity
 from mas.core.ref import RefWalker
-from mas.resources.models import Resource
-from mas.resources.registry import ResourcesRegistry
 from mas.resources.builtin_models import (
     BuiltinResourceDescriptor,
     BuiltinUpdateRequest,
@@ -34,11 +35,12 @@ from mas.resources.builtin_models import (
 )
 from mas.resources.errors import BuiltinConfigUnavailableError, BuiltinDependentsPublicError
 from mas.resources.field_encryption import ResourceFieldEncryption
+from mas.resources.models import Resource
+from mas.resources.registry import ResourcesRegistry
 from mas.resources.repository.builtin_resource_descriptor_repository import (
     BuiltinResourceDescriptorRepository,
 )
 from mas.resources.repository.builtin_user_config_repository import BuiltinUserConfigRepository
-from mas.catalog.element_registry import ElementRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +54,7 @@ class BuiltinResourceService:
         element_registry: ElementRegistry,
         field_encryption: ResourceFieldEncryption,
         descriptor_repo: BuiltinResourceDescriptorRepository,
-        builtin_user_config_repo: Optional[BuiltinUserConfigRepository] = None,
+        builtin_user_config_repo: BuiltinUserConfigRepository | None = None,
     ) -> None:
         self._store = resource_registry
         self.element_registry = element_registry
@@ -62,7 +64,7 @@ class BuiltinResourceService:
 
     # ---------- Core built-in-awareness (used by ResourcesService) ----------
 
-    def get_descriptor(self, rid: str) -> Optional[BuiltinResourceDescriptor]:
+    def get_descriptor(self, rid: str) -> BuiltinResourceDescriptor | None:
         """Return the built-in descriptor for *rid*, or ``None`` if it's not a built-in."""
         return self._descriptor_repo.get(rid)
 
@@ -83,8 +85,11 @@ class BuiltinResourceService:
         return is_admin or descriptor.visibility == ResourceVisibility.PUBLIC
 
     def resolve_config(
-        self, resource: Resource, base_config: Dict[str, Any], identity: Optional[Identity],
-    ) -> Dict[str, Any]:
+        self,
+        resource: Resource,
+        base_config: dict[str, Any],
+        identity: Identity | None,
+    ) -> dict[str, Any]:
         """Merge a caller's per-identity overlay into *base_config*.
 
         No-ops (returns *base_config* unchanged) for non-builtins or when
@@ -101,8 +106,11 @@ class BuiltinResourceService:
         return config
 
     def validation_override_error(
-        self, resource: Resource, config: BaseModel, identity: Optional[Identity],
-    ) -> Optional[str]:
+        self,
+        resource: Resource,
+        config: BaseModel,
+        identity: Identity | None,
+    ) -> str | None:
         """Human-readable validation-blocking error for a built-in missing a
         required per-identity secret, or ``None`` if validation may proceed.
 
@@ -119,7 +127,9 @@ class BuiltinResourceService:
             f"'{resource.name}' in your inventory before it can be validated."
         )
 
-    def _set_visibility(self, rid: str, visibility: ResourceVisibility) -> BuiltinResourceDescriptor:
+    def _set_visibility(
+        self, rid: str, visibility: ResourceVisibility
+    ) -> BuiltinResourceDescriptor:
         """Create or update the descriptor for *rid* with the given visibility.
 
         Preserves ``created``/other fields on an existing descriptor rather
@@ -149,16 +159,16 @@ class BuiltinResourceService:
     def find_visible(
         self,
         *,
-        identity: Optional[Identity],
-        category: Optional[str],
-        resource_type: Optional[str],
-        ownership: Optional[str],
+        identity: Identity | None,
+        category: str | None,
+        resource_type: str | None,
+        ownership: str | None,
         is_admin: bool,
         limit: int,
         offset: int,
         sort_by: str,
         sort_order: str,
-    ) -> "tuple[List[Resource], int]":
+    ) -> tuple[list[Resource], int]:
         """Paginated resources visible to *identity*, merging built-in
         descriptor metadata with the base ``resources`` collection.
 
@@ -186,11 +196,13 @@ class BuiltinResourceService:
 
     def find_all_builtins(
         self,
-        category: Optional[str] = None,
-        resource_type: Optional[str] = None,
-    ) -> List[Resource]:
+        category: str | None = None,
+        resource_type: str | None = None,
+    ) -> list[Resource]:
         """Return all built-in resources (public and draft), for admin listing."""
-        return self._descriptor_repo.find_all_builtins(category=category, resource_type=resource_type)
+        return self._descriptor_repo.find_all_builtins(
+            category=category, resource_type=resource_type
+        )
 
     def get_builtin_schema(self, rid: str, *, is_admin: bool = False) -> dict:
         """Return the element JSON schema with readOnly annotations for a built-in resource.
@@ -228,7 +240,7 @@ class BuiltinResourceService:
         self,
         rid: str,
         identity: Identity,
-    ) -> Dict[str, Any] | None:
+    ) -> dict[str, Any] | None:
         """Return the user's current overlay for a built-in resource, or None.
 
         Decrypts sensitive fields so the UI can display masked values.
@@ -261,20 +273,17 @@ class BuiltinResourceService:
         configurable_keys, sensitive_keys = self._fields.scan_schema_hints(
             resource.category, resource.type
         )
-        model_cls = self.element_registry.get_schema(
-            ResourceCategory(resource.category), resource.type
-        )
         allowed_keys = configurable_keys | self._fields.auth_metadata_keys(
             resource.category, resource.type
         )
         filtered = {k: v for k, v in user_config.fields.items() if k in allowed_keys}
-        return self._fields.decrypt_config_fields(filtered, sensitive_keys, model_cls)
+        return self._fields.decrypt(filtered)
 
     def configure_builtin(
         self,
         rid: str,
         identity: Identity,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> Resource:
         """Save per-user/team configuration for a built-in resource.
 
@@ -297,6 +306,7 @@ class BuiltinResourceService:
         if not allowed_keys:
             raise ValueError("No configurable fields defined for this element type")
 
+        config = self._fields.canonical_fields(resource.category, resource.type, config)
         filtered = {k: v for k, v in config.items() if k in allowed_keys}
         if not filtered:
             raise ValueError("No valid configurable fields provided")
@@ -321,22 +331,19 @@ class BuiltinResourceService:
         key = identity_to_key(identity)
         existing = self._builtin_user_config_repo.get(rid, key)
 
-        base_config = self._store.raw_config(rid)
+        base_config = self.strip_unconfigured_secrets(resource, self._store.raw_config(rid))
         existing_fields = {}
         if existing:
-            existing_fields = self._fields.decrypt_config_fields(
-                {k: v for k, v in existing.fields.items() if k in allowed_keys},
-                sensitive_keys, model_cls,
+            existing_fields = self._fields.decrypt(
+                {k: v for k, v in existing.fields.items() if k in allowed_keys}
             )
-        merged = {**base_config, **existing_fields, **filtered}
+        merged = {**base_config, **existing_fields, **self._fields.decrypt(filtered)}
         try:
-            cfg_model = model_cls(**merged)
-        except PydanticValidationError as e:
-            raise ValueError(f"Invalid configuration: {e}") from e
-        validated_dump = cfg_model.model_dump(mode="json")
-        validated = {k: validated_dump[k] for k in filtered if k in validated_dump}
-
-        encrypted = self._fields.encrypt_config_fields(validated, sensitive_keys, model_cls)
+            cfg_model = model_cls.model_validate(merged, by_name=True)
+        except PydanticValidationError:
+            raise ValueError("Invalid configuration") from None
+        validated_dump = self._fields.encrypt_model(cfg_model)
+        encrypted = {k: validated_dump[k] for k in filtered if k in validated_dump}
 
         if existing:
             existing.fields.update(encrypted)
@@ -353,7 +360,9 @@ class BuiltinResourceService:
         return resource
 
     def strip_unconfigured_secrets(
-        self, resource: Resource, config: dict[str, Any],
+        self,
+        resource: Resource,
+        config: dict[str, Any],
     ) -> dict[str, Any]:
         """Remove per-user secret values from a built-in's shared base config.
 
@@ -371,19 +380,12 @@ class BuiltinResourceService:
         after this), while a caller without one gets the field's schema
         default (``None``/empty) instead of the admin's value.
         """
-        configurable_keys, sensitive_keys = self._fields.scan_schema_hints(
-            resource.category, resource.type
-        )
-        secret_configurable_keys = configurable_keys & sensitive_keys
-        if not secret_configurable_keys:
-            return config
-        stripped = dict(config)
-        for key in secret_configurable_keys:
-            stripped.pop(key, None)
-        return stripped
+        return self._fields.strip_unconfigured_secrets(resource.category, resource.type, config)
 
     def find_missing_required_overlay_fields(
-        self, resource: Resource, resolved_config: BaseModel,
+        self,
+        resource: Resource,
+        resolved_config: BaseModel,
     ) -> list[str]:
         """Secret+configurable fields still empty after overlay resolution.
 
@@ -419,7 +421,7 @@ class BuiltinResourceService:
             require_unconditional=True,
         )
 
-    def resolve_overlay(self, resource: Resource, identity: Identity) -> Dict[str, Any]:
+    def resolve_overlay(self, resource: Resource, identity: Identity) -> dict[str, Any]:
         """Resolve the effective config overlay for a built-in resource.
 
         Used by ``resolve_config`` to merge a caller's overlay into the
@@ -453,11 +455,8 @@ class BuiltinResourceService:
         if not user_config:
             return {}
 
-        model_cls = self.element_registry.get_schema(
-            ResourceCategory(resource.category), resource.type
-        )
         overlay = {k: v for k, v in user_config.fields.items() if k in allowed_keys}
-        return self._fields.decrypt_config_fields(overlay, sensitive_keys, model_cls)
+        return self._fields.decrypt(overlay)
 
     # ---------- Admin lifecycle ----------
 
@@ -470,7 +469,7 @@ class BuiltinResourceService:
         name: str,
         config: dict,
         available_to_all: bool = False,
-    ) -> "tuple[Resource, List[Resource]]":
+    ) -> tuple[Resource, list[Resource]]:
         """Create a resource directly as built-in (admin only).
 
         The identity of the creating admin is preserved so that every
@@ -486,16 +485,12 @@ class BuiltinResourceService:
         """
         cat_enum = ResourceCategory(category)
         if cat_enum in ResourceCategory.builtin_disabled_categories():
-            raise ValueError(
-                f"Category '{category}' is not supported for built-in resources"
-            )
+            raise ValueError(f"Category '{category}' is not supported for built-in resources")
 
         model_cls = self.element_registry.get_schema(ResourceCategory(category), resource_type)
-        cfg_model = model_cls(**config)
+        cfg_model = model_cls.model_validate(self._fields.decrypt(config), by_name=True)
         nested_refs = list(RefWalker.external_rids(cfg_model))
-        cfg_dict = self._fields.encrypt_fields(
-            cfg_model.model_dump(mode="json"), model_cls, category=category, type_key=resource_type
-        )
+        cfg_dict = self._fields.encrypt_model(cfg_model)
 
         doc = Resource(
             identity=identity,
@@ -508,13 +503,13 @@ class BuiltinResourceService:
         created = self._store.create(doc)
         self._set_visibility(created.rid, ResourceVisibility.DRAFT)
 
-        cascaded: List[Resource] = []
+        cascaded: list[Resource] = []
         if available_to_all:
             cascaded = self._cascade_promote_dependencies(created.rid)
             self._set_visibility(created.rid, ResourceVisibility.PUBLIC)
         return created, cascaded
 
-    def promote_with_cascade(self, rid: str) -> "tuple[Resource, List[Resource]]":
+    def promote_with_cascade(self, rid: str) -> tuple[Resource, list[Resource]]:
         """Make a resource a public built-in (admin only).
 
         Accepts a custom resource (promotes to builtin + public) or an
@@ -563,7 +558,7 @@ class BuiltinResourceService:
 
     # ---------- Nested-dependency cascade helpers ----------
 
-    def preview_cascade_targets(self, rid: str) -> List[Resource]:
+    def preview_cascade_targets(self, rid: str) -> list[Resource]:
         """Resources that would be newly promoted if *rid* were promoted.
 
         Walks ``nested_refs`` transitively (LLMs, providers, tools, etc.
@@ -577,8 +572,7 @@ class BuiltinResourceService:
         """
         self._store.get(rid)  # raise KeyError if root rid does not exist
         return [
-            dep for dep in self._iter_transitive_deps(rid)
-            if not self._is_public_builtin(dep.rid)
+            dep for dep in self._iter_transitive_deps(rid) if not self._is_public_builtin(dep.rid)
         ]
 
     def _is_public_builtin(self, rid: str) -> bool:
@@ -601,7 +595,7 @@ class BuiltinResourceService:
                     f"built-in resource."
                 )
 
-    def _cascade_promote_dependencies(self, rid: str) -> List[Resource]:
+    def _cascade_promote_dependencies(self, rid: str) -> list[Resource]:
         """Promote every not-yet-public transitive dependency of *rid*.
 
         Raises ``ValueError`` (via ``_assert_cascade_promotable``) instead
@@ -616,8 +610,8 @@ class BuiltinResourceService:
         """
         self._assert_cascade_promotable(rid)
         targets = self.preview_cascade_targets(rid)
-        originals: List[tuple[str, Optional[BuiltinResourceDescriptor]]] = []
-        promoted: List[Resource] = []
+        originals: list[tuple[str, BuiltinResourceDescriptor | None]] = []
+        promoted: list[Resource] = []
         try:
             for dep in targets:
                 orig_descriptor = self.get_descriptor(dep.rid)
@@ -628,7 +622,9 @@ class BuiltinResourceService:
             logger.exception(
                 "Cascade promotion failed after promoting %d of %d "
                 "dependencies of '%s'; rolling back promoted deps",
-                len(promoted), len(targets), rid,
+                len(promoted),
+                len(targets),
+                rid,
             )
             for dep_rid, orig_descriptor in reversed(originals):
                 try:
@@ -639,16 +635,17 @@ class BuiltinResourceService:
                 except Exception:
                     logger.exception(
                         "Failed to roll back promoted dependency '%s' — it may "
-                        "be left as PUBLIC and require manual cleanup", dep_rid,
+                        "be left as PUBLIC and require manual cleanup",
+                        dep_rid,
                     )
             raise
         return promoted
 
-    def _iter_transitive_deps(self, rid: str) -> List[Resource]:
+    def _iter_transitive_deps(self, rid: str) -> list[Resource]:
         """All resources transitively referenced by *rid* via ``nested_refs``
         (breadth-first, excludes *rid* itself, no duplicates)."""
         visited = {rid}
-        result: List[Resource] = []
+        result: list[Resource] = []
         q: deque[str] = deque([rid])
         while q:
             current = q.popleft()
@@ -674,15 +671,19 @@ class BuiltinResourceService:
         if dependents:
             raise BuiltinDependentsPublicError(
                 resource_name=resource.name,
-                category=str(resource.category.value if hasattr(resource.category, "value") else resource.category),
+                category=str(
+                    resource.category.value
+                    if hasattr(resource.category, "value")
+                    else resource.category
+                ),
                 dependents=dependents,
             )
 
-    def _find_public_dependents(self, rid: str) -> List[Resource]:
+    def _find_public_dependents(self, rid: str) -> list[Resource]:
         """All resources that transitively depend on *rid* (directly or via
         a chain of ``nested_refs``) and are themselves public built-ins."""
         visited = {rid}
-        result: List[Resource] = []
+        result: list[Resource] = []
         q: deque[str] = deque([rid])
         while q:
             current = q.popleft()
@@ -704,7 +705,7 @@ class BuiltinResourceService:
         rid: str,
         *,
         update: BuiltinUpdateRequest,
-    ) -> "tuple[Resource, List[Resource]]":
+    ) -> tuple[Resource, list[Resource]]:
         """Update a built-in resource (admin only).
 
         Allows updating config, name, and visibility. Turning
@@ -726,12 +727,10 @@ class BuiltinResourceService:
 
         if config is not None:
             model_cls = self.element_registry.get_schema(
-                ResourceCategory(resource.category), resource.type)
-            cfg_model = model_cls(**config)
-            resource.cfg_dict = self._fields.encrypt_fields(
-                cfg_model.model_dump(mode="json"), model_cls,
-                category=resource.category, type_key=resource.type,
+                ResourceCategory(resource.category), resource.type
             )
+            cfg_model = model_cls.model_validate(self._fields.decrypt(config), by_name=True)
+            resource.cfg_dict = self._fields.encrypt_model(cfg_model)
             resource.nested_refs = list(RefWalker.external_rids(cfg_model))
 
         if name is not None:
@@ -750,15 +749,18 @@ class BuiltinResourceService:
         updated = self._store.update(resource)
         self._set_visibility(rid, ResourceVisibility.DRAFT)
 
-        cascaded: List[Resource] = []
+        cascaded: list[Resource] = []
         if ends_public:
             cascaded = self._cascade_promote_dependencies(rid)
             self._set_visibility(rid, ResourceVisibility.PUBLIC)
         return updated, cascaded
 
     def toggle_visibility_with_cascade(
-        self, rid: str, *, available_to_all: bool,
-    ) -> "tuple[Resource, List[Resource]]":
+        self,
+        rid: str,
+        *,
+        available_to_all: bool,
+    ) -> tuple[Resource, list[Resource]]:
         """Set visibility of a built-in resource (admin only).
 
         See ``promote_with_cascade`` / ``demote`` for the cascading and

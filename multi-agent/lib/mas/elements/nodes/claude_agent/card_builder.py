@@ -4,9 +4,9 @@ Card builder for Claude Agent Node.
 Builds element card from local configuration (model, tools, capabilities).
 """
 
-from typing import List
-from mas.elements.common.card.models import ElementCard, Skill, Capability, CardBuildInput
-from mas.elements.common.card.interface import CardBuilder
+from mas.application.elements.cards.interface import CardBuilder
+from mas.application.elements.cards.models import CardBuildInput
+from mas.domain.element_card import Capability, ElementCard, Skill
 
 
 class ClaudeAgentCardBuilder(CardBuilder):
@@ -20,12 +20,12 @@ class ClaudeAgentCardBuilder(CardBuilder):
     def build(self, input: CardBuildInput) -> ElementCard:
         config = input.config
 
-        skills: List[Skill] = []
+        skills: list[Skill] = []
 
         for card in input.dependency_cards.values():
             skills.extend(card.skills)
 
-        capabilities: List[Capability] = [
+        capabilities: list[Capability] = [
             Capability(
                 name="model",
                 description=f"Claude model: {config.model}",
@@ -45,16 +45,20 @@ class ClaudeAgentCardBuilder(CardBuilder):
         ]
 
         if config.max_turns:
-            capabilities.append(Capability(
-                name="max_turns",
-                description=f"Maximum {config.max_turns} agentic turns",
-            ))
+            capabilities.append(
+                Capability(
+                    name="max_turns",
+                    description=f"Maximum {config.max_turns} agentic turns",
+                )
+            )
 
         if config.skills_repos:
-            capabilities.append(Capability(
-                name="skills",
-                description=f"{len(config.skills_repos)} skills repo(s) configured",
-            ))
+            capabilities.append(
+                Capability(
+                    name="skills",
+                    description=f"{len(config.skills_repos)} skills repo(s) configured",
+                )
+            )
 
         return ElementCard(
             uid=input.rid,

@@ -1,28 +1,31 @@
+import asyncio
 import logging
-from typing import List, Optional, Tuple, Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 from pydantic import BaseModel
 
+from mas.application.elements.catalog.card_service import ElementCardService
+from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.application.elements.validation import ElementValidationResult, ValidationContext
+from mas.core.async_work import await_owned
 from mas.core.caller_scope import CallerScope
-from mas.core.identity import Identity
-from mas.resources.registry import ResourcesRegistry
-from mas.catalog.element_registry import ElementRegistry
-from mas.resources.models import Resource, ResourceQuery
-from mas.core.enums import ResourceCategory
-from mas.core.ref import RefWalker
 from mas.core.dto import GroupedCount
 from mas.core.element_meta import ElementConfigMeta
-from mas.elements.common.validator import ElementValidationResult, ValidationContext
-from mas.elements.common.card import ElementCard
-from mas.catalog.card_service import ElementCardService
-from mas.resources.resolver import DependencyResolver
-from mas.resources.field_encryption import ResourceFieldEncryption
-from mas.resources.ports import CredentialCleanupPort
+from mas.core.enums import ResourceCategory
+from mas.core.identity import Identity
+from mas.core.ref import RefWalker
+from mas.domain.element_card import ElementCard
 from mas.resources.errors import ResourceAccessDeniedError
+from mas.resources.field_encryption import ResourceFieldEncryption
+from mas.resources.models import Resource, ResourceQuery
+from mas.resources.ports import CredentialCleanupPort
+from mas.resources.registry import ResourcesRegistry
+from mas.resources.resolver import DependencyResolver
 from mas.validation.service import ElementValidationService
 
 logger = logging.getLogger(__name__)
+
 
 class CoreResourceService:
     """Pure resource CRUD, validation, card building, and encryption.
@@ -35,13 +38,13 @@ class CoreResourceService:
     """
 
     def __init__(
-            self,
-            resource_registry: ResourcesRegistry,
-            element_registry: ElementRegistry,
-            field_encryption: ResourceFieldEncryption,
-            validation_service: Optional[ElementValidationService] = None,
-            card_service: Optional[ElementCardService] = None,
-            auth_service: Optional[CredentialCleanupPort] = None,
+        self,
+        resource_registry: ResourcesRegistry,
+        element_registry: ElementRegistry,
+        field_encryption: ResourceFieldEncryption,
+        validation_service: ElementValidationService | None = None,
+        card_service: ElementCardService | None = None,
+        auth_service: CredentialCleanupPort | None = None,
     ) -> None:
         self._store = resource_registry
         self.element_registry = element_registry
@@ -52,14 +55,14 @@ class CoreResourceService:
         self._fields = field_encryption
 
     # ---------- CRUD ----------
-    def create(self, *, identity: Identity, category: str, type: str, name: str, config: dict) -> Resource:
+    def create(
+        self, *, identity: Identity, category: str, type: str, name: str, config: dict
+    ) -> Resource:
         model_cls = self.element_registry.get_schema(ResourceCategory(category), type)
-        cfg_model = model_cls(**config)
+        cfg_model = model_cls.model_validate(self._fields.decrypt(config), by_name=True)
 
         nested_refs = list(RefWalker.external_rids(cfg_model))
-        cfg_dict = self._fields.encrypt_fields(
-            cfg_model.model_dump(mode="json"), model_cls, category=category, type_key=type
-        )
+        cfg_dict = self._fields.encrypt_model(cfg_model)
 
         doc = Resource(
             identity=identity,
@@ -78,20 +81,16 @@ class CoreResourceService:
         """
         return self._store.create(resource)
 
-    def update(self, rid: str, *, config: dict, name: Optional[str] = None) -> Resource:
+    def update(self, rid: str, *, config: dict, name: str | None = None) -> Resource:
         doc = self._store.get(rid)
         old_server_id = doc.cfg_dict.get("server_identifier", "")
 
-        model_cls = self.element_registry.get_schema(
-            ResourceCategory(doc.category), doc.type)
-        cfg_model = model_cls(**config)
+        model_cls = self.element_registry.get_schema(ResourceCategory(doc.category), doc.type)
+        cfg_model = model_cls.model_validate(self._fields.decrypt(config), by_name=True)
 
         nested_refs = list(RefWalker.external_rids(cfg_model))
 
-        doc.cfg_dict = self._fields.encrypt_fields(
-            cfg_model.model_dump(mode="json"), model_cls,
-            category=doc.category, type_key=doc.type,
-        )
+        doc.cfg_dict = self._fields.encrypt_model(cfg_model)
         doc.nested_refs = nested_refs
 
         if name is not None:
@@ -119,7 +118,10 @@ class CoreResourceService:
         return self._store.get(rid)
 
     def get_visible(
-        self, rid: str, *, caller: CallerScope = CallerScope(),
+        self,
+        rid: str,
+        *,
+        caller: CallerScope = CallerScope(),
     ) -> Resource:
         """Get a resource, enforcing identity-based ownership only.
 
@@ -132,25 +134,22 @@ class CoreResourceService:
         resource = self._store.get(rid)
         if caller.is_admin:
             return resource
-        if (
-            caller.identity is not None
-            and (
-                resource.identity.type != caller.identity.type
-                or resource.identity.id != caller.identity.id
-            )
+        if caller.identity is not None and (
+            resource.identity.type != caller.identity.type
+            or resource.identity.id != caller.identity.id
         ):
             raise KeyError(rid)
         return resource
 
     def find_resources(
         self,
-        category: Optional[str] = None,
-        type: Optional[str] = None,
-        ownership: Optional[str] = None,
+        category: str | None = None,
+        type: str | None = None,
+        ownership: str | None = None,
         limit: int = 50,
         offset: int = 0,
         caller: CallerScope = CallerScope(),
-    ) -> Tuple[List[dict], int]:
+    ) -> tuple[list[dict], int]:
         """List the caller's own resources.  No built-in merging.
 
         ``ownership`` is accepted but ignored — it's a built-in concept.
@@ -171,28 +170,37 @@ class CoreResourceService:
 
     # ---------- resolve ----------
     def resolve(
-        self, rid: str, caller: CallerScope = CallerScope(),
+        self,
+        rid: str,
+        caller: CallerScope = CallerScope(),
     ) -> BaseModel:
         """Resolve a resource by rid into its validated config model."""
         resource = self.get_visible(rid, caller=caller)
         return self.resolve_resource(resource, caller=caller)
 
-    def resolve_resource(self, resource: Resource, caller: CallerScope = CallerScope()) -> BaseModel:
+    def resolve_resource(
+        self, resource: Resource, caller: CallerScope = CallerScope()
+    ) -> BaseModel:
         """Resolve an already-fetched ``Resource`` into its validated config model.
 
         Decrypts config and returns the Pydantic model.  No overlay merge.
         """
         config = self._store.raw_config_for(resource)
         model_cls = self.element_registry.get_schema(
-            ResourceCategory(resource.category), resource.type)
-        return model_cls(**config)
+            ResourceCategory(resource.category), resource.type
+        )
+        return model_cls.model_validate(config, by_name=True)
 
     def get_dict(self, rid: str) -> dict:
         """Raw JSON for UI."""
         return self._store.raw_config(rid)
 
     def exists_by_name(
-        self, identity: Identity, category: str, type_: str, name: str,
+        self,
+        identity: Identity,
+        category: str,
+        type_: str,
+        name: str,
     ) -> bool:
         """Whether a resource with *name* already exists for *identity*."""
         return self._store.exists_by_name(identity, category, type_, name)
@@ -203,28 +211,20 @@ class CoreResourceService:
         return Resource.model_json_schema()
 
     # ---------- Statistics ----------
-    def count(self, identity: Identity, filter: Dict[str, Any] = None) -> int:
+    def count(self, identity: Identity, filter: dict[str, Any] = None) -> int:
         return self._store.count(identity, filter)
 
     def group_count(
         self,
         identity: Identity,
-        group_by: List[str],
-        filter: Dict[str, Any] = None,
-    ) -> List[GroupedCount]:
+        group_by: list[str],
+        filter: dict[str, Any] = None,
+    ) -> list[GroupedCount]:
         """Group resources by specified fields and return counts."""
         return self._store.group_count(identity, group_by, filter)
 
     # ---------- Validation ----------
-    def validate_resource(
-        self,
-        rid: str,
-        caller: CallerScope = CallerScope(),
-        user_id: str = "",
-        timeout_seconds: float = 10.0,
-        credential_user_id: str = "",
-    ) -> ElementValidationResult:
-        """Validate a saved resource and all its transitive dependencies."""
+    def _resource_configurations(self, rid: str, caller: CallerScope) -> list[ElementConfigMeta]:
         self._ensure_validation_service()
 
         self.get_visible(rid, caller=caller)
@@ -235,20 +235,54 @@ class CoreResourceService:
 
         ordered_configs = self._build_configs_from_rids(ordered_rids, caller=caller)
 
+        return ordered_configs
+
+    def validate_resource(
+        self,
+        rid: str,
+        caller: CallerScope = CallerScope(),
+        user_id: str = "",
+        timeout_seconds: float = 10.0,
+        credential_user_id: str = "",
+    ) -> ElementValidationResult:
+        """Validate a saved resource and all its transitive dependencies."""
+        ordered_configs = self._resource_configurations(rid, caller)
         return self._validate_and_get(
-            ordered_configs, rid, timeout_seconds,
-            user_id=user_id, credential_user_id=credential_user_id,
+            ordered_configs,
+            rid,
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
+        )
+
+    async def validate_resource_async(
+        self,
+        rid: str,
+        caller: CallerScope = CallerScope(),
+        user_id: str = "",
+        timeout_seconds: float = 10.0,
+        credential_user_id: str = "",
+    ) -> ElementValidationResult:
+        configurations = await await_owned(
+            asyncio.to_thread(self._resource_configurations, rid, caller)
+        )
+        return await self._validate_and_get_async(
+            configurations,
+            rid,
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
         )
 
     def validate_resources(
         self,
-        rids: List[str],
+        rids: list[str],
         caller: CallerScope = CallerScope(),
         user_id: str = "",
         timeout_seconds: float = 10.0,
         max_workers: int = 10,
         credential_user_id: str = "",
-    ) -> List[ElementValidationResult]:
+    ) -> list[ElementValidationResult]:
         """Validate multiple resources in parallel."""
         self._ensure_validation_service()
 
@@ -258,31 +292,44 @@ class CoreResourceService:
         if len(rids) == 1:
             return [
                 self._validate_resource_safe(
-                    rids[0], caller, user_id, timeout_seconds, credential_user_id,
+                    rids[0],
+                    caller,
+                    user_id,
+                    timeout_seconds,
+                    credential_user_id,
                 ),
             ]
 
         return self._validate_in_parallel(
-            rids, caller, user_id, timeout_seconds, max_workers, credential_user_id,
+            rids,
+            caller,
+            user_id,
+            timeout_seconds,
+            max_workers,
+            credential_user_id,
         )
 
     def _validate_in_parallel(
         self,
-        rids: List[str],
+        rids: list[str],
         caller: CallerScope,
         user_id: str,
         timeout_seconds: float,
         max_workers: int,
         credential_user_id: str = "",
-    ) -> List[ElementValidationResult]:
+    ) -> list[ElementValidationResult]:
         """Execute validations concurrently with order preservation."""
-        results: List[Optional[ElementValidationResult]] = [None] * len(rids)
+        results: list[ElementValidationResult | None] = [None] * len(rids)
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_index = {
                 executor.submit(
                     self._validate_resource_safe,
-                    rid, caller, user_id, timeout_seconds, credential_user_id,
+                    rid,
+                    caller,
+                    user_id,
+                    timeout_seconds,
+                    credential_user_id,
                 ): idx
                 for idx, rid in enumerate(rids)
             }
@@ -311,10 +358,7 @@ class CoreResourceService:
                 credential_user_id=credential_user_id,
             )
         except KeyError:
-            return ElementValidationResult.create_error(
-                rid=rid,
-                error=f"Resource not found: {rid}"
-            )
+            return ElementValidationResult.create_error(rid=rid, error=f"Resource not found: {rid}")
         except Exception:
             logger.exception("Unexpected error validating resource %s", rid)
             return ElementValidationResult.create_error(
@@ -322,43 +366,86 @@ class CoreResourceService:
                 error="Validation failed due to an internal error.",
             )
 
+    def _inline_configurations(
+        self, category: str, element_type: str, config: dict, name: str | None, caller: CallerScope
+    ) -> list[ElementConfigMeta]:
+        self._ensure_validation_service()
+
+        category_enum = ResourceCategory(category)
+        model_cls = self.element_registry.get_schema(category_enum, element_type)
+        cfg_model = model_cls.model_validate(self._fields.decrypt(config), by_name=True)
+
+        nested_refs = list(RefWalker.external_rids(cfg_model))
+        dep_rids = self._resolve_transitive_deps(nested_refs)
+
+        ordered_configs = self._build_configs_from_rids(dep_rids, caller=caller)
+
+        ordered_configs.append(
+            ElementConfigMeta(
+                rid="inline",
+                category=category_enum,
+                type_key=element_type,
+                name=name or "inline",
+                config=cfg_model,
+                dependency_rids=nested_refs,
+            )
+        )
+
+        return ordered_configs
+
     def validate_config(
         self,
         category: str,
         element_type: str,
         config: dict,
-        name: Optional[str] = None,
+        name: str | None = None,
         timeout_seconds: float = 10.0,
+        *,
+        caller: CallerScope = CallerScope(),
+        user_id: str = "",
+        credential_user_id: str = "",
     ) -> ElementValidationResult:
         """Validate an inline config before saving."""
-        self._ensure_validation_service()
+        ordered_configs = self._inline_configurations(category, element_type, config, name, caller)
+        return self._validate_and_get(
+            ordered_configs,
+            "inline",
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
+        )
 
-        category_enum = ResourceCategory(category)
-        model_cls = self.element_registry.get_schema(category_enum, element_type)
-        cfg_model = model_cls(**config)
-
-        nested_refs = list(RefWalker.external_rids(cfg_model))
-        dep_rids = self._resolve_transitive_deps(nested_refs)
-
-        ordered_configs = self._build_configs_from_rids(dep_rids)
-
-        ordered_configs.append(ElementConfigMeta(
-            rid="inline",
-            category=category_enum,
-            type_key=element_type,
-            name=name or "inline",
-            config=cfg_model,
-            dependency_rids=nested_refs,
-        ))
-
-        return self._validate_and_get(ordered_configs, "inline", timeout_seconds)
+    async def validate_config_async(
+        self,
+        category: str,
+        element_type: str,
+        config: dict,
+        name: str | None = None,
+        timeout_seconds: float = 10.0,
+        *,
+        caller: CallerScope = CallerScope(),
+        user_id: str = "",
+        credential_user_id: str = "",
+    ) -> ElementValidationResult:
+        configurations = await await_owned(
+            asyncio.to_thread(
+                self._inline_configurations, category, element_type, config, name, caller
+            )
+        )
+        return await self._validate_and_get_async(
+            configurations,
+            "inline",
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
+        )
 
     # ---------- Card Building ----------
     def get_cards(
         self,
-        rids: List[str],
+        rids: list[str],
         caller: CallerScope = CallerScope(),
-    ) -> Dict[str, ElementCard]:
+    ) -> dict[str, ElementCard]:
         """Get element cards for a list of resources and their dependencies."""
         self._ensure_card_service()
 
@@ -384,7 +471,11 @@ class CoreResourceService:
     # ---------- Write-access guard ----------
 
     def guard_write_access(
-        self, rid: str, caller: CallerScope, *, username: str = "",
+        self,
+        rid: str,
+        caller: CallerScope,
+        *,
+        username: str = "",
     ) -> Resource:
         """Identity-based ownership check only.
 
@@ -412,7 +503,9 @@ class CoreResourceService:
         if not self._auth_service:
             return
         remaining = self._store.count_by_config_field(
-            identity, "server_identifier", server_id,
+            identity,
+            "server_identifier",
+            server_id,
         )
         if remaining == 0:
             self._auth_service.delete_credential(identity.id, server_id)
@@ -422,7 +515,7 @@ class CoreResourceService:
         self,
         resource: Resource,
         *,
-        identity: Optional[Identity] = None,
+        identity: Identity | None = None,
     ) -> dict:
         """Serialize a single resource to a JSON-ready dict.
 
@@ -435,10 +528,10 @@ class CoreResourceService:
 
     def to_dicts(
         self,
-        resources: List[Resource],
+        resources: list[Resource],
         *,
-        identity: Optional[Identity] = None,
-    ) -> List[dict]:
+        identity: Identity | None = None,
+    ) -> list[dict]:
         """Serialize resources.
 
         ``identity`` is accepted but unused — the built-in-aware decorator
@@ -457,14 +550,16 @@ class CoreResourceService:
             raise RuntimeError("CardService not configured")
 
     def _build_configs_from_rids(
-        self, rids: List[str], caller: CallerScope = CallerScope(),
-    ) -> List[ElementConfigMeta]:
+        self,
+        rids: list[str],
+        caller: CallerScope = CallerScope(),
+    ) -> list[ElementConfigMeta]:
         """Build ElementConfigMeta list from saved resource rids.
 
         Checks whether the resolved config is missing a required secret —
         see ``ResourceFieldEncryption.find_missing_conditionally_required_secrets``.
         """
-        configs: List[ElementConfigMeta] = []
+        configs: list[ElementConfigMeta] = []
         for rid in rids:
             resource = self.get_visible(rid, caller=caller)
             config = self.resolve_resource(resource, caller=caller)
@@ -479,24 +574,26 @@ class CoreResourceService:
                     f"set it in the resource's configuration before it can be validated."
                 )
 
-            configs.append(ElementConfigMeta(
-                rid=rid,
-                category=resource.category,
-                type_key=resource.type,
-                name=resource.name,
-                config=config,
-                dependency_rids=list(resource.nested_refs),
-                validation_override_error=override_error,
-            ))
+            configs.append(
+                ElementConfigMeta(
+                    rid=rid,
+                    category=resource.category,
+                    type_key=resource.type,
+                    name=resource.name,
+                    config=config,
+                    dependency_rids=list(resource.nested_refs),
+                    validation_override_error=override_error,
+                )
+            )
         return configs
 
-    def _resolve_transitive_deps(self, ref_rids: List[str]) -> List[str]:
+    def _resolve_transitive_deps(self, ref_rids: list[str]) -> list[str]:
         """Resolve refs to ordered list of all transitive dependency rids."""
         return self._dependency_resolver.resolve_all_with_deps(ref_rids)
 
     def _validate_and_get(
         self,
-        ordered_configs: List[ElementConfigMeta],
+        ordered_configs: list[ElementConfigMeta],
         target_rid: str,
         timeout_seconds: float,
         user_id: str = "",
@@ -510,4 +607,21 @@ class CoreResourceService:
             auth_service=self._auth_service,
         )
         results = self._validation_service.validate_ordered(ordered_configs, context)
+        return results[target_rid]
+
+    async def _validate_and_get_async(
+        self,
+        ordered_configs: list[ElementConfigMeta],
+        target_rid: str,
+        timeout_seconds: float,
+        user_id: str = "",
+        credential_user_id: str = "",
+    ) -> ElementValidationResult:
+        context = ValidationContext(
+            timeout_seconds=timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
+            auth_service=self._auth_service,
+        )
+        results = await self._validation_service.validate_ordered_async(ordered_configs, context)
         return results[target_rid]

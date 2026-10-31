@@ -1,19 +1,16 @@
 from dataclasses import dataclass, field
-from typing import TypeVar, Any, Dict, Tuple
-from pydantic import BaseModel
-from mas.core.enums import ResourceCategory
-from mas.core.caller_scope import CallerScope
-from mas.core.ref.models import Ref
-from mas.core.ref import RefWalker
-from .models.blueprint import (
-    BlueprintResource,
-    ResourceSpec,
-    BlueprintDraft,
-    BlueprintSpec
-)
-from mas.resources.ports import ResourceReader
+from typing import Any, cast
 
-T = TypeVar("T", bound=BaseModel)
+from pydantic import BaseModel
+
+from mas.blueprints.contracts import BlueprintTemplate, ResolvedBlueprint
+from mas.core.caller_scope import CallerScope
+from mas.core.enums import ResourceCategory
+from mas.core.execution_preferences import ResourceExecutionDefaults
+from mas.core.ref import RefWalker
+from mas.core.ref.models import Ref
+from mas.core.resource_models import BlueprintResource, ResourceSpec
+from mas.resources.ports import ResourceReader
 
 
 @dataclass
@@ -25,22 +22,25 @@ class _ResolveSession:
     extra parameter instead of six, no matter how much per-call state this
     grows in the future.
     """
+
     caller: CallerScope
     bucket: dict[str, list] = field(default_factory=dict)
     visited: set[str] = field(default_factory=set)
-    broken_refs: Dict[str, str] = field(default_factory=dict)
+    broken_refs: dict[str, str] = field(default_factory=dict)
+    execution: dict[str, ResourceExecutionDefaults] = field(default_factory=dict)
     strict: bool = True
 
 
 class BlueprintResolver:
-    def __init__(self, resources_service: ResourceReader) -> None:
+    def __init__(self, resources_service: ResourceReader, *, spec_schema: type[BaseModel]) -> None:
         self.resources_service = resources_service
-        # Removed instance variables to make thread-safe:
-        # session state is now local to each resolve() call
+        self._spec_schema = spec_schema
 
     def resolve(
-        self, draft: BlueprintDraft, caller: CallerScope = CallerScope(),
-    ) -> BlueprintSpec:
+        self,
+        draft: BlueprintTemplate,
+        caller: CallerScope = CallerScope(),
+    ) -> ResolvedBlueprint:
         """Resolve a draft into an executable spec.
 
         ``caller.identity`` is the caller/session owner. When set, any
@@ -63,8 +63,10 @@ class BlueprintResolver:
         return spec
 
     def resolve_tolerant(
-        self, draft: BlueprintDraft, caller: CallerScope = CallerScope(),
-    ) -> Tuple[BlueprintSpec, Dict[str, str]]:
+        self,
+        draft: BlueprintTemplate,
+        caller: CallerScope = CallerScope(),
+    ) -> tuple[ResolvedBlueprint, dict[str, str]]:
         """Like ``resolve``, but never raises for a missing referenced resource.
 
         Unresolvable external refs are skipped (left out of the returned
@@ -78,10 +80,22 @@ class BlueprintResolver:
     # helpers
     # --------------------------------------------------------------------
     def _resolve(
-        self, draft: BlueprintDraft, caller: CallerScope, strict: bool,
-    ) -> Tuple[BlueprintSpec, Dict[str, str]]:
+        self,
+        draft: BlueprintTemplate,
+        caller: CallerScope,
+        strict: bool,
+    ) -> tuple[ResolvedBlueprint, dict[str, str]]:
         # Create local session for this resolution (thread-safe)
         session = _ResolveSession(caller=caller, strict=strict)
+        # Collect explicit overrides before traversing transitive dependencies.
+        for cat in ResourceCategory:
+            for resource in getattr(draft, cat.value):
+                if resource.execution is not None:
+                    resource.execution.validate_category(cat)
+                    rid = resource.rid.ref
+                    if rid in session.execution and session.execution[rid] != resource.execution:
+                        raise ValueError("Conflicting execution preferences for one resource")
+                    session.execution[rid] = resource.execution
 
         # --- walk every catalogue in the draft ---------------------------
         for cat in list(ResourceCategory):
@@ -98,32 +112,47 @@ class BlueprintResolver:
                     self._walk_live(raw_rid, res.name, session)
 
         # --- build executable spec ---------------------------------------
-        spec = BlueprintSpec(
-            **{cat.value: session.bucket.get(cat.value, []) for cat in list(ResourceCategory)},
+        spec = self._spec_schema(
+            **{
+                cat.value: [dict(resource) for resource in session.bucket.get(cat.value, [])]
+                for cat in ResourceCategory
+            },
             plan=draft.plan,
             name=draft.name,
             description=draft.description,
+            execution_profile=draft.execution_profile,
+            environments=draft.environments,
         )
-        return spec, session.broken_refs
+        return cast(ResolvedBlueprint, spec), session.broken_refs
 
     # --------------------------------------------------------------------
     # helpers
     # --------------------------------------------------------------------
     def _stash_inline(
-        self, cat: ResourceCategory, res: BlueprintResource, session: _ResolveSession,
+        self,
+        cat: ResourceCategory,
+        res: BlueprintResource,
+        session: _ResolveSession,
     ) -> None:
         """Put an inline/frozen entry straight into the bucket."""
         concrete = res.config  # already a validated Pydantic model
         session.bucket.setdefault(cat.value, []).append(
             ResourceSpec[type(concrete)](
-                rid=res.rid, name=res.name, type=res.type, config=concrete
+                rid=res.rid,
+                name=res.name,
+                type=res.type,
+                config=concrete,
+                execution=res.execution or ResourceExecutionDefaults(),
             )
         )
         # still inspect it for nested rids
         self._scan_nested(concrete, session)
 
     def _walk_live(
-        self, rid: str, name: str | None, session: _ResolveSession,
+        self,
+        rid: str,
+        name: str | None,
+        session: _ResolveSession,
     ) -> None:
         """Fetch a live resource (with built-in overlay applied) and recurse.
 
@@ -148,7 +177,13 @@ class BlueprintResolver:
         name = name if name is not None else resource.name
 
         session.bucket.setdefault(cat, []).append(
-            ResourceSpec[type(obj)](rid=rid, name=name, type=resource.type, config=obj)
+            ResourceSpec[type(obj)](
+                rid=rid,
+                name=name,
+                type=resource.type,
+                config=obj,
+                execution=session.execution.get(rid, resource.execution),
+            )
         )
         self._scan_nested(obj, session)
 

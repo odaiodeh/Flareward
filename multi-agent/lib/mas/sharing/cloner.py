@@ -1,19 +1,16 @@
 import logging
-from typing import Dict, List, Tuple, Set, Optional, Any
-from uuid import uuid4
 from dataclasses import dataclass, field
-from datetime import datetime
-from pydantic import BaseModel
+from typing import Any
+from uuid import uuid4
 
-from mas.core.identity import Identity
-from mas.resources.models import Resource
-from mas.resources.ports import BuiltinDescriptorReader, ResourceClonePort
+from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.blueprints.models.blueprint import BlueprintDraft, BlueprintResource, StepDef
 from mas.blueprints.service import BlueprintService
-from mas.catalog.element_registry import ElementRegistry
-from mas.core.ref import RefWalker, RefRemapper
-from mas.core.ref.models import Ref
 from mas.core.enums import ResourceCategory, ResourceVisibility
+from mas.core.identity import Identity
+from mas.core.ref import RefRemapper, RefWalker
+from mas.resources.models import Resource
+from mas.resources.ports import BuiltinDescriptorReader, ResourceClonePort
 
 logger = logging.getLogger(__name__)
 
@@ -25,20 +22,22 @@ class ShareCloneError(RuntimeError):
 @dataclass
 class ResourceCacheData:
     """Cached data for a resource."""
+
     doc: Resource
-    dependencies: Set[str]  # Pre-computed dependencies
+    dependencies: set[str]  # Pre-computed dependencies
     cfg_model: object  # Pre-built schema model
 
 
 @dataclass
 class CloneResult:
     """Result of a cloning operation with comprehensive metrics."""
+
     success: bool
-    new_item_id: Optional[str] = None
-    rid_mapping: Dict[str, str] = field(default_factory=dict)
-    name_conflicts: Dict[str, str] = field(default_factory=dict)
+    new_item_id: str | None = None
+    rid_mapping: dict[str, str] = field(default_factory=dict)
+    name_conflicts: dict[str, str] = field(default_factory=dict)
     resources_cloned: int = 0
-    errors: List[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -60,9 +59,10 @@ class CloneContext:
         is_team_contribution:  When True the share targets a team workspace and
                                sender_id is recorded as the contributor.
     """
+
     sender_id: str
     recipient_id: str
-    sender_display_name: Optional[str] = None
+    sender_display_name: str | None = None
     authorized_owner_ids: frozenset = field(default_factory=frozenset)
     is_team_contribution: bool = False
 
@@ -72,7 +72,7 @@ class CloneContext:
         return identity_id in pool
 
     @property
-    def contributed_by(self) -> Optional[str]:
+    def contributed_by(self) -> str | None:
         return self.sender_id if self.is_team_contribution else None
 
     @property
@@ -83,20 +83,22 @@ class CloneContext:
 class ShareCloner:
     """
     Efficient cloner for sharing resources and blueprints.
-    
+
     Features:
     - Accurate dependency discovery with RefWalker
-    - Single-pass loading and caching for efficiency  
+    - Single-pass loading and caching for efficiency
     - Type-safe reference replacement with proper Ref handling
     - Automatic step UID regeneration for conflict avoidance
     - Comprehensive error handling and logging
     """
 
-    def __init__(self,
-                 resources_service: ResourceClonePort,
-                 blueprint_service: BlueprintService,
-                 element_registry: ElementRegistry,
-                 builtin_resource_service: BuiltinDescriptorReader):
+    def __init__(
+        self,
+        resources_service: ResourceClonePort,
+        blueprint_service: BlueprintService,
+        element_registry: ElementRegistry,
+        builtin_resource_service: BuiltinDescriptorReader,
+    ):
         self.resources = resources_service
         self.blueprints = blueprint_service
         self.elements = element_registry
@@ -109,9 +111,13 @@ class ShareCloner:
             return Identity.team(ctx.recipient_id)
         return Identity.user(ctx.recipient_id)
 
-    def clone_resource_graph(self, *, root_rid: str, ctx: CloneContext) -> Tuple[Dict[str, str], Dict[str, str]]:
+    def clone_resource_graph(
+        self, *, root_rid: str, ctx: CloneContext
+    ) -> tuple[dict[str, str], dict[str, str]]:
         """Clone resource and all its dependencies."""
-        logger.info(f"Starting resource graph clone: {root_rid} from {ctx.sender_id} to {ctx.recipient_id}")
+        logger.info(
+            f"Starting resource graph clone: {root_rid} from {ctx.sender_id} to {ctx.recipient_id}"
+        )
 
         # Single pass: Load resources + compute dependencies + cache models
         closure_data = self._compute_closure({root_rid}, ctx)
@@ -125,9 +131,13 @@ class ShareCloner:
         logger.info(f"Resource graph clone completed: {result.resources_cloned} resources cloned")
         return result.rid_mapping, result.name_conflicts
 
-    def clone_blueprint(self, *, blueprint_id: str, ctx: CloneContext) -> Tuple[str, Dict[str, str], Dict[str, str]]:
+    def clone_blueprint(
+        self, *, blueprint_id: str, ctx: CloneContext
+    ) -> tuple[str, dict[str, str], dict[str, str]]:
         """Clone blueprint and all its dependencies."""
-        logger.info(f"Starting blueprint clone: {blueprint_id} from {ctx.sender_id} to {ctx.recipient_id}")
+        logger.info(
+            f"Starting blueprint clone: {blueprint_id} from {ctx.sender_id} to {ctx.recipient_id}"
+        )
 
         try:
             # Load and validate blueprint
@@ -161,15 +171,19 @@ class ShareCloner:
                 skip_name_check=True,
             )
 
-            logger.info(f"Blueprint clone completed: {new_blueprint_id}, {resources_cloned} resources cloned")
+            logger.info(
+                f"Blueprint clone completed: {new_blueprint_id}, "
+                f"{resources_cloned} resources cloned"
+            )
             return new_blueprint_id, rid_mapping, name_conflicts
 
         except Exception as e:
             logger.error(f"Blueprint clone failed: {e}")
             raise
 
-    def _clone_dependencies(self, external_rids: Set[str],
-                            ctx: CloneContext) -> Tuple[Dict[str, str], Dict[str, str], int]:
+    def _clone_dependencies(
+        self, external_rids: set[str], ctx: CloneContext
+    ) -> tuple[dict[str, str], dict[str, str], int]:
         """Clone external dependencies and return mapping info."""
         if not external_rids:
             return {}, {}, 0
@@ -190,8 +204,9 @@ class ShareCloner:
         logger.debug(f"RID mapping created: {clone_result.rid_mapping}")
         return clone_result.rid_mapping, clone_result.name_conflicts, clone_result.resources_cloned
 
-    def _clone_resource_set(self, closure_data: Dict[str, ResourceCacheData],
-                            ctx: CloneContext) -> CloneResult:
+    def _clone_resource_set(
+        self, closure_data: dict[str, ResourceCacheData], ctx: CloneContext
+    ) -> CloneResult:
         """Clone a set of resources using pre-computed closure data."""
         try:
             logger.debug(f"Cloning {len(closure_data)} resources using cached data")
@@ -223,14 +238,16 @@ class ShareCloner:
                 success=True,
                 rid_mapping=rid_mapping,
                 name_conflicts=name_conflicts,
-                resources_cloned=len(new_docs)
+                resources_cloned=len(new_docs),
             )
 
         except Exception as e:
             logger.error(f"Resource set clone failed: {e}")
             return CloneResult(success=False, errors=[str(e)])
 
-    def _compute_closure(self, root_rids: Set[str], ctx: CloneContext) -> Dict[str, ResourceCacheData]:
+    def _compute_closure(
+        self, root_rids: set[str], ctx: CloneContext
+    ) -> dict[str, ResourceCacheData]:
         """
         Compute resource closure and cache all data in a single pass.
 
@@ -267,22 +284,21 @@ class ShareCloner:
                 if not ctx.is_authorized_owner(doc.identity.id):
                     logger.warning(
                         f"Resource {rid} not owned by an authorized sender "
-                        f"(owner={doc.identity.id}, authorized={ctx.authorized_owner_ids or {ctx.sender_id}})"
+                        f"(owner={doc.identity.id}, "
+                        f"authorized={ctx.authorized_owner_ids or {ctx.sender_id}})"
                     )
                     continue
 
                 # Create schema model and compute dependencies
-                cfg_model = self.elements.get_schema(
-                    ResourceCategory(doc.category), doc.type
-                )(**doc.cfg_dict)
+                cfg_model = self.elements.get_schema(ResourceCategory(doc.category), doc.type)(
+                    **doc.cfg_dict
+                )
 
                 dependencies = RefWalker.external_rids(cfg_model)
 
                 # Cache all computed data
                 closure_cache[rid] = ResourceCacheData(
-                    doc=doc,
-                    dependencies=dependencies,
-                    cfg_model=cfg_model
+                    doc=doc, dependencies=dependencies, cfg_model=cfg_model
                 )
 
                 # Add new dependencies to traversal queue
@@ -299,17 +315,16 @@ class ShareCloner:
         logger.debug(f"Cached data for {len(closure_cache)} resources")
         return closure_cache
 
-    def _clone_single_resource(self, cache_data: ResourceCacheData,
-                               rid_mapping: Dict[str, str],
-                               ctx: CloneContext) -> Resource:
+    def _clone_single_resource(
+        self, cache_data: ResourceCacheData, rid_mapping: dict[str, str], ctx: CloneContext
+    ) -> Resource:
         """Clone a single resource using pre-computed data."""
         original_doc = cache_data.doc
         new_rid = rid_mapping[original_doc.rid]
         recipient = self._recipient_identity(ctx)
 
         new_name = self._resolve_name_conflict(
-            recipient, original_doc.category,
-            original_doc.type, original_doc.name, ctx
+            recipient, original_doc.category, original_doc.type, original_doc.name, ctx
         )
 
         # Use typed model for clean remapping (Ref objects), then dump to dict
@@ -322,9 +337,7 @@ class ShareCloner:
             new_cfg_dict["docs"] = None
 
         # Map dependencies to new RIDs
-        new_nested_refs = [
-            rid_mapping.get(dep_rid, dep_rid) for dep_rid in cache_data.dependencies
-        ]
+        new_nested_refs = [rid_mapping.get(dep_rid, dep_rid) for dep_rid in cache_data.dependencies]
 
         return Resource(
             rid=new_rid,
@@ -338,7 +351,7 @@ class ShareCloner:
             contributed_by=ctx.contributed_by,
         )
 
-    def _batch_create_resources(self, docs: List[Resource]) -> None:
+    def _batch_create_resources(self, docs: list[Resource]) -> None:
         """Create multiple resources, rolling back on partial failure.
 
         ``ResourcesService`` has no transactional/batch-save API, so each
@@ -350,7 +363,7 @@ class ShareCloner:
         created first, since later docs may reference earlier ones) before
         re-raising keeps the operation effectively all-or-nothing.
         """
-        saved: List[Resource] = []
+        saved: list[Resource] = []
         try:
             for doc in docs:
                 self.resources.save_resource(doc)
@@ -359,7 +372,8 @@ class ShareCloner:
             logger.exception(
                 "Batch resource creation failed after saving %d of %d "
                 "resources; rolling back the ones that succeeded",
-                len(saved), len(docs),
+                len(saved),
+                len(docs),
             )
             for doc in reversed(saved):
                 try:
@@ -367,13 +381,14 @@ class ShareCloner:
                 except Exception:
                     logger.exception(
                         "Failed to roll back cloned resource '%s' — it may "
-                        "be orphaned and require manual cleanup", doc.rid,
+                        "be orphaned and require manual cleanup",
+                        doc.rid,
                     )
             raise
 
-    def _resolve_name_conflict(self, identity: Identity, category: str,
-                               type_: str, preferred_name: str,
-                               ctx: CloneContext) -> str:
+    def _resolve_name_conflict(
+        self, identity: Identity, category: str, type_: str, preferred_name: str, ctx: CloneContext
+    ) -> str:
         """Resolve name conflicts.
 
         Team contributions keep the original name; user-to-user shares get a
@@ -390,7 +405,9 @@ class ShareCloner:
         )
 
     def _resolve_blueprint_name_conflict(
-            self, identity: Identity, preferred_name: str,
+        self,
+        identity: Identity,
+        preferred_name: str,
     ) -> str:
         """Find a unique blueprint name for *identity*, appending a counter if needed."""
         return self._find_unique_name(
@@ -409,8 +426,9 @@ class ShareCloner:
                 return candidate
         return f"{base_name} ({uuid4().hex[:8]})"
 
-    def _clone_blueprint_draft(self, draft: BlueprintDraft, rid_mapping: Dict[str, str],
-                               ctx: CloneContext) -> BlueprintDraft:
+    def _clone_blueprint_draft(
+        self, draft: BlueprintDraft, rid_mapping: dict[str, str], ctx: CloneContext
+    ) -> BlueprintDraft:
         """Clone a BlueprintDraft with proper ref replacement and new step UIDs."""
 
         resource_fields = {
@@ -434,38 +452,40 @@ class ShareCloner:
             name=clone_name,
             description=draft.description,
             prompt_shortcuts=draft.prompt_shortcuts,
-            **resource_fields
+            **resource_fields,
         )
 
-    def _clone_resource_with_refs(self, resource: BlueprintResource, rid_mapping: Dict[str, str]) -> BlueprintResource:
+    def _clone_resource_with_refs(
+        self, resource: BlueprintResource, rid_mapping: dict[str, str]
+    ) -> BlueprintResource:
         """Clone a resource and replace any Ref instances using shared utility."""
         return RefRemapper.remap(resource, rid_mapping)
 
-    def _clone_plan(self, plan: List[StepDef], rid_mapping: Dict[str, str]) -> List[StepDef]:
+    def _clone_plan(self, plan: list[StepDef], rid_mapping: dict[str, str]) -> list[StepDef]:
         """Clone plan with proper UID mapping for step references."""
         if not plan:
             return []
-        
+
         # Pass 1: Create UID mapping (old_uid -> new_uid)
         uid_mapping = {}
         cloned_steps = []
-        
+
         for step in plan:
             # Clone step with new UID but keep original references for now
             cloned_step = step.model_copy(deep=True)
             new_uid = str(uuid4())
-            
+
             # Store the mapping
             uid_mapping[step.uid] = new_uid
             cloned_step.uid = new_uid
-            
+
             cloned_steps.append(cloned_step)
-        
+
         # Pass 2: Update all step references and replace RIDs
         for step in cloned_steps:
             # Replace RIDs and UIDs in all fields except uid (which we already handled)
             manually_handled_fields = {"uid"}
-            
+
             for field_name in step.model_fields:
                 if field_name not in manually_handled_fields:
                     field_value = getattr(step, field_name, None)
@@ -474,19 +494,19 @@ class ShareCloner:
                         updated_value = RefRemapper.remap(field_value, rid_mapping)
                         updated_value = self._replace_step_uids(updated_value, uid_mapping)
                         setattr(step, field_name, updated_value)
-        
+
         return cloned_steps
 
-    def _replace_step_uids(self, obj: Any, uid_mapping: Dict[str, str]) -> Any:
+    def _replace_step_uids(self, obj: Any, uid_mapping: dict[str, str]) -> Any:
         """Replace step UIDs in after/branches fields, including dict keys and values."""
         if isinstance(obj, str):
             # Replace if this string is a step UID
             return uid_mapping.get(obj, obj)
-        
+
         elif isinstance(obj, list):
             # Handle list of step UIDs (like in after: ["step1", "step2"])
             return [self._replace_step_uids(item, uid_mapping) for item in obj]
-        
+
         elif isinstance(obj, dict):
             # Handle nested structures - replace UIDs in BOTH keys and values
             new_dict = {}
@@ -497,7 +517,7 @@ class ShareCloner:
                 new_value = self._replace_step_uids(value, uid_mapping)
                 new_dict[new_key] = new_value
             return new_dict
-        
+
         else:
             return obj
 

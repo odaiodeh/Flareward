@@ -1,9 +1,11 @@
 from typing import ClassVar
-from mas.elements.common.base_element_spec import BaseElementSpec
+
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import DocsRagRetrieverConfig
 from ..docs_rag_retriever_factory import DocsRagRetrieverFactory
-from ..identifiers import Identifier, META
+from ..identifiers import META, Identifier
 from ..validator import DocsRagRetrieverValidator
 
 
@@ -22,4 +24,3 @@ class DocsRagRetrieverElementSpec(BaseElementSpec):
     factory_cls = DocsRagRetrieverFactory
     tags = META.tags
     validator_cls = DocsRagRetrieverValidator
-

@@ -142,6 +142,7 @@ export function CollaborationHubSessionSidebar({
 }
 
 export interface CollaborationHubMainColumnProps {
+  teamId?: string;
   selectedSession: ChatSession | null;
   isLiveRequest: boolean;
   isSessionBusy: boolean;
@@ -153,7 +154,7 @@ export interface CollaborationHubMainColumnProps {
   typingUsers: string[];
   teamMembers: MemberDisplay[];
   defaultPrompts?: PromptShortcut[];
-  triggerExecution: (payload: SessionPayload) => Promise<unknown>;
+  triggerExecution: (payload: SessionPayload) => Promise<string>;
   onCancelSession: () => Promise<void>;
   getSessionParticipantMembers: (sessionId: string) => MemberDisplay[];
   carouselMode?: CarouselMode;
@@ -161,6 +162,7 @@ export interface CollaborationHubMainColumnProps {
 }
 
 export function CollaborationHubMainColumn({
+  teamId,
   selectedSession,
   isLiveRequest,
   isSessionBusy,
@@ -220,6 +222,7 @@ export function CollaborationHubMainColumn({
       <div className="flex-1 min-h-0">
         {selectedSession ? (
           <ChatInterface
+            teamId={teamId}
             key={selectedSession.id}
             runId={selectedSession.id}
             triggerExecution={triggerExecution}

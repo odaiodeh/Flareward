@@ -1,3 +1,1 @@
-from outbound.langfuse.langfuse_tracing_service import LangfuseTracingService
-
-__all__ = ["LangfuseTracingService"]
+"""Select concrete adapters explicitly so optional vendor SDKs remain independent."""

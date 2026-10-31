@@ -12,31 +12,36 @@ is internal to this strategy — no external login/exchange services needed.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import secrets
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import httpx
 from authlib.integrations.httpx_client import AsyncOAuth2Client
-
-from mas.core.auth.ports import AuthStrategy, AuthChallenge, CompletionResult, HttpClient
-from mas.core.auth.credentials.ports import ServerConfigStore
+from mas.core.async_work import await_owned
 from mas.core.auth.credentials.models import (
-    StoredCredential, TokenSet, RecoveryResult,
+    ClientConfig,
+    RecoveryResult,
+    StoredCredential,
+    TokenSet,
 )
+from mas.core.auth.credentials.ports import ServerConfigStore
 from mas.core.auth.errors import (
     AuthNotConfiguredError,
     ClientRegistrationError,
-    InvalidStateError,
     FlowStateNotFoundError,
+    InvalidStateError,
     TokenEndpointError,
     TokenRefreshError,
 )
-
+from mas.core.auth.ports import AuthChallenge, AuthStrategy, CompletionResult, HttpClient
 from mas.core.auth.strategies.oauth2.config import OAuth2Config
-from mas.core.auth.strategies.oauth2.state_manager import OAuthStateManager
+from mas.core.auth.strategies.oauth2.detection import OAuth2DetectionStrategy
 from mas.core.auth.strategies.oauth2.models import FlowState, FlowStateStore
+from mas.core.auth.strategies.oauth2.state_manager import OAuthStateManager
+from mas.core.enums import SchemeType
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +55,11 @@ class OAuth2Strategy(AuthStrategy):
 
     def __init__(
         self,
-        pending_store: Optional[FlowStateStore] = None,
-        state_manager: Optional[OAuthStateManager] = None,
+        pending_store: FlowStateStore | None = None,
+        state_manager: OAuthStateManager | None = None,
         callback_url: str = "",
-        client_config_store: Optional["ServerConfigStore"] = None,
-        http_client: Optional["HttpClient"] = None,
+        client_config_store: ServerConfigStore | None = None,
+        http_client: HttpClient | None = None,
     ):
         self._pending = pending_store
         self._state_mgr = state_manager
@@ -64,18 +69,17 @@ class OAuth2Strategy(AuthStrategy):
 
     @property
     def scheme_type(self) -> str:
-        from mas.core.enums import SchemeType
         return SchemeType.OAUTH2
 
     # ── Runtime ──────────────────────────────────────────────────────
 
-    def build_headers(self, credential: StoredCredential) -> Dict[str, str]:
+    def build_headers(self, credential: StoredCredential) -> dict[str, str]:
         return {"Authorization": f"Bearer {credential.access_token}"}
 
     async def attempt_recovery(
         self,
         credential: StoredCredential,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> RecoveryResult:
         if not credential.refresh_token:
             return RecoveryResult(
@@ -106,7 +110,7 @@ class OAuth2Strategy(AuthStrategy):
         self,
         user_id: str,
         server_identifier: str,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> AuthChallenge:
         """Build an OAuth2 login URL with PKCE + signed state.
 
@@ -117,20 +121,20 @@ class OAuth2Strategy(AuthStrategy):
             config = await self._try_auto_register(user_id, server_identifier, config)
 
         if not config or not config.get("client_id"):
-            raise AuthNotConfiguredError(
-                "No client_id available and dynamic registration failed"
-            )
+            raise AuthNotConfiguredError("No client_id available and dynamic registration failed")
 
         cfg = OAuth2Config.from_dict(config)
         if not cfg.authorization_endpoint:
             raise AuthNotConfiguredError("No authorization_endpoint in config")
 
         if self._state_mgr:
-            state = self._state_mgr.create_state({
-                "user_id": user_id,
-                "server_identifier": server_identifier,
-                "protocol_type": "oauth2",
-            })
+            state = self._state_mgr.create_state(
+                {
+                    "user_id": user_id,
+                    "server_identifier": server_identifier,
+                    "protocol_type": "oauth2",
+                }
+            )
         else:
             state = secrets.token_urlsafe(32)
 
@@ -142,7 +146,7 @@ class OAuth2Strategy(AuthStrategy):
             code_challenge_method="S256",
         )
 
-        extra: Dict[str, Any] = {}
+        extra: dict[str, Any] = {}
         if cfg.resource_uri:
             extra["resource"] = cfg.resource_uri
         extra.update(cfg.extra_authorize_params)
@@ -158,19 +162,29 @@ class OAuth2Strategy(AuthStrategy):
         await client.aclose()
 
         if self._pending:
-            self._pending.save(FlowState(
+            pending = FlowState(
                 state_hash=OAuthStateManager.hash_state(state),
                 user_id=user_id,
                 server_identifier=server_identifier,
                 redirect_uri=self._callback_url,
                 code_verifier=code_verifier,
                 protocol_type="oauth2",
-                expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
-                extra={k: v for k, v in config.items() if k in (
-                    "client_id", "client_secret", "token_endpoint",
-                    "authorization_endpoint", "scopes", "resource_uri",
-                )},
-            ))
+                expires_at=datetime.now(UTC) + timedelta(minutes=10),
+                extra={
+                    k: v
+                    for k, v in config.items()
+                    if k
+                    in (
+                        "client_id",
+                        "client_secret",
+                        "token_endpoint",
+                        "authorization_endpoint",
+                        "scopes",
+                        "resource_uri",
+                    )
+                },
+            )
+            await await_owned(asyncio.to_thread(self._pending.save, pending))
 
         return AuthChallenge.consent(
             url=url,
@@ -183,7 +197,7 @@ class OAuth2Strategy(AuthStrategy):
 
     async def complete(
         self,
-        raw_callback_data: Dict[str, Any],
+        raw_callback_data: dict[str, Any],
     ) -> CompletionResult:
         """Validate state, consume pending flow, exchange code for tokens.
 
@@ -202,7 +216,9 @@ class OAuth2Strategy(AuthStrategy):
         if not self._pending:
             raise AuthNotConfiguredError("No pending store configured")
 
-        pending = self._pending.consume(OAuthStateManager.hash_state(state))
+        pending = await await_owned(
+            asyncio.to_thread(self._pending.consume, OAuthStateManager.hash_state(state))
+        )
         if pending is None:
             raise FlowStateNotFoundError(
                 "No pending auth for this state (already consumed or expired)"
@@ -243,10 +259,10 @@ class OAuth2Strategy(AuthStrategy):
         self,
         registration_endpoint: str,
         client_name: str = "UnifAI",
-        redirect_uris: Optional[List[str]] = None,
+        redirect_uris: list[str] | None = None,
         token_endpoint_auth_method: str = "none",
-    ) -> Dict[str, Any]:
-        body: Dict[str, Any] = {
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = {
             "client_name": client_name,
             "grant_types": ["authorization_code", "refresh_token"],
             "response_types": ["code"],
@@ -258,7 +274,8 @@ class OAuth2Strategy(AuthStrategy):
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.post(
-                    registration_endpoint, json=body,
+                    registration_endpoint,
+                    json=body,
                     headers={"Accept": "application/json"},
                 )
         except Exception as exc:
@@ -270,9 +287,7 @@ class OAuth2Strategy(AuthStrategy):
                 detail = data.get("error_description", data.get("error", ""))
             except Exception:
                 detail = resp.text
-            raise ClientRegistrationError(
-                f"DCR returned {resp.status_code}: {detail}"
-            )
+            raise ClientRegistrationError(f"DCR returned {resp.status_code}: {detail}")
 
         data = resp.json()
         if "client_id" not in data:
@@ -281,7 +296,7 @@ class OAuth2Strategy(AuthStrategy):
 
     # ── Internal ──────────────────────────────────────────────────────
 
-    async def _refresh(self, config: Dict[str, Any], refresh_token: str) -> TokenSet:
+    async def _refresh(self, config: dict[str, Any], refresh_token: str) -> TokenSet:
         cfg = OAuth2Config.from_dict(config)
         try:
             async with AsyncOAuth2Client(
@@ -302,20 +317,22 @@ class OAuth2Strategy(AuthStrategy):
         self,
         user_id: str,
         server_identifier: str,
-        config: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
         """Attempt RFC 7591 Dynamic Client Registration."""
         if self._configs and server_identifier:
-            existing = self._configs.find_by_server(user_id, server_identifier)
+            existing = await await_owned(
+                asyncio.to_thread(self._configs.find_by_server, user_id, server_identifier)
+            )
             if existing and existing.client_id:
                 return existing.model_dump()
 
         reg_endpoint = config.get("registration_endpoint")
 
         if not reg_endpoint and self._http_client:
-            from mas.core.auth.strategies.oauth2.detection import OAuth2DetectionStrategy
             as_meta = await OAuth2DetectionStrategy._fetch_as_metadata(
-                server_identifier, self._http_client,
+                server_identifier,
+                self._http_client,
             )
             if as_meta:
                 config = {**config, **as_meta}
@@ -347,8 +364,7 @@ class OAuth2Strategy(AuthStrategy):
             }
 
             if self._configs and server_identifier:
-                from mas.core.auth.credentials.models import ClientConfig
-                self._configs.save(user_id, ClientConfig(
+                registered = ClientConfig(
                     client_id=client_id,
                     client_secret=result.get("client_secret"),
                     authorization_endpoint=config.get("authorization_endpoint", ""),
@@ -357,10 +373,12 @@ class OAuth2Strategy(AuthStrategy):
                     scopes=config.get("scopes_supported", []),
                     resource_uri=config.get("resource_uri"),
                     server_identifier=server_identifier,
-                ))
+                )
+                await await_owned(asyncio.to_thread(self._configs.save, user_id, registered))
                 logger.info(
                     "Auto-registered OAuth client for server=%s client_id=%s",
-                    server_identifier, client_id,
+                    server_identifier,
+                    client_id,
                 )
 
             return new_config
@@ -375,13 +393,13 @@ def _to_token_set(token: dict) -> TokenSet:
     expires_at = None
     if "expires_at" in token:
         try:
-            expires_at = datetime.fromtimestamp(float(token["expires_at"]), tz=timezone.utc)
-        except (ValueError, TypeError, OSError):
+            expires_at = datetime.fromtimestamp(float(token["expires_at"]), tz=UTC)
+        except ValueError, TypeError, OSError:
             pass
     elif "expires_in" in token:
         try:
-            expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(token["expires_in"]))
-        except (ValueError, TypeError):
+            expires_at = datetime.now(UTC) + timedelta(seconds=int(token["expires_in"]))
+        except ValueError, TypeError:
             pass
 
     return TokenSet(

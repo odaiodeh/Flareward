@@ -4,16 +4,19 @@ Runtime-enabled GraphPlan wrapper.
 Composes a logical GraphPlan with runtime elements and element cards.
 """
 
-from typing import List, Dict, Optional, Iterator, Any
-from mas.session.domain.session_registry import SessionRegistry
-from mas.session.collector import SessionConfigCollector
-from mas.catalog.element_registry import ElementRegistry
-from mas.catalog.card_service import ElementCardService
-from mas.elements.common.card import ElementCard
-from mas.core.enums import ResourceCategory
+from collections.abc import Iterator
+from typing import Any
+
+from mas.application.elements.catalog.card_service import ElementCardService
+from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.application.elements.instances import ElementInstances
 from mas.core.contracts import SupportsStepContext
+from mas.core.enums import ResourceCategory
+from mas.domain.element_card import ElementCard
+from mas.session.collector import SessionConfigCollector
+
 from .graph_plan import GraphPlan
-from .models import AdjacentNodes, Step, RTStep, StepContext
+from .models import AdjacentNodes, RTStep, Step, StepContext
 from .topology.finalizer_analyzer import FinalizerAnalyzer
 
 
@@ -26,39 +29,39 @@ class RTGraphPlan:
     """
 
     def __init__(
-            self,
-            logical_plan: GraphPlan,
-            session_registry: SessionRegistry,
-            element_registry: ElementRegistry
+        self,
+        logical_plan: GraphPlan,
+        session_registry: ElementInstances,
+        element_registry: ElementRegistry,
     ):
         self._logical_plan = logical_plan
         self._session = session_registry
         self._card_service = ElementCardService(element_registry)
         self._session_collector = SessionConfigCollector()
-        self._cards: Dict[str, ElementCard] = {}
-        self._rt_steps: Dict[str, RTStep] = {}
+        self._cards: dict[str, ElementCard] = {}
+        self._rt_steps: dict[str, RTStep] = {}
 
         self._build_all_cards()
         self._build_runtime_steps()
 
     @property
-    def steps(self) -> List[RTStep]:
+    def steps(self) -> list[RTStep]:
         """Get all runtime steps."""
         return list(self._rt_steps.values())
 
-    def get_step(self, uid: str) -> Optional[RTStep]:
+    def get_step(self, uid: str) -> RTStep | None:
         """Get runtime step by uid."""
         return self._rt_steps.get(uid)
 
-    def get_roots(self) -> List[RTStep]:
+    def get_roots(self) -> list[RTStep]:
         """Get steps with no dependencies."""
         return [self._rt_steps[s.uid] for s in self._logical_plan.get_roots()]
 
-    def get_leaves(self) -> List[RTStep]:
+    def get_leaves(self) -> list[RTStep]:
         """Get steps with no dependents."""
         return [self._rt_steps[s.uid] for s in self._logical_plan.get_leaves()]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for debugging (delegates to logical plan)."""
         return self._logical_plan.to_dict()
 
@@ -83,7 +86,7 @@ class RTGraphPlan:
         return len(self._rt_steps)
 
     @property
-    def session_registry(self) -> SessionRegistry:
+    def session_registry(self) -> ElementInstances:
         """Expose the session registry for external consumers (e.g., serializers)."""
         return self._session
 
@@ -120,7 +123,7 @@ class RTGraphPlan:
                 if card:
                     adjacent_nodes_dict[other_step.uid] = card
 
-        branches: Dict[str, str] = step.branches or {}
+        branches: dict[str, str] = step.branches or {}
         for outcome, next_uid in branches.items():
             tgt = self._logical_plan.get_step(next_uid)
             if tgt is not None:
@@ -134,9 +137,7 @@ class RTGraphPlan:
         adjacent_node_uids = list(adjacent_nodes_dict.keys())
 
         topology = analyzer.analyze_node_topology(
-            plan=self._logical_plan,
-            from_node_uid=step.uid,
-            adjacent_node_uids=adjacent_node_uids
+            plan=self._logical_plan, from_node_uid=step.uid, adjacent_node_uids=adjacent_node_uids
         )
 
         step_context = StepContext(
@@ -153,7 +154,9 @@ class RTGraphPlan:
 
         condition_func = None
         if step.condition:
-            condition_func = self._session.get_instance(ResourceCategory.CONDITION, step.condition.rid)
+            condition_func = self._session.get_instance(
+                ResourceCategory.CONDITION, step.condition.rid
+            )
             if isinstance(condition_func, SupportsStepContext):
                 condition_func.set_context(step_context)
 

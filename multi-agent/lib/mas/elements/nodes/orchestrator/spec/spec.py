@@ -1,9 +1,10 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import OrchestratorNodeConfig
+from ..identifiers import META, Identifier
 from ..orchestrator_node import OrchestratorNode
 from ..orchestrator_node_factory import OrchestratorNodeFactory
-from ..identifiers import Identifier, META
 from ..validator import OrchestratorNodeValidator
 
 
@@ -20,5 +21,3 @@ class OrchestratorNodeElementSpec(BaseElementSpec):
     writes = OrchestratorNode.total_writes()
     tags = META.tags
     validator_cls = OrchestratorNodeValidator
-
-

@@ -70,7 +70,7 @@ export default function CollaborationHubView({ runId, teamMembers, teamName, onS
 
   const { user } = useAuth();
   const { clearStream } = useStreamingData();
-  const { loadSessionMessages } = useSessionManagement();
+  const { loadSessionMessages } = useSessionManagement(hub.teamId);
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const heartbeatTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -92,6 +92,7 @@ export default function CollaborationHubView({ runId, teamMembers, teamName, onS
     subscribeToStream: subscribeRemoteStream,
     cancelStream: cancelRemoteStream,
   } = useSessionStream({
+    teamId: hub.teamId,
     onChunk: useCallback((chunkData: any) => {
       updateNodeListRef.current?.(chunkData);
     }, []),
@@ -125,6 +126,7 @@ export default function CollaborationHubView({ runId, teamMembers, teamName, onS
           sessionId: sessionPayload.sessionId,
           inputs: sessionPayload.inputs,
           scope: hub.globalScope,
+          teamId: hub.teamId,
         });
         setIsSubmitting(false);
         subscribeRemoteStream(sessionPayload.sessionId);
@@ -140,7 +142,7 @@ export default function CollaborationHubView({ runId, teamMembers, teamName, onS
           streamCompleteResolverRef.current = done;
           const statusPoll = setInterval(async () => {
             try {
-              const status = await getSessionStatus(sessionPayload.sessionId);
+              const status = await getSessionStatus(sessionPayload.sessionId, hub.teamId);
               if (status !== "RUNNING" && status !== "QUEUED") done();
             } catch { /* ignore */ }
           }, 2000);
@@ -148,37 +150,21 @@ export default function CollaborationHubView({ runId, teamMembers, teamName, onS
       } catch (err) {
         console.error("Error communicating with chat API", err);
         setIsSubmitting(false);
+        throw err;
       } finally {
         hub.setIsLiveRequest(false);
         streamCompleteResolverRef.current = null;
       }
 
-      let output: unknown;
-      try {
-        const stateData = await getSessionState(sessionPayload.sessionId);
-        output = stateData.output;
-      } catch (err) {
-        console.error("Error fetching session state:", err);
-      }
-      return output;
+      return (await getSessionState(sessionPayload.sessionId, hub.teamId)).output;
     },
-    [hub.globalScope, subscribeRemoteStream],
+    [hub.globalScope, hub.teamId, subscribeRemoteStream],
   );
 
   const handleCancelSession = useCallback(async () => {
     if (!hub.selectedSession?.id) return;
-    try {
-      await cancelSession(hub.selectedSession.id);
-    } catch (err) {
-      console.error("Error cancelling session:", err);
-    } finally {
-      cancelRemoteStream();
-      hub.setIsLiveRequest(false);
-      setIsSubmitting(false);
-      streamCompleteResolverRef.current?.();
-      streamCompleteResolverRef.current = null;
-    }
-  }, [hub.selectedSession?.id, cancelRemoteStream]);
+    await cancelSession(hub.selectedSession.id, hub.teamId);
+  }, [hub.selectedSession?.id, hub.teamId]);
 
   // ── Presence: join / leave / heartbeat ─────────────────────────────────
   const joinSession = useCallback(async (sessionId: string) => {
@@ -371,6 +357,7 @@ export default function CollaborationHubView({ runId, teamMembers, teamName, onS
           containerClassName="collab-panel-container"
           chatPanel={
             <CollaborationHubMainColumn
+              teamId={hub.teamId}
               selectedSession={hub.selectedSession}
               isLiveRequest={hub.isLiveRequest}
               isSessionBusy={isSessionBusy}

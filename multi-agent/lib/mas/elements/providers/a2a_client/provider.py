@@ -7,19 +7,18 @@ Orchestrates client, converter, and polling.
 
 import asyncio
 import logging
-from typing import Optional, Dict, Any, AsyncIterator, Iterator, Tuple
-
-from pydantic import HttpUrl
+from collections.abc import AsyncIterator, Iterator
+from typing import Any
 
 from a2a.types import AgentCard, TaskState
-
 from global_utils.utils.async_bridge import get_async_bridge
+from pydantic import HttpUrl
 
 from mas.core.auth.credentials.credential import AuthCredential
 from mas.core.auth.errors import AuthError
-from mas.elements.llms.common.chat.message import ChatMessage
-from mas.elements.providers.a2a_client.client import A2AClient, A2AClientError, A2AConnectionError
-from mas.elements.providers.a2a_client.converter import A2AConverter, ConversionResult
+from mas.domain.messages import ChatMessage
+from mas.elements.providers.a2a_client.client import A2AClient, A2AClientError
+from mas.elements.providers.a2a_client.converter import A2AConverter
 from mas.elements.providers.a2a_client.result import A2AResult
 
 logger = logging.getLogger(__name__)
@@ -29,10 +28,10 @@ class A2ATaskError(A2AClientError):
     """Task execution error."""
 
     def __init__(
-            self,
-            message: str,
-            task_id: Optional[str] = None,
-            state: Optional[TaskState] = None,
+        self,
+        message: str,
+        task_id: str | None = None,
+        state: TaskState | None = None,
     ):
         super().__init__(message)
         self.task_id = task_id
@@ -41,29 +40,30 @@ class A2ATaskError(A2AClientError):
 
 class A2ATimeoutError(A2AClientError):
     """Polling timeout."""
+
     pass
 
 
 class A2AProvider:
     """
     High-level A2A interface.
-    
+
     Provides ChatMessage-based API over A2A protocol.
-    
+
     Flow:
         ChatMessage → A2A Message → Agent → A2AResult → ChatMessage
     """
 
     def __init__(
-            self,
-            base_url: HttpUrl,
-            agent_card: Optional[AgentCard] = None,
-            headers: Optional[Dict[str, str]] = None,
-            auth: Optional[AuthCredential] = None,
+        self,
+        base_url: HttpUrl,
+        agent_card: AgentCard | None = None,
+        headers: dict[str, str] | None = None,
+        auth: AuthCredential | None = None,
     ):
         """
         Initialize provider.
-        
+
         Args:
             base_url: A2A agent URL
             agent_card: Pre-fetched agent card (optional)
@@ -77,13 +77,13 @@ class A2AProvider:
         self._converter = A2AConverter()
         self._initialized = False
 
-    def update_headers(self, headers: Dict[str, str]) -> None:
+    def update_headers(self, headers: dict[str, str]) -> None:
         """Merge new headers (e.g. refreshed auth token) into the provider."""
         self.headers.update(headers)
 
-    async def _get_current_headers(self) -> Dict[str, str]:
+    async def _get_current_headers(self) -> dict[str, str]:
         """Merge live auth headers with static headers (static wins on key clash)."""
-        current: Dict[str, str] = {}
+        current: dict[str, str] = {}
         if self._auth:
             try:
                 current.update(await self._auth.get_headers())
@@ -96,34 +96,34 @@ class A2AProvider:
             current.update(self.headers)
         return current
 
-    async def _ensure_initialized(self) -> None:
+    async def initialize(self) -> None:
         """Initialize on first use."""
         if self._initialized:
             return
 
         async with A2AClient(
-                self.base_url,
-                agent_card=self.agent_card,
-                headers=await self._get_current_headers() or None,
+            self.base_url,
+            agent_card=self.agent_card,
+            headers=await self._get_current_headers() or None,
         ) as client:
             self.agent_card = client.agent_card
 
         self._initialized = True
 
     async def send_message(
-            self,
-            message: ChatMessage,
-            task_id: Optional[str] = None,
-            context_id: Optional[str] = None,
-            part_metadata: Optional[Dict[str, Any]] = None,
-            wait_for_completion: bool = True,
-            raise_on_error: bool = False,
-            poll_interval: float = 0.5,
-            max_poll_attempts: int = 60,
-    ) -> Tuple[ChatMessage, Dict[str, Any]]:
+        self,
+        message: ChatMessage,
+        task_id: str | None = None,
+        context_id: str | None = None,
+        part_metadata: dict[str, Any] | None = None,
+        wait_for_completion: bool = True,
+        raise_on_error: bool = False,
+        poll_interval: float = 0.5,
+        max_poll_attempts: int = 60,
+    ) -> tuple[ChatMessage, dict[str, Any]]:
         """
         Send message and get response.
-        
+
         Args:
             message: ChatMessage to send
             task_id: Optional task ID for multi-turn
@@ -135,16 +135,16 @@ class A2AProvider:
             raise_on_error: Raise exception on failure (default: return error in message)
             poll_interval: Seconds between polls
             max_poll_attempts: Maximum polling attempts
-            
+
         Returns:
             Tuple of (response ChatMessage, metadata dict)
         """
-        await self._ensure_initialized()
+        await self.initialize()
 
         async with A2AClient(
-                self.base_url,
-                agent_card=self.agent_card,
-                headers=await self._get_current_headers() or None,
+            self.base_url,
+            agent_card=self.agent_card,
+            headers=await self._get_current_headers() or None,
         ) as client:
             a2a_message = self._converter.to_a2a_message(
                 message,
@@ -175,12 +175,12 @@ class A2AProvider:
             return conversion.message, conversion.metadata
 
     async def _poll(
-            self,
-            client: A2AClient,
-            task_id: str,
-            interval: float,
-            max_attempts: int,
-            raise_on_error: bool,
+        self,
+        client: A2AClient,
+        task_id: str,
+        interval: float,
+        max_attempts: int,
+        raise_on_error: bool,
     ) -> A2AResult:
         """Poll until completion or timeout."""
         for _ in range(max_attempts):
@@ -205,22 +205,24 @@ class A2AProvider:
 
             if result.requires_auth:
                 if raise_on_error:
-                    raise A2ATaskError("Authentication required", task_id=task_id, state=result.state)
+                    raise A2ATaskError(
+                        "Authentication required", task_id=task_id, state=result.state
+                    )
                 return result
 
         raise A2ATimeoutError(f"Polling timeout after {max_attempts * interval}s")
 
     async def stream_message(
-            self,
-            message: ChatMessage,
-            task_id: Optional[str] = None,
-            context_id: Optional[str] = None,
-            part_metadata: Optional[Dict[str, Any]] = None,
-            raise_on_error: bool = False,
+        self,
+        message: ChatMessage,
+        task_id: str | None = None,
+        context_id: str | None = None,
+        part_metadata: dict[str, Any] | None = None,
+        raise_on_error: bool = False,
     ) -> AsyncIterator[ChatMessage]:
         """
         Stream message and yield responses.
-        
+
         Args:
             message: ChatMessage to send
             task_id: Optional task ID
@@ -229,16 +231,16 @@ class A2AProvider:
                           Default: {"type": "user_message"}
                           Pass {} for no metadata.
             raise_on_error: Raise on error (default: yield error in message)
-            
+
         Yields:
             ChatMessage for each streaming update with content
         """
-        await self._ensure_initialized()
+        await self.initialize()
 
         async with A2AClient(
-                self.base_url,
-                agent_card=self.agent_card,
-                headers=await self._get_current_headers() or None,
+            self.base_url,
+            agent_card=self.agent_card,
+            headers=await self._get_current_headers() or None,
         ) as client:
             a2a_message = self._converter.to_a2a_message(
                 message,
@@ -261,44 +263,43 @@ class A2AProvider:
                     yield conversion.message
 
     def send_message_sync(
-            self,
-            message: ChatMessage,
-            **kwargs,
-    ) -> Tuple[ChatMessage, Dict[str, Any]]:
+        self,
+        message: ChatMessage,
+        **kwargs,
+    ) -> tuple[ChatMessage, dict[str, Any]]:
         """Sync version of send_message."""
         with get_async_bridge() as bridge:
             return bridge.run(self.send_message(message, **kwargs))
 
     def stream_message_sync(
-            self,
-            message: ChatMessage,
-            **kwargs,
+        self,
+        message: ChatMessage,
+        **kwargs,
     ) -> Iterator[ChatMessage]:
         """Sync version of stream_message."""
         with get_async_bridge() as bridge:
-            for chunk in bridge.iterate(self.stream_message(message, **kwargs)):
-                yield chunk
+            yield from bridge.iterate(self.stream_message(message, **kwargs))
 
-    async def cancel_task(self, task_id: str) -> Tuple[ChatMessage, Dict[str, Any]]:
+    async def cancel_task(self, task_id: str) -> tuple[ChatMessage, dict[str, Any]]:
         """
         Cancel a running task.
-        
+
         Args:
             task_id: ID of task to cancel
-            
+
         Returns:
             Tuple of (ChatMessage with status, metadata)
         """
         async with A2AClient(
-                self.base_url,
-                agent_card=self.agent_card,
-                headers=await self._get_current_headers() or None,
+            self.base_url,
+            agent_card=self.agent_card,
+            headers=await self._get_current_headers() or None,
         ) as client:
             result = await client.cancel_task(task_id)
             conversion = self._converter.to_chat_message(result)
             return conversion.message, conversion.metadata
 
-    def cancel_task_sync(self, task_id: str) -> Tuple[ChatMessage, Dict[str, Any]]:
+    def cancel_task_sync(self, task_id: str) -> tuple[ChatMessage, dict[str, Any]]:
         """Sync version of cancel_task."""
         with get_async_bridge() as bridge:
             return bridge.run(self.cancel_task(task_id))
@@ -311,14 +312,14 @@ class A2AProvider:
         return [s.name for s in self.agent_card.skills if s.name]
 
     @classmethod
-    async def create(cls, base_url: HttpUrl, **kwargs) -> "A2AProvider":
+    async def create(cls, base_url: HttpUrl, **kwargs) -> A2AProvider:
         """Create and initialize provider."""
         provider = cls(base_url, **kwargs)
-        await provider._ensure_initialized()
+        await provider.initialize()
         return provider
 
     @classmethod
-    def create_sync(cls, base_url: HttpUrl, **kwargs) -> "A2AProvider":
+    def create_sync(cls, base_url: HttpUrl, **kwargs) -> A2AProvider:
         """Create and initialize provider (sync)."""
         with get_async_bridge() as bridge:
             return bridge.run(cls.create(base_url, **kwargs))

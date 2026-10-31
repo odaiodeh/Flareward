@@ -8,12 +8,10 @@ external API and need to map them back on the way in.
 
 from __future__ import annotations
 
-from typing import Dict
-
-from mas.elements.llms.common.chat.message import ChatMessage
+from mas.domain.messages import ChatMessage
 
 
-def restore_tool_names(rev_names: Dict[str, str], msg: ChatMessage) -> ChatMessage:
+def restore_tool_names(rev_names: dict[str, str], msg: ChatMessage) -> ChatMessage:
     """Map provider-safe names back to domain names on an inbound message.
 
     Args:
@@ -29,7 +27,6 @@ def restore_tool_names(rev_names: Dict[str, str], msg: ChatMessage) -> ChatMessa
     if not msg.tool_calls:
         return msg
     restored = [
-        tc.model_copy(update={"name": rev_names.get(tc.name, tc.name)})
-        for tc in msg.tool_calls
+        tc.model_copy(update={"name": rev_names.get(tc.name, tc.name)}) for tc in msg.tool_calls
     ]
     return msg.model_copy(update={"tool_calls": restored})

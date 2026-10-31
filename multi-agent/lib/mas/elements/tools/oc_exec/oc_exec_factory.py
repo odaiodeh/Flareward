@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 
 from .config import OcExecToolConfig
 from .identifiers import Identifier
@@ -26,6 +26,5 @@ class OcExecToolFactory(BaseFactory[OcExecToolConfig, OcExecTool]):
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"Failed to create OcExecTool: {e}",
-                cfg.model_dump()
+                f"Failed to create OcExecTool: {e}", cfg.model_dump()
             ) from e

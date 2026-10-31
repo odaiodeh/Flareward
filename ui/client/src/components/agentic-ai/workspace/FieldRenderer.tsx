@@ -683,26 +683,6 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
     );
   }
 
-  // Handle auth category fields with dedicated AuthSelector component
-  if (fieldSchema.category === 'auths') {
-    const authOptions = (refOptions['auths'] || [])
-      .filter((option: any) => option.rid && option.rid.trim() !== "");
-
-    const authActionUid = validationHint?.action_uid || fieldSchema.action_uid || 'auth.authenticate';
-
-    return (
-      <AuthSelector
-        fieldName={fieldName}
-        value={value}
-        refOptions={authOptions}
-        actionUid={authActionUid}
-        onInputChange={onInputChange}
-        isRequired={isRequired}
-        description={fieldSchema.description}
-      />
-    );
-  }
-
   // Handle $ref fields (dropdown selection) - including anyOf with $ref
   const hasRefField =
     fieldSchema.$ref ||

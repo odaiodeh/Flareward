@@ -8,6 +8,14 @@ paths: multi-agent/**
 
 # MAS Knowledge System
 
+The native program-platform migration is active. Use
+[the current architecture and ownership guide](../../../../../docs/program-platform-development.md)
+and [the completion ledger](../../../../../docs/execution-platform-migration.md)
+for the FastAPI/Run Engine path. Older execution/session recipes below describe
+retained legacy-worker areas; they are not instructions to recreate that infrastructure
+in the native platform. Shared domain/application code and construction contracts
+have moved outside the element plugins.
+
 Orchestration engine: blueprint YAML → executable agent graph → runtime engine → streamed results.
 
 ## System Graph
@@ -145,8 +153,12 @@ No status may be skipped. No backward transitions. New statuses require updating
 ### 5. Element Auto-Discovery
 
 Elements are discovered from `lib/mas/elements/<category>/<element_name>/spec/`.
-`SpecDiscoverer` walks these directories and collects all `BaseElementSpec` subclasses.
-`ElementRegistry.auto_discover()` is called once at startup.
+The outbound `SpecDiscoverer` reads classes exported by the actual installed modules.
+`bootstrap.elements.installed_elements()` performs discovery and explicit module
+registration at startup. `mas.application.elements.catalog.element_registry.ElementRegistry` has no
+discovery operation or global singleton; import its class from the `element_registry`
+module. Broken internal/incompatible imports fail startup. Missing optional SDKs
+leave their adapters unavailable.
 
 Required `ClassVar` fields on every spec: `category`, `type_key`, `name`, `description`, `config_schema`, `factory_cls`.
 

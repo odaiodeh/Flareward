@@ -1,5 +1,6 @@
-from mas.catalog.element_registry import ElementRegistry
+from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.graph.graph_plan import GraphPlan
+
 from ..interfaces import ValidationProvider
 from ..models import ValidationReport
 from .analyzer import ChannelAnalyzer
@@ -9,10 +10,12 @@ from .matrix_builder import MatrixBuilder
 class ChannelValidator(ValidationProvider):
     """Validates channel/data flow connections between nodes."""
 
+    name = "channel"
+
     def __init__(self, element_registry: ElementRegistry = None, *args, **kwargs):
         # Extract element_registry from kwargs if not provided as positional arg
         if element_registry is None:
-            element_registry = kwargs.get('element_registry')
+            element_registry = kwargs.get("element_registry")
 
         if element_registry is None:
             raise ValueError("ChannelValidator requires element_registry parameter")
@@ -28,8 +31,5 @@ class ChannelValidator(ValidationProvider):
         is_valid = all(pv.is_valid for pv in details.path_validations.values())
 
         return ValidationReport(
-            validator_name=self.name,
-            is_valid=is_valid,
-            messages=messages,
-            details=details
+            validator_name=self.name, is_valid=is_valid, messages=messages, details=details
         )

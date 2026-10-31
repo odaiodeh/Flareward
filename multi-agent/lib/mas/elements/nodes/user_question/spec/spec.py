@@ -1,10 +1,11 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.field_hints import HiddenHint
+
 from ..config import UserQuestionNodeConfig
-from ..user_question_node_factory import UserQuestionNodeFactory
+from ..identifiers import META, Identifier
 from ..user_question import UserQuestionNode
-from ..identifiers import Identifier, META
+from ..user_question_node_factory import UserQuestionNodeFactory
 
 
 class UserQuestionNodeElementSpec(BaseElementSpec):

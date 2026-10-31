@@ -1,8 +1,9 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
-from ..mock_factory import MockLLMFactory
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import MockLLMConfig
-from ..identifiers import Identifier, META
+from ..identifiers import META, Identifier
+from ..mock_factory import MockLLMFactory
 
 
 class MockLLMElementSpec(BaseElementSpec):

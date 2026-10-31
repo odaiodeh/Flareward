@@ -1,9 +1,10 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
-from ..config import BranchChooserNodeConfig
-from ..branch_chooser_node_factory import BranchChooserNodeFactory
+
 from ..branch_chooser import BranchChooserNode
-from ..identifiers import Identifier, META
+from ..branch_chooser_node_factory import BranchChooserNodeFactory
+from ..config import BranchChooserNodeConfig
+from ..identifiers import META, Identifier
 
 
 class BranchChooserNodeElementSpec(BaseElementSpec):

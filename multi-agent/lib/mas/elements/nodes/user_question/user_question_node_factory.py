@@ -1,8 +1,9 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import UserQuestionNodeConfig
-from .user_question import UserQuestionNode
 from .identifiers import Identifier
+from .user_question import UserQuestionNode
 
 
 class UserQuestionNodeFactory(BaseFactory[UserQuestionNodeConfig, UserQuestionNode]):
@@ -16,6 +17,5 @@ class UserQuestionNodeFactory(BaseFactory[UserQuestionNodeConfig, UserQuestionNo
             return UserQuestionNode()
         except Exception as exc:
             raise PluginConfigurationError(
-                f"UserQuestionNodeFactory.create failed: {exc}",
-                cfg.dict()
+                f"UserQuestionNodeFactory.create failed: {exc}", cfg.dict()
             ) from exc

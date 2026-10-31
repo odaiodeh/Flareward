@@ -43,6 +43,7 @@ export interface SharesListResponse {
 }
 
 export interface CreateShareRequest {
+  teamId?: string;
   recipientUserId: string;
   itemKind: 'resource' | 'blueprint';
   itemId: string;
@@ -61,6 +62,7 @@ export interface CreateShareResponse {
 
 export interface AcceptShareRequest {
   shareId: string;
+  teamId?: string;
 }
 
 export interface AcceptShareResponse {
@@ -70,14 +72,15 @@ export interface AcceptShareResponse {
 
 export interface DeclineShareRequest {
   shareId: string;
+  teamId?: string;
 }
 
 export interface DeclineShareResponse {
   status: string;
 }
 
-export async function createShare(request: CreateShareRequest): Promise<CreateShareResponse> {
-  const { data } = await axios.post<CreateShareResponse>('/shares/share.create', request);
+export async function createShare(request: CreateShareRequest, signal?: AbortSignal): Promise<CreateShareResponse> {
+  const { data } = await axios.post<CreateShareResponse>('/shares/share.create', request, { signal });
   return data;
 }
 
@@ -87,6 +90,7 @@ export async function listShares(
   skip: number = 0,
   limit: number = 100,
   teamId?: string,
+  signal?: AbortSignal,
 ): Promise<SharesListResponse> {
   const params: Record<string, string | number> = {
     direction,
@@ -102,17 +106,17 @@ export async function listShares(
     params.teamId = teamId;
   }
 
-  const { data } = await axios.get<SharesListResponse>('/shares/shares.list', { params });
+  const { data } = await axios.get<SharesListResponse>('/shares/shares.list', { params, signal });
   return data;
 }
 
-export async function acceptShare(request: AcceptShareRequest): Promise<AcceptShareResponse> {
-  const { data } = await axios.post<AcceptShareResponse>('/shares/share.accept', request);
+export async function acceptShare(request: AcceptShareRequest, signal?: AbortSignal): Promise<AcceptShareResponse> {
+  const { data } = await axios.post<AcceptShareResponse>('/shares/share.accept', request, { signal });
   return data;
 }
 
-export async function declineShare(request: DeclineShareRequest): Promise<DeclineShareResponse> {
-  const { data } = await axios.post<DeclineShareResponse>('/shares/share.decline', request);
+export async function declineShare(request: DeclineShareRequest, signal?: AbortSignal): Promise<DeclineShareResponse> {
+  const { data } = await axios.post<DeclineShareResponse>('/shares/share.decline', request, { signal });
   return data;
 }
 
@@ -132,7 +136,7 @@ export async function shareToTeam(request: ShareToTeamRequest): Promise<ShareToT
   return data;
 }
 
-export async function getShare(shareId: string): Promise<ShareInvite> {
-  const { data } = await axios.get<ShareInvite>('/shares/share.get', { params: { shareId } });
+export async function getShare(shareId: string, teamId?: string, signal?: AbortSignal): Promise<ShareInvite> {
+  const { data } = await axios.get<ShareInvite>('/shares/share.get', { params: { shareId, teamId }, signal });
   return data;
 }

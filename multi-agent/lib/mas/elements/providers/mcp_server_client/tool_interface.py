@@ -9,7 +9,7 @@ import logging
 from typing import List, Optional, Dict, Any
 from mcp.types import Tool, CallToolResult
 
-from .transport import BaseTransportManager, McpConnectionError
+from .transport.base_transport import BaseTransportManager, McpConnectionError
 
 logger = logging.getLogger(__name__)
 

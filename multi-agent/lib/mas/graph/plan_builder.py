@@ -1,22 +1,21 @@
-from typing import List, Set, Optional
-from mas.blueprints.models.blueprint import BlueprintSpec, StepDef, ResourceSpec
-from mas.catalog.element_registry import ElementRegistry
+from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.blueprints.contracts import ResolvedBlueprint
 from mas.core.enums import ResourceCategory
-from mas.graph.models import Step, ConditionMeta
+from mas.core.resource_models import ResourceSpec, StepDef, StepMeta
 from mas.graph.graph_plan import GraphPlan
-from mas.blueprints.models.blueprint import StepMeta
+from mas.graph.models import ConditionMeta, Step
 
 
 class PlanBuilder:
     """
     Builds a logical GraphPlan from BlueprintSpec using ElementRegistry.
-    No SessionRegistry, no runtime objects - pure metadata extraction.
+    No ElementInstances, no runtime objects - pure metadata extraction.
     """
 
-    def __init__(self, registry: ElementRegistry):
+    def __init__(self, registry: ElementRegistry) -> None:
         self._registry = registry
 
-    def build(self, blueprint: BlueprintSpec) -> GraphPlan:
+    def build(self, blueprint: ResolvedBlueprint) -> GraphPlan:
         """Build logical plan from blueprint specification."""
         plan = GraphPlan()
 
@@ -26,12 +25,12 @@ class PlanBuilder:
 
         return plan
 
-    def _build_step(self, step_def: StepDef, blueprint: BlueprintSpec) -> Step:
+    def _build_step(self, step_def: StepDef, blueprint: ResolvedBlueprint) -> Step:
         """Build a single step from definition."""
         # Resolve node reference
         node_spec = self._find_node_by_ref(step_def.node.ref, blueprint)
         elem_spec = self._registry.get_spec(ResourceCategory.NODE, node_spec.type)
-        step_meta = step_def.meta or StepMeta()
+        step_meta = step_def.meta.model_copy(deep=True) if step_def.meta else StepMeta()
         step_meta.display_name = node_spec.name
 
         # Base step data
@@ -43,8 +42,11 @@ class PlanBuilder:
             reads=set(elem_spec.reads),
             writes=set(elem_spec.writes),
             after=self._normalize_after(step_def.after),
-            meta=step_meta
+            meta=step_meta,
         )
+
+        if step_def.branches and not step_def.exit_condition:
+            raise ValueError("Graph branches require an exit condition")
 
         # Handle condition if present
         if step_def.exit_condition:
@@ -58,28 +60,23 @@ class PlanBuilder:
 
     def _build_condition_meta(self, condition_spec: ResourceSpec) -> ConditionMeta:
         """Extract condition metadata."""
-        elem_spec = self._registry.get_spec(ResourceCategory.CONDITION, condition_spec.type)
         reads = self._extract_condition_reads(condition_spec)
 
-        return ConditionMeta(
-            rid=condition_spec.rid.ref,
-            type_key=condition_spec.type,
-            reads=reads
-        )
+        return ConditionMeta(rid=condition_spec.rid.ref, type_key=condition_spec.type, reads=reads)
 
-    def _extract_condition_reads(self, condition_spec: ResourceSpec) -> Set[str]:
+    def _extract_condition_reads(self, condition_spec: ResourceSpec) -> set[str]:
         """Extract channels that a condition reads from its config."""
         elem_spec = self._registry.get_spec(ResourceCategory.CONDITION, condition_spec.type)
-        return getattr(elem_spec, 'reads', set())
+        return getattr(elem_spec, "reads", set())
 
-    def _find_node_by_ref(self, ref: str, blueprint: BlueprintSpec) -> ResourceSpec:
+    def _find_node_by_ref(self, ref: str, blueprint: ResolvedBlueprint) -> ResourceSpec:
         """Find node by reference."""
         for node in blueprint.nodes:
             if node.rid.ref == ref:
                 return node
         raise ValueError(f"Node reference '{ref}' not found")
 
-    def _find_condition_by_ref(self, ref: str, blueprint: BlueprintSpec) -> ResourceSpec:
+    def _find_condition_by_ref(self, ref: str, blueprint: ResolvedBlueprint) -> ResourceSpec:
         """Find condition by reference."""
         for condition in blueprint.conditions:
             if condition.rid.ref == ref:
@@ -87,7 +84,7 @@ class PlanBuilder:
         raise ValueError(f"Condition reference '{ref}' not found")
 
     @staticmethod
-    def _normalize_after(after: str | List[str] | None) -> List[str]:
+    def _normalize_after(after: str | list[str] | None) -> list[str]:
         """Normalize after dependencies to list."""
         if not after:
             return []

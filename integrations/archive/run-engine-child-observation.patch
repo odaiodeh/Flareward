@@ -1,0 +1,153 @@
+diff --git a/src/runengine/adapters/coordination/local/handle.py b/src/runengine/adapters/coordination/local/handle.py
+index e07c53f..dc59a6e 100644
+--- a/src/runengine/adapters/coordination/local/handle.py
++++ b/src/runengine/adapters/coordination/local/handle.py
+@@ -7,7 +7,7 @@ from pydantic import JsonValue
+ 
+ from runengine.adapters.coordination.local.tasks import LocalTaskHandle
+ from runengine.coordination.messages import Message, MessageAdmission
+-from runengine.coordination.models import RunEvent, RunStatus
++from runengine.coordination.models import RunEvent, RunRequest, RunStatus
+ from runengine.coordination.ports import RunHandle
+ from runengine.core.serialization import snapshot
+ from runengine.invocation.errors import (
+@@ -69,5 +69,8 @@ class LocalRunHandle(RunHandle):
+             MessageAdmission.closed().raise_for_rejection()
+         await self._host.send(self.run_id, message.name, message.data)
+ 
++    async def children(self) -> list[RunRequest]:
++        return await self._host.children(self.run_id)
++
+     async def snapshot(self) -> JsonValue:
+         return self._handle.observations.snapshot()
+diff --git a/src/runengine/adapters/coordination/local/host.py b/src/runengine/adapters/coordination/local/host.py
+index 02ed034..c3a2a8d 100644
+--- a/src/runengine/adapters/coordination/local/host.py
++++ b/src/runengine/adapters/coordination/local/host.py
+@@ -77,6 +77,15 @@ class LocalRunHost(LocalTaskHost, RunHost):
+     async def get_handle(self, run_id: str) -> LocalRunHandle:
+         return self._handles[run_id]
+ 
++    async def children(self, run_id: str) -> list[RunRequest]:
++        if run_id not in self._requests:
++            raise RunContractError("Run not retained", code=RunFailureCode.NOT_FOUND)
++        return [
++            request.model_copy(deep=True)
++            for request in self._requests.values()
++            if request.parent_run_id == run_id
++        ]
++
+     async def send(self, run_id: str, name: str, data: JsonValue) -> None:
+         if run_id not in self._tasks or self._tasks[run_id].task.done():
+             MessageAdmission.closed().raise_for_rejection()
+diff --git a/src/runengine/adapters/coordination/temporal/host.py b/src/runengine/adapters/coordination/temporal/host.py
+index 27c9734..34aba65 100644
+--- a/src/runengine/adapters/coordination/temporal/host.py
++++ b/src/runengine/adapters/coordination/temporal/host.py
+@@ -6,8 +6,10 @@ from collections.abc import AsyncIterator
+ from typing import Any
+ 
+ from pydantic import JsonValue
++from temporalio.api.enums.v1 import EventType
+ from temporalio.client import Client, WorkflowExecutionStatus, WorkflowFailureError, WorkflowHandle
+ from temporalio.common import WorkflowIDReusePolicy
++from temporalio.converter import WorkflowSerializationContext
+ from temporalio.exceptions import is_cancelled_exception
+ from temporalio.service import RPCError, RPCStatusCode
+ 
+@@ -23,8 +25,13 @@ from runengine.adapters.coordination.temporal.protocol import (
+     WORKFLOW_NAME,
+ )
+ from runengine.adapters.coordination.temporal.run_errors import decode_run_outcome, run_errors
+-from runengine.coordination.enums import COMMON_CAPABILITIES, RunCapability, RunPhase
+-from runengine.coordination.errors import RunSubmissionError
++from runengine.coordination.enums import (
++    COMMON_CAPABILITIES,
++    RunCapability,
++    RunFailureCode,
++    RunPhase,
++)
++from runengine.coordination.errors import RunContractError, RunSubmissionError
+ from runengine.coordination.messages import Message
+ from runengine.coordination.models import ObservationPage, RunEvent, RunRequest, RunStatus
+ from runengine.coordination.observation import ObservationGapError
+@@ -82,6 +89,41 @@ class TemporalRunHandle(RunHandle):
+                 return
+             await asyncio.sleep(0.05)
+ 
++    @run_errors
++    async def children(self) -> list[RunRequest]:
++        description = await self._handle.describe()
++        history = await self._handle.fetch_history()
++        accepted = {
++            event.child_workflow_execution_started_event_attributes.initiated_event_id
++            for event in history.events
++            if event.event_type == EventType.EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_STARTED
++        }
++        children = []
++        for event in history.events:
++            if event.event_id not in accepted:
++                continue
++            initiated = event.start_child_workflow_execution_initiated_event_attributes
++            if initiated.workflow_type.name != WORKFLOW_NAME:
++                continue
++            converter = description.data_converter.with_context(
++                WorkflowSerializationContext(
++                    namespace=description.namespace, workflow_id=initiated.workflow_id
++                )
++            )
++            try:
++                values = await converter.decode_wrapper(initiated.input)
++                if len(values) != 1:
++                    raise ValueError("Child request must have one envelope")
++                request = RunParameters.model_validate(values[0]).request
++                if request.run_id != initiated.workflow_id or request.parent_run_id != self.run_id:
++                    raise ValueError("Child request identity differs from native history")
++            except (TypeError, ValueError) as error:
++                raise RunContractError(
++                    "Invalid retained child request", code=RunFailureCode.INVALID_REQUEST
++                ) from error
++            children.append(request)
++        return children
++
+     @run_errors
+     async def status(self) -> RunStatus:
+         description = await self._handle.describe()
+diff --git a/src/runengine/coordination/__init__.py b/src/runengine/coordination/__init__.py
+index 22429e5..8049c15 100644
+--- a/src/runengine/coordination/__init__.py
++++ b/src/runengine/coordination/__init__.py
+@@ -13,6 +13,7 @@ from runengine.coordination.ports import (
+     InvocationOperations,
+     MessageHandle,
+     MessageOperations,
++    RunChildrenSource,
+     RunEventSource,
+     RunHandle,
+     RunHost,
+@@ -44,6 +45,7 @@ __all__ = [
+     "RunHandle",
+     "RunEvent",
+     "RunEventSource",
++    "RunChildrenSource",
+     "RunHost",
+     "RunRetentionHost",
+     "SnapshotHandle",
+diff --git a/src/runengine/coordination/ports.py b/src/runengine/coordination/ports.py
+index 15327c7..228076c 100644
+--- a/src/runengine/coordination/ports.py
++++ b/src/runengine/coordination/ports.py
+@@ -97,6 +97,13 @@ class RunEventSource(Protocol):
+     def events(self, *, after_sequence: int = 0) -> AsyncIterator[RunEvent]: ...
+ 
+ 
++@runtime_checkable
++class RunChildrenSource(Protocol):
++    async def children(self) -> list[RunRequest]:
++        """Return accepted direct child requests from the host's retained native history."""
++        ...
++
++
+ class SnapshotOperations(Protocol):
+     async def publish_snapshot(self, data: JsonValue) -> None: ...
+ 

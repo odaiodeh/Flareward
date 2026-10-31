@@ -6,6 +6,7 @@ import {
   CanvasNode,
   CanvasEdge,
   YamlFlowState,
+  WorkflowPlacement,
 } from "@/types/graph";
 import { getCategoryDisplay } from "@/components/shared/helpers";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,7 @@ import {
   releaseTeamEditLock,
 } from "@/api/collaborationEditLock";
 import { loadBlueprintForEditing } from "@/hooks/use-load-blueprint";
+import { applyWorkflowPlacement } from "@/lib/workflow-placement";
 
 const defaultYamlState: YamlFlowState = {
   nodes: [
@@ -127,10 +129,11 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
   const [isLoadingBlueprint, setIsLoadingBlueprint] = useState(!!editBlueprintId);
   const [editBlueprintName, setEditBlueprintName] = useState("");
   const [editBlueprintDescription, setEditBlueprintDescription] = useState("");
+  const [editBlueprintVersion, setEditBlueprintVersion] = useState<number | undefined>();
   const [currentPromptShortcuts, setCurrentPromptShortcuts] = useState<PromptShortcutInput[]>([]);
   const blueprintLoadedRef = useRef(false);
-  const blueprintEditLockActiveRef = useRef(false);
   const [blueprintEditLockHeld, setBlueprintEditLockHeld] = useState(false);
+  const blueprintLeaseIdRef = useRef<string | undefined>();
 
   const { user } = useAuth();
   const { selectedTeam } = useView();
@@ -165,6 +168,8 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
         conditions: yamlFlow.conditions || [],
         nodes: yamlFlow.nodes || [],
         plan: yamlFlow.plan || [],
+        execution_profile: yamlFlow.execution_profile,
+        environments: yamlFlow.environments,
       };
 
       const yamlString = yaml.dump(yamlFlowForValidation, {
@@ -214,6 +219,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
         category: resource.category,
         type: resource.type,
         config: resource.cfg_dict,
+        execution: resource.execution,
         version: resource.version,
         created: resource.created,
         updated: resource.updated,
@@ -273,7 +279,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
                 }
               }
               if (Object.keys(cleanedBranches).length === 0) {
-                const { branches, exit_condition, ...rest } = updated;
+                const { branches, exit_condition, condition_execution, ...rest } = updated;
                 updated = rest as typeof step;
               } else {
                 updated = { ...updated, branches: cleanedBranches };
@@ -365,7 +371,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
             });
 
             if (Object.keys(updatedBranches).length === 0) {
-              const { branches, exit_condition, ...rest } = step;
+              const { branches, exit_condition, condition_execution, ...rest } = step;
               return rest;
             }
             return { ...step, branches: updatedBranches };
@@ -491,7 +497,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
       // Remove condition from plan
       const updatedPlan = prevFlow.plan.map((step) => {
         if (step.uid === nodeId && step.exit_condition === conditionRid) {
-          const { exit_condition, branches, ...stepWithoutCondition } = step;
+          const { exit_condition, branches, condition_execution, ...stepWithoutCondition } = step;
           return stepWithoutCondition;
         }
         return step;
@@ -650,10 +656,13 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
     if (!editBlueprintId || isLoadingBlocks || blueprintLoadedRef.current) return;
 
     let cancelled = false;
+    const leaseId = crypto.randomUUID();
+    let lockHeld = false;
+    setIsLoadingBlueprint(true);
 
     const releaseLockIfHeld = async () => {
       if (
-        !blueprintEditLockActiveRef.current ||
+        !lockHeld ||
         !isTeam ||
         !selectedTeam ||
         !user?.username ||
@@ -661,13 +670,17 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
       ) {
         return;
       }
-      blueprintEditLockActiveRef.current = false;
-      setBlueprintEditLockHeld(false);
+      lockHeld = false;
+      if (blueprintLeaseIdRef.current === leaseId) {
+        blueprintLeaseIdRef.current = undefined;
+        setBlueprintEditLockHeld(false);
+      }
       await releaseTeamEditLock({
         teamId: selectedTeam.id,
         entityKind: "blueprint",
         entityId: editBlueprintId,
         userId: user.username,
+        leaseId,
       });
     };
 
@@ -680,6 +693,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
             entityId: editBlueprintId,
             userId: user.username,
             displayName: user.name?.trim() || user.username,
+            leaseId,
           });
           if (cancelled) {
             if (lockResult.acquired) {
@@ -688,6 +702,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
                 entityKind: "blueprint",
                 entityId: editBlueprintId,
                 userId: user.username,
+                leaseId,
               });
             }
             return;
@@ -698,13 +713,13 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
               description: `Currently being edited by ${lockResult.lockedBy.displayName || lockResult.lockedBy.userId}.`,
               variant: "destructive",
             });
-            blueprintEditLockActiveRef.current = false;
             setBlueprintEditLockHeld(false);
             setIsLoadingBlueprint(false);
             onEditLockDenied?.();
             return;
           }
-          blueprintEditLockActiveRef.current = true;
+          lockHeld = true;
+          blueprintLeaseIdRef.current = leaseId;
           setBlueprintEditLockHeld(true);
         } catch {
           if (cancelled) return;
@@ -713,7 +728,6 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
             description: "Failed to acquire edit lock. Try again shortly.",
             variant: "destructive",
           });
-          blueprintEditLockActiveRef.current = false;
           setBlueprintEditLockHeld(false);
           setIsLoadingBlueprint(false);
           onEditLockDenied?.();
@@ -728,6 +742,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
           editBlueprintId,
           allBlocksData,
           conditionsData,
+          teamId,
         );
         if (cancelled) return;
 
@@ -748,6 +763,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
         setIsEditMode(true);
         setEditBlueprintName(result.name);
         setEditBlueprintDescription(result.description);
+        setEditBlueprintVersion(result.version);
         setCurrentPromptShortcuts(result.promptShortcuts);
         setIsLoadingBlueprint(false);
       } catch (err) {
@@ -757,6 +773,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
         setIsEditMode(false);
         setEditBlueprintName("");
         setEditBlueprintDescription("");
+        setEditBlueprintVersion(undefined);
         setIsLoadingBlueprint(false);
         toast({
           title: "Failed to load blueprint",
@@ -772,12 +789,13 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
 
     return () => {
       cancelled = true;
-      void releaseLockIfHeld();
+      blueprintLoadedRef.current = false;
+      void releaseLockIfHeld().catch(() => { /* The lease expires if release is unavailable. */ });
     };
-    // Intentionally keyed like the original hook: blocks/callbacks are read when
-    // isLoadingBlocks becomes false, not on every blocks refresh.
+    // Reload for a different document or workspace once its building blocks are ready.
+    // Other callbacks are read at that point rather than on every blocks refresh.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editBlueprintId, isLoadingBlocks]);
+  }, [editBlueprintId, isLoadingBlocks, teamId]);
 
   useEffect(() => {
     if (
@@ -792,7 +810,9 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
     const teamId = selectedTeam.id;
     const bpId = editBlueprintId;
     const displayName = user.name?.trim() || user.username;
-    let interval: ReturnType<typeof setInterval> | undefined;
+    const leaseId = blueprintLeaseIdRef.current;
+    let interval: number | undefined;
+    let active = true;
     interval = window.setInterval(() => {
       void heartbeatTeamEditLock({
         teamId,
@@ -800,13 +820,14 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
         entityId: bpId,
         userId: user.username,
         displayName,
+        leaseId,
       }).catch((err: unknown) => {
+        if (!active) return;
         const status = (err as { response?: { status?: number } })?.response?.status;
         if (status === 501) return;
         if (interval != null) window.clearInterval(interval);
         interval = undefined;
         setBlueprintEditLockHeld(false);
-        blueprintEditLockActiveRef.current = false;
         toast({
           title: "Edit lock lost",
           description: "We could not renew the team edit lock. Editing is disabled.",
@@ -815,6 +836,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
       });
     }, 45_000);
     return () => {
+      active = false;
       if (interval != null) window.clearInterval(interval);
     };
   }, [
@@ -1107,13 +1129,17 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
   };
 
   const saveGraph = useCallback(
-    async (name: string, description: string, promptShortcuts: PromptShortcutInput[]) => {
+    async (name: string, description: string, promptShortcuts: PromptShortcutInput[], placement: WorkflowPlacement) => {
+      if (isEditMode && isTeam && !blueprintEditLockHeld) {
+        toast({ title: "Editing access expired", description: "Reopen this workflow before saving.", variant: "destructive" });
+        return;
+      }
       try {
         setIsSaving(true);
 
         const cleanedPrompts = promptShortcuts.filter(p => p.text.trim());
         const updatedYamlFlow = {
-          ...yamlFlow,
+          ...applyWorkflowPlacement(yamlFlow, placement),
           name: name,
           description: description,
           prompt_shortcuts: cleanedPrompts.length > 0
@@ -1138,7 +1164,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
         let blueprintId;
         
         if (isEditMode && editBlueprintId) {
-          response = await updateBlueprint(editBlueprintId, yamlString, teamId);
+          response = await updateBlueprint(editBlueprintId, yamlString, teamId, editBlueprintVersion);
           blueprintId = editBlueprintId;
         } else {
           if (!USER_ID) {
@@ -1161,6 +1187,8 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
               : "Unknown error occurred while saving blueprint"
           );
         }
+
+        setEditBlueprintVersion(response.version);
 
         toast({
           title: isEditMode
@@ -1193,7 +1221,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
         setIsSaving(false);
       }
     },
-    [yamlFlow, toast, onSaveComplete, USER_ID, teamId, isEditMode, editBlueprintId],
+    [yamlFlow, toast, onSaveComplete, USER_ID, teamId, isEditMode, editBlueprintId, editBlueprintVersion, isTeam, blueprintEditLockHeld],
   );
 
   useEffect(() => {
@@ -1440,6 +1468,7 @@ export const useGraphCreationLogic = (options: UseGraphCreationLogicOptions = {}
     setNodes,
     setEdges,
     currentGraph,
+    teamId,
     buildingBlocksData,
     orchestratorsData,
     conditionsData,

@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
+import { isAxiosError } from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import axios from "../../../http/axiosAgentConfig";
 import { MarkdownComponents, preprocessText } from "./helpers/TextComponents";
 import { SessionPayload } from "../ExecutionTab";
 import { useStreamingData } from "../StreamingDataContext";
-import { Message, StreamLogEntry, WorkPlanSnapshot, ApprovalDecision, ApprovalStatus, AutoRuleAction, isSessionCancellation } from "./types";
+import { Message, StreamLogEntry, WorkPlanSnapshot, ApprovalDecision, ApprovalIdentity, AutoRuleAction, APPROVAL_STATUS, isSessionCancellation } from "./types";
 import { StreamLogDisplay } from "./StreamLogDisplay";
 import { ApprovalBadge } from "./ApprovalBadge";
 import { submitApproval, submitApprovalRule } from "@/api/sessions";
@@ -60,6 +61,7 @@ interface BackendMessage {
 }
 
 interface ChatInterfaceProps {
+  teamId?: string;
   runId?: string;
   triggerExecution: (sessionPayload: SessionPayload) => Promise<string>;
   onCancelSession?: () => Promise<void>;
@@ -86,6 +88,7 @@ interface ChatInterfaceProps {
 }
 
 export default function ChatInterface({
+  teamId,
   runId,
   triggerExecution,
   onCancelSession,
@@ -125,7 +128,7 @@ export default function ChatInterface({
   const workplanStreamingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const workPlanDataRef = useRef<Record<string, WorkPlanSnapshot[]>>({});
   const streamLogDataRef = useRef<Record<string, StreamLogEntry[]>>({});
-  const { nodeListRef, clearStream } = useStreamingData();
+  const { nodeListRef, clearStream, updateApprovalStatus } = useStreamingData();
   const { toast } = useToast();
   const { user: authUser } = useAuth();
   const [userPromptsMap, setUserPromptsMap] = useState<Record<string, string>>({});
@@ -334,7 +337,7 @@ export default function ChatInterface({
         ...(msg.role === "assistant" && {
           finalAnswer: msg.content,
         }),
-        ...(msg.metadata?.is_cancelled && { isCancelled: true }),
+        ...(msg.metadata?.is_cancelled === true && { isCancelled: true }),
       }));
     },
     [],
@@ -862,38 +865,27 @@ export default function ChatInterface({
 
   const handleApprovalDecision = useCallback(
     async (
-      requestId: string,
+      approval: ApprovalIdentity,
       decision: ApprovalDecision,
       feedback?: string,
       modifiedArgs?: Record<string, any>,
     ) => {
       if (!runId) return;
 
-      const statusMap: Record<ApprovalDecision, ApprovalStatus> = {
-        approve: 'approved',
-        reject: 'rejected',
-        modify: 'modified',
-        redirect: 'redirected',
-      };
+      const { requestId, executionId } = approval;
 
       try {
         await submitApproval({
+          teamId,
           sessionId: runId,
           requestId,
+          executionId,
           decision,
           feedback,
           modifiedArgs,
         });
 
-        // Optimistically update the approval status in nodeListRef
-        for (const entry of nodeListRef.current.values()) {
-          const approval = entry.approvals?.find((a) => a.requestId === requestId);
-          if (approval) {
-            approval.status = statusMap[decision];
-            if (feedback) approval.feedback = feedback;
-            break;
-          }
-        }
+        updateApprovalStatus(approval, APPROVAL_STATUS[decision], feedback);
 
         // Flush the mutation into React state so the UI re-renders immediately
         // (the polling interval stores cloned snapshots, so in-place mutations aren't detected)
@@ -925,14 +917,15 @@ export default function ChatInterface({
           description: 'Could not submit your decision. Please try again.',
           variant: 'destructive',
         });
+        throw err;
       }
     },
-    [runId, nodeListRef, toast, currentStreamingMessageId],
+    [runId, teamId, nodeListRef, updateApprovalStatus, toast, currentStreamingMessageId],
   );
 
   const handleAutoRule = useCallback(
     async (
-      requestId: string,
+      approval: ApprovalIdentity,
       nodeUid: string | null,
       toolName: string | null,
       action: AutoRuleAction,
@@ -944,28 +937,31 @@ export default function ChatInterface({
 
       try {
         await submitApprovalRule({
+          teamId,
           sessionId: runId,
+          executionId: approval.executionId,
           nodeUid,
           toolName,
           action,
         });
-
-        await handleApprovalDecision(requestId, decision, feedback);
-
-        toast({
-          title: action === 'auto_approve' ? 'Auto-approve rule saved' : 'Auto-reject rule saved',
-          description: 'Future matching requests will be resolved automatically.',
-        });
       } catch (err) {
-        console.error('Failed to save auto-rule:', err);
+        const data = isAxiosError<{ error?: unknown }>(err) ? err.response?.data : undefined;
         toast({
-          title: 'Rule save failed',
-          description: 'Could not save the rule. The request was not resolved.',
+          title: 'Rule update incomplete',
+          description: typeof data?.error === 'string'
+            ? data.error
+            : 'Could not confirm the live rule update. Reload rules before retrying.',
           variant: 'destructive',
         });
+        throw err;
       }
+      toast({
+        title: action === 'auto_approve' ? 'Auto-approve rule saved' : 'Auto-reject rule saved',
+        description: 'Future matching requests will be resolved automatically.',
+      });
+      await handleApprovalDecision(approval, decision, feedback);
     },
-    [runId, handleApprovalDecision, toast],
+    [runId, teamId, handleApprovalDecision, toast],
   );
 
   const pendingApprovalCount = useMemo(() => {

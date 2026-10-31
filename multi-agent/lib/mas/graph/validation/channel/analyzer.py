@@ -1,7 +1,7 @@
-from typing import Set, List
 from mas.graph.graph_plan import GraphPlan
-from ..models import ValidationMessage, MessageSeverity, MessageCode
-from .models import PathValidation, DependencyMatrix, ChannelValidationDetails, ChannelSummary
+
+from ..models import MessageCode, MessageSeverity, ValidationMessage
+from .models import ChannelSummary, ChannelValidationDetails, DependencyMatrix, PathValidation
 from .path_enumerator import PathEnumerator
 
 
@@ -12,7 +12,7 @@ class ChannelAnalyzer:
         self._matrix = matrix
         self._enumerator = PathEnumerator()
 
-    def analyze(self, plan: GraphPlan) -> tuple[ChannelValidationDetails, List[ValidationMessage]]:
+    def analyze(self, plan: GraphPlan) -> tuple[ChannelValidationDetails, list[ValidationMessage]]:
         """Validate channel dependencies across all paths."""
         messages = []
         path_validations = {}
@@ -34,41 +34,44 @@ class ChannelAnalyzer:
 
             # Create messages
             for step_id, channels in path_validation.impossible_channels.items():
-                messages.append(ValidationMessage(
-                    text=f"Step '{step_id}' requires impossible channels: {channels}",
-                    severity=MessageSeverity.ERROR,
-                    code=MessageCode.IMPOSSIBLE_CHANNELS,
-                    context={
-                        "step_id": step_id,
-                        "channels": list(channels),
-                        "path_id": path_id
-                    }
-                ))
+                messages.append(
+                    ValidationMessage(
+                        text=f"Step '{step_id}' requires impossible channels: {channels}",
+                        severity=MessageSeverity.ERROR,
+                        code=MessageCode.IMPOSSIBLE_CHANNELS,
+                        context={
+                            "step_id": step_id,
+                            "channels": list(channels),
+                            "path_id": path_id,
+                        },
+                    )
+                )
 
             for step_id, channels in path_validation.missing_channels.items():
-                messages.append(ValidationMessage(
-                    text=f"Step '{step_id}' missing upstream channels: {channels}",
-                    severity=MessageSeverity.WARNING,
-                    code=MessageCode.MISSING_CHANNELS,
-                    context={
-                        "step_id": step_id,
-                        "channels": list(channels),
-                        "path_id": path_id
-                    }
-                ))
+                messages.append(
+                    ValidationMessage(
+                        text=f"Step '{step_id}' missing upstream channels: {channels}",
+                        severity=MessageSeverity.WARNING,
+                        code=MessageCode.MISSING_CHANNELS,
+                        context={
+                            "step_id": step_id,
+                            "channels": list(channels),
+                            "path_id": path_id,
+                        },
+                    )
+                )
 
         # Create typed details
         details = ChannelValidationDetails(
             path_validations=path_validations,
-            summary=ChannelSummary(
-                missing=all_missing,
-                impossible=all_impossible
-            )
+            summary=ChannelSummary(missing=all_missing, impossible=all_impossible),
         )
 
         return details, messages
 
-    def _validate_single_path(self, path_id: str, steps: List[str], plan: GraphPlan) -> PathValidation:
+    def _validate_single_path(
+        self, path_id: str, steps: list[str], plan: GraphPlan
+    ) -> PathValidation:
         """Validate single path - reuse existing logic."""
         produced = self._matrix.external_channels.copy()
         missing_channels = {}
@@ -100,7 +103,5 @@ class ChannelAnalyzer:
             steps=steps,
             missing_channels=missing_channels,
             impossible_channels=impossible_channels,
-            is_valid=is_valid
+            is_valid=is_valid,
         )
-
- 

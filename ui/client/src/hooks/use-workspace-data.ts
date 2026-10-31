@@ -14,26 +14,10 @@ import * as resourcesApi from "@/api/resources";
 import { useAgenticAI } from "@/contexts/AgenticAIContext";
 import { useWorkspaceIdentity } from "@/hooks/use-workspace-identity";
 import type { ResourceInstance } from "@/api/resources";
+import { elementFormSchema, toElementInstance } from "@/lib/resource-editor";
+import { useLatestRequest } from './use-latest-request';
 
 const INSTANCES_PAGE_SIZE = 50;
-
-function toElementInstance(resource: ResourceInstance): ElementInstance {
-  return {
-    rid: resource.rid,
-    name: resource.name,
-    config: resource.cfg_dict,
-    category: resource.category,
-    type: resource.type,
-    version: resource.version,
-    created: resource.created,
-    updated: resource.updated,
-    nested_refs: resource.nested_refs,
-    contributed_by: resource.contributed_by,
-    ownership: resource.ownership || 'custom',
-    visibility: resource.visibility,
-    userConfigured: resource.user_configured ?? false,
-  };
-}
 
 /**
  * When a resource is made available to all, any aggregated elements it
@@ -58,11 +42,16 @@ export const useWorkspaceData = () => {
   );
   const [elementActions, setElementActions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSchema, setIsLoadingSchema] = useState(false);
+  const [isLoadingActions, setIsLoadingActions] = useState(false);
   const [isLoadingInstances, setIsLoadingInstances] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { addOrUpdateResource, removeResource, revalidateResourceAndAncestors } = useAgenticAI();
   const { userId: USER_ID, teamId } = useWorkspaceIdentity();
+  const beginInstances = useLatestRequest();
+  const beginSchema = useLatestRequest();
+  const beginActions = useLatestRequest();
 
   // Fetch all available categories and element types
   const fetchCategories = useCallback(async () => {
@@ -104,38 +93,26 @@ export const useWorkspaceData = () => {
   // Fetch element instances for a specific category and type using Resources API
   const fetchElementInstances = useCallback(
     async (category: string, type: string) => {
+      const signal = beginInstances();
       try {
         setIsLoadingInstances(true);
         setError(null);
         setElementInstances([]);
 
         const resources = await resourcesApi.listAllResources({
+          signal,
           teamId,
           category,
           type,
         });
 
-        const instances: ElementInstance[] = resources.map(
-          (resource) => ({
-            rid: resource.rid,
-            name: resource.name,
-            config: resource.cfg_dict,
-            category: resource.category,
-            type: resource.type,
-            version: resource.version,
-            created: resource.created,
-            updated: resource.updated,
-            nested_refs: resource.nested_refs,
-            contributed_by: resource.contributed_by,
-            ownership: resource.ownership || 'custom',
-            visibility: resource.visibility,
-            userConfigured: resource.user_configured ?? false,
-          }),
-        );
+        if (signal.aborted) return null;
+        const instances = resources.map(toElementInstance);
 
         setElementInstances(instances);
         return instances;
       } catch (err: any) {
+        if (signal.aborted) return null;
         const errorMessage =
           err.response?.data?.error || "Failed to fetch element instances";
         setError(errorMessage);
@@ -148,10 +125,10 @@ export const useWorkspaceData = () => {
         setElementInstances([]);
         return null;
       } finally {
-        setIsLoadingInstances(false);
+        if (!signal.aborted) setIsLoadingInstances(false);
       }
     },
-    [toast, teamId],
+    [toast, teamId, beginInstances],
   );
 
   // Fetch single resource by ID
@@ -217,46 +194,24 @@ export const useWorkspaceData = () => {
   // Fetch element schema for form generation (combines resource schema + element-specific schema)
   const fetchElementSchema = useCallback(
     async (category: string, type: string) => {
+      const signal = beginSchema();
       try {
-        setIsLoading(true);
+        setIsLoadingSchema(true);
+        setElementSchema(null);
         setError(null);
 
-        // First fetch the resource schema (first-level schema)
-        const resourceSchema = await resourcesApi.getResourceSchema();
+        const [resourceSchema, elementSchema] = await Promise.all([
+          resourcesApi.getResourceSchema(signal),
+          resourcesApi.getElementSpec(category, type, signal),
+        ]);
+        if (signal.aborted) return null;
 
-        // Then fetch the element-specific schema (cfg_dict schema)
-        const elementSchema = await resourcesApi.getElementSpec(category, type);
-
-        // Combine both schemas into a unified schema
-        const combinedSchema: ElementSchema = {
-          ...elementSchema,
-          config_schema: {
-            ...elementSchema.config_schema,
-            properties: {
-              // Add resource schema properties (excluding category, type, cfg_dict)
-              ...Object.fromEntries(
-                Object.entries(resourceSchema.properties || {}).filter(
-                  ([key]) => !["category", "type", "cfg_dict"].includes(key),
-                ),
-              ),
-              // Add element-specific config properties
-              ...elementSchema.config_schema.properties,
-            },
-            required: [
-              // Add resource schema required fields (excluding category, type, cfg_dict)
-              ...(resourceSchema.required || []).filter(
-                (field: string) =>
-                  !["category", "type", "cfg_dict"].includes(field),
-              ),
-              // Add element-specific required fields
-              ...(elementSchema.config_schema.required || []),
-            ],
-          },
-        };
+        const combinedSchema = elementFormSchema(elementSchema, resourceSchema);
 
         setElementSchema(combinedSchema);
         return combinedSchema;
       } catch (err: any) {
+        if (signal.aborted) return null;
         const errorMessage =
           err.response?.data?.error || "Failed to fetch element schema";
         setError(errorMessage);
@@ -269,26 +224,30 @@ export const useWorkspaceData = () => {
         setElementSchema(null);
         return null;
       } finally {
-        setIsLoading(false);
+        if (!signal.aborted) setIsLoadingSchema(false);
       }
     },
-    [toast],
+    [toast, beginSchema],
   );
 
   // Fetch available actions for a given element category and type
   const fetchElementActions = useCallback(
     async (category: string, type: string) => {
+      const signal = beginActions();
       try {
-        setIsLoading(true);
+        setIsLoadingActions(true);
+        setElementActions([]);
         setError(null);
 
-        const response = await axios.get<any>(
-          `/actions/actions.list?category=${category}&type=${type}`,
-        );
+        const response = await axios.get<any>('/actions/actions.list', {
+          params: { category, type }, signal,
+        });
+        if (signal.aborted) return [];
 
         setElementActions(response.data.actions || []);
         return response.data.actions || [];
       } catch (err: any) {
+        if (signal.aborted) return [];
         const errorMessage =
           err.response?.data?.error || "Failed to fetch element actions";
         setError(errorMessage);
@@ -301,10 +260,10 @@ export const useWorkspaceData = () => {
         setElementActions([]);
         return [];
       } finally {
-        setIsLoading(false);
+        if (!signal.aborted) setIsLoadingActions(false);
       }
     },
-    [toast],
+    [toast, beginActions],
   );
 
   // Save element (create or update) using Resources API
@@ -319,6 +278,9 @@ export const useWorkspaceData = () => {
             resourceId: rid,
             config: elementData.cfg_dict,
             name: elementData.name,
+            teamId,
+            execution: elementData.execution,
+            expected_version: elementData.expected_version,
           });
 
           if (result) {
@@ -701,7 +663,7 @@ export const useWorkspaceData = () => {
     elementInstances,
     elementSchema,
     elementActions,
-    isLoading,
+    isLoading: isLoading || isLoadingSchema || isLoadingActions,
     isLoadingInstances,
     error,
     fetchCategories,

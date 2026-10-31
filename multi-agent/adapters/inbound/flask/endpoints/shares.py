@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, current_app, request
 from global_utils.helpers.apiargs import from_body, from_query
 from webargs import fields
 from mas.core.identity import IdentityType
-from mas.sharing.models import ShareItemKind, ShareStatus
+from mas.domain.sharing import ShareItemKind, ShareStatus
 from mas.sharing.service import ShareService
 from inbound.flask.decorators import (
     with_identity,

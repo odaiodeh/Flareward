@@ -142,7 +142,7 @@ class <Name>Node(BaseNode):
 ```python
 # <name>_node.py
 from typing import ClassVar
-from mas.elements.nodes.common.base_node import BaseNode
+from mas.application.elements.node import BaseNode
 from mas.graph.state.state_view import StateView
 
 class <Name>Node(
@@ -207,7 +207,7 @@ in `references/elements.md`.
 
 ```python
 # <name>_factory.py
-from mas.elements.common.base_factory import BaseFactory
+from mas.application.elements.factory import BaseFactory
 from mas.elements.nodes.<name>.config import <Name>NodeConfig
 from mas.elements.nodes.<name>.<name>_node import <Name>Node
 from mas.elements.nodes.<name>.identifiers import Identifier
@@ -239,7 +239,7 @@ They arrive as keyword arguments matching the config field name.
 
 ```python
 # spec/spec.py
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
 from mas.elements.nodes.<name>.identifiers import Identifier, META
 from mas.elements.nodes.<name>.config import <Name>NodeConfig

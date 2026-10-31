@@ -1,89 +1,114 @@
-"""Schema-hint scanning and field-level encryption for resource configs.
+"""Shared schema metadata and encrypted resource configuration, independent of storage SDKs."""
 
-Extracted from ``ResourcesService`` so the encryption/hint-scanning concern
-has a single owner shared by both the core resource CRUD path and the
-built-in overlay lifecycle (``BuiltinResourceService``), instead of being
-duplicated or drifting between the two.
-"""
-from typing import Any, Dict, Optional, Tuple
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, ValidationError
+from pydantic.fields import FieldInfo
 
-from global_utils.utils.crypto import FieldCipher
-from mas.catalog.element_registry import ElementRegistry
+from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.core.auth.credentials.ports import TokenCipher
 from mas.core.enums import ResourceCategory
+from mas.core.secrets import map_configuration_secrets, public_default, sensitive_fields
 
-# Hidden fields that the auth/validation layer writes automatically (e.g.
-# ``McpProviderConfig.server_identifier`` / ``scheme_type``, populated by
-# ``auth.discovery`` once a sign-in flow resolves the real OAuth issuer).
-# They carry ``HiddenHint`` rather than ``ReadOnlyHint(read_only=False)``, so
-# they're intentionally excluded from ``scan_schema_hints``'s configurable
-# set — but a signed-in built-in resource still needs them persisted onto
-# its per-identity overlay, or every later validation falls back to an
-# unauthenticated probe against a stale/empty identifier. Mirrors the
-# equivalent special case in ``ElementForm.tsx`` for regular (non-builtin)
-# resources, which always includes these two hidden fields in its save
-# payload for the same reason.
 AUTH_METADATA_OVERLAY_FIELDS = frozenset({"server_identifier", "scheme_type"})
 
 
+def decrypt_values(value: Any, cipher: TokenCipher | None) -> Any:
+    """Decode the reserved stored-string format and return detached configuration."""
+    if isinstance(value, str) and cipher is not None:
+        return cipher.decrypt(value)
+    if isinstance(value, dict):
+        return {key: decrypt_values(item, cipher) for key, item in value.items()}
+    if isinstance(value, list):
+        return [decrypt_values(item, cipher) for item in value]
+    return value
+
+
+def field_hints(field: FieldInfo) -> dict:
+    extra = field.json_schema_extra
+    return extra.get("hints", {}) if isinstance(extra, dict) else {}
+
+
 class ResourceFieldEncryption:
-    """Encrypts/decrypts sensitive resource-config fields at rest.
+    def __init__(self, element_registry: ElementRegistry, cipher: TokenCipher | None) -> None:
+        self._element_registry, self._cipher = element_registry, cipher
 
-    Sensitive fields come from two sources, both honored consistently:
-      - the config model's declared ``ENCRYPTED_FIELDS`` class attribute
-      - fields marked ``secret`` via schema hints (``SecretHint``)
+    def encrypt_model(self, configuration: BaseModel) -> dict:
+        def encrypt(value: str | None, default: Any) -> str | None:
+            if public_default(value, default):
+                return value
+            if self._cipher is None:
+                raise ValueError("Private resource configuration requires encryption")
+            return self._cipher.encrypt(value)
 
-    This keeps encryption behavior identical whether a field is written via
-    the base ``cfg_dict`` (create/update/create_builtin/update_builtin) or
-    via a per-identity built-in overlay (``configure_builtin``).
+        return map_configuration_secrets(configuration, encrypt)
 
-    Also owns the auth-metadata overlay allow-list
-    (``AUTH_METADATA_OVERLAY_FIELDS`` / ``auth_metadata_keys``) so overlay
-    persistence and ``to_dict()`` / ``resolve_resource()`` never drift.
-    """
+    def decrypt(self, configuration: dict) -> dict:
+        return decrypt_values(configuration, self._cipher)
 
-    def __init__(self, element_registry: ElementRegistry, cipher: Optional[FieldCipher]) -> None:
-        self._element_registry = element_registry
-        self._cipher = cipher
-
-    def scan_schema_hints(self, category: str, type_key: str) -> Tuple[set, set]:
-        """Single-pass scan of an element schema's field hints.
-
-        Returns ``(configurable_keys, sensitive_keys)``:
-        - configurable: fields with ``ReadOnlyHint(read_only=False)``
-        - sensitive: fields marked ``secret``
-        """
+    def public_config(self, category: str, type_key: str, configuration: dict) -> dict:
+        """Expose shared settings without handing out reusable encrypted credentials."""
+        schema = self._element_registry.get_schema(ResourceCategory(category), type_key)
         try:
-            schema = self._element_registry.get_schema_json(
-                ResourceCategory(category), type_key
-            )
-        except KeyError:
+            model = schema.model_validate(self.decrypt(configuration), by_name=True)
+        except ValidationError:
+            raise ValueError(f"Invalid stored configuration for {type_key}") from None
+        return map_configuration_secrets(
+            model, lambda value, default: value if public_default(value, default) else ""
+        )
+
+    def strip_unconfigured_secrets(self, category: str, type_key: str, configuration: dict) -> dict:
+        """Caller-editable credentials, including nested fields, never inherit shared secrets."""
+        configurable, sensitive = self.scan_schema_hints(category, type_key)
+        stripped = dict(configuration)
+        if configurable:
+            public = self.public_config(category, type_key, configuration)
+            for name in configurable:
+                if name in sensitive:
+                    stripped.pop(name, None)
+                elif name in public:
+                    stripped[name] = public[name]
+        return stripped
+
+    def scan_schema_hints(self, category: str, type_key: str) -> tuple[set[str], set[str]]:
+        schema = self._schema(category, type_key)
+        if schema is None:
             return set(), set()
-        configurable = set()
-        sensitive = set()
-        for field_name, field_schema in schema.get("properties", {}).items():
-            hints = field_schema.get("hints", {})
-            read_only_hint = hints.get("read_only", {})
-            if read_only_hint.get("read_only") is False:
-                configurable.add(field_name)
-            if "secret" in hints:
-                sensitive.add(field_name)
-        return configurable, sensitive
+        configurable = {
+            name
+            for name, field in schema.model_fields.items()
+            if field_hints(field).get("read_only", {}).get("read_only") is False
+        }
+        return configurable, sensitive_fields(schema)
 
-    def auth_metadata_keys(self, category: str, type_key: str) -> set:
-        """Auth-metadata fields that actually exist on this element's schema.
-
-        Intersects ``AUTH_METADATA_OVERLAY_FIELDS`` with the schema's property
-        keys so overlay write/read paths only admit fields the element defines.
-        """
-        try:
-            schema = self._element_registry.get_schema_json(
-                ResourceCategory(category), type_key
+    def canonical_fields(self, category: str, type_key: str, configuration: dict) -> dict:
+        """Accept schema field aliases while persisting one unambiguous field name."""
+        schema = self._element_registry.get_schema(ResourceCategory(category), type_key)
+        aliases = {}
+        for name, field in schema.model_fields.items():
+            candidates = (
+                field.validation_alias.choices
+                if isinstance(field.validation_alias, AliasChoices)
+                else (field.validation_alias,)
             )
-        except KeyError:
-            return set()
-        return AUTH_METADATA_OVERLAY_FIELDS & schema.get("properties", {}).keys()
+            aliases.update(
+                {
+                    alias: name
+                    for alias in (name, field.alias, *candidates)
+                    if isinstance(alias, str)
+                }
+            )
+        result = {}
+        for key, value in configuration.items():
+            name = aliases.get(key, key)
+            if name in result:
+                raise ValueError("Ambiguous configuration field aliases")
+            result[name] = value
+        return result
+
+    def auth_metadata_keys(self, category: str, type_key: str) -> set[str]:
+        schema = self._schema(category, type_key)
+        return AUTH_METADATA_OVERLAY_FIELDS.intersection(schema.model_fields) if schema else set()
 
     def find_missing_conditionally_required_secrets(
         self,
@@ -91,142 +116,33 @@ class ResourceFieldEncryption:
         type_key: str,
         resolved_config: BaseModel,
         *,
-        candidate_keys: Optional[set] = None,
+        candidate_keys: set[str] | None = None,
         require_unconditional: bool = False,
     ) -> list[str]:
-        """Secret fields that are relevant (per ``ConditionalHint``) but empty.
-
-        Unlike ``scan_schema_hints``'s ``configurable`` set (which is only
-        meaningful for built-in per-identity overlays), this needs no
-        admin/overlay concept at all — it just asks "does this resolved
-        config actually have the secret it claims to need?" — so it works
-        identically for built-in and custom resources.
-
-        ``candidate_keys`` restricts the scan to a caller-supplied key set
-        instead of every ``secret``-hinted field in the schema — used by
-        ``BuiltinResourceService.find_missing_required_overlay_fields`` to
-        scope the check to configurable-and-secret fields (the only ones a
-        per-identity overlay could supply). Defaults to every field
-        carrying ``SecretHint`` when omitted (the plain custom-resource
-        behavior).
-
-        ``require_unconditional`` controls a candidate field with no
-        ``ConditionalHint`` at all: when ``False`` (default — the custom-
-        resource behavior), it's left alone, since "optional and unset" is
-        a legitimate state with no schema signal saying otherwise; when
-        ``True`` (the built-in overlay behavior), it's treated as always
-        relevant, since being both configurable and secret already implies
-        a specific caller is expected to supply it.
-
-        Without this check, an empty credential just gets handed to the
-        element's validator, which may probe the connection anyway and —
-        if the server happens to tolerate unauthenticated requests —
-        incorrectly report the resource as valid.
-        """
-        try:
-            schema = self._element_registry.get_schema_json(
-                ResourceCategory(category), type_key
-            )
-        except KeyError:
+        schema = self._schema(category, type_key)
+        if schema is None:
             return []
-
-        properties = schema.get("properties", {})
-        keys = sorted(candidate_keys) if candidate_keys is not None else sorted(properties)
-
+        names = sensitive_fields(schema) if candidate_keys is None else candidate_keys
         missing = []
-        for key in keys:
-            hints = properties.get(key, {}).get("hints", {})
-            if candidate_keys is None and "secret" not in hints:
+        for name in sorted(names):
+            field = schema.model_fields.get(name)
+            if field is None:
                 continue
-            conditional = hints.get("conditional", {}).get("visible_when")
+            conditional = field_hints(field).get("conditional", {}).get("visible_when")
             if conditional:
                 if not all(
-                    getattr(resolved_config, field_name, None) == value
-                    for field_name, value in conditional.items()
+                    getattr(resolved_config, key, None) == value
+                    for key, value in conditional.items()
                 ):
                     continue
             elif not require_unconditional:
                 continue
-            if not getattr(resolved_config, key, None):
-                missing.append(key)
+            if not getattr(resolved_config, name, None):
+                missing.append(name)
         return missing
 
-    def encrypt_fields(
-        self,
-        cfg_dict: dict,
-        model_cls: type,
-        category: Optional[str] = None,
-        type_key: Optional[str] = None,
-    ) -> dict:
-        """Encrypt sensitive fields before storage.
-
-        Combines the config's declared ``ENCRYPTED_FIELDS`` with any fields
-        marked ``secret`` via schema hints (``SecretHint``). Both sources are
-        honored so a field only needs one annotation — a schema-hint-only
-        field (e.g. an MCP ``bearer_token``, which has no ``ENCRYPTED_FIELDS``
-        entry) is still encrypted at rest, keeping base ``cfg_dict`` storage
-        consistent with the encryption applied to per-user overlays.
-        """
-        if not self._cipher:
-            return cfg_dict
-        sensitive = set(getattr(model_cls, "ENCRYPTED_FIELDS", ()))
-        if category and type_key:
-            _, hint_sensitive = self.scan_schema_hints(category, type_key)
-            sensitive |= hint_sensitive
-        for field in sensitive:
-            if cfg_dict.get(field):
-                cfg_dict[field] = self._cipher.encrypt(str(cfg_dict[field]))
-        return cfg_dict
-
-    @staticmethod
-    def _effective_sensitive_keys(sensitive_keys: set, model_cls: Optional[type]) -> set:
-        """Union schema-hint-derived ``sensitive_keys`` with a model's declared ``ENCRYPTED_FIELDS``.
-
-        Shared by ``encrypt_config_fields`` and ``decrypt_config_fields`` so both
-        honor the same two sources — keeping per-identity overlay
-        encryption/decryption consistent with base ``cfg_dict`` encryption
-        (see ``encrypt_fields``).
-        """
-        if model_cls is None:
-            return sensitive_keys
-        return sensitive_keys | set(getattr(model_cls, "ENCRYPTED_FIELDS", ()))
-
-    def encrypt_config_fields(
-        self,
-        config: Dict[str, Any],
-        sensitive_keys: set,
-        model_cls: Optional[type] = None,
-    ) -> Dict[str, Any]:
-        """Encrypt values of fields identified as sensitive."""
-        if not self._cipher:
-            return config
-        sensitive_keys = self._effective_sensitive_keys(sensitive_keys, model_cls)
-        result = {}
-        for k, v in config.items():
-            if k in sensitive_keys and v:
-                result[k] = self._cipher.encrypt(str(v))
-            else:
-                result[k] = v
-        return result
-
-    def decrypt_config_fields(
-        self,
-        config: Dict[str, Any],
-        sensitive_keys: set,
-        model_cls: Optional[type] = None,
-    ) -> Dict[str, Any]:
-        """Decrypt values of fields identified as sensitive.
-
-        See ``encrypt_config_fields`` for why ``model_cls`` is unioned in —
-        decryption must recognize the same field set that encryption used.
-        """
-        if not self._cipher:
-            return config
-        sensitive_keys = self._effective_sensitive_keys(sensitive_keys, model_cls)
-        result = {}
-        for k, v in config.items():
-            if k in sensitive_keys and v and isinstance(v, str):
-                result[k] = self._cipher.decrypt(v)
-            else:
-                result[k] = v
-        return result
+    def _schema(self, category: str, type_key: str) -> type[BaseModel] | None:
+        try:
+            return self._element_registry.get_schema(ResourceCategory(category), type_key)
+        except KeyError:
+            return None

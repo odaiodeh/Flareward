@@ -1,14 +1,15 @@
 """Validator for SSH Exec Tool."""
-import paramiko
-from typing import List
-from socket import timeout as SocketTimeout, gaierror
 
-from mas.elements.common.validator import (
+from socket import gaierror
+
+import paramiko
+
+from mas.application.elements.validation import (
     BaseElementValidator,
-    ValidatorReport,
+    ValidationCode,
     ValidationContext,
     ValidationMessage,
-    ValidationCode,
+    ValidatorReport,
 )
 from mas.elements.tools.ssh_exec.config import SshExecToolConfig
 
@@ -21,7 +22,7 @@ class SshExecToolValidator(BaseElementValidator):
         config: SshExecToolConfig,
         context: ValidationContext,
     ) -> ValidatorReport:
-        messages: List[ValidationMessage] = []
+        messages: list[ValidationMessage] = []
 
         ssh_client = None
         try:
@@ -40,60 +41,78 @@ class SshExecToolValidator(BaseElementValidator):
             # Verify transport is active
             transport = ssh_client.get_transport()
             if transport is not None and transport.is_active():
-                messages.append(self._info(
-                    "CONNECTION_OK",
-                    f"Successfully connected to SSH server at {config.host}:{config.port}",
-                    field="host",
-                ))
+                messages.append(
+                    self._info(
+                        "CONNECTION_OK",
+                        f"Successfully connected to SSH server at {config.host}:{config.port}",
+                        field="host",
+                    )
+                )
             else:
-                messages.append(self._error(
-                    ValidationCode.ENDPOINT_UNREACHABLE.value,
-                    "SSH transport not active after connection",
-                    field="host",
-                ))
+                messages.append(
+                    self._error(
+                        ValidationCode.ENDPOINT_UNREACHABLE.value,
+                        "SSH transport not active after connection",
+                        field="host",
+                    )
+                )
 
         except paramiko.AuthenticationException:
-            messages.append(self._error(
-                ValidationCode.INVALID_CREDENTIALS.value,
-                f"Authentication failed for user '{config.username}'",
-                field="password",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.INVALID_CREDENTIALS.value,
+                    f"Authentication failed for user '{config.username}'",
+                    field="password",
+                )
+            )
         except paramiko.SSHException as e:
-            messages.append(self._error(
-                ValidationCode.NETWORK_ERROR.value,
-                f"SSH error: {str(e)}",
-                field="host",
-            ))
-        except SocketTimeout:
-            messages.append(self._error(
-                ValidationCode.NETWORK_TIMEOUT.value,
-                f"Connection timed out after {context.timeout_seconds}s",
-                field="host",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.NETWORK_ERROR.value,
+                    f"SSH error: {str(e)}",
+                    field="host",
+                )
+            )
+        except TimeoutError:
+            messages.append(
+                self._error(
+                    ValidationCode.NETWORK_TIMEOUT.value,
+                    f"Connection timed out after {context.timeout_seconds}s",
+                    field="host",
+                )
+            )
         except gaierror as e:
-            messages.append(self._error(
-                ValidationCode.ENDPOINT_UNREACHABLE.value,
-                f"Cannot resolve hostname '{config.host}': {str(e)}",
-                field="host",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.ENDPOINT_UNREACHABLE.value,
+                    f"Cannot resolve hostname '{config.host}': {str(e)}",
+                    field="host",
+                )
+            )
         except ConnectionRefusedError:
-            messages.append(self._error(
-                ValidationCode.ENDPOINT_UNREACHABLE.value,
-                f"Connection refused at {config.host}:{config.port}",
-                field="host",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.ENDPOINT_UNREACHABLE.value,
+                    f"Connection refused at {config.host}:{config.port}",
+                    field="host",
+                )
+            )
         except OSError as e:
-            messages.append(self._error(
-                ValidationCode.ENDPOINT_UNREACHABLE.value,
-                f"Network error: {str(e)}",
-                field="host",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.ENDPOINT_UNREACHABLE.value,
+                    f"Network error: {str(e)}",
+                    field="host",
+                )
+            )
         except Exception as e:
-            messages.append(self._error(
-                ValidationCode.NETWORK_ERROR.value,
-                f"Unexpected error: {type(e).__name__}: {str(e)}",
-                field="host",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.NETWORK_ERROR.value,
+                    f"Unexpected error: {type(e).__name__}: {str(e)}",
+                    field="host",
+                )
+            )
         finally:
             if ssh_client is not None:
                 try:
@@ -102,4 +121,3 @@ class SshExecToolValidator(BaseElementValidator):
                     pass
 
         return self._build_report(messages=messages)
-

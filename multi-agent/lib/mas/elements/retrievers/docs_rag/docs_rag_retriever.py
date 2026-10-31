@@ -1,7 +1,8 @@
-from typing import Dict, List, Optional
+import asyncio
 
-from mas.elements.retrievers.common.base_retriever import BaseRetriever
-from mas.elements.retrievers.common.protocols import RetrievalIdentity
+from mas.application.ports.retrieval import BaseRetriever
+from mas.application.ports.retrieval_identity import RetrievalIdentity
+from mas.core.async_work import await_owned
 from mas.elements.providers.rag_client.config import RagProviderConfig
 from mas.elements.providers.rag_client.rag_provider_factory import RagProviderFactory
 
@@ -15,13 +16,13 @@ class DocsRagRetriever(BaseRetriever):
     """
 
     def __init__(
-            self,
-            top_k_results: int,
-            threshold: float,
-            timeout: float = 30.0,
-            docs: Optional[List[Dict]] = None,
-            tags: Optional[List[str]] = None,
-            identity: Optional[RetrievalIdentity] = None,
+        self,
+        top_k_results: int,
+        threshold: float,
+        timeout: float = 30.0,
+        docs: list[dict] | None = None,
+        tags: list[str] | None = None,
+        identity: RetrievalIdentity | None = None,
     ):
         self.threshold = threshold
         self.docs = docs
@@ -34,19 +35,18 @@ class DocsRagRetriever(BaseRetriever):
         factory = RagProviderFactory()
         self._provider = factory.create(config)
 
-    def retrieve(self, query: str) -> List[dict]:
+    async def retrieve(self, query: str) -> list[dict]:
         user_id = self._identity.identity_id if self._identity else ""
-        doc_ids = [doc['id'] for doc in self.docs] if self.docs else None
+        doc_ids = [doc["id"] for doc in self.docs] if self.docs else None
 
-        response = self._provider.query(
-            query=query,
-            doc_ids=doc_ids,
-            tags=self.tags,
-            authenticated_user=user_id,
+        response = await await_owned(
+            asyncio.to_thread(
+                self._provider.query,
+                query=query,
+                doc_ids=doc_ids,
+                tags=self.tags,
+                authenticated_user=user_id,
+            )
         )
 
-        return [
-            match.model_dump()
-            for match in response.matches
-            if match.score >= self.threshold
-        ]
+        return [match.model_dump() for match in response.matches if match.score >= self.threshold]

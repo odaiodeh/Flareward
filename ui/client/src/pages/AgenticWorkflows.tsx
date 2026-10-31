@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import AgentFlowGraph from "@/components/agentic-ai/AgentFlowGraph";
 import NewGraph from "../workspace/NewGraph";
 import type { SavedBlueprintInfo } from "@/hooks/use-graph-creation-logic";
-import axios from "../http/axiosAgentConfig";
+import { createSession } from "@/api/sessions";
 
 import { FlowObject } from "@/components/agentic-ai/graphs/interfaces";
 import { BlueprintValidationResult } from "@/types/validation";
@@ -49,7 +49,7 @@ export default function AgenticWorkflows() {
   const { toast } = useToast();
   const { cacheBlueprintValidationResults } = useAgenticAI();
   const { selectedTeam } = useView();
-  const { isTeam: isTeamWorkspace, userId: contextUserId, teamId } = useWorkspaceIdentity();
+  const { isTeam: isTeamWorkspace, teamId } = useWorkspaceIdentity();
   const [, navigate] = useLocation();
   
   // Handle validation changes from the flow graph
@@ -89,16 +89,11 @@ export default function AgenticWorkflows() {
 
       const selectedBlueprint = {
         blueprintId: graphId,
-        userId: contextUserId,
         ...(teamId ? { teamId } : {}),
         hitlEnabled: hitlEnabled || undefined,
       };
 
-      const response = await axios.post(
-        "/sessions/user.session.create",
-        selectedBlueprint,
-      );
-      const sessionId = response.data;
+      const sessionId = await createSession(selectedBlueprint);
       setSelectedGraphId(sessionId);
 
       // Navigate to Agentic Chats page, passing the new session ID so it auto-selects

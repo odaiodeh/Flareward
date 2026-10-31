@@ -12,9 +12,11 @@ Wraps any ``ApprovalGate`` and intercepts ``request_approval``:
 Thread-safety: each ``request_approval`` call reads a fresh snapshot
 from the store.  No mutable shared state on this object.
 """
-import logging
-from typing import Optional
 
+import asyncio
+import logging
+
+from mas.core.async_work import await_owned
 from mas.core.hitl.models import (
     ApprovalRequest,
     ApprovalResponse,
@@ -40,8 +42,10 @@ class AutoResolvingApprovalGate(ApprovalGate):
         self._overrides_store = overrides_store
         self._session_id = session_id
 
-    def request_approval(self, request: ApprovalRequest) -> ApprovalResponse:
-        overrides = self._overrides_store.load(self._session_id)
+    async def request_approval(self, request: ApprovalRequest) -> ApprovalResponse:
+        overrides = await await_owned(
+            asyncio.to_thread(self._overrides_store.load, self._session_id)
+        )
         logger.debug(
             "HITL auto-resolve check: tool=%s, node_uid=%s, overrides=%s",
             request.tool_name,
@@ -71,11 +75,11 @@ class AutoResolvingApprovalGate(ApprovalGate):
             request.tool_name,
             request.origin.node_uid,
         )
-        return self._inner.request_approval(request)
+        return await self._inner.request_approval(request)
 
-    def _send_and_wait(
+    async def _send_and_wait(
         self,
         request: ApprovalRequest,
         timeout: float,
-    ) -> Optional[ApprovalResponse]:
-        return self._inner._send_and_wait(request, timeout)
+    ) -> ApprovalResponse | None:
+        return await self._inner._send_and_wait(request, timeout)

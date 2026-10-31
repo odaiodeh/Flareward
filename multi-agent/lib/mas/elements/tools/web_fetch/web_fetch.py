@@ -1,31 +1,31 @@
-import asyncio
 import logging
-from typing import Any, Dict
+from typing import Any
+
 import safehttpx
 from html_to_markdown import convert
-from mas.elements.tools.common.base_tool import BaseTool
+
+from mas.application.ports.tool import BaseTool
+
 from .models import WebFetchArgs, WebFetchResponse
 
 logger = logging.getLogger(__name__)
 
 
 class WebFetchTool(BaseTool):
-
     name: str = "web_fetch"
     description: str = "Fetch a web page and return its content as markdown."
     args_schema = WebFetchArgs
 
-    def run(self, **kwargs: Any) -> Dict[str, Any]:
-        return asyncio.run(self.arun(**kwargs))
-
-    async def arun(self, **kwargs: Any) -> Dict[str, Any]:
+    async def run(self, **kwargs: Any) -> dict[str, Any]:
         args = WebFetchArgs(**kwargs)
         url = str(args.url)
 
         try:
             response = await safehttpx.get(url, _transport=False)
         except Exception as exc:
-            logger.error("tool.failed", extra={"tool_name": self.name, "url": url, "error": str(exc)})
+            logger.error(
+                "tool.failed", extra={"tool_name": self.name, "url": url, "error": str(exc)}
+            )
             return WebFetchResponse(success=False, url=url, error=str(exc)).model_dump()
 
         result = convert(response.text)

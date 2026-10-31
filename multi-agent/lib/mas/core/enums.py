@@ -9,7 +9,7 @@ class ResourceCategory(str, Enum):
     CONDITION = "conditions"
     PROVIDER = "providers"
     NODE = "nodes"
-    SANDBOX = "sandboxes"
+    SANDBOX = "sandboxes"  # Retained for reading retired element records, not execution placement.
     
     @classmethod
     def plan_categories(cls) -> frozenset:

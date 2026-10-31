@@ -1,13 +1,15 @@
-from typing import List, Set, Tuple
 from mas.graph.graph_plan import GraphPlan
-from ..models import ValidationMessage, MessageSeverity, MessageCode
+
+from ..models import MessageCode, MessageSeverity, ValidationMessage
 from .models import DependencyIssue, DependencyIssueType
 
 
 class DependencyChecker:
     """Business logic for checking step dependencies."""
 
-    def check_dependencies(self, plan: GraphPlan) -> Tuple[List[DependencyIssue], List[ValidationMessage]]:
+    def check_dependencies(
+        self, plan: GraphPlan
+    ) -> tuple[list[DependencyIssue], list[ValidationMessage]]:
         """Check that all step dependencies and branch targets exist."""
         issues = []
         messages = []
@@ -20,15 +22,17 @@ class DependencyChecker:
                     issue = DependencyIssue(
                         step_id=step.uid,
                         missing_dependency=dep,
-                        issue_type=DependencyIssueType.MISSING_STEP
+                        issue_type=DependencyIssueType.MISSING_STEP,
                     )
                     issues.append(issue)
-                    messages.append(ValidationMessage(
-                        text=f"Step '{step.uid}' depends on missing step '{dep}'",
-                        severity=MessageSeverity.ERROR,
-                        code=MessageCode.MISSING_DEPENDENCY,
-                        context={"step_id": step.uid, "missing_step": dep}
-                    ))
+                    messages.append(
+                        ValidationMessage(
+                            text=f"Step '{step.uid}' depends on missing step '{dep}'",
+                            severity=MessageSeverity.ERROR,
+                            code=MessageCode.MISSING_DEPENDENCY,
+                            context={"step_id": step.uid, "missing_step": dep},
+                        )
+                    )
 
             # Check branch targets
             for branch_name, target in step.branches.items():
@@ -36,14 +40,16 @@ class DependencyChecker:
                     issue = DependencyIssue(
                         step_id=step.uid,
                         missing_dependency=target,
-                        issue_type=DependencyIssueType.MISSING_BRANCH_TARGET
+                        issue_type=DependencyIssueType.MISSING_BRANCH_TARGET,
                     )
                     issues.append(issue)
-                    messages.append(ValidationMessage(
-                        text=f"Step '{step.uid}' branches to unknown step '{target}'",
-                        severity=MessageSeverity.ERROR,
-                        code=MessageCode.MISSING_BRANCH_TARGET,
-                        context={"step_id": step.uid, "branch": branch_name, "target": target}
-                    ))
+                    messages.append(
+                        ValidationMessage(
+                            text=f"Step '{step.uid}' branches to unknown step '{target}'",
+                            severity=MessageSeverity.ERROR,
+                            code=MessageCode.MISSING_BRANCH_TARGET,
+                            context={"step_id": step.uid, "branch": branch_name, "target": target},
+                        )
+                    )
 
         return issues, messages

@@ -6,32 +6,34 @@ from __future__ import annotations
 
 import logging
 import secrets
-from typing import Any, Dict
+from typing import Any
 
-from mas.core.auth.ports import AuthStrategy, AuthChallenge, CompletionResult
-from mas.core.auth.credentials.models import StoredCredential, TokenSet, RecoveryResult
-from mas.core.enums import SchemeType
-
+from mas.core.auth.credentials.models import RecoveryResult, StoredCredential, TokenSet
+from mas.core.auth.ports import AuthChallenge, AuthStrategy, CompletionResult
 from mas.core.auth.strategies.api_key.config import ApiKeyConfig
+from mas.core.enums import SchemeType
 
 logger = logging.getLogger(__name__)
 
 
 class ApiKeyStrategy(AuthStrategy):
-
     @property
     def scheme_type(self) -> str:
         return SchemeType.API_KEY
 
-    def build_headers(self, credential: StoredCredential) -> Dict[str, str]:
+    def build_headers(self, credential: StoredCredential) -> dict[str, str]:
         cfg = ApiKeyConfig()
-        value = f"{cfg.header_prefix}{credential.access_token}" if cfg.header_prefix else credential.access_token
+        value = (
+            f"{cfg.header_prefix}{credential.access_token}"
+            if cfg.header_prefix
+            else credential.access_token
+        )
         return {cfg.header_name: value}
 
     async def attempt_recovery(
         self,
         credential: StoredCredential,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> RecoveryResult:
         return RecoveryResult(
             recovered=False,
@@ -43,7 +45,7 @@ class ApiKeyStrategy(AuthStrategy):
         self,
         user_id: str,
         server_identifier: str,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> AuthChallenge:
         return AuthChallenge.collect(
             fields=[{"name": "api_key", "label": "API Key", "secret": True}],
@@ -53,7 +55,7 @@ class ApiKeyStrategy(AuthStrategy):
 
     async def complete(
         self,
-        raw_callback_data: Dict[str, Any],
+        raw_callback_data: dict[str, Any],
     ) -> CompletionResult:
         api_key = raw_callback_data.get("api_key", "")
         return CompletionResult(

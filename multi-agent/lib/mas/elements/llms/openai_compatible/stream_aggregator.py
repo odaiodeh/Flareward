@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
-from ..common.chat.message import ToolCall
+from mas.domain.messages import ToolCall
 
 
 @dataclass
 class _ToolCallFragment:
     """Accumulates partial data for a single tool call across stream chunks."""
+
     id: str = ""
     name: str = ""
     arguments: str = ""
@@ -43,7 +43,7 @@ class StreamToolCallAggregator:
     """
 
     def __init__(self) -> None:
-        self._fragments: Dict[int, _ToolCallFragment] = {}
+        self._fragments: dict[int, _ToolCallFragment] = {}
 
     @property
     def has_tool_calls(self) -> bool:
@@ -61,7 +61,7 @@ class StreamToolCallAggregator:
                 if delta.function.arguments:
                     frag.arguments += delta.function.arguments
 
-    def build(self) -> Optional[List[ToolCall]]:
+    def build(self) -> list[ToolCall] | None:
         """Return assembled ToolCall list, or *None* if nothing was collected."""
         if not self._fragments:
             return None

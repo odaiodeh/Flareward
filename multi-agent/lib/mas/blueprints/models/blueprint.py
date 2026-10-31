@@ -1,186 +1,62 @@
-from typing import Any, Dict, Generic, List, Optional, TypeVar
-from uuid import uuid4
-from datetime import datetime
-from pydantic import BaseModel, Field, Extra
+"""Blueprint authoring and legacy portable contracts, preserving category validation."""
 
-from mas.core.identity import Identity
-# ─────────────────────────────────────────────────────────────────────────────
-#  Blueprint execution statistics (aggregated across all sessions)
-# ─────────────────────────────────────────────────────────────────────────────
+from typing import Any
 
-class BlueprintExecutionStats(BaseModel):
-    """
-    Pre-aggregated execution statistics for a single blueprint.
+from pydantic import ConfigDict, Field
 
-    Returned by the repository layer with raw metrics computed via
-    database aggregation. The service layer transforms these into
-    BlueprintUsage models with additional fields (name lookup, success rate %).
-    """
-    blueprint_id: str = Field(..., description="Blueprint identifier")
-    total_runs: int = Field(0, description="Total number of executions")
-    completed_runs: int = Field(0, description="Number of COMPLETED executions")
-    failed_runs: int = Field(0, description="Number of FAILED executions")
-    active_runs: int = Field(0, description="Number of currently executing sessions (RUNNING, IN_USE)")
-    last_run: Optional[datetime] = Field(None, description="Timestamp of most recent execution")
-    avg_duration_ms: Optional[float] = Field(None, description="Average duration in milliseconds")
-    users: List[str] = Field(default_factory=list, description="Distinct runner identities as ``type:id`` strings (e.g. ``user:alice``, ``team:acme``)")
-
-# -----------------------------------------------------------------------------
-# Import the *catalog* specs (single source of truth for field validation)
-# -----------------------------------------------------------------------------
-from mas.elements.nodes.types import NodeSpec
-from mas.elements.llms.types import LLMsSpec
-from mas.elements.retrievers.types import RetrieversSpec
-from mas.elements.conditions.types import ConditionSpec
-from mas.elements.tools.types import ToolsSpec
-from mas.elements.providers.types import ProviderSpec
-from mas.elements.sandboxes.types import SandboxSpec
-from mas.core.ref.models import Ref, NodeRef, ConditionRef
+from mas.blueprints.contracts import BlueprintDocument as BlueprintDocument
+from mas.blueprints.contracts import BlueprintExecutionSettings
+from mas.blueprints.contracts import BlueprintSummary as BlueprintSummary
 from mas.blueprints.models.prompt_shortcuts import PromptShortcuts
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Author-time helper types
-# ─────────────────────────────────────────────────────────────────────────────
-T = TypeVar("T", bound=BaseModel)
-
-
-class BlueprintResource(BaseModel, Generic[T]):
-    """A resource entry in a blueprint (may have inline config or $ref)."""
-    rid: Ref
-    name: str | None = None
-    type: str | None = None
-    config: T | None = None
-
-    class Config:
-        extra = Extra.forbid
+from mas.core.resource_models import BlueprintExecutionStats as BlueprintExecutionStats
+from mas.core.resource_models import BlueprintResource, ResourceSpec, StepDef
+from mas.core.resource_models import StepMeta as StepMeta
+from mas.elements.conditions.types import ConditionSpec
+from mas.elements.llms.types import LLMsSpec
+from mas.elements.nodes.types import NodeSpec
+from mas.elements.providers.types import ProviderSpec
+from mas.elements.retrievers.types import RetrieversSpec
+from mas.elements.tools.types import ToolsSpec
 
 
-class ResourceSpec(BaseModel, Generic[T]):
-    rid: Ref
-    name: str
-    type: str = Field(..., description="Element type identifier")
-    config: T
+class BlueprintDraft(BlueprintExecutionSettings):
+    """UI-authorable document containing inline resources and catalog references."""
 
-    class Config:
-        extra = Extra.forbid
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Graph plan
-# ─────────────────────────────────────────────────────────────────────────────
-class StepMeta(BaseModel):
-    description: str = ""
-    display_name: str = ""
-    tags: List[str] = []
-
-    class Config:
-        extra = Extra.forbid
-
-
-class StepDef(BaseModel):
-    uid: str = Field(  # step id (local)
-        default_factory=lambda: f"s_{uuid4().hex[:8]}"
-    )
-    after: str | List[str] | None = None  # depends-on
-    node: NodeRef  # <-- node reference
-    exit_condition: ConditionRef | None = None
-    branches: dict | None = None
-    meta: StepMeta = Field(default_factory=StepMeta)
-
-    class Config:
-        extra = Extra.forbid
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Blueprint summary (lightweight view – no spec details)
-# ─────────────────────────────────────────────────────────────────────────────
-class BlueprintSummary(BaseModel):
-    """Lightweight view of a blueprint for listing -- no spec details."""
-    blueprint_id: str
-    identity: Identity
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    providers: list[BlueprintResource[ProviderSpec]] = Field(default_factory=list)
+    llms: list[BlueprintResource[LLMsSpec]] = Field(default_factory=list)
+    retrievers: list[BlueprintResource[RetrieversSpec]] = Field(default_factory=list)
+    tools: list[BlueprintResource[ToolsSpec]] = Field(default_factory=list)
+    nodes: list[BlueprintResource[NodeSpec]] = Field(default_factory=list)
+    conditions: list[BlueprintResource[ConditionSpec]] = Field(default_factory=list)
+    sandboxes: tuple[()] = ()
+    plan: list[StepDef]
     name: str = "Untitled blueprint"
     description: str = ""
-    created_at: datetime
-    updated_at: datetime
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Top-level blueprints
-# ─────────────────────────────────────────────────────────────────────────────
-class BlueprintDraft(BaseModel):
-    """UI-authorable document (may contain $refs)."""
-    providers: List[BlueprintResource[ProviderSpec]] = []
-    llms: List[BlueprintResource[LLMsSpec]] = []
-    retrievers: List[BlueprintResource[RetrieversSpec]] = []
-    tools: List[BlueprintResource[ToolsSpec]] = []
-    nodes: List[BlueprintResource[NodeSpec]] = []
-    conditions: List[BlueprintResource[ConditionSpec]] = []
-    sandboxes: List[BlueprintResource[SandboxSpec]] = []
-
-    plan: List[StepDef]
-
-    name: str = "Untitled blueprint"
-    description: str = ""
-    prompt_shortcuts: Optional[PromptShortcuts] = None
-
-    class Config:
-        extra = Extra.forbid
+    prompt_shortcuts: PromptShortcuts | None = None
 
     @classmethod
-    def from_stored_dict(cls, spec_dict: Dict[str, Any]) -> "BlueprintDraft":
-        """Build a draft from a persisted ``spec_dict``, tolerating fields that
-        have since been removed from the schema (e.g. the ``auths`` resource
-        category, dropped when auth elements were removed from blueprints).
+    def from_stored_dict(cls, spec_dict: dict[str, Any]) -> BlueprintDraft:
+        """Ignore retired top-level fields when reading our own older documents.
 
-        Documents saved while a now-removed field was still part of the model
-        keep that field baked into their stored ``spec_dict`` forever unless
-        migrated — and ``Extra.forbid`` means a straight ``BlueprintDraft(**
-        spec_dict)`` call rejects them outright. Unlike ``BlueprintDraft(**...)
-        ``, which is used for freshly-submitted drafts (save/update/validate)
-        and should stay strict to catch real client bugs, this entry point is
-        only for re-hydrating what we ourselves previously stored, so
-        silently dropping unrecognized top-level keys is the correct/forward
-        -compatible behavior rather than a bug being hidden.
+        Newly submitted drafts remain strict so client mistakes are reported.
         """
-        known_fields = set(cls.model_fields)
-        return cls(**{k: v for k, v in spec_dict.items() if k in known_fields})
+        return cls.model_validate(
+            {key: value for key, value in spec_dict.items() if key in cls.model_fields}
+        )
 
 
-class BlueprintSpec(BaseModel):
-    """What the graph-builder composer consumes – every $ref resolved."""
-    providers: List[ResourceSpec[ProviderSpec]]
-    llms: List[ResourceSpec[LLMsSpec]]
-    retrievers: List[ResourceSpec[RetrieversSpec]]
-    tools: List[ResourceSpec[ToolsSpec]]
-    nodes: List[ResourceSpec[NodeSpec]]
-    conditions: List[ResourceSpec[ConditionSpec]] = []
-    sandboxes: List[ResourceSpec[SandboxSpec]] = []
+class BlueprintSpec(BlueprintExecutionSettings):
+    """Resolved blueprint retaining existing concrete integration schemas."""
 
-    plan: List[StepDef]
-
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    providers: list[ResourceSpec[ProviderSpec]]
+    llms: list[ResourceSpec[LLMsSpec]]
+    retrievers: list[ResourceSpec[RetrieversSpec]]
+    tools: list[ResourceSpec[ToolsSpec]]
+    nodes: list[ResourceSpec[NodeSpec]]
+    conditions: list[ResourceSpec[ConditionSpec]] = Field(default_factory=list)
+    sandboxes: tuple[()] = ()
+    plan: list[StepDef]
     name: str
     description: str
-
-    class Config:
-        extra = Extra.forbid
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  Blueprint document (DB-level wrapper returned by APIs)
-# ─────────────────────────────────────────────────────────────────────────────
-class BlueprintDocument(BaseModel):
-    """
-    Represents a stored blueprint document as returned by the API.
-    Wraps the spec_dict together with its database-level metadata.
-    """
-    blueprint_id: str
-    identity: Identity
-    created_at: Any = None
-    updated_at: Any = None
-    spec_dict: Dict[str, Any]
-    rid_refs: List[str] = []
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-
-    class Config:
-        extra = Extra.ignore

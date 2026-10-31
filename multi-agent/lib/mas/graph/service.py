@@ -1,5 +1,6 @@
+from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.blueprints.models.blueprint import BlueprintSpec
-from mas.catalog.element_registry import ElementRegistry
+
 from .graph_plan import GraphPlan
 from .plan_builder import PlanBuilder
 
@@ -7,7 +8,7 @@ from .plan_builder import PlanBuilder
 class GraphService:
     """
     Service for building graph plans from blueprint specifications.
-    
+
     This service focuses solely on graph plan creation and building.
     Follows SOLID principles:
     - Single Responsibility: Only manages graph plan creation
@@ -18,7 +19,7 @@ class GraphService:
     def __init__(self, element_registry: ElementRegistry):
         """
         Initialize the GraphService.
-        
+
         Args:
             element_registry: Registry containing all available element specifications
         """
@@ -28,10 +29,10 @@ class GraphService:
     def build_plan(self, blueprint_spec: BlueprintSpec) -> GraphPlan:
         """
         Build a graph plan from a blueprint specification.
-        
+
         Args:
             blueprint_spec: The blueprint specification to build from
-            
+
         Returns:
             GraphPlan: The constructed graph plan
         """

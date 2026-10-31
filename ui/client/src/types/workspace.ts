@@ -13,6 +13,10 @@ export interface ElementType {
   }>;
 }
 
+export interface ResourceExecutionDefaults {
+  profile?: string | null;
+}
+
 export interface ElementInstance {
   rid: string;
   name?: string;
@@ -20,6 +24,7 @@ export interface ElementInstance {
   category?: string;
   type?: string;
   version?: number;
+  execution?: ResourceExecutionDefaults;
   created?: string;
   updated?: string;
   nested_refs?: string[];
@@ -38,7 +43,7 @@ export interface ElementSchema {
   config_schema: {
     type: string;
     properties: { [key: string]: any };
-    required: string[];
+    required?: string[];
     additionalProperties: boolean;
     $defs?: { [key: string]: any };
   };

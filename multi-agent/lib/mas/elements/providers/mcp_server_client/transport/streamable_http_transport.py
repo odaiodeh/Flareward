@@ -6,8 +6,9 @@ bidirectional HTTP transport to the MCP server. Supports custom HTTP
 headers for authentication.
 """
 
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any, Tuple
+from typing import Any
 
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
@@ -28,20 +29,14 @@ class StreamableHttpTransportManager(BaseTransportManager):
     def transport_type(self) -> McpTransportType:
         return McpTransportType.STREAMABLE_HTTP
 
-    @property
-    def _transport_label(self) -> str:
-        return "Streamable HTTP"
-
     @asynccontextmanager
-    async def _create_transport_context(self) -> Any:
+    async def _create_transport_context(self) -> AsyncIterator[tuple[Any, Any]]:
         # The SDK does not close caller-provided HTTP clients. Keep the client
         # alive until the transport exits, including when connection fails.
         async with create_mcp_http_client(headers=self.headers) as http_client:
-            async with streamable_http_client(
-                url=self.endpoint, http_client=http_client,
-            ) as (read_stream, write_stream, _):
+            async with streamable_http_client(url=self.endpoint, http_client=http_client) as (
+                read_stream,
+                write_stream,
+                _,
+            ):
                 yield read_stream, write_stream
-
-    async def _enter_transport_context(self, ctx: Any) -> Tuple:
-        read_stream, write_stream = await ctx.__aenter__()
-        return read_stream, write_stream

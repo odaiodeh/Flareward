@@ -16,14 +16,15 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from ..common.chat.message import ToolCall
+from mas.domain.messages import ToolCall
 
 
 @dataclass
 class _FunctionCallFragment:
     """Accumulates data for a single function call across stream events."""
+
     item_id: str = ""
     name: str = ""
     arguments: str = ""
@@ -52,9 +53,9 @@ class ResponsesStreamAggregator:
     """
 
     def __init__(self) -> None:
-        self._fragments: Dict[str, _FunctionCallFragment] = {}
+        self._fragments: dict[str, _FunctionCallFragment] = {}
         self._content: str = ""
-        self._usage: Optional[Dict[str, int]] = None
+        self._usage: dict[str, int] | None = None
 
     @property
     def accumulated_content(self) -> str:
@@ -65,10 +66,10 @@ class ResponsesStreamAggregator:
         return bool(self._fragments)
 
     @property
-    def usage(self) -> Optional[Dict[str, int]]:
+    def usage(self) -> dict[str, int] | None:
         return self._usage
 
-    def process(self, event: Any) -> Optional[str]:
+    def process(self, event: Any) -> str | None:
         """Process a single stream event. Returns text delta if available."""
         t = event.type
 
@@ -78,7 +79,8 @@ class ResponsesStreamAggregator:
 
         if t == "response.function_call_arguments.delta":
             frag = self._fragments.setdefault(
-                event.item_id, _FunctionCallFragment(item_id=event.item_id),
+                event.item_id,
+                _FunctionCallFragment(item_id=event.item_id),
             )
             frag.arguments += event.delta
 
@@ -86,7 +88,8 @@ class ResponsesStreamAggregator:
             # In openai SDK v3+, this event carries only item_id, arguments,
             # output_index — name and call_id come from response.output_item.done.
             frag = self._fragments.setdefault(
-                event.item_id, _FunctionCallFragment(item_id=event.item_id),
+                event.item_id,
+                _FunctionCallFragment(item_id=event.item_id),
             )
             frag.arguments = event.arguments
 
@@ -113,7 +116,7 @@ class ResponsesStreamAggregator:
 
         return None
 
-    def build(self) -> Optional[List[ToolCall]]:
+    def build(self) -> list[ToolCall] | None:
         """Return assembled ToolCall list, or *None* if nothing was collected."""
         if not self._fragments:
             return None

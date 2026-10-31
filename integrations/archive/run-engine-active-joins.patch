@@ -1,0 +1,269 @@
+--- a/src/runengine/programs/graph/models/enums.py
++++ b/src/runengine/programs/graph/models/enums.py
+@@ -30,6 +30,13 @@
+ 
+     INTERRUPT = "interrupt"
+     PROGRESS = "progress"
++
++
++class JoinPolicy(StrEnum):
++    """How the traversal waits for incoming paths before running a node."""
++
++    ALL = "all"
++    ACTIVE = "active"
+ 
+ 
+ class NodeType(StrEnum):
+--- a/src/runengine/programs/graph/models/graph.py
++++ b/src/runengine/programs/graph/models/graph.py
+@@ -13,10 +13,10 @@
+ 
+ from typing import Any
+ 
+-from pydantic import BaseModel, ConfigDict, Field
++from pydantic import BaseModel, ConfigDict, Field, SerializerFunctionWrapHandler, model_serializer
+ 
+ from runengine.programs.graph._algorithms import breadth_first_distances
+-from runengine.programs.graph.models.enums import MessageCode, NodeType
++from runengine.programs.graph.models.enums import JoinPolicy, MessageCode, NodeType
+ 
+ 
+ class NodeDef(BaseModel):
+@@ -72,7 +72,15 @@
+     conditional_edges: dict[str, ConditionalEdgeDef] = Field(default_factory=dict)
+     entry: str = ""
+     exit_node: str = ""
++    join_policy: JoinPolicy = JoinPolicy.ALL
+     model_config = ConfigDict(frozen=True)
++
++    @model_serializer(mode="wrap")
++    def preserve_legacy_join_shape(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
++        data = handler(self)
++        if self.join_policy == JoinPolicy.ALL:
++            data.pop("join_policy", None)
++        return data
+ 
+     def get_predecessors(self) -> dict[str, set[str]]:
+         """
+--- a/src/runengine/programs/graph/builder.py
++++ b/src/runengine/programs/graph/builder.py
+@@ -29,6 +29,7 @@
+ from runengine.programs.graph.inputs import GraphPlan
+ from runengine.programs.graph.models import ConditionalEdgeDef, GraphDefinition, NodeDef, NodeType
+ from runengine.programs.graph.models.execution import GraphCallArguments
++from runengine.programs.graph.models.enums import JoinPolicy
+ from runengine.programs.graph.models.program import ProgramNode
+ from runengine.programs.graph.models.state import GraphState
+ from runengine.programs.graph.policies.base import InterruptPolicy, RetryPolicy
+@@ -46,9 +47,11 @@
+         self,
+         state_cls: type[GraphState] = GraphState,
+         recursion_limit: int = DEFAULT_RECURSION_LIMIT,
++        join_policy: JoinPolicy = JoinPolicy.ALL,
+     ) -> None:
+         self._state_cls = state_cls
+         self._recursion_limit = recursion_limit
++        self._join_policy = JoinPolicy(join_policy)
+         self._nodes: dict[str, NodeDef] = {}
+         self._function_refs: dict[str, FunctionRef] = {}
+         self._edges: dict[str, list[str]] = {}
+@@ -281,6 +284,7 @@
+             conditional_edges=self._conditional_edges,
+             entry=entry,
+             exit_node=exit_node,
++            join_policy=self._join_policy,
+         )
+         graph_def = graph_def.model_copy(deep=True)
+         errors = graph_def.validate_integrity()
+--- a/src/runengine/programs/graph/traversal/bsp.py
++++ b/src/runengine/programs/graph/traversal/bsp.py
+@@ -22,6 +22,8 @@
+ 
+ from runengine.programs.graph.errors import TraversalControlError
+ from runengine.programs.graph.models.commands import Command, Goto
++from runengine.programs.graph.models.enums import JoinPolicy
++from runengine.programs.graph.models.graph import GraphDefinition
+ from runengine.programs.graph.models.state import GraphState
+ from runengine.programs.graph.traversal.control import ControlRequest, StepResult
+ from runengine.programs.graph.traversal.protocols import EvaluateConditionFn, ExecuteNodeFn
+@@ -35,6 +37,7 @@
+ 
+     model_config = ConfigDict(frozen=True)
+     active_nodes: list[str] = Field(default_factory=list)
++    pending_nodes: list[str] = Field(default_factory=list)
+ 
+ 
+ class BSPTraversal(TraversalStrategy):
+@@ -42,9 +45,13 @@
+     BSP superstep scheduling with edge-driven node activation
+     and channel-based state reconciliation.
+ 
+-    Stateless across runs — create one instance per graph definition,
+-    reuse for multiple executions.
++    Owns pending active-path joins for one traversal. Fresh planning resets
++    position; checkpoint restoration reinstates deferred nodes.
+     """
++
++    def __init__(self, graph_def: GraphDefinition, state_cls: type[GraphState] = GraphState) -> None:
++        super().__init__(graph_def, state_cls)
++        self._pending: set[str] = set()
+ 
+     @property
+     def name(self) -> str:
+@@ -58,6 +65,7 @@
+         This is called once at the start. Subsequent steps use resolve_next.
+         """
+         if not executed:
++            self._pending.clear()
+             return {self._graph.entry}
+         return set()
+ 
+@@ -120,17 +128,43 @@
+                 direct.update(action.targets)
+             else:
+                 candidates.update(await self._resolve_successors(uid, state, evaluate_condition))
++        if self._graph.join_policy == JoinPolicy.ACTIVE:
++            frontier = candidates | direct | self._pending
++            ready = direct | {uid for uid in frontier if not self._has_active_ancestor(uid, frontier)}
++            self._pending = frontier - ready
++            return ready
+         return direct | {
+             uid
+             for uid in candidates
+             if all(dep in executed for dep in self._predecessors.get(uid, set()))
+         }
+ 
++    def _has_active_ancestor(self, uid: str, frontier: set[str]) -> bool:
++        """Gate on live upstream paths; conditional back-edges remain excluded."""
++        pending = list(self._predecessors.get(uid, ()))
++        visited = {uid}
++        while pending:
++            predecessor = pending.pop()
++            if predecessor in visited:
++                continue
++            if predecessor in frontier:
++                return True
++            visited.add(predecessor)
++            pending.extend(self._predecessors.get(predecessor, ()))
++        return False
++
+     def export_position(
+         self, state: GraphState, executed: set[str], active: set[str]
+     ) -> dict[str, Any]:
+         """BSP position: active node set; lifecycle tracks completed steps separately."""
+-        return BSPStrategyState(active_nodes=sorted(active)).model_dump()
++        data = BSPStrategyState(
++            active_nodes=sorted(active), pending_nodes=sorted(self._pending)
++        ).model_dump()
++        if not self._pending:
++            data.pop("pending_nodes")
++        return data
+ 
+     def restore_position(self, snapshot: dict[str, Any]) -> set[str]:
+-        return set(BSPStrategyState.model_validate(snapshot).active_nodes)
++        position = BSPStrategyState.model_validate(snapshot)
++        self._pending = set(position.pending_nodes)
++        return set(position.active_nodes)
+--- a/src/runengine/programs/graph/traversal/README.md
++++ b/src/runengine/programs/graph/traversal/README.md
+@@ -62,6 +62,21 @@
+ 
+ See [Graph state and channels](../models/README.md) for the full-state node
+ contract, application-defined reducers, merge order, and write extraction limits.
++
++## Active-path joins
++
++`GraphBuilder(..., join_policy=JoinPolicy.ACTIVE)` opts into joins over active
++paths. Import `JoinPolicy` from `runengine.programs.graph.models.enums`. A node
++activated by one predecessor waits while another live frontier node can still
++reach it through forward dependencies. Unselected conditional paths do not block
++it. Unequal-length selected paths still join once after both finish. Deferred
++nodes are part of BSP's checkpoint position and survive restoration.
++
++The default `JoinPolicy.ALL` preserves static all-predecessor gating. Default
++serialization omits the new graph field and empty pending-node state, retaining
++legacy request/checkpoint shapes. New active-mode requests require matched
++coordinator code; update workers before enabling the option. Goto still directly
++activates its targets and FinishTraversal retains lifecycle ownership.
+ 
+ ## Checkpoint fields
+ 
+--- /dev/null
++++ b/tests/unit/programs/graph/domain/test_active_joins.py
+@@ -0,0 +1,76 @@
++"""Active-path joins preserve legacy defaults and checkpoint deferred work."""
++
++import pytest
++from runengine.programs.graph.models.enums import JoinPolicy
++from runengine.programs.graph.models.graph import ConditionalEdgeDef, GraphDefinition, NodeDef
++from runengine.programs.graph.models.state import GraphState
++from runengine.programs.graph.traversal.bsp import BSPTraversal
++
++
++def topology(*, active=True, unequal=False):
++    names = ("root", "left", "right", "tail", "join")
++    return GraphDefinition(
++        nodes={name: NodeDef(uid=name) for name in names},
++        edges={"left": ["join"], "right": ["tail" if unequal else "join"], "tail": ["join"]},
++        conditional_edges={"root": ConditionalEdgeDef(condition_id="route", branches={"left": "left", "right": "right"})},
++        entry="root", exit_node="join", join_policy=JoinPolicy.ACTIVE if active else JoinPolicy.ALL,
++    )
++
++
++async def both(*args):
++    return ["left", "right"]
++
++
++async def left(*args):
++    return "left"
++
++
++@pytest.mark.parametrize("active", [True, False])
++async def test_exclusive_branch_rejoin_is_opt_in(active):
++    strategy = BSPTraversal(topology(active=active))
++    state = GraphState()
++    assert await strategy.resolve_next({"root"}, {"root"}, state, left) == {"left"}
++    ready = await strategy.resolve_next({"left"}, {"root", "left"}, state, left)
++    assert ready == ({"join"} if active else set())
++
++
++async def test_unequal_active_paths_wait_and_restore_the_deferred_join():
++    graph = topology(unequal=True)
++    strategy = BSPTraversal(graph)
++    state = GraphState()
++    assert await strategy.resolve_next({"root"}, {"root"}, state, both) == {"left", "right"}
++    done = {"root", "left", "right"}
++    ready = await strategy.resolve_next({"left", "right"}, done, state, both)
++    assert ready == {"tail"}
++    restored = BSPTraversal(graph)
++    assert restored.restore_position(strategy.export_position(state, done, ready)) == ready
++    assert await restored.resolve_next(ready, done | ready, state, both) == {"join"}
++
++
++async def test_new_loop_round_waits_for_fresh_active_paths_despite_previous_completions():
++    graph = topology(unequal=True).model_copy(update={
++        "conditional_edges": {
++            **topology().conditional_edges,
++            "join": ConditionalEdgeDef(condition_id="again", branches={"repeat": "root"}),
++        },
++    })
++    strategy = BSPTraversal(graph)
++    state = GraphState()
++    done = set()
++    for _ in range(2):
++        for current, expected in (({"root"}, {"left", "right"}), ({"left", "right"}, {"tail"}), ({"tail"}, {"join"})):
++            done |= current
++            assert await strategy.resolve_next(current, done, state, both) == expected
++        async def repeat(*args):
++            return "repeat"
++        done.add("join")
++        assert await strategy.resolve_next({"join"}, done, state, repeat) == {"root"}
++
++
++def test_default_graph_and_empty_checkpoint_keep_legacy_serialization_shape():
++    graph = topology(active=False)
++    assert "join_policy" not in graph.model_dump(mode="json")
++    assert BSPTraversal(graph).export_position(GraphState(), set(), {"root"}) == {"active_nodes": ["root"]}
++    active = topology()
++    assert active.model_dump(mode="json")["join_policy"] == "active"
++    assert GraphDefinition.model_validate(active.model_dump(mode="json")) == active

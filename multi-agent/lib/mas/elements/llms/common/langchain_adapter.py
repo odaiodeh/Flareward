@@ -16,7 +16,9 @@ the existing ``LangChainConverter``.
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Union
+from collections.abc import AsyncIterator, Callable, Sequence
+from contextlib import aclosing
+from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessageChunk, BaseMessage
@@ -25,16 +27,16 @@ from langchain_core.tools import BaseTool as LangChainBaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import ConfigDict
 
-from ..common.base_llm import BaseLLM
-from ..common.chat.converter import LangChainConverter
-from ..common.chat.message import ChatMessage
-from ...tools.common.tool_definition import ToolDefinition
+from mas.domain.messages import ChatMessage
+from mas.domain.tools import ToolDefinition
 
-_EMPTY_PARAMS: Dict[str, Any] = {"type": "object", "properties": {}}
+from ..common.chat.converter import LangChainConverter
+
+_EMPTY_PARAMS: dict[str, Any] = {"type": "object", "properties": {}}
 
 
 def _lc_tool_to_definition(
-    tool: Union[Dict[str, Any], type, Callable, LangChainBaseTool],
+    tool: dict[str, Any] | type | Callable | LangChainBaseTool,
 ) -> ToolDefinition:
     """Convert any LangChain-accepted tool format to a provider-agnostic ``ToolDefinition``."""
     openai_schema = convert_to_openai_tool(tool)
@@ -73,12 +75,21 @@ class BaseLLMChatModelAdapter(BaseChatModel):
     def _generate(
         self,
         messages: list[BaseMessage],
-        stop: Optional[list[str]] = None,
+        stop: list[str] | None = None,
+        run_manager: Any = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        raise NotImplementedError("Use the asynchronous LLM adapter interface")
+
+    async def _agenerate(
+        self,
+        messages: list[BaseMessage],
+        stop: list[str] | None = None,
         run_manager: Any = None,
         **kwargs: Any,
     ) -> ChatResult:
         domain_msgs = LangChainConverter.from_lc(messages)
-        result = self.llm.chat(domain_msgs)
+        result = await self.llm.chat(domain_msgs)
         ai_message = LangChainConverter.to_lc_message(result)
         return ChatResult(generations=[ChatGeneration(message=ai_message)])
 
@@ -86,23 +97,24 @@ class BaseLLMChatModelAdapter(BaseChatModel):
     # Optional: streaming
     # ------------------------------------------------------------------
 
-    def _stream(
+    async def _astream(
         self,
         messages: list[BaseMessage],
-        stop: Optional[list[str]] = None,
+        stop: list[str] | None = None,
         run_manager: Any = None,
         **kwargs: Any,
-    ) -> Iterator[ChatGenerationChunk]:
+    ) -> AsyncIterator[ChatGenerationChunk]:
         domain_msgs = LangChainConverter.from_lc(messages)
-        for token_or_msg in self.llm.stream(domain_msgs):
-            if isinstance(token_or_msg, str):
-                yield ChatGenerationChunk(
-                    message=AIMessageChunk(content=token_or_msg),
-                )
-            elif isinstance(token_or_msg, ChatMessage):
-                yield ChatGenerationChunk(
-                    message=LangChainConverter.to_lc_message_chunk(token_or_msg),
-                )
+        async with aclosing(self.llm.stream(domain_msgs)) as chunks:
+            async for token_or_msg in chunks:
+                if isinstance(token_or_msg, str):
+                    yield ChatGenerationChunk(
+                        message=AIMessageChunk(content=token_or_msg),
+                    )
+                elif isinstance(token_or_msg, ChatMessage):
+                    yield ChatGenerationChunk(
+                        message=LangChainConverter.to_lc_message_chunk(token_or_msg),
+                    )
 
     # ------------------------------------------------------------------
     # Optional: tool binding
@@ -110,9 +122,9 @@ class BaseLLMChatModelAdapter(BaseChatModel):
 
     def bind_tools(
         self,
-        tools: Sequence[Dict[str, Any] | type | Callable | LangChainBaseTool],
+        tools: Sequence[dict[str, Any] | type | Callable | LangChainBaseTool],
         *,
-        tool_choice: Optional[str] = None,
+        tool_choice: str | None = None,
         **kwargs: Any,
     ) -> BaseLLMChatModelAdapter:
         """Bind LangChain-format tools to the underlying domain ``BaseLLM``.
@@ -121,6 +133,6 @@ class BaseLLMChatModelAdapter(BaseChatModel):
         delegates to ``BaseLLM.bind_tools()``, and returns a new adapter
         wrapping the tool-bound LLM.
         """
-        definitions: List[ToolDefinition] = [_lc_tool_to_definition(t) for t in tools]
+        definitions: list[ToolDefinition] = [_lc_tool_to_definition(t) for t in tools]
         bound_llm = self.llm.bind_tools(definitions)
         return BaseLLMChatModelAdapter(llm=bound_llm)

@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useBlueprintValidation } from "@/hooks/use-blueprint-validation";
 import { useSessionManagement } from "@/hooks/use-session-management";
 import { useSessionStream } from "@/hooks/use-session-stream";
-import { createSessionError } from "@/components/agentic-ai/chat/types";
+import { createSessionError, sameApproval, APPROVAL_STATUS, type ApprovalDecision } from "@/components/agentic-ai/chat/types";
 import {
   ChatSession,
   ChatMessage,
@@ -130,15 +130,19 @@ export interface UseSessionHubReturn {
 // ─── Chunk‐data shape used by updateNodeList ────────────────────────────────
 
 type ChunkData = {
-  node: string;
-  display_name: string;
+  node?: string;
+  display_name?: string;
   type:
     | "llm_token"
     | "complete"
     | "tool_calling"
     | "tool_result"
     | "workplan_snapshot"
-    | "approval_required";
+    | "approval_required"
+    | "approval_resolved";
+  root_execution_id?: string;
+  decision?: string;
+  feedback?: string;
   chunk?: string;
   tool?: string;
   output?: string;
@@ -191,7 +195,7 @@ export function useSessionHub({
   const [isCreatingSession, setIsCreatingSession] = useState(false);
 
   // Contexts
-  const { nodeListRef, clearStream } = useStreamingData();
+  const { nodeListRef, clearStream, updateApprovalStatus } = useStreamingData();
   const { user } = useAuth();
   const { isTeam, userId: contextUserId, displayName, teamId } =
     useWorkspaceIdentity();
@@ -217,7 +221,7 @@ export function useSessionHub({
   } = useBlueprintValidation({ showToastOnFailure: true });
 
   // ── Session management (message loading) ───────────────────────────────
-  const { loadSessionMessages } = useSessionManagement();
+  const { loadSessionMessages } = useSessionManagement(teamId);
 
   // ── transformApiDataToSessions ─────────────────────────────────────────
   const transformApiDataToSessions = useCallback(
@@ -285,14 +289,21 @@ export function useSessionHub({
       const {
         node, display_name, type, chunk, state, tool, output,
         call_id, args, action, plan_id, thread_id, owner_uid, workplan,
-        request_id, origin, tool_name, tool_args, tool_description, tool_access_mode,
+        request_id, root_execution_id, decision, feedback, origin, tool_name, tool_args, tool_description, tool_access_mode,
       } = chunkData;
+      if (type === 'approval_resolved') {
+        if (request_id && decision && Object.hasOwn(APPROVAL_STATUS, decision)) {
+          updateApprovalStatus({ requestId: request_id, executionId: root_execution_id }, APPROVAL_STATUS[decision as ApprovalDecision], feedback);
+        }
+        return;
+      }
+      if (!node) return;
       const map = nodeListRef.current;
       let existing = map.get(node);
 
       if (!existing) {
         existing = {
-          node_name: display_name,
+          node_name: display_name || node,
           node_uid: node,
           stream: type === "complete" ? "DONE" : "PROGRESS",
           text: "",
@@ -346,17 +357,18 @@ export function useSessionHub({
           if (request_id && tool_name) {
             if (!existing.approvals) existing.approvals = [];
             const alreadyExists = existing.approvals.some(
-              (a: any) => a.requestId === request_id,
+              (a) => sameApproval(a, { requestId: request_id, executionId: root_execution_id }),
             );
             if (!alreadyExists) {
               existing.approvals.push({
                 requestId: request_id,
+                executionId: root_execution_id,
                 toolName: tool_name,
                 toolArgs: tool_args || {},
                 toolDescription: tool_description || "",
                 accessMode: tool_access_mode || "write",
                 originNodeUid: origin?.node_uid || node,
-                originNodeName: origin?.node_display_name || display_name,
+                originNodeName: origin?.node_display_name || display_name || node,
                 status: "pending",
               });
             }
@@ -366,12 +378,13 @@ export function useSessionHub({
           break;
       }
     },
-    [nodeListRef],
+    [nodeListRef, updateApprovalStatus],
   );
   updateNodeListRef.current = updateNodeList;
 
   // ── Session stream ─────────────────────────────────────────────────────
   const sessionStream = useSessionStream({
+    teamId,
     onChunk: useCallback((chunkData: any) => {
       updateNodeListRef.current?.(chunkData);
     }, []),
@@ -550,7 +563,7 @@ export function useSessionHub({
         autoSelectKeyRef.current = key;
         (async () => {
           try {
-            const chatData = await fetchSessionChatById(activeRunIdRef.current!);
+            const chatData = await fetchSessionChatById(activeRunIdRef.current!, teamId);
             const deepLinked: ChatSession = {
               id: activeRunIdRef.current!,
               blueprintId: chatData?.blueprint_id ?? "",
@@ -603,7 +616,7 @@ export function useSessionHub({
     if (!chatToDelete) return;
     setIsDeleting(true);
     try {
-      await deleteSession(chatToDelete.id);
+      await deleteSession(chatToDelete.id, teamId);
       refreshSessions();
       if (selectedSession?.id === chatToDelete.id) {
         setSelectedSession(null);
@@ -621,7 +634,7 @@ export function useSessionHub({
     } finally {
       setIsDeleting(false);
     }
-  }, [chatToDelete, selectedSession?.id, toast, refreshSessions]);
+  }, [chatToDelete, selectedSession?.id, teamId, toast, refreshSessions]);
 
   const cancelDeleteChat = useCallback(() => {
     setShowDeleteModal(false);
@@ -708,7 +721,7 @@ export function useSessionHub({
 
         await streamCompletePromise;
 
-        const sessionChat = await getSessionChat(sessionPayload.sessionId);
+        const sessionChat = await getSessionChat(sessionPayload.sessionId, teamId);
         const { output, status, status_message } = sessionChat;
 
         if (status === "CANCELLED") {
@@ -716,6 +729,9 @@ export function useSessionHub({
         }
         if (status === "FAILED") {
           throw createSessionError(status_message || "Workflow failed.", "FAILED");
+        }
+        if (status !== "COMPLETED") {
+          throw new Error("Execution is still running. Reconnect to view its result.");
         }
 
         return output;
@@ -725,23 +741,15 @@ export function useSessionHub({
         throw err;
       }
     },
-    [sessionStream, globalScope],
+    [sessionStream, globalScope, teamId],
   );
 
   // ── Cancel ─────────────────────────────────────────────────────────────
   const handleCancelSession = useCallback(async () => {
     if (!selectedSession?.id) return;
+    await sessionStream.cancelSessionExecution(selectedSession.id);
     setIsCancelled(true);
-    try {
-      await sessionStream.cancelSessionExecution(selectedSession.id);
-    } catch (err) {
-      console.error("Error cancelling session execution:", err);
-    } finally {
-      sessionStream.cancelStream();
-      setIsLiveRequest(false);
-      streamCompleteResolverRef.current?.();
-      streamCompleteResolverRef.current = null;
-    }
+    // Keep observing until the server reports the terminal result.
   }, [selectedSession, sessionStream]);
 
   // ── Workspace-switch effect ────────────────────────────────────────────

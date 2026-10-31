@@ -1,7 +1,7 @@
 from typing import Dict
 from pydantic import BaseModel, Field, ConfigDict
 
-from mas.blueprints.models.blueprint import StepMeta
+from mas.core.resource_models import StepMeta
 from .adjacency import AdjacentNodes
 from ..topology.models import StepTopology
 

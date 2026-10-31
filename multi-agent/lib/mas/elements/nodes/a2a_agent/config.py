@@ -19,17 +19,30 @@ Authentication uses the same hint-driven OAuth flow as MCP providers:
   changes required.
 """
 
-from mas.elements.nodes.common.base_config import NodeBaseConfig
-from pydantic import Field, HttpUrl
-from typing import Optional, Literal
+from typing import Literal
+
 from a2a.types import AgentCard
-from .identifiers import Identifier
-from mas.core.ref.models import RetrieverRef
+from pydantic import Field, HttpUrl
+
+from mas.application.elements.node_config import NodeBaseConfig
 from mas.core.auth.credentials.models import StaticAuthMethod
 from mas.core.field_hints import (
-    ActionHint, HintType, SelectionType,
-    SecretHint, AuthHint, HiddenHint, ConditionalHint, PropagateHint, ReadOnlyHint, CardHint, CardContext, combine_hints,
+    ActionHint,
+    AuthHint,
+    CardContext,
+    CardHint,
+    ConditionalHint,
+    HiddenHint,
+    HintType,
+    PropagateHint,
+    ReadOnlyHint,
+    SecretHint,
+    SelectionType,
+    combine_hints,
 )
+from mas.core.ref.models import RetrieverRef
+
+from .identifiers import Identifier
 
 
 class A2AAgentNodeConfig(NodeBaseConfig):
@@ -42,6 +55,7 @@ class A2AAgentNodeConfig(NodeBaseConfig):
     standard OAuth flow, identical to MCP). ``sign_in``/``bearer_token`` are
     the only fields callers configure themselves.
     """
+
     type: Literal[Identifier.TYPE] = Identifier.TYPE
 
     base_url: HttpUrl = Field(
@@ -86,19 +100,21 @@ class A2AAgentNodeConfig(NodeBaseConfig):
         ),
     )
 
-    sign_in: Optional[str] = Field(
+    sign_in: str | None = Field(
         default=None,
         exclude=True,
         description="Sign in to authenticate with this A2A agent",
         json_schema_extra=combine_hints(
-            ConditionalHint(visible_when={
-                "auth_method": {
-                    "not_in": [
-                        StaticAuthMethod.NONE.value,
-                        StaticAuthMethod.ACCESS_TOKEN.value,
-                    ],
-                },
-            }),
+            ConditionalHint(
+                visible_when={
+                    "auth_method": {
+                        "not_in": [
+                            StaticAuthMethod.NONE.value,
+                            StaticAuthMethod.ACCESS_TOKEN.value,
+                        ],
+                    },
+                }
+            ),
             AuthHint(
                 action_uid="auth.discovery",
                 dependencies={
@@ -109,14 +125,16 @@ class A2AAgentNodeConfig(NodeBaseConfig):
         ),
     )
 
-    bearer_token: Optional[str] = Field(
+    bearer_token: str | None = Field(
         default=None,
         description="Bearer token for authentication",
         json_schema_extra=combine_hints(
             SecretHint(allow_reveal=True),
-            ConditionalHint(visible_when={
-                "auth_method": StaticAuthMethod.ACCESS_TOKEN.value,
-            }),
+            ConditionalHint(
+                visible_when={
+                    "auth_method": StaticAuthMethod.ACCESS_TOKEN.value,
+                }
+            ),
             PropagateHint(to="credential_token"),
             ReadOnlyHint(read_only=False),
         ),
@@ -124,7 +142,9 @@ class A2AAgentNodeConfig(NodeBaseConfig):
 
     server_identifier: str = Field(
         default="",
-        json_schema_extra=HiddenHint(reason="Set automatically from auth_method selection").to_hints(),
+        json_schema_extra=HiddenHint(
+            reason="Set automatically from auth_method selection"
+        ).to_hints(),
     )
 
     scheme_type: str = Field(
@@ -138,7 +158,7 @@ class A2AAgentNodeConfig(NodeBaseConfig):
         json_schema_extra=HiddenHint(reason="Populated by auth fields").to_hints(),
     )
 
-    agent_card: Optional[AgentCard] = Field(
+    agent_card: AgentCard | None = Field(
         default=None,
         description="Pre-fetched agent card (optional, will be fetched if not provided)",
         json_schema_extra=ActionHint(
@@ -150,7 +170,7 @@ class A2AAgentNodeConfig(NodeBaseConfig):
         ).to_hints(),
     )
 
-    retriever: Optional[RetrieverRef] = Field(
+    retriever: RetrieverRef | None = Field(
         None,
         description="Retriever for context augmentation (optional)",
         json_schema_extra=CardHint(contexts=[CardContext.BUILTIN, CardContext.CUSTOM]).to_hints(),

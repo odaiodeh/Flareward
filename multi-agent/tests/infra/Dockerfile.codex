@@ -1,0 +1,16 @@
+ARG SANDBOX_IMAGE=unifai-sandbox:platform-20261029
+FROM ${SANDBOX_IMAGE}
+USER root
+ARG CODEX_VERSION=0.166.0
+RUN npm install --global --ignore-scripts @openai/codex@${CODEX_VERSION} \
+    && find /usr/lib/node_modules/@openai -type f -path "*/bin/codex" \
+       -exec install -m 0755 {} /usr/local/bin/codex \; \
+    && find /usr/lib/node_modules/@openai -type f -path "*/codex-resources/bwrap" \
+       -exec install -m 0755 {} /usr/local/bin/bwrap \; \
+    && find /usr/lib/node_modules/@openai -type f -path "*/codex-path/rg" \
+       -exec install -m 0755 {} /usr/local/bin/rg \; \
+    && /usr/local/bin/codex --version \
+    && /usr/local/bin/bwrap --version
+# A numeric identity also satisfies Kubernetes runAsNonRoot validation.
+ARG CODEX_USER=998:998
+USER ${CODEX_USER}

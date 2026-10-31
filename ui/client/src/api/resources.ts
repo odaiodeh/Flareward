@@ -1,5 +1,5 @@
 import axios from '@/http/axiosAgentConfig';
-import { ElementSchema } from '@/types/workspace';
+import { ElementSchema, ResourceExecutionDefaults } from '@/types/workspace';
 
 export interface ResourceIdentity {
   type: 'user' | 'team' | 'system';
@@ -15,6 +15,7 @@ export interface ResourceInstance {
   name: string;
   version: number;
   cfg_dict: Record<string, unknown>;
+  execution?: ResourceExecutionDefaults;
   nested_refs: string[];
   contributed_by?: string;
   created: string;
@@ -52,6 +53,7 @@ export interface BuiltinsListResponse {
 }
 
 export async function listResources(params: {
+  signal?: AbortSignal;
   teamId?: string;
   category?: string;
   type?: string;
@@ -69,6 +71,7 @@ export async function listResources(params: {
 
   const { data } = await axios.get<ResourcesListResponse>(
     `/resources/resources.list?${query.toString()}`,
+    { signal: params.signal },
   );
   return data;
 }
@@ -81,6 +84,7 @@ export async function listResources(params: {
  * blocks, name lookups, etc.) rather than a UI-paginated list.
  */
 export async function listAllResources(params: {
+  signal?: AbortSignal;
   teamId?: string;
   category?: string;
   type?: string;
@@ -117,6 +121,7 @@ export async function createResource(payload: {
   type: string;
   name: string;
   config: Record<string, any>;
+  execution?: ResourceExecutionDefaults;
 }): Promise<ResourceInstance> {
   const { data } = await axios.post<ResourceInstance>('/resources/resource.save', payload);
   return data;
@@ -126,6 +131,9 @@ export async function updateResource(payload: {
   resourceId: string;
   config: Record<string, any>;
   name?: string;
+  teamId?: string;
+  expected_version?: number;
+  execution?: ResourceExecutionDefaults;
 }): Promise<ResourceInstance> {
   const { data } = await axios.put<ResourceInstance>('/resources/resource.update', payload);
   return data;
@@ -135,8 +143,8 @@ export async function deleteResource(resourceId: string): Promise<void> {
   await axios.delete(`/resources/resource.delete?resourceId=${encodeURIComponent(resourceId)}`);
 }
 
-export async function getResourceSchema(): Promise<any> {
-  const { data } = await axios.get('/resources/resource.schema');
+export async function getResourceSchema(signal?: AbortSignal): Promise<any> {
+  const { data } = await axios.get('/resources/resource.schema', { signal });
   return data;
 }
 
@@ -200,9 +208,10 @@ export async function getBuiltinSchema(resourceId: string): Promise<any> {
   return data;
 }
 
-export async function getElementSpec(category: string, type: string): Promise<ElementSchema> {
+export async function getElementSpec(category: string, type: string, signal?: AbortSignal): Promise<ElementSchema> {
   const { data } = await axios.get<ElementSchema>(
     `/catalog/element.spec.get?category=${encodeURIComponent(category)}&type=${encodeURIComponent(type)}`,
+    { signal },
   );
   return data;
 }

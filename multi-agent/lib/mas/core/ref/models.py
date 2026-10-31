@@ -1,12 +1,14 @@
-from typing import ClassVar, Dict, Type
-from pydantic import RootModel, model_serializer, SerializerFunctionWrapHandler, SerializationInfo
+from typing import ClassVar
+
+from pydantic import RootModel, SerializationInfo, SerializerFunctionWrapHandler, model_serializer
+
 from mas.core.enums import ResourceCategory
 
 
 class Ref(RootModel[str]):
     """
     Base class for resource references.
-    
+
     A wrapper around a single string that may be:
       - a bare ID, e.g. "abcd-1234"
       - an external ref, e.g. "$ref:abcd-1234"
@@ -14,13 +16,14 @@ class Ref(RootModel[str]):
     All subclasses MUST define _category to specify which resource
     category they reference. This is enforced at class definition time.
     """
+
     REF_PREFIX: ClassVar[str] = "$ref:"
     _category: ClassVar[ResourceCategory]
 
     def __init_subclass__(cls, **kwargs):
         """Enforce that all Ref subclasses define _category."""
         super().__init_subclass__(**kwargs)
-        if not hasattr(cls, '_category') or cls._category is None:
+        if not hasattr(cls, "_category") or cls._category is None:
             raise TypeError(
                 f"Ref subclass '{cls.__name__}' must define '_category'. "
                 f"Example: _category: ClassVar[ResourceCategory] = ResourceCategory.YOUR_CATEGORY"
@@ -31,7 +34,7 @@ class Ref(RootModel[str]):
         """The ID without the $ref: prefix."""
         raw = self.root
         if raw.startswith(self.REF_PREFIX):
-            return raw[len(self.REF_PREFIX):]
+            return raw[len(self.REF_PREFIX) :]
         return raw
 
     def is_external_ref(self) -> bool:
@@ -45,44 +48,44 @@ class Ref(RootModel[str]):
         return self._category
 
     @classmethod
-    def external(cls, rid: str) -> "Ref":
+    def external(cls, rid: str) -> Ref:
         """
         Create an external reference to a saved resource.
-        
+
         Example:
             NodeRef.external("abc123")  # → NodeRef("$ref:abc123")
         """
         return cls(f"{cls.REF_PREFIX}{rid}")
-    
-    def to_external(self, new_rid: str | None = None) -> "Ref":
+
+    def to_external(self, new_rid: str | None = None) -> Ref:
         """
         Create external ref with same type.
-        
+
         Args:
             new_rid: New resource ID. If None, uses current ref.
-            
+
         Example:
             node_ref.to_external("abc123")  # → NodeRef("$ref:abc123")
             node_ref.to_external()  # → NodeRef("$ref:current_id")
         """
         rid = new_rid if new_rid is not None else self.ref
         return type(self).external(rid)
-    
+
     @staticmethod
     def make_external(rid: str) -> str:
         """
         Convert bare rid to external format string.
-        
+
         Example:
             Ref.make_external("abc123")  # → "$ref:abc123"
         """
         return f"{Ref.REF_PREFIX}{rid}"
 
     @classmethod
-    def for_category(cls, category: ResourceCategory) -> Type["Ref"]:
+    def for_category(cls, category: ResourceCategory) -> type[Ref]:
         """
         Get the Ref subclass for a given ResourceCategory.
-        
+
         Example:
             Ref.for_category(ResourceCategory.LLM)  # Returns LLMRef
             Ref.for_category(ResourceCategory.NODE)  # Returns NodeRef
@@ -93,17 +96,17 @@ class Ref(RootModel[str]):
         return mapping[category]
 
     @classmethod
-    def category_mapping(cls) -> Dict[ResourceCategory, Type["Ref"]]:
+    def category_mapping(cls) -> dict[ResourceCategory, type[Ref]]:
         """
         Build mapping from ResourceCategory to Ref subclass.
-        
+
         Automatically discovers all Ref subclasses via __subclasses__().
         Zero maintenance - always in sync with defined subclasses.
         """
         return {
             subclass._category: subclass
             for subclass in cls.__subclasses__()
-            if hasattr(subclass, '_category')
+            if hasattr(subclass, "_category")
         }
 
     @model_serializer(mode="wrap")
@@ -119,92 +122,97 @@ class Ref(RootModel[str]):
 
 class LLMRef(Ref):
     """Reference to an LLM resource."""
+
     _category: ClassVar[ResourceCategory] = ResourceCategory.LLM
 
     model_config = {
         "json_schema_extra": {
             "category": ResourceCategory.LLM.value,
             "description": "Reference to an LLM resource",
-            "examples": ["$ref:gpt-4-turbo", "openai-gpt4"]
+            "examples": ["$ref:gpt-4-turbo", "openai-gpt4"],
         }
     }
 
 
 class NodeRef(Ref):
     """Reference to a Node resource."""
+
     _category: ClassVar[ResourceCategory] = ResourceCategory.NODE
 
     model_config = {
         "json_schema_extra": {
             "category": ResourceCategory.NODE.value,
             "description": "Reference to a Node resource",
-            "examples": ["$ref:custom-agent-1", "data-processor"]
+            "examples": ["$ref:custom-agent-1", "data-processor"],
         }
     }
 
 
 class RetrieverRef(Ref):
     """Reference to a Retriever resource."""
+
     _category: ClassVar[ResourceCategory] = ResourceCategory.RETRIEVER
 
     model_config = {
         "json_schema_extra": {
             "category": ResourceCategory.RETRIEVER.value,
             "description": "Reference to a Retriever resource",
-            "examples": ["$ref:docs-retriever", "slack-search"]
+            "examples": ["$ref:docs-retriever", "slack-search"],
         }
     }
 
 
 class ToolRef(Ref):
     """Reference to a Tool resource."""
+
     _category: ClassVar[ResourceCategory] = ResourceCategory.TOOL
 
     model_config = {
         "json_schema_extra": {
             "category": ResourceCategory.TOOL.value,
             "description": "Reference to a Tool resource",
-            "examples": ["$ref:jira-tool", "slack-messenger"]
+            "examples": ["$ref:jira-tool", "slack-messenger"],
         }
     }
 
 
 class ProviderRef(Ref):
     """Reference to a Provider resource."""
+
     _category: ClassVar[ResourceCategory] = ResourceCategory.PROVIDER
 
     model_config = {
         "json_schema_extra": {
             "category": ResourceCategory.PROVIDER.value,
             "description": "Reference to a Provider resource",
-            "examples": ["$ref:mcp-server", "api-provider"]
+            "examples": ["$ref:mcp-server", "api-provider"],
         }
     }
 
 
 class ConditionRef(Ref):
     """Reference to a Condition resource."""
+
     _category: ClassVar[ResourceCategory] = ResourceCategory.CONDITION
 
     model_config = {
         "json_schema_extra": {
             "category": ResourceCategory.CONDITION.value,
             "description": "Reference to a Condition resource",
-            "examples": ["$ref:threshold-check", "route-condition"]
+            "examples": ["$ref:threshold-check", "route-condition"],
         }
     }
 
 
-
-
 class SandboxRef(Ref):
-    """Reference to a Sandbox resource (execution environment for agents)."""
+    """Legacy reference identity for retired sandbox records; not an executable element."""
+
     _category: ClassVar[ResourceCategory] = ResourceCategory.SANDBOX
 
     model_config = {
         "json_schema_extra": {
             "category": ResourceCategory.SANDBOX.value,
-            "description": "Reference to a Sandbox execution environment",
-            "examples": ["$ref:openshell-sandbox-1", "my-sandbox"]
+            "description": "Legacy reference to a retired sandbox element",
+            "deprecated": True,
         }
     }

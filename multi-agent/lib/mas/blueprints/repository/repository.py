@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
-from mas.blueprints.models.blueprint import BlueprintDraft, BlueprintDocument, BlueprintSummary
+from typing import Any
+
+from mas.blueprints.models.blueprint import BlueprintDocument, BlueprintDraft, BlueprintSummary
 from mas.blueprints.models.prompt_shortcuts import PromptShortcuts
 from mas.core.identity import Identity
 
@@ -8,17 +9,21 @@ from mas.core.identity import Identity
 class BlueprintRepository(ABC):
     # ────────────────────────────── Writes ──────────────────────────────
     @abstractmethod
-    def save(self, identity: Identity, spec: BlueprintDraft,
-             rid_refs: list[str], metadata: Dict[str, Any]) -> str:
+    def save(
+        self,
+        identity: Identity,
+        spec: BlueprintDraft,
+        rid_refs: list[str],
+        metadata: dict[str, Any],
+    ) -> str:
         """Persist *spec* owned by *identity* and return the generated blueprint_id."""
 
     @abstractmethod
-    def update(self, *, blueprint_id: str, spec: BlueprintDraft,
-               rid_refs: list[str]) -> bool:
+    def update(self, *, blueprint_id: str, spec: BlueprintDraft, rid_refs: list[str]) -> bool:
         """Replace an existing draft.  Return True if a document was modified."""
-        
+
     @abstractmethod
-    def set_metadata(self, *, blueprint_id: str, metadata: Dict[str, Any]) -> bool:
+    def set_metadata(self, *, blueprint_id: str, metadata: dict[str, Any]) -> bool:
         """Merge keys into the metadata sub-document (key-level upsert, not full replace)."""
 
     @abstractmethod
@@ -39,36 +44,45 @@ class BlueprintRepository(ABC):
         """Return `True` if that ID is present in the store."""
 
     @abstractmethod
-    def load_many(self, blueprint_ids: List[str]) -> List[BlueprintDocument]:
+    def load_many(self, blueprint_ids: list[str]) -> list[BlueprintDocument]:
         """Load multiple blueprint documents by their IDs in a single operation."""
 
     # ────────────────────────────── Listings / Stats ────────────────────
     @abstractmethod
     def list_ids(
-            self, *,
-            identity: Optional[Identity] = None,
-            skip: int = 0, limit: int = 100, sort_desc: bool = True,
-    ) -> List[str]:
+        self,
+        *,
+        identity: Identity | None = None,
+        skip: int = 0,
+        limit: int = 100,
+        sort_desc: bool = True,
+    ) -> list[str]:
         """Return blueprint IDs, optionally scoped to *identity*, with pagination."""
 
     @abstractmethod
     def list_docs(
-            self, *,
-            identity: Optional[Identity] = None,
-            skip: int = 0, limit: int = 100, sort_desc: bool = True,
-    ) -> List[BlueprintDocument]:
+        self,
+        *,
+        identity: Identity | None = None,
+        skip: int = 0,
+        limit: int = 100,
+        sort_desc: bool = True,
+    ) -> list[BlueprintDocument]:
         """Return blueprint documents, optionally scoped to *identity*."""
 
     @abstractmethod
     def list_summaries(
-            self, *,
-            identity: Optional[Identity] = None,
-            skip: int = 0, limit: int = 100, sort_desc: bool = True,
-    ) -> List[BlueprintSummary]:
+        self,
+        *,
+        identity: Identity | None = None,
+        skip: int = 0,
+        limit: int = 100,
+        sort_desc: bool = True,
+    ) -> list[BlueprintSummary]:
         """Return lightweight blueprint summaries (no full spec)."""
 
     @abstractmethod
-    def list_direct_usage(self, rid: str) -> List[str]:
+    def list_direct_usage(self, rid: str) -> list[str]:
         """Return blueprint IDs whose catalogue entries contain *rid* directly."""
 
     @abstractmethod
@@ -76,13 +90,16 @@ class BlueprintRepository(ABC):
         """Count how many blueprints reference a given resource ID *rid*."""
 
     @abstractmethod
-    def count(self, identity: Optional[Identity] = None) -> int:
+    def count(self, identity: Identity | None = None) -> int:
         """Total blueprint count, optionally scoped to *identity*."""
 
     @abstractmethod
     def name_exists_for_identity(
-            self, identity: Identity, name: str,
-            *, exclude_blueprint_id: str | None = None,
+        self,
+        identity: Identity,
+        name: str,
+        *,
+        exclude_blueprint_id: str | None = None,
     ) -> bool:
         """Return True if *identity* already owns a blueprint with this *name*.
 

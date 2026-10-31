@@ -1,13 +1,15 @@
 """
 RAG Provider Factory
 """
+
 from typing import Any
 
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import RagProviderConfig
-from .rag_provider import RagProvider
 from .identifiers import Identifier
+from .rag_provider import RagProvider
 
 
 class RagProviderFactory(BaseFactory[RagProviderConfig, RagProvider]):
@@ -41,7 +43,5 @@ class RagProviderFactory(BaseFactory[RagProviderConfig, RagProvider]):
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"RagProvider creation failed: {e}",
-                cfg.model_dump()
+                f"RagProvider creation failed: {e}", cfg.model_dump()
             ) from e
-

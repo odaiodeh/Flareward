@@ -161,7 +161,7 @@ class BaseTool(ABC):
 
 ```python
 # <name>_factory.py
-from mas.elements.common.base_factory import BaseFactory
+from mas.application.elements.factory import BaseFactory
 from mas.elements.tools.<name>.config import <Name>ToolConfig
 from mas.elements.tools.<name>.<name> import <Name>Tool
 from mas.elements.tools.<name>.identifiers import Identifier
@@ -182,7 +182,7 @@ class <Name>ToolFactory(BaseFactory[<Name>ToolConfig, <Name>Tool]):
 
 ```python
 # spec/spec.py
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
 from mas.elements.tools.<name>.identifiers import Identifier, META
 from mas.elements.tools.<name>.config import <Name>ToolConfig

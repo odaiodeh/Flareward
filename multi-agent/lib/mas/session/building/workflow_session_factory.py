@@ -1,22 +1,20 @@
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
-
-from mas.catalog.element_registry import ElementRegistry
-from mas.session.building.element_builder import SessionElementBuilder
-from mas.session.domain.session_registry import SessionRegistry
-from mas.session.domain.session_record import SessionRecord
-from mas.engine.factory import GraphBuilderFactory
-from mas.session.domain.workflow_session import WorkflowSession
-from mas.graph.state.graph_state import GraphState
-from mas.graph.plan_builder import PlanBuilder
-from mas.graph.rt_graph_plan import RTGraphPlan
-from mas.core.execution_context import ExecutionContextHolder
-from mas.core.element_deps import ElementBuildContext
+from mas.application.elements.builder import SessionElementBuilder
+from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.application.elements.instances import ElementInstances
 from mas.blueprints.models.blueprint import BlueprintSpec
 from mas.core.auth.service import AuthService
+from mas.core.element_deps import ElementBuildContext
+from mas.core.execution_context import ExecutionContextHolder
 from mas.core.platform_config import PlatformConfig
 from mas.core.tracing import TracingService
+from mas.engine.factory import GraphBuilderFactory
+from mas.graph.plan_builder import PlanBuilder
+from mas.graph.rt_graph_plan import RTGraphPlan
+from mas.graph.state.graph_state import GraphState
+from mas.session.domain.session_record import SessionRecord
+from mas.session.domain.workflow_session import WorkflowSession
 
 
 class WorkflowSessionFactory:
@@ -30,12 +28,12 @@ class WorkflowSessionFactory:
     """
 
     def __init__(
-            self,
-            element_registry: ElementRegistry,
-            engine_name: str,
-            auth_service: Optional[AuthService] = None,
-            platform_config: Optional[PlatformConfig] = None,
-            tracing_service: Optional[TracingService] = None,
+        self,
+        element_registry: ElementRegistry,
+        engine_name: str,
+        auth_service: AuthService | None = None,
+        platform_config: PlatformConfig | None = None,
+        tracing_service: TracingService | None = None,
     ):
         self._elements = element_registry
         self._engine_name = engine_name
@@ -51,7 +49,7 @@ class WorkflowSessionFactory:
     def build_runtime_plan(
         self,
         blueprint_spec: BlueprintSpec,
-        ctx_holder: Optional[ExecutionContextHolder] = None,
+        ctx_holder: ExecutionContextHolder | None = None,
     ) -> RTGraphPlan:
         """
         Build an RTGraphPlan from a blueprint spec.
@@ -70,16 +68,18 @@ class WorkflowSessionFactory:
         registry = self._session_builder.build(blueprint_spec, deps=deps)
         return RTGraphPlan(logical_plan, registry, self._elements)
 
-    def build_session_registry(self, blueprint_spec: BlueprintSpec) -> SessionRegistry:
+    def build_session_registry(self, blueprint_spec: BlueprintSpec) -> ElementInstances:
         """
-        Build a SessionRegistry from a blueprint spec.
+        Build a ElementInstances from a blueprint spec.
 
         Creates element instances without building a plan or binding callables.
         Used by Temporal condition activities (conditions don't need a plan).
         """
         return self._session_builder.build(blueprint_spec)
 
-    def build_session(self, record: SessionRecord, blueprint_spec: BlueprintSpec) -> WorkflowSession:
+    def build_session(
+        self, record: SessionRecord, blueprint_spec: BlueprintSpec
+    ) -> WorkflowSession:
         """
         Build a full WorkflowSession from a persisted SessionRecord.
 

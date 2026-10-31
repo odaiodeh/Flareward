@@ -48,6 +48,7 @@ export type AutoRuleAction = 'auto_approve' | 'auto_reject';
 
 export interface ApprovalEntry {
   requestId: string;
+  executionId?: string;
   toolName: string;
   toolArgs: Record<string, any>;
   toolDescription: string;
@@ -56,6 +57,40 @@ export interface ApprovalEntry {
   originNodeName: string;
   status: ApprovalStatus;
   feedback?: string;
+}
+
+export type ApprovalIdentity = Pick<ApprovalEntry, 'requestId' | 'executionId'>;
+
+export type ApprovalDecisionHandler = (
+  approval: ApprovalIdentity, decision: ApprovalDecision, feedback?: string,
+  modifiedArgs?: Record<string, unknown>,
+) => Promise<void>;
+
+export type AutoRuleHandler = (
+  approval: ApprovalIdentity, nodeUid: string | null, toolName: string | null,
+  action: AutoRuleAction,
+) => Promise<void>;
+
+export const APPROVAL_STATUS: Record<ApprovalDecision, ApprovalStatus> = {
+  approve: 'approved', reject: 'rejected', modify: 'modified', redirect: 'redirected',
+};
+
+export function sameApproval(left: ApprovalIdentity, right: ApprovalIdentity): boolean {
+  return left.requestId === right.requestId && left.executionId === right.executionId;
+}
+
+export function updateApproval(
+  entries: Iterable<NodeEntry>, identity: ApprovalIdentity, status: ApprovalStatus, feedback?: string,
+): boolean {
+  for (const entry of entries) {
+    const approval = entry.approvals?.find(value => sameApproval(value, identity));
+    if (approval) {
+      approval.status = status;
+      if (feedback !== undefined) approval.feedback = feedback;
+      return true;
+    }
+  }
+  return false;
 }
 
 // ─── Node Entry (shape used by StreamingDataContext nodeListRef) ─────────────

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mas.resources.models import Resource
@@ -20,6 +20,21 @@ class ResourceError(RuntimeError):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+
+class ResourceConflictError(ResourceError):
+    def __init__(self) -> None:
+        super().__init__("Resource changed; reload it before saving")
+
+
+class ResourceStorageError(ResourceError):
+    def __init__(self) -> None:
+        super().__init__("Resource storage is unavailable")
+
+
+class ResourceDuplicateNameError(ResourceError):
+    def __init__(self) -> None:
+        super().__init__("A resource with this category, type, and name already exists")
 
 
 class ResourceInUseError(ResourceError):
@@ -44,9 +59,7 @@ class BuiltInWriteProtectedError(ResourceError):
     """Raised when a caller attempts to modify or delete a built-in system resource."""
 
     def __init__(self) -> None:
-        super().__init__(
-            "Built-in system resources cannot be modified or deleted."
-        )
+        super().__init__("Built-in system resources cannot be modified or deleted.")
 
 
 class ResourceAccessDeniedError(ResourceError):
@@ -54,9 +67,7 @@ class ResourceAccessDeniedError(ResourceError):
 
     def __init__(self, rid: str) -> None:
         self.rid = rid
-        super().__init__(
-            f"You do not have permission to modify resource '{rid}'."
-        )
+        super().__init__(f"You do not have permission to modify resource '{rid}'.")
 
 
 class BuiltinDependentsPublicError(ResourceError):
@@ -65,7 +76,7 @@ class BuiltinDependentsPublicError(ResourceError):
     provider, or tool that would suddenly become invisible to end users).
     """
 
-    def __init__(self, *, resource_name: str, category: str, dependents: List["Resource"]) -> None:
+    def __init__(self, *, resource_name: str, category: str, dependents: list[Resource]) -> None:
         self.resource_name = resource_name
         self.category = category
         self.dependents = dependents
@@ -97,6 +108,4 @@ class BuiltinConfigUnavailableError(ResourceError):
     """Raised when a built-in overlay write is attempted without a configured repo."""
 
     def __init__(self) -> None:
-        super().__init__(
-            "Built-in user configuration storage is not available."
-        )
+        super().__init__("Built-in user configuration storage is not available.")

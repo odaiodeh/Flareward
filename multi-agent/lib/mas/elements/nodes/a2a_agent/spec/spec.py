@@ -2,14 +2,15 @@
 A2A Agent Node Specification
 """
 
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
-from ..config import A2AAgentNodeConfig
+
 from ..a2a_agent_node import A2AAgentNode
 from ..a2a_agent_node_factory import A2AAgentNodeFactory
-from ..identifiers import Identifier, META
-from ..validator import A2AAgentNodeValidator
 from ..card_builder import A2AAgentCardBuilder
+from ..config import A2AAgentNodeConfig
+from ..identifiers import META, Identifier
+from ..validator import A2AAgentNodeValidator
 
 
 class A2AAgentNodeElementSpec(BaseElementSpec):
@@ -26,4 +27,3 @@ class A2AAgentNodeElementSpec(BaseElementSpec):
     reads = A2AAgentNode.total_reads()
     writes = A2AAgentNode.total_writes()
     tags = META.tags
-

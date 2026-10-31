@@ -1,7 +1,6 @@
-from typing import ClassVar, List, Optional
-from uuid import uuid4
-
 import re
+from typing import ClassVar
+from uuid import uuid4
 
 from pydantic import (
     ConfigDict,
@@ -15,8 +14,8 @@ from pydantic import (
     model_validator,
 )
 
-from mas.core.prompt import BasePrompt
 from mas.blueprints.exceptions import PromptShortcutsValidationError
+from mas.core.prompt import BasePrompt
 
 MAX_PROMPT_SHORTCUTS = 3
 
@@ -46,6 +45,7 @@ class PromptShortcutItem(BasePrompt):
     - `text`: The full prompt text inserted into the textarea on click.
               No character limit.  Inherited from BasePrompt.
     """
+
     model_config = ConfigDict(frozen=True)
 
     id: str = Field(default_factory=_short_id)
@@ -66,11 +66,12 @@ class PromptShortcuts(RootModel[tuple[PromptShortcutItem, ...]]):
 
     Wire format is a JSON array [{id, text}, ...]. Immutable after construction.
     """
+
     root: tuple[PromptShortcutItem, ...] = ()
 
     @model_validator(mode="wrap")
     @classmethod
-    def _raise_domain_validation_error(cls, data: object, handler) -> "PromptShortcuts":
+    def _raise_domain_validation_error(cls, data: object, handler) -> PromptShortcuts:
         try:
             return handler(data)
         except ValidationError as exc:
@@ -81,7 +82,7 @@ class PromptShortcuts(RootModel[tuple[PromptShortcutItem, ...]]):
             raise PromptShortcutsValidationError(str(exc)) from exc
 
     @model_validator(mode="after")
-    def validate_collection(self) -> "PromptShortcuts":
+    def validate_collection(self) -> PromptShortcuts:
         if len(self.root) > MAX_PROMPT_SHORTCUTS:
             raise PromptShortcutsValidationError(
                 f"At most {MAX_PROMPT_SHORTCUTS} prompt shortcuts allowed",
@@ -110,7 +111,7 @@ class PromptShortcuts(RootModel[tuple[PromptShortcutItem, ...]]):
     # ── Factories ──
 
     @classmethod
-    def parse(cls, raw: list | None) -> "PromptShortcuts":
+    def parse(cls, raw: list | None) -> PromptShortcuts:
         """Strict parse for write paths. Raises PromptShortcutsValidationError on invalid data."""
         if not raw:
             return cls(())
@@ -124,7 +125,7 @@ class PromptShortcuts(RootModel[tuple[PromptShortcutItem, ...]]):
             ) from exc
 
     @classmethod
-    def from_spec(cls, spec_dict: dict) -> "PromptShortcuts":
+    def from_spec(cls, spec_dict: dict) -> PromptShortcuts:
         """
         Extract from a raw spec_dict. Never raises.
 
@@ -144,7 +145,7 @@ class PromptShortcuts(RootModel[tuple[PromptShortcutItem, ...]]):
                 break
             try:
                 item = PromptShortcutItem(**entry)
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 continue
             if item.id in seen_ids:
                 continue
@@ -152,11 +153,11 @@ class PromptShortcuts(RootModel[tuple[PromptShortcutItem, ...]]):
             items.append(item)
         try:
             return cls(tuple(items))
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return cls(())
 
     @classmethod
-    def from_raw_list(cls, raw: Optional[list]) -> "PromptShortcuts":
+    def from_raw_list(cls, raw: list | None) -> PromptShortcuts:
         """Construct from a raw list (as returned by the repository)."""
         if not raw or not isinstance(raw, list):
             return cls(())
@@ -164,17 +165,14 @@ class PromptShortcuts(RootModel[tuple[PromptShortcutItem, ...]]):
 
     # ── Serialization ──
 
-    def to_storage(self) -> Optional[List[dict]]:
+    def to_storage(self) -> list[dict] | None:
         """
         Serialize for persistence.
         Returns None when empty — signals the repo to $unset the key.
         """
         if not self.root:
             return None
-        return [
-            {"id": item.id, "text": item.text}
-            for item in self.root
-        ]
+        return [{"id": item.id, "text": item.text} for item in self.root]
 
     # ── Queries ──
 

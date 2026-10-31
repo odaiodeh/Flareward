@@ -11,11 +11,10 @@ Google GenAI has stricter schema validation than other providers, so
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from google.genai import types
 
-from ...tools.common.tool_definition import ToolDefinition
+from mas.domain.tools import ToolDefinition
+
 from .schema_sanitizer import SchemaSanitizer
 
 
@@ -23,7 +22,7 @@ class GoogleGenAIToolsConverter:
     """Converts ``ToolDefinition`` instances into a Google GenAI ``types.Tool``."""
 
     @staticmethod
-    def to_genai(tools: Optional[List[ToolDefinition]]) -> Optional[List[types.Tool]]:
+    def to_genai(tools: list[ToolDefinition] | None) -> list[types.Tool] | None:
         """Convert tool definitions to Google GenAI format.
 
         Returns a list containing a single ``types.Tool`` with all function

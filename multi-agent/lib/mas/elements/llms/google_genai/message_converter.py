@@ -19,12 +19,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from google.genai import types
 
-from ..common.chat.message import ChatMessage, Role, ToolCall
+from mas.domain.messages import ChatMessage, Role, ToolCall
 
 
 @dataclass(frozen=True)
@@ -34,8 +34,9 @@ class SplitMessages:
     Google GenAI requires system instructions to be passed separately
     from conversation content.
     """
-    system_instruction: Optional[str]
-    contents: List[types.Content]
+
+    system_instruction: str | None
+    contents: list[types.Content]
 
 
 class GoogleGenAIMessageConverter:
@@ -46,31 +47,36 @@ class GoogleGenAIMessageConverter:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def to_genai(messages: List[ChatMessage]) -> SplitMessages:
+    def to_genai(messages: list[ChatMessage]) -> SplitMessages:
         """Convert domain messages to Google GenAI format.
 
         Returns a ``SplitMessages`` with the system instruction extracted
         separately (as Google GenAI requires) and the remaining conversation
         as ``types.Content`` objects.
         """
-        system_parts: List[str] = []
-        contents: List[types.Content] = []
+        system_parts: list[str] = []
+        contents: list[types.Content] = []
         tool_call_names = GoogleGenAIMessageConverter._build_tool_call_name_map(messages)
 
         for msg in messages:
             if msg.role == Role.SYSTEM:
                 system_parts.append(msg.content)
             elif msg.role == Role.USER:
-                contents.append(types.Content(
-                    role="user",
-                    parts=[types.Part.from_text(text=msg.content)],
-                ))
+                contents.append(
+                    types.Content(
+                        role="user",
+                        parts=[types.Part.from_text(text=msg.content)],
+                    )
+                )
             elif msg.role == Role.ASSISTANT:
                 contents.append(GoogleGenAIMessageConverter._assistant_to_content(msg))
             elif msg.role == Role.TOOL:
-                contents.append(GoogleGenAIMessageConverter._tool_result_to_content(
-                    msg, tool_call_names,
-                ))
+                contents.append(
+                    GoogleGenAIMessageConverter._tool_result_to_content(
+                        msg,
+                        tool_call_names,
+                    )
+                )
 
         return SplitMessages(
             system_instruction="\n".join(system_parts) if system_parts else None,
@@ -89,17 +95,19 @@ class GoogleGenAIMessageConverter:
         so that ``thought_signature`` and other opaque fields survive
         the domain round-trip.
         """
-        raw_parts: List[types.Part] = list(response.parts or [])
-        text_parts: List[str] = []
-        tool_calls: List[ToolCall] = []
+        raw_parts: list[types.Part] = list(response.parts or [])
+        text_parts: list[str] = []
+        tool_calls: list[ToolCall] = []
 
         for part in raw_parts:
             if part.text is not None and not part.thought:
                 text_parts.append(part.text)
             elif part.function_call is not None:
-                tool_calls.append(GoogleGenAIMessageConverter._parse_function_call(
-                    part.function_call,
-                ))
+                tool_calls.append(
+                    GoogleGenAIMessageConverter._parse_function_call(
+                        part.function_call,
+                    )
+                )
 
         return ChatMessage(
             role=Role.ASSISTANT,
@@ -110,7 +118,7 @@ class GoogleGenAIMessageConverter:
 
     @staticmethod
     def from_genai_parts(
-        parts: List[types.Part],
+        parts: list[types.Part],
         accumulated_text: str = "",
     ) -> ChatMessage:
         """Build a domain ChatMessage from collected streaming parts.
@@ -151,23 +159,25 @@ class GoogleGenAIMessageConverter:
         if preserved is not None:
             return types.Content(role="model", parts=preserved)
 
-        parts: List[types.Part] = []
+        parts: list[types.Part] = []
 
         if msg.content:
             parts.append(types.Part.from_text(text=msg.content))
 
-        for tc in (msg.tool_calls or []):
-            parts.append(types.Part.from_function_call(
-                name=tc.name,
-                args=tc.args,
-            ))
+        for tc in msg.tool_calls or []:
+            parts.append(
+                types.Part.from_function_call(
+                    name=tc.name,
+                    args=tc.args,
+                )
+            )
 
         return types.Content(role="model", parts=parts or [types.Part.from_text(text="")])
 
     @staticmethod
     def _tool_result_to_content(
         msg: ChatMessage,
-        tool_call_names: Dict[str, str],
+        tool_call_names: dict[str, str],
     ) -> types.Content:
         """Convert a tool-result message to a user Content with function_response."""
         func_name = tool_call_names.get(msg.tool_call_id or "", "unknown")
@@ -176,19 +186,21 @@ class GoogleGenAIMessageConverter:
 
         return types.Content(
             role="user",
-            parts=[types.Part.from_function_response(
-                name=func_name,
-                response=response_data,
-            )],
+            parts=[
+                types.Part.from_function_response(
+                    name=func_name,
+                    response=response_data,
+                )
+            ],
         )
 
     @staticmethod
-    def _parse_tool_content(content: str) -> Dict[str, Any]:
+    def _parse_tool_content(content: str) -> dict[str, Any]:
         """Parse tool result content into a dict suitable for function_response."""
         try:
             parsed = json.loads(content)
             return parsed if isinstance(parsed, dict) else {"result": parsed}
-        except (json.JSONDecodeError, TypeError):
+        except json.JSONDecodeError, TypeError:
             return {"result": content}
 
     @staticmethod
@@ -200,14 +212,14 @@ class GoogleGenAIMessageConverter:
         )
 
     @staticmethod
-    def _build_tool_call_name_map(messages: List[ChatMessage]) -> Dict[str, str]:
+    def _build_tool_call_name_map(messages: list[ChatMessage]) -> dict[str, str]:
         """Build a mapping of tool_call_id → function_name from assistant messages.
 
         Google GenAI's ``Part.from_function_response`` requires the function
         name, which our domain ``Role.TOOL`` messages don't carry directly.
         We reconstruct it from the preceding assistant tool_calls.
         """
-        name_map: Dict[str, str] = {}
+        name_map: dict[str, str] = {}
         for msg in messages:
             if msg.role == Role.ASSISTANT and msg.tool_calls:
                 for tc in msg.tool_calls:

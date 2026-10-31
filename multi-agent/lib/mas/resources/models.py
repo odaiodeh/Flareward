@@ -1,8 +1,11 @@
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Annotated
+from datetime import UTC, datetime
+from typing import Annotated, Self
 from uuid import uuid4
-from pydantic import BaseModel, Field, field_validator
+
+from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
+
 from mas.core.enums import ResourceCategory
+from mas.core.execution_preferences import ResourceExecutionDefaults
 from mas.core.field_hints import HiddenHint
 from mas.core.identity import Identity
 
@@ -23,17 +26,46 @@ class Resource(BaseModel):
     built-in" signal, so ``Resource`` carries zero built-in-related
     fields or knowledge.
     """
-    rid: str = Field(default_factory=lambda: uuid4().hex, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
-    identity: Identity = Field(json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
-    category: ResourceCategory = Field(json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
+
+    rid: str = Field(
+        default_factory=lambda: uuid4().hex,
+        json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints(),
+    )
+    identity: Identity = Field(
+        json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints()
+    )
+    category: ResourceCategory = Field(
+        json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints()
+    )
     type: str = Field(json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
     name: str
-    version: int = Field(default=1, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
-    cfg_dict: Dict[str, Any] = Field(json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
-    nested_refs: List[str] = Field(default_factory=list, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
-    contributed_by: Optional[str] = Field(default=None, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
-    created: datetime = Field(default_factory=datetime.utcnow, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
-    updated: datetime = Field(default_factory=datetime.utcnow, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints())
+    execution: ResourceExecutionDefaults = Field(default_factory=ResourceExecutionDefaults)
+    version: int = Field(
+        default=1, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints()
+    )
+    cfg_dict: dict[str, JsonValue] = Field(
+        json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints()
+    )
+    nested_refs: list[str] = Field(
+        default_factory=list,
+        json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints(),
+    )
+    contributed_by: str | None = Field(
+        default=None, json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints()
+    )
+    created: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints(),
+    )
+    updated: datetime = Field(
+        default_factory=lambda: datetime.now(UTC),
+        json_schema_extra=HiddenHint(reason="UI hint to hide this value").to_hints(),
+    )
+
+    @model_validator(mode="after")
+    def validate_execution(self) -> Self:
+        self.execution.validate_category(self.category)
+        return self
 
 
 class ResourceQuery(BaseModel):
@@ -46,9 +78,10 @@ class ResourceQuery(BaseModel):
     ``BuiltinResourceDescriptorRepository`` reads, not by this query object
     or the base ``ResourceRepository``.
     """
+
     identity: Identity = Field(..., description="Owner identity to filter resources")
-    category: Optional[ResourceCategory] = Field(None, description="Resource category filter")
-    type: Optional[str] = Field(None, description="Resource type filter")
+    category: ResourceCategory | None = Field(None, description="Resource category filter")
+    type: str | None = Field(None, description="Resource type filter")
 
     limit: Annotated[int, Field(50, ge=1, le=1000, description="Number of results to return")]
     offset: Annotated[int, Field(0, ge=0, description="Number of results to skip")]
@@ -56,10 +89,10 @@ class ResourceQuery(BaseModel):
     sort_by: str = Field("created", description="Field to sort by")
     sort_order: Annotated[str, Field("desc", pattern="^(asc|desc)$", description="Sort direction")]
 
+    @field_validator("sort_by")
     @classmethod
-    @field_validator('sort_by')
     def validate_sort_by(cls, v: str) -> str:
-        allowed_fields = {'created', 'updated', 'name', 'type', 'category'}
+        allowed_fields = {"created", "updated", "name", "type", "category"}
         if v not in allowed_fields:
             raise ValueError(f"sort_by must be one of: {allowed_fields}")
         return v

@@ -11,27 +11,19 @@ etc.) that are NOT in our domain tool registry.
 ``CLAUDE_BUILTIN_ACCESS_MODES`` maps these to the correct
 ``ToolAccessMode`` so they are properly gated.
 
-When sandbox mode is active, built-in tools are replaced by MCP tools
-served under the ``sandbox`` server name (e.g. ``sandbox__Bash``).
-The hook strips any ``<server>__`` prefix before lookup so that
-rules and access modes resolve against the canonical tool name.
-
-The hook callback is async (Claude SDK requirement).  Since
-``ApprovalGate.request_approval`` is synchronous (blocks on Redis),
-we bridge via ``asyncio.to_thread``.
 """
-import asyncio
-import logging
-from typing import Any, Dict
 
+import logging
+from typing import Any
+
+from mas.application.agents.approvals import HITLToolGatekeeper
 from mas.core.hitl.models import ApprovalDecision, ToolAccessMode
-from mas.elements.nodes.common.capabilities.hitl_gatekeeper import HITLToolGatekeeper
 
 logger = logging.getLogger(__name__)
 
 _MCP_TOOL_SEPARATOR = "__"
 
-CLAUDE_BUILTIN_ACCESS_MODES: Dict[str, ToolAccessMode] = {
+CLAUDE_BUILTIN_ACCESS_MODES: dict[str, ToolAccessMode] = {
     "Read": ToolAccessMode.READ,
     "Grep": ToolAccessMode.READ,
     "Glob": ToolAccessMode.READ,
@@ -75,9 +67,7 @@ class HITLHook:
 
         lookup_name = self._strip_mcp_prefix(tool_name)
 
-        response = await asyncio.to_thread(
-            self._gatekeeper.check, lookup_name, tool_args,
-        )
+        response = await self._gatekeeper.check(lookup_name, tool_args)
 
         if response is None:
             return self._allow()
@@ -131,7 +121,7 @@ class HITLHook:
 
     @staticmethod
     def _strip_mcp_prefix(tool_name: str) -> str:
-        """Strip any MCP server prefix (e.g. ``mas-tools__``, ``sandbox__``)
+        """Strip any MCP server prefix (e.g. ``mas-tools__``)
         added by the Claude SDK for MCP tools.  The convention is
         ``<server>__<tool>``, so we split on the first ``__``."""
         if _MCP_TOOL_SEPARATOR in tool_name:

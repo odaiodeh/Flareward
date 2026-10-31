@@ -1,9 +1,11 @@
-from typing import Any, Dict, List, Sequence, Optional, Union
+from collections.abc import Sequence
 from itertools import islice
-from mas.elements.llms.common.chat.message import ChatMessage, Role
+from typing import Any
+
+from mas.domain.messages import ChatMessage, Role
 
 
-def merge_string_dicts(existing: Dict[str, str], new_item: Any) -> Dict[str, str]:
+def merge_string_dicts(existing: dict[str, str], new_item: Any) -> dict[str, str]:
     """
     Merge strategy for Dict[str, str]:
     - Accepts new_item as dict[str, str]
@@ -41,10 +43,7 @@ def _same_history(a: Sequence[ChatMessage], b: Sequence[ChatMessage]) -> bool:
     return all(x == y for x, y in zip(a, islice(b, len(a))))
 
 
-def append_chat_messages(
-        existing: Optional[List[ChatMessage]],
-        new_item: Any
-) -> List[ChatMessage]:
+def append_chat_messages(existing: list[ChatMessage] | None, new_item: Any) -> list[ChatMessage]:
     """
     Smart-merge for the `messages` channel.
 
@@ -59,9 +58,7 @@ def append_chat_messages(
     existing = existing or []
     # Normalise to a list[ChatMessage]
     raw_list = new_item if isinstance(new_item, (list, tuple)) else [new_item]
-    incoming: List[ChatMessage] = [
-        cm for cm in (_to_chat(r) for r in raw_list) if cm is not None
-    ]
+    incoming: list[ChatMessage] = [cm for cm in (_to_chat(r) for r in raw_list) if cm is not None]
 
     if not incoming:
         return existing
@@ -76,10 +73,7 @@ def append_chat_messages(
     return existing + incoming
 
 
-def append_iem_packets(
-        existing: Optional[List],
-        new_item: Union[List, Any]
-) -> List:
+def append_iem_packets(existing: list | None, new_item: list | Any) -> list:
     """
     Merge strategy for IEM packets channel.
 
@@ -113,15 +107,15 @@ def append_iem_packets(
     else:
         incoming = [new_item] if new_item is not None else []
 
-    valid_incoming = [p for p in incoming if p is not None and hasattr(p, 'id')]
+    valid_incoming = [p for p in incoming if p is not None and hasattr(p, "id")]
     if not valid_incoming:
         return existing
 
     # Build ordered index: packet_id → packet (preserves insertion order)
-    index: Dict = {}
+    index: dict = {}
     order: list = []
     for p in existing:
-        pid = getattr(p, 'id', None)
+        pid = getattr(p, "id", None)
         if pid is not None:
             index[pid] = p
             order.append(pid)
@@ -134,7 +128,7 @@ def append_iem_packets(
             # This is the correct reconciliation, NOT a length comparison.
             merged_ack = index[pid].ack_by | packet.ack_by
             if merged_ack != index[pid].ack_by:
-                index[pid] = packet.model_copy(update={'ack_by': merged_ack})
+                index[pid] = packet.model_copy(update={"ack_by": merged_ack})
         else:
             # Truly new packet: append in insertion order.
             index[pid] = packet
@@ -144,14 +138,13 @@ def append_iem_packets(
 
 
 def merge_task_threads(
-        existing: Optional[Dict[str, List[ChatMessage]]],
-        new_item: Union[Dict[str, List[ChatMessage]], Any]
-) -> Dict[str, List[ChatMessage]]:
+    existing: dict[str, list[ChatMessage]] | None, new_item: dict[str, list[ChatMessage]] | Any
+) -> dict[str, list[ChatMessage]]:
     """
     Merge strategy for task_threads channel.
-    
+
     Structure: {thread_id: [ChatMessage, ...]}
-    
+
     • Task-focused conversation management
     • Merges conversation lists by thread ID
     • Reuses append_chat_messages logic for smart duplicate detection per thread
@@ -185,56 +178,54 @@ def merge_task_threads(
 
 
 def merge_threads(
-        existing: Optional[Dict[str, Any]],
-        new_item: Union[Dict[str, Any], Any]
-) -> Dict[str, Any]:
+    existing: dict[str, Any] | None, new_item: dict[str, Any] | Any
+) -> dict[str, Any]:
     """
     Merge strategy for threads channel.
-    
+
     Structure: {thread_id: Thread}
-    
+
     • Thread metadata management
     • Overwrites existing threads with new data
     • Preserves existing threads not in new_item
     """
     existing = existing or {}
-    
+
     if not isinstance(new_item, dict):
         return existing
-    
+
     # Create result by copying existing
     result = existing.copy()
-    
+
     # Overwrite with new thread data
     for thread_id, thread_data in new_item.items():
         result[thread_id] = thread_data
-    
+
     return result
 
 
 def merge_workspaces(
-        existing: Optional[Dict[str, Any]],
-        new_item: Union[Dict[str, Any], Any]
-) -> Dict[str, Any]:
+    existing: dict[str, Any] | None, new_item: dict[str, Any] | Any
+) -> dict[str, Any]:
     """
     Merge strategy for workspaces channel.
-    
+
     Structure: {thread_id: Workspace}
-    
+
     • Workspace data management
     • Overwrites existing workspaces with new data
     • Preserves existing workspaces not in new_item
     """
     existing = existing or {}
-    
+
     if not isinstance(new_item, dict):
         return existing
-    
+
     # Create result by copying existing
     result = existing.copy()
-    
+
     # Overwrite with new workspace data
     for thread_id, workspace_data in new_item.items():
         result[thread_id] = workspace_data
-    
+
     return result

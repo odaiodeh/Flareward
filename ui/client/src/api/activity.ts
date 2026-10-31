@@ -1,5 +1,5 @@
 import { api } from '@/http/queryClient';
-import type { ActivityItem } from '@shared/schema';
+import type { ActivityItem } from '@/types/activity';
 
 export interface FetchActivitiesParams {
   sources?: Array<'slack' | 'document'>;
@@ -40,7 +40,7 @@ export async function fetchRecentActivities(params: FetchActivitiesParams = {}):
     destination: 'Vector DB',
     metadata: s.pipeline_stats || {},
     timestamp: s.last_sync_at || s.created_at || new Date().toISOString(),
-  } as ActivityItem));
+  }));
 
   return typeof limit === 'number' ? activities.slice(0, limit) : activities;
 }

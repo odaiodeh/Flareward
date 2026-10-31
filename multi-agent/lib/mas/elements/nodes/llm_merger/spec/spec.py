@@ -1,9 +1,10 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import MergerLLMNodeConfig
-from ..llm_merger_node_factory import LLMMergerNodeFactory
+from ..identifiers import META, Identifier
 from ..llm_merger import LLMMergerNode
-from ..identifiers import Identifier, META
+from ..llm_merger_node_factory import LLMMergerNodeFactory
 from ..validator import LLMMergerNodeValidator
 
 

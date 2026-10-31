@@ -89,7 +89,7 @@ Client for communicating with the RAG service (vector database) for document que
 ### Using the Provider directly
 
 ```python
-from elements.providers.rag_client import RagProvider
+from mas.elements.providers.rag_client.rag_provider import RagProvider
 
 provider = RagProvider(
     base_url="http://unifai-rag-server:13456",

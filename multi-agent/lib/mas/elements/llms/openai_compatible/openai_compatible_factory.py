@@ -1,9 +1,10 @@
 from typing import Any
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 from mas.elements.llms.openai_compatible.config import OpenAICompatibleConfig
-from mas.elements.llms.openai_compatible.openai_compatible import OpenAICompatibleLLM
 from mas.elements.llms.openai_compatible.identifiers import Identifier
+from mas.elements.llms.openai_compatible.openai_compatible import OpenAICompatibleLLM
 
 
 class OpenAICompatibleFactory(BaseFactory[OpenAICompatibleConfig, OpenAICompatibleLLM]):
@@ -29,7 +30,7 @@ class OpenAICompatibleFactory(BaseFactory[OpenAICompatibleConfig, OpenAICompatib
                 temperature=cfg.temperature,
                 max_tokens=cfg.max_tokens,
                 tracing=tracing,
-                **cfg.extra
+                **cfg.extra,
             )
             return llm
         except Exception as e:

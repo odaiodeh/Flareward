@@ -2,14 +2,14 @@
 A2A Provider Factory
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 from mas.core.auth.credentials.models import StaticAuthMethod
 from mas.elements.providers.a2a_client.config import A2AProviderConfig
-from mas.elements.providers.a2a_client.provider import A2AProvider
 from mas.elements.providers.a2a_client.identifiers import Identifier
+from mas.elements.providers.a2a_client.provider import A2AProvider
 
 
 class A2AProviderFactory(BaseFactory[A2AProviderConfig, A2AProvider]):
@@ -25,17 +25,13 @@ class A2AProviderFactory(BaseFactory[A2AProviderConfig, A2AProvider]):
         return element_type == Identifier.TYPE
 
     @staticmethod
-    def _resolve_headers(cfg: A2AProviderConfig) -> Optional[Dict[str, str]]:
+    def _resolve_headers(cfg: A2AProviderConfig) -> dict[str, str] | None:
         """Build static HTTP headers from config auth fields (not SSO store)."""
-        headers: Dict[str, str] = {}
+        headers: dict[str, str] = {}
         if cfg.additional_headers:
             # Coerce to str for httpx (config allows Dict[str, Any]).
             headers.update(
-                {
-                    str(k): str(v)
-                    for k, v in cfg.additional_headers.items()
-                    if v is not None
-                }
+                {str(k): str(v) for k, v in cfg.additional_headers.items() if v is not None}
             )
 
         if cfg.credential_token:
@@ -62,8 +58,7 @@ class A2AProviderFactory(BaseFactory[A2AProviderConfig, A2AProvider]):
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"A2AProvider.create() failed: {e}",
-                cfg.model_dump()
+                f"A2AProvider.create() failed: {e}", cfg.model_dump()
             ) from e
 
     async def create_async(self, cfg: A2AProviderConfig, **kwargs: Any) -> A2AProvider:
@@ -83,6 +78,5 @@ class A2AProviderFactory(BaseFactory[A2AProviderConfig, A2AProvider]):
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"A2AProvider.create_async() failed: {e}",
-                cfg.model_dump()
+                f"A2AProvider.create_async() failed: {e}", cfg.model_dump()
             ) from e

@@ -16,6 +16,7 @@ function isUnavailable(status: number | undefined): boolean {
 }
 
 export async function acquireTeamEditLock(params: {
+  leaseId?: string;
   teamId: string;
   entityKind: TeamEditLockEntityKind;
   entityId: string;
@@ -32,6 +33,7 @@ export async function acquireTeamEditLock(params: {
       entityId: params.entityId,
       userId: params.userId,
       displayName: params.displayName,
+      leaseId: params.leaseId,
     });
     if (data.acquired) {
       return { acquired: true };
@@ -53,6 +55,7 @@ export async function acquireTeamEditLock(params: {
 }
 
 export async function releaseTeamEditLock(params: {
+  leaseId?: string;
   teamId: string;
   entityKind: TeamEditLockEntityKind;
   entityId: string;
@@ -64,6 +67,7 @@ export async function releaseTeamEditLock(params: {
       entityKind: params.entityKind,
       entityId: params.entityId,
       userId: params.userId,
+      leaseId: params.leaseId,
     });
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } })?.response?.status;
@@ -75,6 +79,7 @@ export async function releaseTeamEditLock(params: {
 }
 
 export async function heartbeatTeamEditLock(params: {
+  leaseId?: string;
   teamId: string;
   entityKind: TeamEditLockEntityKind;
   entityId: string;
@@ -82,13 +87,15 @@ export async function heartbeatTeamEditLock(params: {
   displayName: string;
 }): Promise<void> {
   try {
-    await axios.post("/collaboration/edit_lock.heartbeat", {
+    const { data } = await axios.post<{ renewed: boolean }>("/collaboration/edit_lock.heartbeat", {
       teamId: params.teamId,
       entityKind: params.entityKind,
       entityId: params.entityId,
       userId: params.userId,
       displayName: params.displayName,
+      leaseId: params.leaseId,
     });
+    if (!data.renewed) throw new Error('Editing lease expired or belongs to another editor');
   } catch (e: unknown) {
     const status = (e as { response?: { status?: number } })?.response?.status;
     if (isUnavailable(status)) {

@@ -1,1 +1,1 @@
-# Channel validation module 
+# Channel validation module

@@ -5,11 +5,12 @@ Extracts mini-blueprints and StepContext from RTGraphPlan so that a
 remote worker can rebuild and execute a single node without the full
 blueprint or live graph.
 """
-from typing import Any, Dict, Optional, Set, Tuple
 
+from typing import Any
+
+from mas.application.elements.instances import ElementInstances
 from mas.core.enums import ResourceCategory
 from mas.graph.models.step_context import StepContext
-from mas.session.domain.session_registry import SessionRegistry
 from mas.graph.models.workflow import RTStep
 
 
@@ -21,10 +22,10 @@ class NodeDeploymentExtractor:
     Separates deployment concerns from graph planning (SRP).
     """
 
-    def __init__(self, session_registry: SessionRegistry) -> None:
+    def __init__(self, session_registry: ElementInstances) -> None:
         self._session = session_registry
 
-    def serialize_node_blueprint(self, step: RTStep) -> Dict[str, Any]:
+    def serialize_node_blueprint(self, step: RTStep) -> dict[str, Any]:
         """
         Return a serialized mini BlueprintSpec containing ONLY the
         resources this node needs (its LLM, providers, tools, etc.).
@@ -67,7 +68,7 @@ class NodeDeploymentExtractor:
         )
         return mini_bp.model_dump(mode="json")
 
-    def serialize_condition_blueprint(self, condition_rid: str) -> Dict[str, Any]:
+    def serialize_condition_blueprint(self, condition_rid: str) -> dict[str, Any]:
         """
         Return a serialized mini BlueprintSpec for a condition.
         Conditions are typically lightweight (no LLM, no tools).
@@ -90,7 +91,7 @@ class NodeDeploymentExtractor:
         )
         return mini_bp.model_dump(mode="json")
 
-    def get_step_context(self, step: RTStep) -> Optional[StepContext]:
+    def get_step_context(self, step: RTStep) -> StepContext | None:
         """
         Return the StepContext for this node, or None if absent.
 
@@ -99,20 +100,20 @@ class NodeDeploymentExtractor:
         """
         return step.func._ctx
 
-    def _find_resource_spec(self, rid: str) -> Optional[Tuple[ResourceCategory, Any]]:
+    def _find_resource_spec(self, rid: str) -> tuple[ResourceCategory, Any] | None:
         """Look up a rid across all resource categories."""
         for category in ResourceCategory:
             try:
                 elem = self._session.get(category, rid)
                 return category, elem.resource_spec
-            except (KeyError, IndexError):
+            except KeyError, IndexError:
                 continue
         return None
 
 
-def _collect_refs(obj: Any) -> Set[str]:
+def _collect_refs(obj: Any) -> set[str]:
     """Recursively collect all $ref: rids from a serialized config."""
-    refs: Set[str] = set()
+    refs: set[str] = set()
     if isinstance(obj, dict):
         for v in obj.values():
             refs.update(_collect_refs(v))

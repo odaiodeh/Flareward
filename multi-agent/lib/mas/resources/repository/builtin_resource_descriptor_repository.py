@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
 
 from mas.core.enums import ResourceOwnership
 from mas.core.identity import Identity
@@ -18,7 +17,7 @@ class BuiltinResourceDescriptorRepository(ABC):
     """
 
     @abstractmethod
-    def get(self, rid: str) -> Optional[BuiltinResourceDescriptor]:
+    def get(self, rid: str) -> BuiltinResourceDescriptor | None:
         """Return the descriptor for *rid*, or ``None`` if *rid* is not a built-in."""
         ...
 
@@ -33,16 +32,16 @@ class BuiltinResourceDescriptorRepository(ABC):
         ...
 
     @abstractmethod
-    def find_all_rids(self) -> List[str]:
+    def find_all_rids(self) -> list[str]:
         """Return the rids of every built-in resource."""
         ...
 
     @abstractmethod
     def find_all_builtins(
         self,
-        category: Optional[str] = None,
-        resource_type: Optional[str] = None,
-    ) -> List[Resource]:
+        category: str | None = None,
+        resource_type: str | None = None,
+    ) -> list[Resource]:
         """Return every built-in resource (public and draft), joined with
         the base ``resources`` collection, for admin listing.
 
@@ -57,16 +56,16 @@ class BuiltinResourceDescriptorRepository(ABC):
     def find_visible_for_identity(
         self,
         *,
-        identity: Optional[Identity],
-        category: Optional[str],
-        resource_type: Optional[str],
-        ownership: Optional[ResourceOwnership],
+        identity: Identity | None,
+        category: str | None,
+        resource_type: str | None,
+        ownership: ResourceOwnership | None,
         is_admin: bool,
         limit: int,
         offset: int,
         sort_by: str,
         sort_order: str,
-    ) -> Tuple[List[Resource], int]:
+    ) -> tuple[list[Resource], int]:
         """Paginated resources visible to *identity*, joined with built-in
         descriptor metadata. Backs the generic ``/resources.list`` listing:
 

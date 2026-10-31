@@ -1,7 +1,8 @@
-from datetime import datetime, timezone
-from typing import Dict, Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 from uuid import uuid4
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel, Field, JsonValue
 
 from mas.core.enums import ResourceVisibility
 from mas.core.identity import Identity
@@ -22,11 +23,12 @@ class BuiltinResourceDescriptor(BaseModel):
     is a built-in" signal — there is no separate ``ownership`` field to
     keep in sync with that existence.
     """
+
     rid: str
     visibility: ResourceVisibility = ResourceVisibility.DRAFT
-    parent_builtin_id: Optional[str] = None
-    created: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    parent_builtin_id: str | None = None
+    created: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class BuiltinUpdateRequest(BaseModel):
@@ -36,9 +38,10 @@ class BuiltinUpdateRequest(BaseModel):
     using a Pydantic model (rather than a bare dict) ensures validation and
     type safety at the service boundary.
     """
-    config: Optional[Dict[str, Any]] = None
-    name: Optional[str] = None
-    available_to_all: Optional[bool] = None
+
+    config: dict[str, Any] | None = None
+    name: str | None = None
+    available_to_all: bool | None = None
 
 
 class BuiltinUserConfig(BaseModel):
@@ -50,9 +53,11 @@ class BuiltinUserConfig(BaseModel):
     Fields absent from this dict fall back to the resource's ``cfg_dict`` at
     resolution time.
     """
+
     config_id: str = Field(default_factory=lambda: uuid4().hex)
     resource_id: str
     identity_key: str = Field(description="Format: 'user:<id>' or 'team:<id>'")
-    fields: Dict[str, Any] = Field(default_factory=dict)
-    created: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    fields: dict[str, JsonValue] = Field(default_factory=dict)
+    version: int = Field(default=0, ge=0)
+    created: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated: datetime = Field(default_factory=lambda: datetime.now(UTC))

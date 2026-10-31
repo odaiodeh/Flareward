@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from mas.resources.models import Resource, ResourceQuery
-from mas.core.identity import Identity
+from typing import Any
+
 from mas.core.dto import GroupedCount
+from mas.core.identity import Identity
+from mas.resources.models import Resource, ResourceQuery
 
 
 class ResourceRepository(ABC):
@@ -27,13 +28,14 @@ class ResourceRepository(ABC):
         ...
 
     @abstractmethod
-    def find_by_name(self, identity: Identity, category: str,
-                     type: str, name: str) -> Resource | None:
+    def find_by_name(
+        self, identity: Identity, category: str, type: str, name: str
+    ) -> Resource | None:
         """Find a resource document by owner + category + type + name."""
         ...
 
     @abstractmethod
-    def find_resources(self, query: ResourceQuery) -> List[Resource]:
+    def find_resources(self, query: ResourceQuery) -> list[Resource]:
         """Find resources based on query criteria with pagination."""
         ...
 
@@ -54,7 +56,7 @@ class ResourceRepository(ABC):
     def count_nested(self, rid: str) -> int: ...
 
     @abstractmethod
-    def list_nested_usage(self, rid: str) -> List[str]:
+    def list_nested_usage(self, rid: str) -> list[str]:
         """Return resource IDs whose `nested_refs` array contains *rid*."""
 
     @abstractmethod
@@ -75,9 +77,9 @@ class ResourceRepository(ABC):
     def group_count(
         self,
         identity: Identity,
-        group_by: List[str],
-        filter: Dict[str, Any] | None = None,
-    ) -> List[GroupedCount]:
+        group_by: list[str],
+        filter: dict[str, Any] | None = None,
+    ) -> list[GroupedCount]:
         """Group documents by fields and return counts, scoped to *identity*."""
         ...
 

@@ -1,9 +1,11 @@
 from typing import Any
-from ...common.base_factory import BaseFactory
-from ...common.exceptions import PluginConfigurationError
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import MockLLMConfig
-from .mock import MockLLM
 from .identifiers import Identifier
+from .mock import MockLLM
 
 
 class MockLLMFactory(BaseFactory[MockLLMConfig, MockLLM]):

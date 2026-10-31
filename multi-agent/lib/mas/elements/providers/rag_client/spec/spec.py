@@ -1,9 +1,11 @@
 from typing import ClassVar
-from mas.elements.common.base_element_spec import BaseElementSpec
+
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import RagProviderConfig
+from ..identifiers import META, Identifier
 from ..rag_provider_factory import RagProviderFactory
-from ..identifiers import Identifier, META
 
 
 class RagProviderElementSpec(BaseElementSpec):
@@ -21,4 +23,3 @@ class RagProviderElementSpec(BaseElementSpec):
     config_schema = RagProviderConfig
     factory_cls = RagProviderFactory
     tags = META.tags
-

@@ -1,6 +1,7 @@
 from typing import Any
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 from mas.elements.llms.google_genai.config import GoogleGenAIConfig
 from mas.elements.llms.google_genai.google_genai import GoogleGenAILLM
 from mas.elements.llms.google_genai.identifiers import Identifier
@@ -45,9 +46,8 @@ class GoogleGenAIFactory(BaseFactory[GoogleGenAIConfig, GoogleGenAILLM]):
                 top_p=cfg.top_p,
                 top_k=cfg.top_k,
                 tracing=tracing,
-                **cfg.extra
+                **cfg.extra,
             )
             return llm
         except Exception as e:
             raise PluginConfigurationError(f"Failed to create Google GenAI LLM: {e}", cfg) from e
-

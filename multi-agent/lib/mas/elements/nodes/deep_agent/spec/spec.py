@@ -1,11 +1,12 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
+from ..card_builder import DeepAgentCardBuilder
 from ..config import DeepAgentNodeConfig
 from ..deep_agent_node import DeepAgentNode
 from ..deep_agent_node_factory import DeepAgentNodeFactory
-from ..identifiers import Identifier, META
+from ..identifiers import META, Identifier
 from ..validator import DeepAgentNodeValidator
-from ..card_builder import DeepAgentCardBuilder
 
 
 class DeepAgentNodeElementSpec(BaseElementSpec):

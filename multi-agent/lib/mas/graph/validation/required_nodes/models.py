@@ -1,15 +1,15 @@
-from typing import Set
-from enum import Enum
+from enum import StrEnum
+
 from pydantic import BaseModel, ConfigDict
 
 
-class NodePosition(str, Enum):
+class NodePosition(StrEnum):
     START = "start"
     END = "end"
     ANY = "any"
 
 
-class RequiredNodeFixType(str, Enum):
+class RequiredNodeFixType(StrEnum):
     ADD_REQUIRED_START = "add_required_start"
     ADD_REQUIRED_END = "add_required_end"
     ADD_REQUIRED_ANYWHERE = "add_required_anywhere"
@@ -17,7 +17,7 @@ class RequiredNodeFixType(str, Enum):
 
 class RequiredNodeIssue(BaseModel):
     model_config = ConfigDict(frozen=True)
-    
+
     node_type: NodePosition
     expected: str
     actual: str | None
@@ -25,7 +25,7 @@ class RequiredNodeIssue(BaseModel):
 
 class RequiredNodesDetails(BaseModel):
     model_config = ConfigDict(frozen=True)
-    
+
     required_node_issues: list[RequiredNodeIssue]
-    missing_start_nodes: Set[str]
-    missing_end_nodes: Set[str] 
+    missing_start_nodes: set[str]
+    missing_end_nodes: set[str]

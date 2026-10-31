@@ -1,58 +1,76 @@
 import logging
-from typing import List, Dict, Any
+from typing import Any
+
 import pymongo
+from mas.core.dto import GroupedCount
+from mas.core.identity import Identity
 from mas.resources.models import Resource, ResourceQuery
 from mas.resources.repository.base import ResourceRepository
-from mas.core.identity import Identity
-from mas.core.dto import GroupedCount
+from pymongo.database import Database
+
 from outbound.mongo.helpers import identity_q
 
 logger = logging.getLogger(__name__)
 
 
 class MongoResourceRepository(ResourceRepository):
-    def __init__(self, mongodb_port: str = "27017",
-                 mongodb_ip: str = "localhost",
-                 db_name="UnifAI",
-                 coll_name="resources"):
-        mongo_uri = f"mongodb://{mongodb_ip}:{mongodb_port}/"
-        self._client = pymongo.MongoClient(mongo_uri)
-        self.col = self._client[db_name][coll_name]
+    def __init__(
+        self,
+        mongodb_port: str = "27017",
+        mongodb_ip: str = "localhost",
+        db_name="UnifAI",
+        coll_name="resources",
+        *,
+        database: Database | None = None,
+    ):
+        self._client = None
+        if database is None:
+            mongo_uri = f"mongodb://{mongodb_ip}:{mongodb_port}/"
+            self._client = pymongo.MongoClient(mongo_uri, serverSelectionTimeoutMS=5000)
+            database = self._client[db_name]
+        self.col = database[coll_name]
         try:
             self.col.create_index("nested_refs")
             self.col.create_index(
-                [("identity.type", 1), ("identity.id", 1),
-                 ("category", 1), ("type", 1), ("name", 1)],
+                [
+                    ("identity.type", 1),
+                    ("identity.id", 1),
+                    ("category", 1),
+                    ("type", 1),
+                    ("name", 1),
+                ],
                 name="uq_identity_cat_type_name",
-                unique=True)
+                unique=True,
+            )
             self.col.create_index(
-                [("identity.type", 1), ("identity.id", 1), ("created", -1)],
-                background=True)
+                [("identity.type", 1), ("identity.id", 1), ("created", -1)], background=True
+            )
             for sort_field in ("updated", "name", "type", "category"):
                 self.col.create_index(
-                    [("identity.type", 1), ("identity.id", 1), (sort_field, 1)],
-                    background=True)
+                    [("identity.type", 1), ("identity.id", 1), (sort_field, 1)], background=True
+                )
         except pymongo.errors.PyMongoError:
             logger.warning(
                 "Could not create indexes on '%s' — MongoDB may be unreachable",
-                coll_name, exc_info=True,
+                coll_name,
+                exc_info=True,
             )
+
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
 
     # ---------- CRUD ----------
     def save(self, doc: Resource) -> str:
         """Insert a new resource document (create only)."""
-        result = self.col.insert_one({"_id": doc.rid,
-                                      **doc.model_dump(mode="json")})
+        result = self.col.insert_one({"_id": doc.rid, **doc.model_dump(mode="json")})
         if not result.acknowledged:
             raise RuntimeError(f"Failed to insert document with rid: {doc.rid}")
         return doc.rid
 
     def update(self, doc: Resource) -> str:
         """Update an existing resource document."""
-        result = self.col.replace_one(
-            {"_id": doc.rid},
-            doc.model_dump(mode="json")
-        )
+        result = self.col.replace_one({"_id": doc.rid}, doc.model_dump(mode="json"))
         if result.matched_count == 0:
             raise KeyError(f"No document found with rid: {doc.rid}")
         return doc.rid
@@ -71,15 +89,13 @@ class MongoResourceRepository(ResourceRepository):
         result = self.col.delete_many(identity_q(identity))
         return result.deleted_count
 
-    def find_by_name(self, identity: Identity, category: str,
-                     type: str, name: str):
-        q = {**identity_q(identity),
-             "category": category, "type": type, "name": name}
+    def find_by_name(self, identity: Identity, category: str, type: str, name: str):
+        q = {**identity_q(identity), "category": category, "type": type, "name": name}
         raw = self.col.find_one(q)
         return Resource(**raw) if raw else None
 
     # ---------- queries ----------
-    def find_resources(self, query: ResourceQuery) -> List[Resource]:
+    def find_resources(self, query: ResourceQuery) -> list[Resource]:
         """Find resources owned by ``query.identity``, with pagination.
 
         Plain identity+category+type filter — no built-in/ownership
@@ -110,9 +126,9 @@ class MongoResourceRepository(ResourceRepository):
         filter_dict = self._build_resource_filter(query)
         return self.col.count_documents(filter_dict)
 
-    def _build_resource_filter(self, query: ResourceQuery) -> Dict[str, Any]:
+    def _build_resource_filter(self, query: ResourceQuery) -> dict[str, Any]:
         """Build a plain identity+category+type MongoDB filter from a ResourceQuery."""
-        f: Dict[str, Any] = identity_q(query.identity)
+        f: dict[str, Any] = identity_q(query.identity)
         if query.category:
             f["category"] = query.category.value
         if query.type:
@@ -133,7 +149,7 @@ class MongoResourceRepository(ResourceRepository):
     def count_nested(self, rid: str) -> int:
         return self.col.count_documents({"cfg_dict": {"$regex": rid}})
 
-    def list_nested_usage(self, rid: str) -> List[str]:
+    def list_nested_usage(self, rid: str) -> list[str]:
         cur = self.col.find({"nested_refs": rid}, {"_id": 1})
         return [doc["_id"] for doc in cur]
 
@@ -147,7 +163,7 @@ class MongoResourceRepository(ResourceRepository):
         value: str,
         exclude_rid: str = "",
     ) -> int:
-        filter_dict: Dict[str, Any] = {
+        filter_dict: dict[str, Any] = {
             **identity_q(identity),
             f"cfg_dict.{field}": value,
         }
@@ -158,23 +174,20 @@ class MongoResourceRepository(ResourceRepository):
     def group_count(
         self,
         identity: Identity,
-        group_by: List[str],
-        filter: Dict[str, Any] | None = None,
-    ) -> List[GroupedCount]:
+        group_by: list[str],
+        filter: dict[str, Any] | None = None,
+    ) -> list[GroupedCount]:
         """
         Group documents by specified fields and return counts.
         Uses MongoDB aggregation for efficient server-side grouping.
-        
-        Transforms MongoDB's {"_id": {...}, "count": N} format to 
+
+        Transforms MongoDB's {"_id": {...}, "count": N} format to
         database-agnostic GroupedCount DTOs.
         """
         match = {**(filter or {}), **identity_q(identity)}
         group_id = {field: f"${field}" for field in group_by}
-        
-        pipeline = [
-            {"$match": match},
-            {"$group": {"_id": group_id, "count": {"$sum": 1}}}
-        ]
+
+        pipeline = [{"$match": match}, {"$group": {"_id": group_id, "count": {"$sum": 1}}}]
 
         # Transform MongoDB format → clean DTO
         return [

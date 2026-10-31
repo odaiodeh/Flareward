@@ -1,5 +1,6 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import FinalAnswerNodeConfig
 from .final_answer import FinalAnswerNode
 from .identifiers import Identifier
@@ -16,6 +17,5 @@ class FinalAnswerNodeFactory(BaseFactory[FinalAnswerNodeConfig, FinalAnswerNode]
             return FinalAnswerNode()
         except Exception as exc:
             raise PluginConfigurationError(
-                f"FinalAnswerNodeFactory.create failed: {exc}",
-                cfg.dict()
+                f"FinalAnswerNodeFactory.create failed: {exc}", cfg.dict()
             ) from exc

@@ -122,7 +122,7 @@ Base classes and ABCs with the highest downstream impact. Changing these affects
 | **HIGH** | `mas` | `BaseFactory (ABC)` | `lib/mas/elements/common/base_factory.py` | — | element factories (nodes, llms, tools, providers, conditions, retrievers, auths) |
 | **HIGH** | `ui` | `shadcn/ui (51 components)` | `components/ui/` | — | all components |
 | **MEDIUM** | `mas` | `ElementRegistry` | `lib/mas/catalog/element_registry.py` | `AppContainer`, `CatalogService`, `GraphService`, `WorkflowSessionFactory`, `SessionElementBuilder`, `ElementValidationService`, `ActionsService`, `TemplateService`, `ElementCardService` | — |
-| **MEDIUM** | `mas` | `BaseNode` | `lib/mas/elements/nodes/common/base_node.py` | `CustomAgentNode`, `OrchestratorNode`, `A2AAgentNode`, `ClaudeAgentNode`, `DeepAgentNode`, `UserQuestionNode`, `FinalAnswerNode`, `MergerNode`, `BranchChooserNode` | — |
+| **MEDIUM** | `mas` | `BaseNode` | `lib/mas/application/elements/node.py` | `CustomAgentNode`, `OrchestratorNode`, `A2AAgentNode`, `ClaudeAgentNode`, `DeepAgentNode`, `UserQuestionNode`, `FinalAnswerNode`, `MergerNode`, `BranchChooserNode` | — |
 | **MEDIUM** | `global_utils` | `get_mongo_url()` | `utils/util.py` | `rag:AppContainer`, `mas:AppContainer`, `identity:create_app()`, `platform:AppContainer`, `CeleryApp` | — |
 | **MEDIUM** | `mas` | `BlueprintService` | `lib/mas/blueprints/service.py` | `UserSessionManager`, `TemplateService`, `ShareService`, `ShareCloner`, `StatisticsService` | — |
 | **MEDIUM** | `mas` | `ResourcesService` | `lib/mas/resources/service.py` | `ShareService`, `TemplateService`, `ShareCloner`, `ResourceMaterializer`, `StatisticsService` | — |

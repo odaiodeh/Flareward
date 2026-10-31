@@ -234,6 +234,7 @@ export default function UserWorkspace() {
 
         {isFormOpen && selectedElementType && elementSchema && (
           <ElementForm
+            key={editingElement?.rid ?? 'new'}
             isOpen={isFormOpen}
             onClose={() => setIsFormOpen(false)}
             elementType={selectedElementType}

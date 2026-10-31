@@ -1,9 +1,11 @@
-from .models import SessionMeta, RuntimeElement, TimeSeriesPoint, SystemAnalyticsData, SessionChat
-from .status import SessionStatus
-from .dto import SessionListItem, SessionListFilter, PaginationMeta, PaginatedSessions
+from mas.application.elements.instances import ElementInstances
+from mas.application.elements.runtime_models import RuntimeElement
+from mas.session.domain.models import SessionChat, SessionMeta, SystemAnalyticsData, TimeSeriesPoint
+
+from .dto import PaginatedSessions, PaginationMeta, SessionListFilter, SessionListItem
 from .exceptions import BlueprintNotFoundError, SessionBlueprintError
-from .session_registry import SessionRegistry
 from .session_record import SessionRecord
+from .status import SessionStatus
 
 __all__ = [
     "SessionMeta",
@@ -18,6 +20,6 @@ __all__ = [
     "SessionChat",
     "BlueprintNotFoundError",
     "SessionBlueprintError",
-    "SessionRegistry",
+    "ElementInstances",
     "SessionRecord",
 ]

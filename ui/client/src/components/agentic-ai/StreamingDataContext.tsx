@@ -1,6 +1,6 @@
 // StreamingDataContext.tsx
 import React, { createContext, useContext, useRef, useCallback } from 'react';
-import type { NodeEntry, ApprovalStatus } from './chat/types';
+import { updateApproval, type NodeEntry, type ApprovalStatus, type ApprovalIdentity } from './chat/types';
 
 export type { NodeEntry };
 
@@ -9,8 +9,7 @@ type StreamingContextType = {
   forceUpdate: () => void;
   clearStream: () => void;
   updateApprovalStatus: (
-    nodeUid: string,
-    requestId: string,
+    identity: ApprovalIdentity,
     status: ApprovalStatus,
     feedback?: string,
   ) => void;
@@ -30,16 +29,8 @@ export const StreamingDataProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const updateApprovalStatus = useCallback(
-    (nodeUid: string, requestId: string, status: ApprovalStatus, feedback?: string) => {
-      for (const entry of nodeListRef.current.values()) {
-        const approval = entry.approvals?.find((a) => a.requestId === requestId);
-        if (approval) {
-          approval.status = status;
-          if (feedback) approval.feedback = feedback;
-          forceUpdate();
-          return;
-        }
-      }
+    (identity: ApprovalIdentity, status: ApprovalStatus, feedback?: string) => {
+      if (updateApproval(nodeListRef.current.values(), identity, status, feedback)) forceUpdate();
     },
     [],
   );

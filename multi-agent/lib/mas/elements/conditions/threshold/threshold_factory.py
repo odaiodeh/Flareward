@@ -1,8 +1,8 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import ThresholdConditionConfig
-from .threshold import ThresholdCondition
 from .identifiers import Identifier
+from .threshold import ThresholdCondition
 
 
 class ThresholdConditionFactory(BaseFactory[ThresholdConditionConfig, ThresholdCondition]):
@@ -14,14 +14,6 @@ class ThresholdConditionFactory(BaseFactory[ThresholdConditionConfig, ThresholdC
         return element_type == Identifier.TYPE
 
     def create(self, cfg: ThresholdConditionConfig, **deps) -> ThresholdCondition:
-        try:
-            return ThresholdCondition(
-                input_key=cfg.input_key,
-                threshold=cfg.threshold,
-                operator=cfg.operator
-            )
-        except Exception as e:
-            raise PluginConfigurationError(
-                f"ThresholdConditionFactory.create failed: {e}",
-                cfg.dict()
-            ) from e
+        return ThresholdCondition(
+            input_path=cfg.input_path, threshold=cfg.threshold, comparison=cfg.operator
+        )

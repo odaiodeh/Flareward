@@ -1,11 +1,13 @@
 from typing import ClassVar
-from mas.elements.common.base_element_spec import BaseElementSpec
+
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.field_hints import HiddenHint
+
 from ..config import FinalAnswerNodeConfig
-from ..final_answer_node_factory import FinalAnswerNodeFactory
 from ..final_answer import FinalAnswerNode
-from ..identifiers import Identifier, META
+from ..final_answer_node_factory import FinalAnswerNodeFactory
+from ..identifiers import META, Identifier
 
 
 class FinalAnswerNodeElementSpec(BaseElementSpec):

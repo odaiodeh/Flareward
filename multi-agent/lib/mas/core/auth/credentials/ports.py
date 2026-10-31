@@ -5,9 +5,20 @@ Auth-layer storage ports — protocol-agnostic persistence contracts.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Protocol
 
-from .models import StoredCredential, ClientConfig
+from .models import ClientConfig, StoredCredential
+
+
+class CipherError(ValueError):
+    """An encoded credential cannot be decoded with the configured key."""
+
+
+class TokenCipher(Protocol):
+    """Protect values; decrypt preserves plaintext and raises CipherError on invalid ciphertext."""
+
+    def encrypt(self, value: str | None) -> str | None: ...
+    def decrypt(self, value: str | None) -> str | None: ...
 
 
 class CredentialStore(ABC):
@@ -18,8 +29,11 @@ class CredentialStore(ABC):
 
     @abstractmethod
     def find_by_server(
-        self, user_id: str, server_identifier: str, scheme_type: str = "",
-    ) -> Optional[StoredCredential]: ...
+        self,
+        user_id: str,
+        server_identifier: str,
+        scheme_type: str = "",
+    ) -> StoredCredential | None: ...
 
     @abstractmethod
     def delete(self, user_id: str, server_identifier: str) -> None: ...
@@ -32,10 +46,10 @@ class ServerConfigStore(ABC):
     """Persist and retrieve :class:`ClientConfig` objects."""
 
     @abstractmethod
-    def find_by_server(self, user_id: str, server_identifier: str) -> Optional[ClientConfig]: ...
+    def find_by_server(self, user_id: str, server_identifier: str) -> ClientConfig | None: ...
 
     @abstractmethod
     def save(self, user_id: str, config: ClientConfig) -> None: ...
 
     @abstractmethod
-    def list_by_category(self, category: str) -> List[ClientConfig]: ...
+    def list_by_category(self, category: str) -> list[ClientConfig]: ...

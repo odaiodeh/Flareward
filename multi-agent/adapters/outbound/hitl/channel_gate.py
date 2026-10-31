@@ -9,10 +9,12 @@ Works identically for ``LocalInputCapableChannel`` (foreground,
 same-process) and ``RedisInputCapableChannel`` (background,
 cross-process) — the channel adapter hides the difference.
 """
+
+import asyncio
 import logging
 from dataclasses import asdict
-from typing import Optional
 
+from mas.core.async_work import await_owned
 from mas.core.channels import InputCapableChannel
 from mas.core.hitl.models import (
     ApprovalDecision,
@@ -36,11 +38,18 @@ class ChannelApprovalGate(ApprovalGate):
         super().__init__(config)
         self._channel = channel
 
-    def _send_and_wait(
+    async def _send_and_wait(
         self,
         request: ApprovalRequest,
         timeout: float,
-    ) -> Optional[ApprovalResponse]:
+    ) -> ApprovalResponse | None:
+        return await await_owned(asyncio.to_thread(self._wait_for_response, request, timeout))
+
+    def _wait_for_response(
+        self,
+        request: ApprovalRequest,
+        timeout: float,
+    ) -> ApprovalResponse | None:
         args_str = str(request.tool_args)
         channel_sid = self._channel.session_id
         logger.info(
@@ -59,19 +68,21 @@ class ChannelApprovalGate(ApprovalGate):
             args_str,
         )
 
-        self._channel.emit({
-            "type": "approval_required",
-            "node": request.origin.node_uid,
-            "display_name": request.origin.node_display_name,
-            "request_id": request.request_id,
-            "approval_type": request.type.value,
-            "origin": asdict(request.origin),
-            "tool_name": request.tool_name,
-            "tool_args": request.tool_args,
-            "tool_description": request.tool_description,
-            "tool_access_mode": request.tool_access_mode.value,
-            "reasoning": request.reasoning,
-        })
+        self._channel.emit(
+            {
+                "type": "approval_required",
+                "node": request.origin.node_uid,
+                "display_name": request.origin.node_display_name,
+                "request_id": request.request_id,
+                "approval_type": request.type.value,
+                "origin": asdict(request.origin),
+                "tool_name": request.tool_name,
+                "tool_args": request.tool_args,
+                "tool_description": request.tool_description,
+                "tool_access_mode": request.tool_access_mode.value,
+                "reasoning": request.reasoning,
+            }
+        )
 
         raw = self._channel.wait_for(request.request_id, timeout=timeout)
         if raw is None:

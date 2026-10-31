@@ -1,11 +1,11 @@
-from mas.session.domain.session_registry import SessionRegistry
-from mas.graph.rt_graph_plan import RTGraphPlan
+from mas.application.elements.instances import ElementInstances
+from mas.core.execution_context import ExecutionContextHolder
 from mas.engine.domain.base_builder import BaseGraphBuilder
 from mas.engine.domain.base_executor import BaseGraphExecutor
+from mas.graph.rt_graph_plan import RTGraphPlan
 from mas.graph.state.graph_state import GraphState
-from mas.session.domain.status import SessionStatus
 from mas.session.domain.session_record import SessionRecord
-from mas.core.execution_context import ExecutionContextHolder
+from mas.session.domain.status import SessionStatus
 
 
 class WorkflowSession:
@@ -23,13 +23,13 @@ class WorkflowSession:
     """
 
     def __init__(
-            self,
-            record: SessionRecord,
-            session_registry: SessionRegistry,
-            rt_graph_plan: RTGraphPlan,
-            executable_graph: BaseGraphExecutor,
-            builder: BaseGraphBuilder,
-            execution_holder: ExecutionContextHolder = None,
+        self,
+        record: SessionRecord,
+        session_registry: ElementInstances,
+        rt_graph_plan: RTGraphPlan,
+        executable_graph: BaseGraphExecutor,
+        builder: BaseGraphBuilder,
+        execution_holder: ExecutionContextHolder = None,
     ) -> None:
         self.record = record
         self.session_registry = session_registry

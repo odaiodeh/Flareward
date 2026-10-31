@@ -30,7 +30,7 @@ lib/mas/elements/
 │   ├── user_question/       Entry node (receives user input)
 │   ├── final_answer/        Exit node
 │   └── ...                  deep_agent, a2a_agent, branch_chooser, llm_merger
-├── llms/common/chat/        ChatMessage, FileAttachment, Role models
+├── llms/common/             Vendor schema/configuration helpers
 ├── tools/builtin/           Auto-injected tools (delegation, retriever, time, file_retrieve)
 ├── tools/mcp_proxy/         MCP server tool proxy
 ├── providers/               rag_client, mcp_server_client, a2a_client
@@ -38,7 +38,11 @@ lib/mas/elements/
 ├── conditions/              router_boolean, router_direct, threshold
 └── auths/                   oauth_client, github_oauth, google_oauth
 
-lib/mas/catalog/             ElementRegistry, SpecDiscoverer, CatalogService
+lib/mas/domain/              Messages, tool definitions, cards, bundles, workspaces
+lib/mas/application/ports/   LLM/tool/retrieval/tool-provider contracts
+lib/mas/application/agents/  Shared parsing, strategies and execution
+lib/mas/application/elements/ Registry/contracts/category builders/owned construction
+adapters/outbound/elements/  Installed specification discovery
 lib/mas/validation/          ElementValidationService
 ```
 
@@ -50,8 +54,9 @@ lib/mas/validation/          ElementValidationService
 | `BaseFactory` | Creates element instances from config + ElementDeps kwargs |
 | `ElementRegistry` | Holds all discovered specs, queried by category/type_key |
 | `BaseNode` | Node base class (READS/WRITES channel sets, run(state)) |
-| `ChatMessage` | Shared message model (role, content, file_attachments, tool_calls) |
-| `FileAttachment` | Frozen Pydantic model (file_name, mime_type, file_uri, size_bytes) |
+| `ChatMessage` | Shared domain message (role, content, tool calls, sender and metadata) |
+| `ElementPreparation` | Optional async metadata/acquisition before dependent factories run |
+| `ElementInstances` | Runtime instances owned by an individual construction scope |
 
 ### Element Spec Required ClassVars
 

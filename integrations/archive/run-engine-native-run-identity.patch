@@ -1,0 +1,413 @@
+diff --git a/src/runengine/adapters/coordination/temporal/host.py b/src/runengine/adapters/coordination/temporal/host.py
+--- a/src/runengine/adapters/coordination/temporal/host.py
++++ b/src/runengine/adapters/coordination/temporal/host.py
+@@ -7,7 +7,13 @@
+ 
+ from pydantic import JsonValue
+ from temporalio.api.enums.v1 import EventType
+-from temporalio.client import Client, WorkflowExecutionStatus, WorkflowFailureError, WorkflowHandle
++from temporalio.client import (
++    Client,
++    WorkflowExecutionDescription,
++    WorkflowExecutionStatus,
++    WorkflowFailureError,
++    WorkflowHandle,
++)
+ from temporalio.common import WorkflowIDReusePolicy
+ from temporalio.converter import WorkflowSerializationContext
+ from temporalio.exceptions import is_cancelled_exception
+@@ -18,7 +24,7 @@
+     TemporalHostConfig,
+ )
+ from runengine.adapters.coordination.temporal.messages import TemporalMessageClient
+-from runengine.adapters.coordination.temporal.models import RunParameters
++from runengine.adapters.coordination.temporal.models import RunParameters, TemporalRunIdentity
+ from runengine.adapters.coordination.temporal.protocol import (
+     EVENTS_QUERY,
+     SNAPSHOT_QUERY,
+@@ -98,6 +104,7 @@
+             for event in history.events
+             if event.event_type == EventType.EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_STARTED
+         }
++        parent_ids = _run_aliases(description.namespace, description.id, description.run_id)
+         children = []
+         for event in history.events:
+             if event.event_id not in accepted:
+@@ -115,7 +122,10 @@
+                 if len(values) != 1:
+                     raise ValueError("Child request must have one envelope")
+                 request = RunParameters.model_validate(values[0]).request
+-                if request.run_id != initiated.workflow_id or request.parent_run_id != self.run_id:
++                if (
++                    request.run_id != initiated.workflow_id
++                    or request.parent_run_id not in parent_ids
++                ):
+                     raise ValueError("Child request identity differs from native history")
+             except (TypeError, ValueError) as error:
+                 raise RunContractError(
+@@ -147,7 +157,39 @@
+             except WorkflowFailureError as error:
+                 if is_cancelled_exception(error.cause):
+                     phase = RunPhase.CANCELLED
+-        return RunStatus(run_id=self.run_id, phase=phase, parent_run_id=description.parent_id or "")
++        return RunStatus(
++            run_id=self.run_id, phase=phase, parent_run_id=await self._parent_id(description)
++        )
++
++    async def _parent_id(self, description: WorkflowExecutionDescription) -> str:
++        if not description.parent_id:
++            return ""
++        converter = description.data_converter.with_context(
++            WorkflowSerializationContext(
++                namespace=description.namespace, workflow_id=description.id
++            )
++        )
++        # Native parent metadata identifies the generation; the input retains its logical ID.
++        async for event in self._handle.fetch_history_events(page_size=1):
++            try:
++                if event.event_type != EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED:
++                    raise ValueError("Run history must begin with workflow start")
++                values = await converter.decode_wrapper(
++                    event.workflow_execution_started_event_attributes.input
++                )
++                if len(values) != 1:
++                    raise ValueError("Run request must have one envelope")
++                parent_id = RunParameters.model_validate(values[0]).request.parent_run_id
++                if parent_id and parent_id not in _run_aliases(
++                    description.namespace, description.parent_id, description.parent_run_id
++                ):
++                    raise ValueError("Parent request identity differs from native history")
++                return parent_id or description.parent_id
++            except (TypeError, ValueError) as error:
++                raise RunContractError(
++                    "Invalid retained parent request", code=RunFailureCode.INVALID_REQUEST
++                ) from error
++        raise RunContractError("Missing run history", code=RunFailureCode.INVALID_REQUEST)
+ 
+ 
+ class TemporalRunHost(RunHost):
+@@ -228,5 +270,31 @@
+             message_timeout_seconds=self._config.message_delivery_timeout_seconds,
+         )
+ 
++    async def get_pinned_handle(self, identity: TemporalRunIdentity) -> TemporalRunHandle:
++        """Observe one native generation without changing ordinary run-ID interpretation."""
++        identity = TemporalRunIdentity.model_validate(identity.model_dump())
++        if identity.namespace != self._config.namespace:
++            raise ValueError("Pinned run namespace must match its host")
++        return TemporalRunHandle(
++            (await self._connect()).get_workflow_handle(
++                identity.workflow_id,
++                run_id=identity.run_id,
++                first_execution_run_id=identity.run_id,
++            ),
++            identity.encode(),
++            message_timeout_seconds=self._config.message_delivery_timeout_seconds,
++        )
++
+     async def shutdown(self) -> None:
+         """Remote executions are service-owned and survive this client object's lifetime."""
++
++
++def _run_aliases(namespace: str, workflow_id: str, run_id: str | None) -> set[str]:
++    aliases = {workflow_id}
++    if run_id:
++        aliases.add(
++            TemporalRunIdentity(
++                namespace=namespace, workflow_id=workflow_id, run_id=run_id
++            ).encode()
++        )
++    return aliases
+diff --git a/src/runengine/adapters/coordination/temporal/models.py b/src/runengine/adapters/coordination/temporal/models.py
+--- a/src/runengine/adapters/coordination/temporal/models.py
++++ b/src/runengine/adapters/coordination/temporal/models.py
+@@ -94,7 +94,7 @@
+ )
+ 
+ 
+-class TemporalEnvironmentOwner(BaseModel):
++class TemporalRunIdentity(BaseModel):
+     """Adapter-owned locator encoded as an opaque ID in inner contracts."""
+ 
+     model_config = ConfigDict(frozen=True, extra="forbid")
+@@ -116,6 +116,10 @@
+             return cls.model_validate_json(payload)
+         except ValueError, UnicodeError:
+             return None
++
++
++# Retain the existing import and wire format for environment journals.
++TemporalEnvironmentOwner = TemporalRunIdentity
+ 
+ 
+ class RunParameters(BaseModel):
+diff --git a/src/runengine/adapters/coordination/temporal/workflow.py b/src/runengine/adapters/coordination/temporal/workflow.py
+--- a/src/runengine/adapters/coordination/temporal/workflow.py
++++ b/src/runengine/adapters/coordination/temporal/workflow.py
+@@ -20,7 +20,7 @@
+ from runengine.adapters.coordination.temporal.models import (
+     MessageDispatch,
+     RunParameters,
+-    TemporalEnvironmentOwner,
++    TemporalRunIdentity,
+ )
+ from runengine.adapters.coordination.temporal.operations import TemporalOperations
+ from runengine.adapters.coordination.temporal.protocol import (
+@@ -29,6 +29,7 @@
+     MESSAGE_ACTIVITY,
+     MESSAGE_SIGNAL,
+     MESSAGE_UPDATE,
++    NATIVE_IDENTITY_PATCH,
+     SNAPSHOT_QUERY,
+     WORKFLOW_NAME,
+     TemporalFailureType,
+@@ -138,6 +139,13 @@
+         )
+         self._owner = owner
+         self._params = params
++        self._run_id = workflow.info().workflow_id
++        if not params.request.run_id and workflow.patched(NATIVE_IDENTITY_PATCH):
++            self._run_id = TemporalRunIdentity(
++                namespace=workflow.info().namespace,
++                workflow_id=workflow.info().workflow_id,
++                run_id=workflow.info().run_id,
++            ).encode()
+         self._sequence = InvocationSequence(self.run_id)
+ 
+     async def execute(
+@@ -158,7 +166,7 @@
+ 
+     @property
+     def run_id(self) -> str:
+-        return workflow.info().workflow_id
++        return self._run_id
+ 
+     @run_errors
+     async def start_child(self, request: RunRequest, *, key: str) -> RunHandle:
+@@ -272,11 +280,16 @@
+         operations = TemporalRunOperations(
+             self, params, environment_protocol=workflow.patched(ENVIRONMENTS_PATCH)
+         )
++        if operations.run_id != workflow.info().workflow_id:
++            self._observations = ObservationJournal(
++                operations.run_id, limits=self._limits.observation
++            )
++            self._observations.lifecycle(RunPhase.RUNNING)
+         execution = ProgramExecution(
+             operations,
+             params.request,
+             code_mismatch_policy=CodeMismatchPolicy.DEFER,
+-            scope_id=TemporalEnvironmentOwner(
++            scope_id=TemporalRunIdentity(
+                 namespace=workflow.info().namespace,
+                 workflow_id=workflow.info().workflow_id,
+                 run_id=workflow.info().run_id,
+diff --git a/src/runengine/adapters/coordination/temporal/protocol.py b/src/runengine/adapters/coordination/temporal/protocol.py
+--- a/src/runengine/adapters/coordination/temporal/protocol.py
++++ b/src/runengine/adapters/coordination/temporal/protocol.py
+@@ -7,6 +7,7 @@
+ ENVIRONMENT_RELEASE_ACTIVITY = "release_environment"
+ ENVIRONMENT_BINDING_ACTIVITY = "bind_environment"
+ ENVIRONMENTS_PATCH = "runengine.execution-scopes.v1"
++NATIVE_IDENTITY_PATCH = "runengine.native-root-identity.v1"
+ MESSAGE_ACTIVITY = "deliver_message"
+ MESSAGE_SIGNAL = "message"
+ MESSAGE_UPDATE = "admit_message"
+diff --git a/src/runengine/adapters/coordination/temporal/README.md b/src/runengine/adapters/coordination/temporal/README.md
+--- a/src/runengine/adapters/coordination/temporal/README.md
++++ b/src/runengine/adapters/coordination/temporal/README.md
+@@ -489,3 +489,20 @@
+ pending client call while leaving the child's completed result intact. Both parent
+ histories replay; crash recovery also replays the child. These cases cover a
+ controlled reply-loss window, not arbitrary partitions or exactly-once effects.
++
++## Externally started native generations
++
++An external calendar can reuse a Temporal workflow ID across native generations.
++For native ingress whose RunRequest.run_id is empty, new histories record the
++`runengine.native-root-identity.v1` patch and expose an opaque TemporalRunIdentity
++through coordination operations. Child operation identities then include that
++generation. Requests submitted through RunHost retain their existing logical IDs.
++Older histories without the marker retain their original behavior on replay.
++
++`TemporalRunHost.get_pinned_handle(identity)` addresses one workflow/run/namespace
++for results, status, messages, events, children, and cancellation. It rejects a
++namespace mismatch before requesting a handle. Ordinary `get_handle(str)` keeps
++interpreting every string as an ordinary workflow ID; it does not reserve an ID
++prefix or silently redirect an existing run. Integrations decide explicitly when
++an opaque value is a native identity. The existing TemporalEnvironmentOwner name
++remains an import alias, and its encoded journal format is unchanged.
+diff --git a/tests/unit/adapters/test_native_run_identity.py b/tests/unit/adapters/test_native_run_identity.py
+new file mode 100644
+--- /dev/null
++++ b/tests/unit/adapters/test_native_run_identity.py
+@@ -0,0 +1,169 @@
++"""Native ingress may reuse workflow IDs; pins and child identities retain the generation."""
++
++from types import SimpleNamespace
++from unittest.mock import AsyncMock, Mock
++
++import pytest
++from temporalio import workflow
++from temporalio.api.common.v1 import WorkflowType
++from temporalio.api.enums.v1 import EventType
++from temporalio.api.history.v1 import (
++    ChildWorkflowExecutionStartedEventAttributes,
++    HistoryEvent,
++    StartChildWorkflowExecutionInitiatedEventAttributes,
++    WorkflowExecutionStartedEventAttributes,
++)
++from temporalio.client import WorkflowExecutionStatus
++from temporalio.converter import DataConverter
++
++from runengine.adapters.coordination.config import TemporalHostConfig
++from runengine.adapters.coordination.temporal.host import TemporalRunHandle, TemporalRunHost
++from runengine.adapters.coordination.temporal.models import RunParameters, TemporalRunIdentity
++from runengine.adapters.coordination.temporal.protocol import WORKFLOW_NAME
++from runengine.adapters.coordination.temporal.workflow import TemporalRunOperations
++from runengine.coordination.children import child_run_id
++from runengine.coordination.errors import RunContractError
++from runengine.coordination.models import RunRequest
++from runengine_test_fixtures import coordination
++
++
++def test_native_ingress_generations_do_not_share_run_or_child_identity(monkeypatch):
++    info = SimpleNamespace(namespace="tests", workflow_id="same-calendar-second", run_id="first")
++    monkeypatch.setattr(workflow, "info", lambda: info)
++    monkeypatch.setattr(workflow, "patched", lambda _: True)
++    params = RunParameters(request=RunRequest.create(coordination.echo))
++    first = TemporalRunOperations(None, params).run_id
++    info.run_id = "second"
++    second = TemporalRunOperations(None, params).run_id
++    assert first != second
++    assert child_run_id(first, "child") != child_run_id(second, "child")
++    assert TemporalRunIdentity.decode(first).workflow_id == info.workflow_id
++    assert TemporalRunIdentity.decode(first).run_id == "first"
++    assert TemporalRunIdentity.decode(second).run_id == "second"
++
++
++def test_ordinary_ids_and_old_native_histories_keep_their_identity(monkeypatch):
++    monkeypatch.setattr(workflow, "info", lambda: SimpleNamespace(workflow_id="original"))
++    monkeypatch.setattr(workflow, "patched", lambda _: False)
++    for run_id in ("", "original"):
++        params = RunParameters(request=RunRequest.create(coordination.echo, run_id=run_id))
++        assert TemporalRunOperations(None, params).run_id == "original"
++
++
++async def test_explicit_pins_address_only_the_original_generation_and_namespace():
++    native = Mock()
++    client = SimpleNamespace(namespace="tests", get_workflow_handle=native)
++    host = TemporalRunHost(TemporalHostConfig(namespace="tests"), client=client)
++    identity = TemporalRunIdentity(namespace="tests", workflow_id="workflow", run_id="first")
++    handle = await host.get_pinned_handle(identity)
++    assert handle.run_id == identity.encode()
++    native.assert_called_once_with("workflow", run_id="first", first_execution_run_id="first")
++    native.reset_mock()
++    with pytest.raises(ValueError, match="namespace"):
++        await host.get_pinned_handle(identity.model_copy(update={"namespace": "other"}))
++    native.assert_not_called()
++    # Ordinary run IDs, including strings resembling locators, stay uninterpreted.
++    await host.get_handle(identity.encode())
++    native.assert_called_once_with(identity.encode())
++
++
++@pytest.mark.parametrize("value", [None, ""])
++async def test_unchecked_empty_generation_is_rejected_before_selecting_latest(value):
++    native = Mock()
++    client = SimpleNamespace(namespace="tests", get_workflow_handle=native)
++    host = TemporalRunHost(TemporalHostConfig(namespace="tests"), client=client)
++    identity = TemporalRunIdentity(namespace="tests", workflow_id="workflow", run_id="first")
++    with pytest.raises(ValueError):
++        await host.get_pinned_handle(identity.model_copy(update={"run_id": value}))
++    native.assert_not_called()
++
++
++@pytest.mark.parametrize("parent_form", ["ordinary", "native", "other-generation"])
++async def test_pinned_parent_observes_only_children_of_its_actual_generation(parent_form):
++    identity = TemporalRunIdentity(namespace="tests", workflow_id="parent", run_id="first")
++    parent_id = (
++        "parent"
++        if parent_form == "ordinary"
++        else identity.model_copy(
++            update={"run_id": "other" if parent_form == "other-generation" else "first"}
++        ).encode()
++    )
++    request = RunRequest.create(coordination.echo, run_id="child", parent_run_id=parent_id)
++    payload = await DataConverter.default.encode_wrapper(
++        [RunParameters(request=request).model_dump(mode="json")]
++    )
++    native = AsyncMock()
++    native.describe.return_value = SimpleNamespace(
++        namespace="tests", id="parent", run_id="first", data_converter=DataConverter.default
++    )
++    native.fetch_history.return_value = SimpleNamespace(
++        events=[
++            HistoryEvent(
++                event_id=1,
++                event_type=EventType.EVENT_TYPE_START_CHILD_WORKFLOW_EXECUTION_INITIATED,
++                start_child_workflow_execution_initiated_event_attributes=(
++                    StartChildWorkflowExecutionInitiatedEventAttributes(
++                        workflow_id="child",
++                        workflow_type=WorkflowType(name=WORKFLOW_NAME),
++                        input=payload,
++                    )
++                ),
++            ),
++            HistoryEvent(
++                event_id=2,
++                event_type=EventType.EVENT_TYPE_CHILD_WORKFLOW_EXECUTION_STARTED,
++                child_workflow_execution_started_event_attributes=(
++                    ChildWorkflowExecutionStartedEventAttributes(initiated_event_id=1)
++                ),
++            ),
++        ]
++    )
++    handle = TemporalRunHandle(native, identity.encode())
++    if parent_form == "other-generation":
++        with pytest.raises(RunContractError):
++            await handle.children()
++    else:
++        assert await handle.children() == [request]
++
++
++@pytest.mark.parametrize("parent_form", ["ordinary", "native", "other-generation", "legacy"])
++async def test_child_status_retains_valid_recorded_parent_identity(parent_form):
++    identity = TemporalRunIdentity(namespace="tests", workflow_id="parent", run_id="first")
++    parent_id = {"ordinary": "parent", "legacy": ""}.get(parent_form)
++    if parent_id is None:
++        parent_id = identity.model_copy(
++            update={"run_id": "other" if parent_form == "other-generation" else "first"}
++        ).encode()
++    request = RunRequest.create(coordination.echo, run_id="child", parent_run_id=parent_id)
++    payload = await DataConverter.default.encode_wrapper(
++        [RunParameters(request=request).model_dump(mode="json")]
++    )
++    native = AsyncMock()
++    native.describe.return_value = SimpleNamespace(
++        status=WorkflowExecutionStatus.RUNNING,
++        namespace="tests",
++        id="child",
++        run_id="child-first",
++        parent_id="parent",
++        parent_run_id="first",
++        data_converter=DataConverter.default,
++    )
++
++    async def history(*, page_size):
++        assert page_size == 1
++        yield HistoryEvent(
++            event_id=1,
++            event_type=EventType.EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
++            workflow_execution_started_event_attributes=WorkflowExecutionStartedEventAttributes(
++                input=payload
++            ),
++        )
++        pytest.fail("Parent inspection should read only the start event")
++
++    native.fetch_history_events = history
++    handle = TemporalRunHandle(native, "child")
++    if parent_form == "other-generation":
++        with pytest.raises(RunContractError):
++            await handle.status()
++    else:
++        assert (await handle.status()).parent_run_id == (parent_id or "parent")

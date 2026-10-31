@@ -1,10 +1,11 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
-from ..config import SshExecToolConfig
-from ..ssh_exec_factory import SshExecToolFactory
-from ..identifiers import Identifier, META
-from ..validator import SshExecToolValidator
 from mas.elements.tools.common.card_builder import ToolCardBuilder
+
+from ..config import SshExecToolConfig
+from ..identifiers import META, Identifier
+from ..ssh_exec_factory import SshExecToolFactory
+from ..validator import SshExecToolValidator
 
 
 class SshExecToolElementSpec(BaseElementSpec):

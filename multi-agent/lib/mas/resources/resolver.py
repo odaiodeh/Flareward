@@ -1,82 +1,38 @@
-"""
-resources/resolver.py
-
-DependencyResolver - resolves resources with their transitive dependencies.
-Returns rids in topological order (dependencies first).
-
-This is a general-purpose utility for resolving resource dependencies.
-Used by validation, card building, and other services.
-"""
-
-from typing import List, Set
+"""Resolve stored authoring dependencies without accepting missing resources or cycles."""
 
 from mas.resources.registry import ResourcesRegistry
 
 
+class ResourceDependencyError(ValueError):
+    def __init__(self) -> None:
+        super().__init__("Resource dependency cycle")
+
+
 class DependencyResolver:
-    """
-    Resolves resources with their transitive dependencies.
-
-    Uses post-order traversal to ensure dependencies come before dependents.
-    Handles circular references by tracking visited nodes.
-
-    Returns a list of rids in dependency order (deps first, self last).
-
-    Used by:
-    - ResourcesService.validate_resource()
-    - ResourcesService.get_cards()
-    """
-
-    def __init__(self, resource_registry: ResourcesRegistry):
+    def __init__(self, resource_registry: ResourcesRegistry) -> None:
         self._registry = resource_registry
 
-    def resolve_with_deps(self, rid: str) -> List[str]:
-        """
-        Resolve a resource and all its transitive dependencies.
+    def resolve_with_deps(self, rid: str) -> list[str]:
+        return self.resolve_all_with_deps([rid])
 
-        Returns rids in dependency order (deps first, self last).
-        Uses post-order traversal which naturally produces topological order.
-        """
-        visited: Set[str] = set()
-        return self._resolve_recursive(rid, visited)
+    def resolve_all_with_deps(self, rids: list[str]) -> list[str]:
+        complete: set[str] = set()
+        active: set[str] = set()
+        ordered: list[str] = []
 
-    def resolve_all_with_deps(self, rids: List[str]) -> List[str]:
-        """
-        Resolve multiple resources and all their transitive dependencies.
-
-        Returns all rids in dependency order (deps first), with no duplicates.
-        """
-        visited: Set[str] = set()
-        result: List[str] = []
+        def visit(rid: str) -> None:
+            if rid in active:
+                raise ResourceDependencyError()
+            if rid in complete:
+                return
+            resource = self._registry.get(rid)
+            active.add(rid)
+            for dependency in resource.nested_refs:
+                visit(dependency)
+            active.remove(rid)
+            complete.add(rid)
+            ordered.append(rid)
 
         for rid in rids:
-            for resolved_rid in self._resolve_recursive(rid, visited):
-                if resolved_rid not in [r for r in result]:
-                    result.append(resolved_rid)
-
-        return result
-
-    def _resolve_recursive(
-        self,
-        rid: str,
-        visited: Set[str],
-    ) -> List[str]:
-        """Post-order traversal for dependency resolution."""
-        if rid in visited:
-            return []
-
-        visited.add(rid)
-
-        try:
-            resource = self._registry.get(rid)
-        except KeyError:
-            return []
-
-        result: List[str] = []
-
-        for dep_rid in resource.nested_refs:
-            result.extend(self._resolve_recursive(dep_rid, visited))
-
-        result.append(rid)
-
-        return result
+            visit(rid)
+        return ordered

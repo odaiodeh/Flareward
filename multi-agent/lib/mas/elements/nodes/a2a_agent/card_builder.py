@@ -4,10 +4,13 @@ Card builder for A2AAgentNode.
 Uses agent_card from config to build the element card.
 """
 
-from typing import List, Dict, Any
+from typing import Any
+
 from a2a.types import AgentCard
-from mas.elements.common.card.models import ElementCard, Skill, Capability, CardBuildInput
-from mas.elements.common.card.interface import CardBuilder
+
+from mas.application.elements.cards.interface import CardBuilder
+from mas.application.elements.cards.models import CardBuildInput
+from mas.domain.element_card import Capability, ElementCard, Skill
 
 
 class A2AAgentCardBuilder(CardBuilder):
@@ -19,7 +22,7 @@ class A2AAgentCardBuilder(CardBuilder):
     """
 
     @staticmethod
-    def _dump_value(value: Any) -> Dict[str, Any]:
+    def _dump_value(value: Any) -> dict[str, Any]:
         """Dump any value to dict - works with Pydantic models or simple types."""
         try:
             return value.model_dump()
@@ -38,26 +41,21 @@ class A2AAgentCardBuilder(CardBuilder):
 
         return self._build_from_agent_card(input, agent_card)
 
-    def _build_from_agent_card(
-        self,
-        input: CardBuildInput,
-        agent_card: AgentCard
-    ) -> ElementCard:
+    def _build_from_agent_card(self, input: CardBuildInput, agent_card: AgentCard) -> ElementCard:
         """Build card using data from remote agent's card."""
-        skills: List[Skill] = []
+        skills: list[Skill] = []
         if agent_card.skills:
             for agent_skill in agent_card.skills:
                 skill_data = agent_skill.model_dump()
                 skills.append(Skill(**skill_data))
 
-        capabilities: List[Capability] = []
+        capabilities: list[Capability] = []
         if agent_card.capabilities:
             for field_name, field_value in agent_card.capabilities:
                 if field_value is not None:
-                    capabilities.append(Capability(
-                        name=field_name,
-                        **self._dump_value(field_value)
-                    ))
+                    capabilities.append(
+                        Capability(name=field_name, **self._dump_value(field_value))
+                    )
 
         return ElementCard(
             uid=input.rid,
@@ -68,7 +66,7 @@ class A2AAgentCardBuilder(CardBuilder):
             skills=skills,
             capabilities=capabilities,
             configuration={},
-            metadata=None
+            metadata=None,
         )
 
     def _build_basic_card(self, input: CardBuildInput) -> ElementCard:
@@ -82,5 +80,5 @@ class A2AAgentCardBuilder(CardBuilder):
             skills=[],
             capabilities=[],
             configuration={},
-            metadata=None
+            metadata=None,
         )

@@ -15,11 +15,16 @@ import { UmamiTrack } from '@/components/ui/umamitrack';
 import { UmamiEvents } from '@/config/umamiEvents';
 import { PromptShortcutInput } from "@/api/blueprints";
 import PromptShortcutsEditor from "../PromptShortcutsEditor";
+import { WorkflowPlacementEditor } from './WorkflowPlacementEditor';
+import type { WorkflowPlacement, YamlFlowState } from '@/types/graph';
+import { workflowPlacement } from '@/lib/workflow-placement';
 
 interface SaveBlueprintModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string, description: string, promptShortcuts: PromptShortcutInput[]) => void;
+  onSave: (name: string, description: string, promptShortcuts: PromptShortcutInput[], placement: WorkflowPlacement) => void;
+  flow: YamlFlowState;
+  teamId?: string;
   isLoading?: boolean;
   isEditMode?: boolean;
   currentName?: string;
@@ -36,16 +41,20 @@ const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({
   currentName = "",
   currentDescription = "",
   currentPromptShortcuts = [],
+  flow,
+  teamId,
 }) => {
   const [name, setName] = useState(currentName);
   const [description, setDescription] = useState(currentDescription);
   const [promptShortcuts, setPromptShortcuts] = useState<PromptShortcutInput[]>(currentPromptShortcuts);
+  const [placement, setPlacement] = useState(() => workflowPlacement(flow));
 
   useEffect(() => {
     if (isOpen) {
       setName(currentName);
       setDescription(currentDescription);
       setPromptShortcuts(currentPromptShortcuts);
+      setPlacement(workflowPlacement(flow));
     }
   }, [isOpen]);
 
@@ -53,7 +62,7 @@ const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({
     if (!name.trim()) {
       return;
     }
-    onSave(name.trim(), description.trim(), promptShortcuts);
+    onSave(name.trim(), description.trim(), promptShortcuts, placement);
   };
 
   const handleClose = () => {
@@ -67,7 +76,7 @@ const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-gray-900 border-gray-700 max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] bg-gray-900 border-gray-700 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white">
             {isEditMode ? "Update Workflow" : "Save Workflow"}
@@ -115,6 +124,8 @@ const SaveBlueprintModal: React.FC<SaveBlueprintModalProps> = ({
               disabled={isLoading}
             />
           </div>
+          {isOpen && <WorkflowPlacementEditor flow={flow} value={placement}
+            onChange={setPlacement} disabled={isLoading} teamId={teamId} />}
         </div>
 
         <DialogFooter>

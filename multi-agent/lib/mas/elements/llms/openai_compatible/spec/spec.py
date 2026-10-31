@@ -1,8 +1,9 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
-from ..openai_compatible_factory import OpenAICompatibleFactory
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import OpenAICompatibleConfig
-from ..identifiers import Identifier, META
+from ..identifiers import META, Identifier
+from ..openai_compatible_factory import OpenAICompatibleFactory
 from ..validator import OpenAICompatibleLLMValidator
 
 
@@ -12,6 +13,7 @@ class OpenAICompatibleElementSpec(BaseElementSpec):
 
     Provides all metadata needed for UI integration and runtime configuration.
     """
+
     category = ResourceCategory.LLM
     type_key = Identifier.TYPE
     name = META.name

@@ -1,8 +1,9 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import OcExecToolConfig
+from ..identifiers import META, Identifier
 from ..oc_exec_factory import OcExecToolFactory
-from ..identifiers import Identifier, META
 from ..validator import OcExecToolValidator
 
 

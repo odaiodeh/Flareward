@@ -4,8 +4,9 @@ Default card builder for tools.
 A tool represents itself as a single skill.
 """
 
-from mas.elements.common.card.models import ElementCard, Skill, CardBuildInput
-from mas.elements.common.card.interface import CardBuilder
+from mas.application.elements.cards.interface import CardBuilder
+from mas.application.elements.cards.models import CardBuildInput
+from mas.domain.element_card import ElementCard, Skill
 
 
 class ToolCardBuilder(CardBuilder):
@@ -17,10 +18,7 @@ class ToolCardBuilder(CardBuilder):
 
     def build(self, input: CardBuildInput) -> ElementCard:
         """Build card with this tool as a skill."""
-        skill = Skill(
-            name=input.name,
-            description=input.spec_metadata.description
-        )
+        skill = Skill(name=input.name, description=input.spec_metadata.description)
 
         return ElementCard(
             uid=input.rid,
@@ -31,5 +29,5 @@ class ToolCardBuilder(CardBuilder):
             skills=[skill],
             capabilities=[],
             configuration={},
-            metadata=None
+            metadata=None,
         )

@@ -1,10 +1,12 @@
 from typing import Any
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 from mas.core.element_deps import ElementBuildContext
+
 from .config import SlackRetrieverConfig
-from .slack_retriever import SlackRetriever
 from .identifiers import Identifier
+from .slack_retriever import SlackRetriever
 
 
 class SlackRetrieverFactory(BaseFactory[SlackRetrieverConfig, SlackRetriever]):

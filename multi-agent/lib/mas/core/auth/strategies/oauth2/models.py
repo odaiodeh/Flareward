@@ -9,13 +9,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 
 class FlowState(BaseModel):
     """Short-lived data stored while waiting for an OAuth callback."""
+
     state_hash: str
     user_id: str
     server_identifier: str = ""
@@ -23,7 +24,7 @@ class FlowState(BaseModel):
     code_verifier: str
     protocol_type: str
     expires_at: datetime
-    extra: Dict[str, Any] = Field(default_factory=dict)
+    extra: dict[str, Any] = Field(default_factory=dict)
 
 
 class FlowStateStore(ABC):
@@ -33,6 +34,6 @@ class FlowStateStore(ABC):
     def save(self, flow_state: FlowState) -> None: ...
 
     @abstractmethod
-    def consume(self, state_hash: str) -> Optional[FlowState]:
+    def consume(self, state_hash: str) -> FlowState | None:
         """Atomically read-and-delete. Returns ``None`` if not found."""
         ...

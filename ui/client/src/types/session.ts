@@ -35,10 +35,3 @@ export interface ChatSessionData {
   blueprint_exists: boolean;
   status?: string;
 }
-
-export interface SessionStateData {
-  final_output: string;
-  messages: ChatMessage[];
-  status?: string;
-  status_message?: string;
-}

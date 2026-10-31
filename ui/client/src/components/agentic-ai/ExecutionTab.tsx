@@ -128,6 +128,7 @@ export default function ExecutionTab({ runId, onSessionChange }: ExecutionTabPro
         <SessionMessagesLoader />
       ) : (
         <ChatInterface
+          teamId={hub.teamId}
           key={hub.selectedSession?.id || 'no-session'}
           runId={hub.selectedSession?.id || ''}
           triggerExecution={hub.triggerExecution}

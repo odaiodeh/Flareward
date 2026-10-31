@@ -4,12 +4,14 @@ Graph analysis utilities for working with GraphPlan.
 Clean OOP design for graph topology analysis.
 """
 
-from typing import Dict, Set, List, Tuple, Optional
-from enum import Enum
+from enum import StrEnum
+
+from mas.graph.graph_plan import GraphPlan
 
 
-class EdgeType(str, Enum):
+class EdgeType(StrEnum):
     """Types of edges in the execution graph."""
+
     AFTER = "after"
     BRANCH = "branch"
 
@@ -17,33 +19,33 @@ class EdgeType(str, Enum):
 class GraphAnalyzer:
     """
     Graph analyzer that works with GraphPlan objects.
-    
+
     Provides clean interface for graph topology operations.
     """
-    
-    def __init__(self, plan: 'GraphPlan'):
+
+    def __init__(self, plan: GraphPlan):
         self.plan = plan
         self._adjacency = None
         self._edge_types = None
-    
+
     @property
-    def adjacency(self) -> Dict[str, Set[str]]:
+    def adjacency(self) -> dict[str, set[str]]:
         """Get adjacency map, building it if needed."""
         if self._adjacency is None:
             self._build_graph()
         return self._adjacency
-    
+
     @property
-    def edge_types(self) -> Dict[Tuple[str, str], EdgeType]:
+    def edge_types(self) -> dict[tuple[str, str], EdgeType]:
         """Get edge types map, building it if needed."""
         if self._edge_types is None:
             self._build_graph()
         return self._edge_types
-    
+
     def _build_graph(self):
         """Build adjacency and edge type maps from the plan."""
-        adjacency: Dict[str, Set[str]] = {}
-        edge_types: Dict[Tuple[str, str], EdgeType] = {}
+        adjacency: dict[str, set[str]] = {}
+        edge_types: dict[tuple[str, str], EdgeType] = {}
 
         # Initialize all nodes
         for step in self.plan.steps:
@@ -58,7 +60,7 @@ class GraphAnalyzer:
 
         # Add branch edges
         for step in self.plan.steps:
-            if hasattr(step, 'branches') and step.branches:
+            if hasattr(step, "branches") and step.branches:
                 for target_uid in step.branches.values():
                     if target_uid in adjacency:  # Validate target exists
                         adjacency[step.uid].add(target_uid)
@@ -66,20 +68,12 @@ class GraphAnalyzer:
 
         self._adjacency = adjacency
         self._edge_types = edge_types
-    
-    def get_terminal_nodes(self) -> Set[str]:
+
+    def get_terminal_nodes(self) -> set[str]:
         """Get nodes with no outgoing edges."""
         return {node for node, neighbors in self.adjacency.items() if not neighbors}
-    
-    def get_root_nodes(self) -> Set[str]:
+
+    def get_root_nodes(self) -> set[str]:
         """Get nodes with no incoming dependencies."""
-        all_nodes = {step.uid for step in self.plan.steps}
-        has_incoming = set()
-        
-        for step in self.plan.steps:
-            has_incoming.update(step.after)
-            if hasattr(step, 'branches') and step.branches:
-                has_incoming.update(step.branches.values())
-        
-        return all_nodes - has_incoming
-    
+        incoming = {target for targets in self.adjacency.values() for target in targets}
+        return set(self.adjacency) - incoming

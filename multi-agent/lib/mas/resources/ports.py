@@ -4,17 +4,24 @@ Ports (interfaces) for external dependencies of the resources domain.
 Services and adapters depend on these ABCs rather than concrete
 implementations, keeping the dependency arrows pointing inward.
 """
-from typing import Dict, List, Optional, Protocol, Tuple, runtime_checkable
+
+from typing import Protocol, runtime_checkable
 
 from pydantic import BaseModel
 
+from mas.application.elements.validation import ElementValidationResult
 from mas.collaboration.models import TeamEditLockHolder
 from mas.core.caller_scope import CallerScope
 from mas.core.identity import Identity
-from mas.elements.common.card import ElementCard
-from mas.elements.common.validator import ElementValidationResult
+from mas.domain.element_card import ElementCard
 from mas.resources.builtin_models import BuiltinResourceDescriptor
 from mas.resources.models import Resource
+
+
+class BlueprintUsageReader(Protocol):
+    """The resource library only needs blueprint references for deletion guards."""
+
+    def list_direct_usage(self, rid: str) -> list[str]: ...
 
 
 @runtime_checkable
@@ -35,40 +42,63 @@ class ResourceServicePort(Protocol):
     def get_visible(self, rid: str, *, caller: CallerScope) -> Resource: ...
 
     def find_resources(
-        self, category: Optional[str] = ..., type: Optional[str] = ...,
-        ownership: Optional[str] = ..., limit: int = ..., offset: int = ...,
+        self,
+        category: str | None = ...,
+        type: str | None = ...,
+        ownership: str | None = ...,
+        limit: int = ...,
+        offset: int = ...,
         caller: CallerScope = ...,
-    ) -> Tuple[List[dict], int]: ...
+    ) -> tuple[list[dict], int]: ...
 
     def resolve(self, rid: str, caller: CallerScope = ...) -> BaseModel: ...
 
     def resolve_resource(self, resource: Resource, caller: CallerScope = ...) -> BaseModel: ...
 
     def validate_resource(
-        self, rid: str, caller: CallerScope = ..., user_id: str = ...,
-        timeout_seconds: float = ..., credential_user_id: str = ...,
+        self,
+        rid: str,
+        caller: CallerScope = ...,
+        user_id: str = ...,
+        timeout_seconds: float = ...,
+        credential_user_id: str = ...,
     ) -> ElementValidationResult: ...
 
     def get_card(self, rid: str, caller: CallerScope = ...) -> ElementCard: ...
 
     def get_cards(
-        self, rids: List[str], caller: CallerScope = ...,
-    ) -> Dict[str, ElementCard]: ...
+        self,
+        rids: list[str],
+        caller: CallerScope = ...,
+    ) -> dict[str, ElementCard]: ...
 
     def guard_write_access(
-        self, rid: str, caller: CallerScope, *, username: str = ...,
+        self,
+        rid: str,
+        caller: CallerScope,
+        *,
+        username: str = ...,
     ) -> Resource: ...
 
     def create(
-        self, *, identity: Identity, category: str, type: str, name: str, config: dict,
+        self,
+        *,
+        identity: Identity,
+        category: str,
+        type: str,
+        name: str,
+        config: dict,
     ) -> Resource: ...
 
-    def update(self, rid: str, *, config: dict, name: Optional[str] = ...) -> Resource: ...
+    def update(self, rid: str, *, config: dict, name: str | None = ...) -> Resource: ...
 
     def delete(self, rid: str) -> None: ...
 
     def to_dict(
-        self, resource: Resource, *, identity: Optional[Identity] = ...,
+        self,
+        resource: Resource,
+        *,
+        identity: Identity | None = ...,
     ) -> dict: ...
 
 
@@ -104,7 +134,11 @@ class ResourceClonePort(Protocol):
     def save_resource(self, resource: Resource) -> Resource: ...
 
     def exists_by_name(
-        self, identity: Identity, category: str, type_: str, name: str,
+        self,
+        identity: Identity,
+        category: str,
+        type_: str,
+        name: str,
     ) -> bool: ...
 
     def delete(self, rid: str) -> None: ...
@@ -120,7 +154,7 @@ class BuiltinDescriptorReader(Protocol):
     structurally by ``BuiltinResourceService``.
     """
 
-    def get_descriptor(self, rid: str) -> Optional[BuiltinResourceDescriptor]: ...
+    def get_descriptor(self, rid: str) -> BuiltinResourceDescriptor | None: ...
 
 
 @runtime_checkable
@@ -132,4 +166,4 @@ class AdminEditLockReader(Protocol):
     structurally by ``AdminEditLockService``.
     """
 
-    def get_admin_edit_lock(self, entity_id: str) -> Optional[TeamEditLockHolder]: ...
+    def get_admin_edit_lock(self, entity_id: str) -> TeamEditLockHolder | None: ...

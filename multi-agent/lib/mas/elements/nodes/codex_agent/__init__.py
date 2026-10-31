@@ -1,0 +1,1 @@
+"""Codex coding-agent adapter."""

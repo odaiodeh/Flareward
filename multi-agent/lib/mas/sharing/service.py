@@ -1,11 +1,11 @@
-import re
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 
 from mas.core.identity import Identity, IdentityType
-from .models import ShareInvite, ShareResult, ShareStatus, ShareItemKind, ShareCleanupConfig, ShareCleanupResult
+from mas.domain.sharing import ShareInvite, ShareItemKind, ShareResult, ShareStatus
+
+from .cloner import CloneContext, ShareCloner
+from .models import ShareCleanupConfig, ShareCleanupResult
 from .repository.base import ShareRepository
-from .cloner import ShareCloner, CloneContext
 
 
 class ShareService:
@@ -22,22 +22,28 @@ class ShareService:
             return identity.id.strip().casefold() == pid.casefold()
         return identity.id == pid
 
-    def __init__(self, 
-                 share_repository: ShareRepository,
-                 cloner: ShareCloner):
+    def __init__(self, share_repository: ShareRepository, cloner: ShareCloner):
         self._repo = share_repository
         self._cloner = cloner
 
-    def create_invite(self, *, sender_user_id: str, recipient_user_id: str,
-                     item_kind: ShareItemKind, item_id: str,
-                     message: Optional[str] = None, ttl_days: int = 10,
-                     sender_type: str = "user",
-                     sender_display_name: Optional[str] = None,
-                     authorized_owner_ids: Optional[set] = None) -> str:
+    def create_invite(
+        self,
+        *,
+        sender_user_id: str,
+        recipient_user_id: str,
+        item_kind: ShareItemKind,
+        item_id: str,
+        message: str | None = None,
+        ttl_days: int = 10,
+        sender_type: str = "user",
+        sender_display_name: str | None = None,
+        authorized_owner_ids: set | None = None,
+    ) -> str:
         """Create share invitation."""
         # Validate item exists and is owned by an authorized sender.
-        item_name = self._validate_and_get_name(item_kind, item_id, sender_user_id,
-                                                authorized_owner_ids=authorized_owner_ids)
+        item_name = self._validate_and_get_name(
+            item_kind, item_id, sender_user_id, authorized_owner_ids=authorized_owner_ids
+        )
         sender_type_normalized = (sender_type or "user").strip().lower()
         sender_label = sender_display_name or sender_user_id
         if sender_type_normalized == "team":
@@ -55,13 +61,13 @@ class ShareService:
             ttl_days=ttl_days,
             authorized_owner_ids=sorted(authorized_owner_ids or {sender_user_id}),
         )
-        
+
         return self._repo.save(invite)
 
     def accept_invite(self, share_id: str, *, recipient_user_id: str) -> ShareResult:
         """Accept invitation and perform cloning."""
         invite = self._repo.get(share_id)
-        
+
         # Validate recipient (case-insensitive for user ids — Keycloak vs UI drift)
         if not self._principal_matches_identity(invite.recipient_identity, recipient_user_id):
             raise ValueError("Not authorized to accept this invite")
@@ -69,11 +75,11 @@ class ShareService:
         # Check if expired
         if invite.is_expired:
             raise ValueError("Invitation has expired")
-        
+
         # Check idempotency
         if invite.status == ShareStatus.ACCEPTED and invite.result_mapping:
             return self._build_result_from_mapping(invite)
-        
+
         if invite.status != ShareStatus.PENDING:
             raise ValueError(f"Invite is not pending (status: {invite.status})")
 
@@ -82,13 +88,16 @@ class ShareService:
 
         # Reconstruct the authorized ownership pool stored at invite-creation time.
         # Falls back to sender_identity.id alone for legacy invites that predate the field.
-        owner_pool = frozenset(invite.authorized_owner_ids) or frozenset({invite.sender_identity.id})
+        owner_pool = frozenset(invite.authorized_owner_ids) or frozenset(
+            {invite.sender_identity.id}
+        )
 
         # Perform cloning
         try:
             ctx = CloneContext(
                 sender_id=invite.sender_identity.id,
-                sender_display_name=invite.sender_identity.display_name or invite.sender_identity.id,
+                sender_display_name=invite.sender_identity.display_name
+                or invite.sender_identity.id,
                 recipient_id=recipient_owner_id,
                 authorized_owner_ids=owner_pool,
             )
@@ -100,7 +109,7 @@ class ShareService:
                 )
                 new_item_id = rid_mapping[invite.item_id]
                 result_mapping = rid_mapping
-                
+
             elif invite.item_kind == ShareItemKind.BLUEPRINT:
                 new_blueprint_id, rid_mapping, name_conflicts = self._cloner.clone_blueprint(
                     blueprint_id=invite.item_id,
@@ -108,24 +117,30 @@ class ShareService:
                 )
                 new_item_id = new_blueprint_id
                 result_mapping = {**rid_mapping, "blueprint_id": new_blueprint_id}
-            
+
             # Update status
             self._repo.update_status(share_id, ShareStatus.ACCEPTED, result_mapping)
-            
+
             return ShareResult(
                 share_id=share_id,
                 new_item_id=new_item_id,
                 rid_mapping=rid_mapping,
                 created_resources=len(rid_mapping),
-                name_conflicts=name_conflicts
+                name_conflicts=name_conflicts,
             )
-            
+
         except Exception as e:
             raise ValueError(f"Failed to accept share: {str(e)}")
 
-    def share_to_team(self, *, sender_user_id: str, team_name: str,
-                      item_kind: ShareItemKind, item_id: str,
-                      authorized_owner_ids: Optional[set] = None) -> ShareResult:
+    def share_to_team(
+        self,
+        *,
+        sender_user_id: str,
+        team_name: str,
+        item_kind: ShareItemKind,
+        item_id: str,
+        authorized_owner_ids: set | None = None,
+    ) -> ShareResult:
         """
         Share an item directly to a team workspace (no invite/accept flow).
         Clones the item immediately into the team's namespace.
@@ -134,8 +149,9 @@ class ShareService:
         alone — pass the set of all identity ids whose resources the caller is
         allowed to share (e.g. ``{authenticated_user, sender_team_id}``).
         """
-        item_name = self._validate_and_get_name(item_kind, item_id, sender_user_id,
-                                                authorized_owner_ids=authorized_owner_ids)
+        self._validate_and_get_name(
+            item_kind, item_id, sender_user_id, authorized_owner_ids=authorized_owner_ids
+        )
         owner_pool = frozenset(authorized_owner_ids or {sender_user_id})
 
         try:
@@ -148,12 +164,14 @@ class ShareService:
 
             if item_kind == ShareItemKind.RESOURCE:
                 rid_mapping, name_conflicts = self._cloner.clone_resource_graph(
-                    root_rid=item_id, ctx=ctx,
+                    root_rid=item_id,
+                    ctx=ctx,
                 )
                 new_item_id = rid_mapping[item_id]
             elif item_kind == ShareItemKind.BLUEPRINT:
                 new_item_id, rid_mapping, name_conflicts = self._cloner.clone_blueprint(
-                    blueprint_id=item_id, ctx=ctx,
+                    blueprint_id=item_id,
+                    ctx=ctx,
                 )
             else:
                 raise ValueError(f"Unknown item kind: {item_kind}")
@@ -163,7 +181,7 @@ class ShareService:
                 new_item_id=new_item_id,
                 rid_mapping=rid_mapping,
                 created_resources=len(rid_mapping),
-                name_conflicts=name_conflicts
+                name_conflicts=name_conflicts,
             )
         except Exception as e:
             raise ValueError(f"Failed to share to team: {str(e)}") from e
@@ -171,36 +189,40 @@ class ShareService:
     def decline_invite(self, share_id: str, *, recipient_user_id: str) -> None:
         """Decline invitation."""
         invite = self._repo.get(share_id)
-        
+
         if not self._principal_matches_identity(invite.recipient_identity, recipient_user_id):
             raise ValueError("Not authorized to decline this invite")
-        
+
         if invite.status != ShareStatus.PENDING:
             raise ValueError(f"Invite is not pending (status: {invite.status})")
-        
+
         self._repo.update_status(share_id, ShareStatus.DECLINED)
 
     def cancel_invite(self, share_id: str, *, sender_user_id: str) -> None:
         """Cancel sent invitation."""
         invite = self._repo.get(share_id)
-        
+
         if not self._principal_matches_identity(invite.sender_identity, sender_user_id):
             raise ValueError("Not authorized to cancel this invite")
-        
+
         if invite.status != ShareStatus.PENDING:
             raise ValueError(f"Cannot cancel invite with status: {invite.status}")
-        
+
         self._repo.update_status(share_id, ShareStatus.CANCELED)
 
-    def list_received_invites(self, recipient: Identity, 
-                             status: Optional[ShareStatus] = None,
-                             skip: int = 0, limit: int = 100) -> List[ShareInvite]:
+    def list_received_invites(
+        self,
+        recipient: Identity,
+        status: ShareStatus | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[ShareInvite]:
         """List received invitations."""
         return self._repo.list_for_recipient(recipient, status, skip, limit)
 
-    def list_sent_invites(self, sender: Identity,
-                         status: Optional[ShareStatus] = None,
-                         skip: int = 0, limit: int = 100) -> List[ShareInvite]:
+    def list_sent_invites(
+        self, sender: Identity, status: ShareStatus | None = None, skip: int = 0, limit: int = 100
+    ) -> list[ShareInvite]:
         """List sent invitations."""
         return self._repo.list_for_sender(sender, status, skip, limit)
 
@@ -208,9 +230,13 @@ class ShareService:
         """Get invitation details."""
         return self._repo.get(share_id)
 
-    def _validate_and_get_name(self, item_kind: ShareItemKind,
-                              item_id: str, sender_user_id: str,
-                              authorized_owner_ids: Optional[set] = None) -> str:
+    def _validate_and_get_name(
+        self,
+        item_kind: ShareItemKind,
+        item_id: str,
+        sender_user_id: str,
+        authorized_owner_ids: set | None = None,
+    ) -> str:
         """Validate item ownership and return the item's display name.
 
         ``authorized_owner_ids`` widens the allowed set of owner identity ids beyond
@@ -240,53 +266,58 @@ class ShareService:
             rid_mapping = invite.result_mapping
         else:  # BLUEPRINT
             new_item_id = invite.result_mapping.get("blueprint_id", "")
-            rid_mapping = {k: v for k, v in invite.result_mapping.items() 
-                          if k != "blueprint_id"}
-        
+            rid_mapping = {k: v for k, v in invite.result_mapping.items() if k != "blueprint_id"}
+
         return ShareResult(
-            share_id=invite.share_id,
-            new_item_id=new_item_id,
-            rid_mapping=rid_mapping
+            share_id=invite.share_id, new_item_id=new_item_id, rid_mapping=rid_mapping
         )
 
     def delete_invite(self, share_id: str, *, user_id: str) -> None:
         """Delete share invitation with authorization."""
         invite = self._repo.get(share_id)
-        
+
         # Check authorization
         if not self._can_delete_invite(invite, user_id):
             raise ValueError("Not authorized to delete this invite")
-        
+
         # Don't allow deleting ACCEPTED invites (audit trail)
         if invite.status == ShareStatus.ACCEPTED:
             raise ValueError("Cannot delete accepted invites")
-        
+
         if not self._repo.delete(share_id):
             raise ValueError("Failed to delete invite")
 
-    def cleanup_old_invites(self, config: Optional[ShareCleanupConfig] = None) -> ShareCleanupResult:
+    def cleanup_old_invites(self, config: ShareCleanupConfig | None = None) -> ShareCleanupResult:
         """Cleanup old invites based on configuration."""
         if config is None:
             config = ShareCleanupConfig()  # Use defaults
-        
+
         return self._repo.cleanup_old_invites(config)
 
     def cleanup_expired_invites(self, *, dry_run: bool = False) -> ShareCleanupResult:
         """Cleanup expired invites based on TTL."""
         return self._repo.cleanup_expired_invites(dry_run=dry_run)
 
-    def get_cleanup_stats(self, *, days_back: int = 30) -> Dict[str, int]:
+    def get_cleanup_stats(self, *, days_back: int = 30) -> dict[str, int]:
         """Get statistics for cleanup planning."""
         cutoff = datetime.now(UTC) - timedelta(days=days_back)
-        
+
         stats = {
             "total_old": self._repo.count_by_status_and_age(older_than=cutoff),
-            "pending_old": self._repo.count_by_status_and_age(older_than=cutoff, status=ShareStatus.PENDING),
-            "declined_old": self._repo.count_by_status_and_age(older_than=cutoff, status=ShareStatus.DECLINED),
-            "canceled_old": self._repo.count_by_status_and_age(older_than=cutoff, status=ShareStatus.CANCELED),
-            "expired": self._repo.count_by_status_and_age(older_than=datetime.now(UTC)),  # All expired
+            "pending_old": self._repo.count_by_status_and_age(
+                older_than=cutoff, status=ShareStatus.PENDING
+            ),
+            "declined_old": self._repo.count_by_status_and_age(
+                older_than=cutoff, status=ShareStatus.DECLINED
+            ),
+            "canceled_old": self._repo.count_by_status_and_age(
+                older_than=cutoff, status=ShareStatus.CANCELED
+            ),
+            "expired": self._repo.count_by_status_and_age(
+                older_than=datetime.now(UTC)
+            ),  # All expired
         }
-        
+
         return stats
 
     def _can_delete_invite(self, invite: ShareInvite, user_id: str) -> bool:
@@ -297,10 +328,11 @@ class ShareService:
             and invite.status != ShareStatus.ACCEPTED
         ):
             return True
-        
+
         # Recipient can delete DECLINED/CANCELED from their inbox
-        if (self._principal_matches_identity(invite.recipient_identity, user_id)
-            and invite.status in [ShareStatus.DECLINED, ShareStatus.CANCELED]):
+        if self._principal_matches_identity(
+            invite.recipient_identity, user_id
+        ) and invite.status in [ShareStatus.DECLINED, ShareStatus.CANCELED]:
             return True
-        
+
         return False

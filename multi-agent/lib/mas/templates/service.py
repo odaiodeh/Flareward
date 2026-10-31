@@ -4,52 +4,51 @@ Template Service - Public facade for template operations.
 Single Responsibility: Orchestrate template CRUD, schema generation, and instantiation.
 Dependency Inversion: Depends on abstractions (repository interface, element registry).
 """
-import re
-from typing import List, Dict, Any, Optional, Tuple
-from uuid import uuid4
-from datetime import datetime, timezone
 
-from mas.core.identity import Identity, IdentityType
+import re
+from datetime import UTC, datetime
+from typing import Any
+from uuid import uuid4
+
+from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.blueprints.models.blueprint import BlueprintDraft
-from mas.catalog.element_registry import ElementRegistry
-from mas.templates.repository.repository import TemplateRepository
-from mas.templates.models.template import (
-    Template,
-    TemplateSummary,
-    PlaceholderMeta,
-    TemplateMetadata,
-    InputValidationResult,
-    MaterializeResult,
+from mas.core.identity import Identity
+from mas.templates.errors import (
+    InstantiationError,
+    MergeError,
+    TemplateNotFoundError,
 )
-from mas.templates.schema.analyzer import PlaceholderAnalyzer
 from mas.templates.instantiation.instantiator import (
-    TemplateInstantiator,
     InstantiationResult,
+    TemplateInstantiator,
 )
 from mas.templates.instantiation.materializer import (
     ResourceMaterializer,
-    MaterializationResult,
 )
-from mas.templates.errors import (
-    TemplateNotFoundError,
-    TemplateSaveError,
-    InstantiationError,
-    MergeError,
+from mas.templates.models.template import (
+    InputValidationResult,
+    MaterializeResult,
+    PlaceholderMeta,
+    Template,
+    TemplateMetadata,
+    TemplateSummary,
 )
+from mas.templates.repository.repository import TemplateRepository
+from mas.templates.schema.analyzer import PlaceholderAnalyzer
 
 
 class TemplateService:
     """
     Public facade for template operations.
-    
+
     Orchestrates:
     - Template CRUD operations
     - Input schema generation
     - Template instantiation
     - Blueprint and resource materialization
-    
+
     All external interactions go through this service.
-    
+
     Dependencies (injected):
     - TemplateRepository: Template persistence
     - ElementRegistry: Element schema lookups
@@ -58,11 +57,11 @@ class TemplateService:
     """
 
     def __init__(
-            self,
-            repository: TemplateRepository,
-            element_registry: ElementRegistry,
-            blueprint_service=None,  # Optional: BlueprintService
-            resources_service=None,  # Optional: ResourcesService
+        self,
+        repository: TemplateRepository,
+        element_registry: ElementRegistry,
+        blueprint_service=None,  # Optional: BlueprintService
+        resources_service=None,  # Optional: ResourcesService
     ):
         self._repo = repository
         self._element_registry = element_registry
@@ -90,19 +89,19 @@ class TemplateService:
     #  Template CRUD
     # ─────────────────────────────────────────────────────────────────────
     def create_template(
-            self,
-            draft: Dict[str, Any],
-            placeholders: Dict[str, Any],
-            metadata: Optional[Dict[str, Any]] = None,
+        self,
+        draft: dict[str, Any],
+        placeholders: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """
         Create a new template from raw dicts.
-        
+
         Args:
             draft: The template blueprint dict (BlueprintDraft format)
             placeholders: Placeholder metadata dict (PlaceholderMeta format)
             metadata: Optional template metadata dict
-            
+
         Returns:
             Generated template ID
         """
@@ -114,8 +113,8 @@ class TemplateService:
             draft=BlueprintDraft(**draft),
             placeholders=PlaceholderMeta(**placeholders),
             metadata=TemplateMetadata(**(metadata or {})),
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
 
         return self._repo.save(template)
@@ -123,7 +122,7 @@ class TemplateService:
     def get_template(self, template_id: str) -> Template:
         """
         Get a template by ID.
-        
+
         Raises TemplateNotFoundError if not found.
         """
         try:
@@ -134,12 +133,12 @@ class TemplateService:
     def update_template(self, template: Template) -> bool:
         """
         Update an existing template.
-        
+
         Returns True if modified.
         Raises TemplateNotFoundError if not found.
         """
         try:
-            template.updated_at = datetime.now(timezone.utc)
+            template.updated_at = datetime.now(UTC)
             return self._repo.update(template)
         except KeyError:
             raise TemplateNotFoundError(template.template_id)
@@ -147,7 +146,7 @@ class TemplateService:
     def delete_template(self, template_id: str) -> bool:
         """
         Delete a template.
-        
+
         Returns True if deleted.
         Raises TemplateNotFoundError if not found.
         """
@@ -164,17 +163,17 @@ class TemplateService:
     #  Template Listing
     # ─────────────────────────────────────────────────────────────────────
     def list_templates(
-            self,
-            *,
-            is_public: Optional[bool] = True,
-            category: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            skip: int = 0,
-            limit: int = 100,
-    ) -> List[Template]:
+        self,
+        *,
+        is_public: bool | None = True,
+        category: str | None = None,
+        tags: list[str] | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Template]:
         """
         List templates with optional filtering.
-        
+
         Default: returns only public templates.
         """
         return self._repo.list_templates(
@@ -186,29 +185,29 @@ class TemplateService:
         )
 
     def search_templates(
-            self,
-            query: str,
-            *,
-            limit: int = 20,
-    ) -> List[Template]:
+        self,
+        query: str,
+        *,
+        limit: int = 20,
+    ) -> list[Template]:
         """Search templates by name/description."""
         return self._repo.search(query, is_public=True, limit=limit)
 
     def search_template_summaries(
-            self,
-            query: str,
-            *,
-            limit: int = 20,
-    ) -> List[TemplateSummary]:
+        self,
+        query: str,
+        *,
+        limit: int = 20,
+    ) -> list[TemplateSummary]:
         """Search templates and return summaries."""
         templates = self.search_templates(query=query, limit=limit)
         return [TemplateSummary.from_template(t) for t in templates]
 
     def count_templates(
-            self,
-            *,
-            is_public: Optional[bool] = True,
-            category: Optional[str] = None,
+        self,
+        *,
+        is_public: bool | None = True,
+        category: str | None = None,
     ) -> int:
         """Count templates matching criteria."""
         return self._repo.count(is_public=is_public, category=category)
@@ -216,13 +215,13 @@ class TemplateService:
     # ─────────────────────────────────────────────────────────────────────
     #  Input Schema Generation
     # ─────────────────────────────────────────────────────────────────────
-    def get_input_schema(self, template_id: str) -> Dict[str, Any]:
+    def get_input_schema(self, template_id: str) -> dict[str, Any]:
         """
         Get the input schema for a template as JSON Schema.
-        
+
         Returns a complete JSON Schema with all field definitions,
         types, constraints, and $defs for complex types.
-        
+
         The schema is generated by Pydantic from the exact field
         definitions in the element config schemas.
         """
@@ -230,13 +229,13 @@ class TemplateService:
         return self._analyzer.get_json_schema(template)
 
     def validate_input(
-            self,
-            template_id: str,
-            user_input: Dict[str, Any],
+        self,
+        template_id: str,
+        user_input: dict[str, Any],
     ) -> InputValidationResult:
         """
         Validate user input against the template's input schema.
-        
+
         Args:
             template_id: Template to validate against
             user_input: User-provided input values
@@ -260,18 +259,18 @@ class TemplateService:
     #  Template Instantiation
     # ─────────────────────────────────────────────────────────────────────
     def instantiate(
-            self,
-            template_id: str,
-            user_input: Dict[str, Any],
+        self,
+        template_id: str,
+        user_input: dict[str, Any],
     ) -> InstantiationResult:
         """
         Instantiate a template with user input.
-        
+
         Returns InstantiationResult containing:
         - blueprint: The merged BlueprintDraft
         - template_id: Source template ID
         - filled_fields: List of fields that were filled
-        
+
         Raises InstantiationError if instantiation fails.
         """
         template = self.get_template(template_id)
@@ -287,19 +286,19 @@ class TemplateService:
     #  Full Materialization (Blueprint + Resources)
     # ─────────────────────────────────────────────────────────────────────
     def materialize(
-            self,
-            template_id: str,
-            identity: Identity,
-            user_input: Dict[str, Any],
-            blueprint_name: Optional[str] = None,
-            save_resources: bool = True,
-            skip_validation: bool = False,
+        self,
+        template_id: str,
+        identity: Identity,
+        user_input: dict[str, Any],
+        blueprint_name: str | None = None,
+        save_resources: bool = True,
+        skip_validation: bool = False,
     ) -> MaterializeResult:
         """
         Instantiate template and save blueprint + resources to user's account.
-        
+
         This is the main entry point for template usage.
-        
+
         Args:
             template_id: Template to instantiate
             identity: Identity who owns the result
@@ -307,10 +306,10 @@ class TemplateService:
             blueprint_name: Optional name override
             save_resources: If True, save resources and create $refs (default)
             skip_validation: If True, skip blueprint validation (default False)
-            
+
         Returns:
             MaterializeResult with blueprint_id, resource_ids, and metadata
-            
+
         Raises:
             InstantiationError: If instantiation or validation fails
             RuntimeError: If required services not configured
@@ -354,9 +353,7 @@ class TemplateService:
 
     def _validate_blueprint(self, blueprint: BlueprintDraft) -> None:
         """Validate blueprint, raise InstantiationError if invalid."""
-        result = self._blueprint_service.validate_draft(
-            blueprint.model_dump(mode="json")
-        )
+        result = self._blueprint_service.validate_draft(blueprint.model_dump(mode="json"))
         if not result.is_valid:
             failed = [r for r in result.element_results.values() if not r.is_valid]
             raise InstantiationError(
@@ -365,12 +362,12 @@ class TemplateService:
             )
 
     def _save_blueprint(
-            self,
-            blueprint: BlueprintDraft,
-            template: Template,
-            identity: Identity,
-            save_resources: bool,
-    ) -> Tuple[str, List[str]]:
+        self,
+        blueprint: BlueprintDraft,
+        template: Template,
+        identity: Identity,
+        save_resources: bool,
+    ) -> tuple[str, list[str]]:
         """Save blueprint (and optionally resources). Returns (blueprint_id, resource_ids)."""
         metadata = {
             "source": "template",
@@ -405,14 +402,14 @@ class TemplateService:
         return TemplateSummary.from_template(template)
 
     def list_template_summaries(
-            self,
-            *,
-            is_public: Optional[bool] = True,
-            category: Optional[str] = None,
-            tags: Optional[List[str]] = None,
-            skip: int = 0,
-            limit: int = 100,
-    ) -> List[TemplateSummary]:
+        self,
+        *,
+        is_public: bool | None = True,
+        category: str | None = None,
+        tags: list[str] | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[TemplateSummary]:
         """Get summaries for template listing."""
         templates = self.list_templates(
             is_public=is_public,

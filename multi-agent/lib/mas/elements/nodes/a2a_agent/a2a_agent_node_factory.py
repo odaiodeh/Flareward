@@ -6,14 +6,13 @@ for registry-based auth methods (SSO servers), or from the raw bearer_token
 for manually-entered access tokens.
 """
 
-from typing import Any, Optional
-
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 from mas.core.auth.credentials.credential import AuthCredential
 from mas.core.auth.credentials.models import StaticAuthMethod
-from .config import A2AAgentNodeConfig
+
 from .a2a_agent_node import A2AAgentNode
+from .config import A2AAgentNodeConfig
 from .identifiers import Identifier
 
 
@@ -51,7 +50,7 @@ class A2AAgentNodeFactory(BaseFactory[A2AAgentNodeConfig, A2AAgentNode]):
             PluginConfigurationError: If creation fails
         """
         try:
-            auth_credential: Optional[AuthCredential] = deps.pop("auth_credential", None)
+            auth_credential: AuthCredential | None = deps.pop("auth_credential", None)
             retriever = deps.pop("retriever")
 
             bearer_token = None
@@ -72,6 +71,5 @@ class A2AAgentNodeFactory(BaseFactory[A2AAgentNodeConfig, A2AAgentNode]):
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"A2AAgentNodeFactory.create failed: {e}",
-                cfg.model_dump()
+                f"A2AAgentNodeFactory.create failed: {e}", cfg.model_dump()
             ) from e

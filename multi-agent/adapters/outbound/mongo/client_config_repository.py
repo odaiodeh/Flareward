@@ -8,13 +8,12 @@ Index: unique on server_identifier, multikey on categories
 from __future__ import annotations
 
 import logging
-from typing import List, Optional
-
-from pymongo import MongoClient, ASCENDING
-from pydantic import ValidationError
 
 from mas.core.auth.credentials.models import ClientConfig
 from mas.core.auth.credentials.ports import ServerConfigStore
+from pydantic import ValidationError
+from pymongo import ASCENDING, MongoClient
+from pymongo.collection import Collection
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +27,29 @@ def _validation_error_summary(exc: ValidationError) -> list[dict]:
 
 
 class MongoServerConfigStore(ServerConfigStore):
-
     def __init__(
         self,
         mongodb_ip: str = "127.0.0.1",
         mongodb_port: int = 27017,
         db_name: str = "unifai",
         coll_name: str = "server_configs",
-    ):
-        client = MongoClient(f"mongodb://{mongodb_ip}:{mongodb_port}/")
-        db = client[db_name]
-        self._coll = db[coll_name]
-        self._ensure_indexes()
+        *,
+        collection: Collection | None = None,
+    ) -> None:
+        self._client = None
+        if collection is None:
+            self._client = MongoClient(f"mongodb://{mongodb_ip}:{mongodb_port}/")
+            collection = self._client[db_name][coll_name]
+        self._coll = collection
+        try:
+            self._ensure_indexes()
+        except Exception:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
 
     def _ensure_indexes(self) -> None:
         self._coll.create_index(
@@ -53,7 +63,7 @@ class MongoServerConfigStore(ServerConfigStore):
             sparse=True,
         )
 
-    def find_by_server(self, user_id: str, server_identifier: str) -> Optional[ClientConfig]:
+    def find_by_server(self, user_id: str, server_identifier: str) -> ClientConfig | None:
         if not server_identifier:
             return None
         normalized = server_identifier.rstrip("/")
@@ -70,11 +80,11 @@ class MongoServerConfigStore(ServerConfigStore):
             upsert=True,
         )
 
-    def list_by_category(self, category: str) -> List[ClientConfig]:
+    def list_by_category(self, category: str) -> list[ClientConfig]:
         if not category:
             return []
         docs = self._coll.find({"categories": category})
-        configs: List[ClientConfig] = []
+        configs: list[ClientConfig] = []
         for doc in docs:
             cfg = self._to_model(doc)
             if cfg is not None:
@@ -82,7 +92,7 @@ class MongoServerConfigStore(ServerConfigStore):
         return configs
 
     @staticmethod
-    def _to_model(doc: dict) -> Optional[ClientConfig]:
+    def _to_model(doc: dict) -> ClientConfig | None:
         """Map a Mongo doc to ClientConfig; skip invalid docs (legacy / env mismatch)."""
         doc.pop("_id", None)
         try:

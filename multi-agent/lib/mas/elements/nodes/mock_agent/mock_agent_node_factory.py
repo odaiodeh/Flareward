@@ -1,8 +1,9 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import MockAgentNodeConfig
-from .mock_agent import MockAgentNode
 from .identifiers import Identifier
+from .mock_agent import MockAgentNode
 
 
 class MockAgentNodeFactory(BaseFactory[MockAgentNodeConfig, MockAgentNode]):
@@ -18,11 +19,8 @@ class MockAgentNodeFactory(BaseFactory[MockAgentNodeConfig, MockAgentNode]):
           • llm / retriever / tools – ignored by this node
         """
         try:
-            return MockAgentNode(
-                echo_message=getattr(cfg, "echo_message", None)
-            )
+            return MockAgentNode(echo_message=getattr(cfg, "echo_message", None))
         except Exception as exc:
             raise PluginConfigurationError(
-                f"MockAgentNodeFactory.create failed: {exc}",
-                cfg.dict()
+                f"MockAgentNodeFactory.create failed: {exc}", cfg.dict()
             ) from exc

@@ -11,35 +11,35 @@ The Deep Agent graph is compiled lazily on first ``run()`` because MCP tools
 require network initialization that isn't available at ``__init__`` time.
 """
 
+import asyncio
 import logging
 import os
 import tempfile
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, ClassVar, Dict, List, Optional, Set
-
-from langchain_core.messages import AIMessage, BaseMessage
-from langchain_core.tools import BaseTool as LangChainBaseTool
+from typing import Any, ClassVar
 
 from deepagents import create_deep_agent
 from deepagents.backends import LocalShellBackend
 from deepagents.backends.protocol import BackendProtocol
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.tools import BaseTool as LangChainBaseTool
 
+from mas.application.capabilities.hitl_capable import HITLCapableMixin
+from mas.application.capabilities.iem_capable import IEMCapableMixin
+from mas.application.capabilities.retriever_capable import RetrieverCapableMixin
+from mas.application.capabilities.workload_capable import WorkloadCapableMixin
+from mas.application.elements.node import BaseNode
+from mas.application.ports.llm import BaseLLM
+from mas.application.ports.tool import BaseTool
+from mas.application.ports.tool_provider import ToolProvider
+from mas.core.async_work import await_owned
 from mas.core.hitl.models import HITLMode, RequestOrigin
-from mas.elements.llms.common.base_llm import BaseLLM
+from mas.domain.messages import ChatMessage, Role
+from mas.domain.workloads import AgentResult, Task
 from mas.elements.llms.common.chat.converter import LangChainConverter, normalise_content
-from mas.elements.llms.common.chat.message import ChatMessage, Role
 from mas.elements.llms.common.langchain_adapter import BaseLLMChatModelAdapter
-from mas.elements.nodes.common.base_node import BaseNode
-from mas.elements.sandboxes.common.base_sandbox import BaseSandbox
-from mas.elements.nodes.common.capabilities.iem_capable import IEMCapableMixin
-from mas.elements.nodes.common.capabilities.retriever_capable import RetrieverCapableMixin
-from mas.elements.nodes.common.capabilities.workload_capable import WorkloadCapableMixin
-from mas.elements.nodes.common.capabilities.hitl_capable import HITLCapableMixin
-from mas.elements.nodes.common.workload import AgentResult, Task
-from mas.elements.providers.mcp_server_client.mcp_provider import McpProvider
 from mas.elements.nodes.deep_agent.hitl_middleware import HITLMiddleware
-from mas.elements.tools.common.base_tool import BaseTool
 from mas.elements.tools.common.converter import LangChainToolsConverter
 
 logger = logging.getLogger(__name__)
@@ -49,21 +49,23 @@ logger = logging.getLogger(__name__)
 # Value objects
 # ------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class ExecutionResult:
     """Immutable result from a Deep Agent invocation."""
 
     output: str = ""
     success: bool = True
-    error: Optional[str] = None
+    error: str | None = None
     reasoning: str = ""
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    metrics: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
+    metrics: dict[str, Any] = field(default_factory=dict)
 
 
 # ------------------------------------------------------------------
 # Node
 # ------------------------------------------------------------------
+
 
 class DeepAgentNode(
     WorkloadCapableMixin,
@@ -90,13 +92,12 @@ class DeepAgentNode(
         self,
         *,
         llm: BaseLLM,
-        tools: Optional[List[BaseTool]] = None,
-        mcp_providers: Optional[List[McpProvider]] = None,
-        sandbox: Optional[BaseSandbox] = None,
+        tools: list[BaseTool] | None = None,
+        mcp_providers: list[ToolProvider] | None = None,
         system_message: str = "",
         retriever: Any = None,
-        cwd: Optional[str] = None,
-        env_vars: Optional[Dict[str, str]] = None,
+        cwd: str | None = None,
+        env_vars: dict[str, str] | None = None,
         execution_holder=None,
         shared_storage: str = "/app/shared",
         hitl_mode: HITLMode = HITLMode.SKIP,
@@ -110,12 +111,11 @@ class DeepAgentNode(
         )
 
         self._llm = llm
-        self._domain_tools: List[BaseTool] = tools or []
-        self._mcp_providers: List[McpProvider] = mcp_providers or []
-        self._sandbox = sandbox
+        self._domain_tools: list[BaseTool] = tools or []
+        self._mcp_providers: list[ToolProvider] = mcp_providers or []
         self._system_message = system_message
         self._cwd = cwd
-        self._env_vars: Dict[str, str] = env_vars or {}
+        self._env_vars: dict[str, str] = env_vars or {}
         self._shared_storage = shared_storage
 
         self._compiled_agent: Any = None
@@ -124,63 +124,30 @@ class DeepAgentNode(
     # Graph lifecycle
     # ==================================================================
 
-    def run(self, state: Any) -> Any:
+    async def run(self, state: Any) -> Any:
         """Main entry point — build the Deep Agent (if needed), then process packets."""
-        from mas.elements.nodes.common.context_binder import close_tools
 
-        self._ensure_compiled()
-        try:
-            self.process_packets(state)
-        finally:
-            close_tools(self._domain_tools)
-            if self._sandbox is not None:
-                try:
-                    self._sandbox.close()
-                except Exception:
-                    pass
+        await self._ensure_compiled()
+        await self.process_packets(state)
         return state
 
-    def _ensure_compiled(self) -> None:
+    async def _ensure_compiled(self) -> None:
         """Lazily compile the Deep Agent graph on first execution."""
         if self._compiled_agent is not None:
             return
 
-        from mas.elements.nodes.common.context_binder import bind_tool_context
-
-        bind_tool_context(
-            self._domain_tools,
-            session_id=self.hitl_session_id,
-            agent_id=self.uid,
-        )
-
-        if self._sandbox is not None:
-            self._sandbox.bind_context(
-                session_id=self.hitl_session_id,
-                agent_id=self.uid,
-            )
-
-        langchain_tools = self._collect_langchain_tools()
-        self._compiled_agent = self._build_deep_agent(langchain_tools)
+        langchain_tools = await self._collect_langchain_tools()
+        self._compiled_agent = await self._build_deep_agent(langchain_tools)
         logger.info("DeepAgent %s: compiled graph with %d tools", self.uid, len(langchain_tools))
 
-    def _collect_langchain_tools(self) -> List[LangChainBaseTool]:
-        """Gather all tools (domain + MCP) and convert to LangChain format.
+    async def _collect_langchain_tools(self) -> list[LangChainBaseTool]:
+        """Collect configured tools in this invocation's execution environment."""
+        tools = list(self._domain_tools)
+        for provider in self._mcp_providers:
+            tools.extend(await provider.get_tools())
+        return LangChainToolsConverter.to_lc(tools)
 
-        When sandbox routing is active, MCP tools are wrapped in
-        SandboxToolProxy. Otherwise originals are used.
-        """
-        from mas.elements.nodes.common.context_binder import get_sandbox_wrapped_mcp_tools
-
-        all_domain_tools: List[BaseTool] = list(self._domain_tools)
-        wrapped = get_sandbox_wrapped_mcp_tools(self._sandbox, self._mcp_providers)
-        if wrapped is not None:
-            all_domain_tools.extend(wrapped)
-        else:
-            for provider in self._mcp_providers:
-                all_domain_tools.extend(provider.get_tools())
-        return LangChainToolsConverter.to_lc(all_domain_tools)
-
-    def _build_deep_agent(self, tools: List[LangChainBaseTool]) -> Any:
+    async def _build_deep_agent(self, tools: list[LangChainBaseTool]) -> Any:
         """Compile a Deep Agent graph with LocalShellBackend for filesystem access.
 
         When HITL is active (gate + policy injected), a ``HITLMiddleware``
@@ -190,8 +157,8 @@ class DeepAgentNode(
         ``HITLExecutionHandler``.
         """
         adapter = BaseLLMChatModelAdapter(llm=self._llm)
-        backend = self._build_backend()
-        middleware = self._build_middleware()
+        backend = await await_owned(asyncio.to_thread(self._build_backend))
+        middleware = await self._build_middleware()
 
         return create_deep_agent(
             model=adapter,
@@ -205,7 +172,7 @@ class DeepAgentNode(
     # HITL middleware
     # ==================================================================
 
-    def _build_middleware(self) -> list:
+    async def _build_middleware(self) -> list:
         """Assemble the middleware stack for Deep Agent compilation."""
         middleware: list = []
 
@@ -217,15 +184,17 @@ class DeepAgentNode(
             )
             tool_registry = {t.name: t for t in self._domain_tools}
             for provider in self._mcp_providers:
-                for tool in provider.get_tools():
+                for tool in await provider.get_tools():
                     tool_registry[tool.name] = tool
 
-            middleware.append(HITLMiddleware(
-                gate=self._approval_gate,
-                policy=self._approval_policy,
-                tool_registry=tool_registry,
-                origin=origin,
-            ))
+            middleware.append(
+                HITLMiddleware(
+                    gate=self._approval_gate,
+                    policy=self._approval_policy,
+                    tool_registry=tool_registry,
+                    origin=origin,
+                )
+            )
             logger.info(
                 "DeepAgent %s: HITL middleware enabled with %d registered tools",
                 self.uid,
@@ -241,16 +210,8 @@ class DeepAgentNode(
     def _build_backend(self) -> BackendProtocol:
         """Create the appropriate backend for the Deep Agent.
 
-        Returns an OpenShellSandboxBackend when a sandbox is attached,
-        otherwise falls back to LocalShellBackend.
+        LocalShellBackend operates inside the invocation's selected environment.
         """
-        if self._sandbox is not None:
-            from mas.elements.nodes.deep_agent.openshell_backend import (
-                OpenShellSandboxBackend,
-            )
-
-            logger.info("DeepAgent %s: using OpenShell sandbox backend", self.uid)
-            return OpenShellSandboxBackend(self._sandbox)
 
         root_dir = self._prepare_working_directory()
         env = self._build_env()
@@ -274,7 +235,7 @@ class DeepAgentNode(
         os.makedirs(work_dir, exist_ok=True)
         return work_dir
 
-    def _build_env(self) -> Optional[Dict[str, str]]:
+    def _build_env(self) -> dict[str, str] | None:
         """Build environment variables dict for the backend, or None if empty."""
         if not self._env_vars:
             return None
@@ -284,7 +245,7 @@ class DeepAgentNode(
     # Task processing (IEM contract)
     # ==================================================================
 
-    def handle_task_packet(self, packet: Any) -> None:
+    async def handle_task_packet(self, packet: Any) -> None:
         """Process a single ``TaskPacket`` through the Deep Agent."""
         task = packet.extract_task()
         task.mark_processed(self.uid)
@@ -294,7 +255,7 @@ class DeepAgentNode(
                 self.workspaces.add_task(task.thread_id, task)
 
             conversation_context = self._build_conversation_context(task)
-            execution_result = self._invoke(conversation_context)
+            execution_result = await self._invoke(conversation_context)
             agent_result = self._to_agent_result(execution_result)
 
             if task.thread_id:
@@ -320,9 +281,9 @@ class DeepAgentNode(
     # Context building
     # ==================================================================
 
-    def _build_conversation_context(self, task: Task) -> List[ChatMessage]:
+    def _build_conversation_context(self, task: Task) -> list[ChatMessage]:
         """Assemble workspace history + agent results + current prompt."""
-        context_messages: List[ChatMessage] = []
+        context_messages: list[ChatMessage] = []
 
         if task.thread_id:
             workspace_messages = self.workspaces.get_recent_messages(task.thread_id, 20)
@@ -342,7 +303,7 @@ class DeepAgentNode(
         context_messages.append(ChatMessage(role=Role.USER, content=task.content))
         return context_messages
 
-    def _build_agent_results_context(self, thread_id: Optional[str]) -> Optional[ChatMessage]:
+    def _build_agent_results_context(self, thread_id: str | None) -> ChatMessage | None:
         """Summarise previous agent results into a single context message."""
         if not thread_id:
             return None
@@ -361,17 +322,17 @@ class DeepAgentNode(
     # Deep Agent invocation
     # ==================================================================
 
-    def _invoke(self, context: List[ChatMessage]) -> ExecutionResult:
+    async def _invoke(self, context: list[ChatMessage]) -> ExecutionResult:
         """Route to streaming or synchronous invocation based on channel state."""
         lc_messages = LangChainConverter.to_lc(context)
 
         if self.is_streaming():
-            return self._invoke_streaming(lc_messages)
-        return self._invoke_sync(lc_messages)
+            return await self._invoke_streaming(lc_messages)
+        return await self._invoke_completion(lc_messages)
 
-    def _invoke_sync(self, lc_messages: List[BaseMessage]) -> ExecutionResult:
+    async def _invoke_completion(self, lc_messages: list[BaseMessage]) -> ExecutionResult:
         """Synchronous (non-streaming) Deep Agent invocation."""
-        result = self._compiled_agent.invoke({"messages": lc_messages})
+        result = await self._compiled_agent.ainvoke({"messages": lc_messages})
 
         output_messages = result.get("messages", [])
         last_ai = next(
@@ -383,16 +344,16 @@ class DeepAgentNode(
             output=normalise_content(last_ai.content) if last_ai else "",
         )
 
-    def _invoke_streaming(self, lc_messages: List[BaseMessage]) -> ExecutionResult:
+    async def _invoke_streaming(self, lc_messages: list[BaseMessage]) -> ExecutionResult:
         """Stream LLM tokens and tool calls in real time.
 
         Uses ``stream_mode="messages"`` with ``subgraphs=True`` so that
         events from the general-purpose subagent are also forwarded.
         """
         accumulated_text = ""
-        emitted_tool_call_ids: Set[str] = set()
+        emitted_tool_call_ids: set[str] = set()
 
-        for chunk in self._compiled_agent.stream(
+        async for chunk in self._compiled_agent.astream(
             {"messages": lc_messages},
             stream_mode="messages",
             subgraphs=True,
@@ -423,8 +384,8 @@ class DeepAgentNode(
 
     def _emit_tool_calls(
         self,
-        tool_calls: List[Dict[str, Any]],
-        emitted_ids: Set[str],
+        tool_calls: list[dict[str, Any]],
+        emitted_ids: set[str],
     ) -> None:
         """Emit ``tool_calling`` events for newly-seen tool calls."""
         for tc in tool_calls:
@@ -432,12 +393,14 @@ class DeepAgentNode(
             if call_id in emitted_ids:
                 continue
             emitted_ids.add(call_id)
-            self._stream({
-                "type": "tool_calling",
-                "tool": tc.get("name", ""),
-                "call_id": call_id,
-                "args": tc.get("args", {}),
-            })
+            self._stream(
+                {
+                    "type": "tool_calling",
+                    "tool": tc.get("name", ""),
+                    "call_id": call_id,
+                    "args": tc.get("args", {}),
+                }
+            )
 
     # ==================================================================
     # Result creation
@@ -473,21 +436,27 @@ class DeepAgentNode(
             else:
                 self._execute_broadcast_with_response(task, agent_result)
 
-    def _get_adjacent_node_uids(self) -> Set[str]:
+    def _get_adjacent_node_uids(self) -> set[str]:
         """Get adjacent node UIDs from network topology."""
         return set(self.get_adjacent_nodes().keys())
 
-    def _execute_direct_response(self, task: Task, result: AgentResult, original_packet: Any) -> None:
+    def _execute_direct_response(
+        self, task: Task, result: AgentResult, original_packet: Any
+    ) -> None:
         """Send direct response to requester."""
         response_task = Task.respond_success(
-            original_task=task, result=result, processed_by=self.uid,
+            original_task=task,
+            result=result,
+            processed_by=self.uid,
         )
         self.reply_task(original_packet, response_task)
 
     def _execute_broadcast_with_response(self, task: Task, result: AgentResult) -> None:
         """Broadcast with response request — carry original requester info."""
         response_task = task.fork(
-            content="finished work", processed_by=self.uid, result=result,
+            content="finished work",
+            processed_by=self.uid,
+            result=result,
         )
         response_task.should_respond = True
         response_task.response_to = task.response_to
@@ -497,6 +466,8 @@ class DeepAgentNode(
     def _execute_normal_broadcast(self, task: Task, result: AgentResult) -> None:
         """Normal broadcast — continue work."""
         forked_task = task.fork(
-            content="continue work", processed_by=self.uid, result=result,
+            content="continue work",
+            processed_by=self.uid,
+            result=result,
         )
         self.broadcast_task(forked_task)

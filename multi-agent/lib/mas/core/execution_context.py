@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime
+from typing import Any
 
-from pydantic import BaseModel, Field, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from mas.core.identity import Identity
 
@@ -12,6 +12,7 @@ from mas.core.identity import Identity
 CREDENTIAL_USER_ID_TAG = "credential_user_id"
 
 HITL_ENABLED_TAG = "hitl_enabled"
+APPROVAL_RULES_TAG = "approval_rules"
 
 
 class ExecutionContext(BaseModel):
@@ -23,16 +24,20 @@ class ExecutionContext(BaseModel):
     """
 
     session_id: str = ""
+    execution_id: str = ""
+    root_execution_id: str = ""
+    parent_execution_id: str | None = None
+    ancestor_execution_ids: tuple[str, ...] = ()
     identity: Identity
     scope: str = "public"
     engine_name: str = ""
-    engine_handle: Optional[str] = None
+    engine_handle: str | None = None
 
-    started_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    last_active_at: Optional[datetime] = None
-    finished_at: Optional[datetime] = None
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    last_active_at: datetime | None = None
+    finished_at: datetime | None = None
 
-    tags: Dict[str, Any] = Field(default_factory=dict)
+    tags: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 
@@ -42,7 +47,8 @@ class ExecutionContext(BaseModel):
         """Legacy docs stored without identity — synthesize a placeholder."""
         if isinstance(values, dict) and values.get("identity") is None:
             values["identity"] = {
-                "type": "user", "id": "unknown",
+                "type": "user",
+                "id": "unknown",
                 "display_name": "unknown",
             }
         return values
@@ -98,10 +104,10 @@ class ExecutionContext(BaseModel):
         return bool((self.tags or {}).get(HITL_ENABLED_TAG, False))
 
     def mark_active(self) -> ExecutionContext:
-        return self.model_copy(update={"last_active_at": datetime.now(timezone.utc)})
+        return self.model_copy(update={"last_active_at": datetime.now(UTC)})
 
     def mark_finished(self) -> ExecutionContext:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         return self.model_copy(update={"finished_at": now, "last_active_at": now})
 
 
@@ -120,7 +126,7 @@ class ExecutionContextHolder:
     __slots__ = ("_ctx",)
 
     def __init__(self) -> None:
-        self._ctx: Optional[ExecutionContext] = None
+        self._ctx: ExecutionContext | None = None
 
     @property
     def context(self) -> ExecutionContext:

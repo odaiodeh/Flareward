@@ -4,7 +4,7 @@ type TriggerMode = "scroll" | "manual";
 
 interface UsePaginationTriggerOptions {
   mode: TriggerMode;
-  scrollRef?: RefObject<HTMLDivElement | null>;
+  scrollRef?: RefObject<HTMLDivElement>;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
@@ -12,7 +12,7 @@ interface UsePaginationTriggerOptions {
 }
 
 interface UsePaginationTriggerReturn {
-  scrollRef: RefObject<HTMLDivElement | null>;
+  scrollRef: RefObject<HTMLDivElement>;
   next: () => void;
   canFetch: boolean;
   isFetchingNextPage: boolean;

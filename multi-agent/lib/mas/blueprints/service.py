@@ -1,43 +1,36 @@
 import logging
-import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from pydantic import ValidationError
 
-from mas.blueprints.models.blueprint import BlueprintSpec, BlueprintDraft, BlueprintDocument, BlueprintSummary
-from mas.blueprints.repository.repository import BlueprintRepository
-from mas.blueprints.resolver import BlueprintResolver
+from mas.application.elements.catalog.card_service import ElementCardService
+from mas.application.elements.validation import ElementValidationResult, ValidationContext
 from mas.blueprints.collector import BlueprintConfigCollector
 from mas.blueprints.exceptions import (
-    BlueprintNotFoundError,
     BlueprintAccessDeniedError,
-    BlueprintSaveError,
     BlueprintDuplicateNameError,
     BlueprintMetadataError,
-    InvalidMetadataKeysError,
+    BlueprintNotFoundError,
     PromptShortcutsValidationError,
 )
+from mas.blueprints.metadata import validate_metadata_keys as validate_metadata_keys
+from mas.blueprints.models.blueprint import (
+    BlueprintDocument,
+    BlueprintDraft,
+    BlueprintSpec,
+    BlueprintSummary,
+)
 from mas.blueprints.models.prompt_shortcuts import PromptShortcuts
+from mas.blueprints.repository.repository import BlueprintRepository
+from mas.blueprints.resolver import BlueprintResolver
 from mas.core.caller_scope import CallerScope
 from mas.core.identity import Identity
 from mas.core.ref import RefWalker
-from mas.elements.common.card import ElementCard
-from mas.elements.common.validator import ValidationContext, ElementValidationResult
-from mas.catalog.card_service import ElementCardService
+from mas.domain.element_card import ElementCard
 from mas.validation.models import BlueprintValidationResult
 from mas.validation.service import ElementValidationService
 
 logger = logging.getLogger(__name__)
-
-_VALID_METADATA_KEY = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_-]*$")
-
-
-def validate_metadata_keys(metadata: Dict[str, Any]) -> None:
-    """Reject metadata keys that would corrupt Mongo dot-notation paths or clash with operators."""
-    bad = [k for k in metadata if not _VALID_METADATA_KEY.match(k)]
-    if bad:
-        logger.info("Rejected metadata keys: %s", bad)
-        raise InvalidMetadataKeysError(bad)
 
 
 class BlueprintService:
@@ -57,17 +50,23 @@ class BlueprintService:
         self._config_collector = BlueprintConfigCollector()
 
     # ────────── Write ──────────
-    def save_draft(self, *, identity: Identity, draft_dict: dict,
-                   metadata: Optional[Dict[str, Any]] = None,
-                   skip_name_check: bool = False) -> str:
+    def save_draft(
+        self,
+        *,
+        identity: Identity,
+        draft_dict: dict,
+        metadata: dict[str, Any] | None = None,
+        skip_name_check: bool = False,
+    ) -> str:
         if metadata:
             validate_metadata_keys(metadata)
         draft_bp = BlueprintDraft(**draft_dict)
         if not skip_name_check and self._repo.name_exists_for_identity(identity, draft_bp.name):
             raise BlueprintDuplicateNameError(draft_bp.name)
         rid_refs = list(RefWalker.external_rids(draft_bp))
-        return self._repo.save(identity=identity, spec=draft_bp,
-                               rid_refs=rid_refs, metadata=metadata or {})
+        return self._repo.save(
+            identity=identity, spec=draft_bp, rid_refs=rid_refs, metadata=metadata or {}
+        )
 
     # ────────── Single-blueprint reads (ID is globally unique) ──────────
     def load_draft(self, blueprint_id: str) -> BlueprintDraft:
@@ -78,8 +77,7 @@ class BlueprintService:
         """Get blueprint document with metadata for sharing operations."""
         return self._repo.load(blueprint_id)
 
-    def update_draft(self, *, blueprint_id: str, draft_dict: dict,
-                     identity: Identity) -> bool:
+    def update_draft(self, *, blueprint_id: str, draft_dict: dict, identity: Identity) -> bool:
         try:
             doc = self._repo.load(blueprint_id)
         except KeyError as exc:
@@ -96,17 +94,23 @@ class BlueprintService:
         new_name = draft.name
         old_name = doc.spec_dict.get("name")
         if new_name != old_name and self._repo.name_exists_for_identity(
-            identity, new_name, exclude_blueprint_id=blueprint_id,
+            identity,
+            new_name,
+            exclude_blueprint_id=blueprint_id,
         ):
             raise BlueprintDuplicateNameError(new_name)
 
         rid_refs = list(RefWalker.external_rids(draft))
         return self._repo.update(
-            blueprint_id=blueprint_id, spec=draft, rid_refs=rid_refs,
+            blueprint_id=blueprint_id,
+            spec=draft,
+            rid_refs=rid_refs,
         )
 
     def load_resolved(
-        self, blueprint_id: str, caller: CallerScope = CallerScope(),
+        self,
+        blueprint_id: str,
+        caller: CallerScope = CallerScope(),
     ) -> BlueprintSpec:
         """Resolve a saved blueprint's refs into an executable spec.
 
@@ -117,9 +121,19 @@ class BlueprintService:
         """
         return self._resolver.resolve(self.load_draft(blueprint_id), caller=caller)
 
+    def load_owned_resolved(self, blueprint_id: str, identity: Identity) -> BlueprintSpec:
+        """Authorize the stored document before interpreting or resolving its configuration."""
+        document = self._repo.load(blueprint_id)
+        if not identity.owns(document.identity):
+            raise PermissionError("The caller does not own this blueprint")
+        draft = BlueprintDraft.from_stored_dict(document.spec_dict)
+        return self.resolve_draft(draft, CallerScope(identity=identity))
+
     def load_resolved_tolerant(
-        self, blueprint_id: str, caller: CallerScope = CallerScope(),
-    ) -> Tuple[BlueprintSpec, Dict[str, str]]:
+        self,
+        blueprint_id: str,
+        caller: CallerScope = CallerScope(),
+    ) -> tuple[BlueprintSpec, dict[str, str]]:
         """Like ``load_resolved``, but reports broken external refs instead of raising.
 
         Used by validation, where a stale/deleted referenced resource should
@@ -137,12 +151,22 @@ class BlueprintService:
         return BlueprintDraft.from_stored_dict(draft_dict)
 
     def resolve_draft_dict(
-        self, draft_dict: dict, caller: CallerScope = CallerScope(),
+        self,
+        draft_dict: dict,
+        caller: CallerScope = CallerScope(),
     ) -> BlueprintSpec:
         """Resolve a draft dictionary directly to BlueprintSpec without saving to database."""
-        return self._resolver.resolve(BlueprintDraft(**draft_dict), caller=caller)
+        return self.resolve_draft(BlueprintDraft(**draft_dict), caller=caller)
 
-    def to_dict(self, blueprint_id: str) -> Dict[str, Any]:
+    def resolve_draft(
+        self,
+        draft: BlueprintDraft,
+        caller: CallerScope = CallerScope(),
+    ) -> BlueprintSpec:
+        """Resolve an already validated draft without serializing its configuration again."""
+        return self._resolver.resolve(draft, caller=caller)
+
+    def to_dict(self, blueprint_id: str) -> dict[str, Any]:
         """Draft -> JSON-serialisable dict (no meta)."""
         return self.load_draft(blueprint_id).model_dump(mode="json")
 
@@ -150,49 +174,50 @@ class BlueprintService:
         return self._repo.exists(blueprint_id)
 
     def name_exists_for_identity(
-        self, identity: Identity, name: str,
-        *, exclude_blueprint_id: str | None = None,
+        self,
+        identity: Identity,
+        name: str,
+        *,
+        exclude_blueprint_id: str | None = None,
     ) -> bool:
         return self._repo.name_exists_for_identity(
-            identity, name, exclude_blueprint_id=exclude_blueprint_id,
+            identity,
+            name,
+            exclude_blueprint_id=exclude_blueprint_id,
         )
 
     def delete(self, blueprint_id: str) -> bool:
         return self._repo.delete(blueprint_id)
 
-    def load_many(self, blueprint_ids: List[str]) -> List[BlueprintDocument]:
+    def load_many(self, blueprint_ids: list[str]) -> list[BlueprintDocument]:
         """Load multiple blueprint documents by their IDs in a single operation."""
         return self._repo.load_many(blueprint_ids)
 
     # ────────── Bulk listing / counting (optionally per identity) ──────────
-    def list_ids(self, *, identity: Optional[Identity] = None, **pg) -> List[str]:
+    def list_ids(self, *, identity: Identity | None = None, **pg) -> list[str]:
         return self._repo.list_ids(identity=identity, **pg)
 
-    def list_summaries(
-            self, *, identity: Optional[Identity] = None, **pg
-    ) -> List[BlueprintSummary]:
+    def list_summaries(self, *, identity: Identity | None = None, **pg) -> list[BlueprintSummary]:
         """Return lightweight blueprint summaries (no full spec)."""
         return self._repo.list_summaries(identity=identity, **pg)
 
-    def list_draft_dicts(
-            self, *, identity: Optional[Identity] = None, **pg
-    ) -> List[Dict[str, Any]]:
+    def list_draft_dicts(self, *, identity: Identity | None = None, **pg) -> list[dict[str, Any]]:
         """
         Return pure-dict drafts (as saved) in one DB round-trip.
         """
         docs = self._repo.list_docs(identity=identity, **pg)
         return [doc.spec_dict for doc in docs]
 
-    def list_draft_docs(
-            self, *, identity: Optional[Identity] = None, **pg
-    ) -> List[BlueprintDocument]:
+    def list_draft_docs(self, *, identity: Identity | None = None, **pg) -> list[BlueprintDocument]:
         """
         Return blueprint documents (as saved) in one DB round-trip.
         """
         return self._repo.list_docs(identity=identity, **pg)
 
     def _resolve_doc(
-        self, doc: BlueprintDocument, caller: CallerScope = CallerScope(),
+        self,
+        doc: BlueprintDocument,
+        caller: CallerScope = CallerScope(),
     ) -> BlueprintDocument:
         """Resolve a single document's spec_dict from draft to fully resolved form.
 
@@ -208,7 +233,8 @@ class BlueprintService:
         if broken_refs:
             logger.warning(
                 "Blueprint '%s' has broken resource ref(s), resolved with gaps — %s",
-                doc.blueprint_id, broken_refs,
+                doc.blueprint_id,
+                broken_refs,
             )
         resolved_dict = spec.model_dump(mode="json")
         shortcuts = draft.model_dump(mode="json").get("prompt_shortcuts")
@@ -217,8 +243,8 @@ class BlueprintService:
         return doc.model_copy(update={"spec_dict": resolved_dict})
 
     def list_resolved_docs(
-            self, *, caller: CallerScope = CallerScope(), **pg
-    ) -> List[BlueprintDocument]:
+        self, *, caller: CallerScope = CallerScope(), **pg
+    ) -> list[BlueprintDocument]:
         """
         Return documents with resolved spec_dict instead of draft spec_dict.
 
@@ -234,14 +260,17 @@ class BlueprintService:
             except (KeyError, ValidationError) as e:
                 logger.warning(
                     "Skipping blueprint '%s': resolution failed — %s",
-                    doc.blueprint_id, e,
+                    doc.blueprint_id,
+                    e,
                 )
                 continue
 
         return resolved_docs
 
     def get_resolved_doc(
-        self, blueprint_id: str, caller: CallerScope = CallerScope(),
+        self,
+        blueprint_id: str,
+        caller: CallerScope = CallerScope(),
     ) -> BlueprintDocument:
         """
         Return a single document with its spec_dict resolved.
@@ -263,19 +292,20 @@ class BlueprintService:
             raise BlueprintNotFoundError(blueprint_id) from exc
         return self._resolve_doc(doc, caller=caller)
 
-    def count(self, *, identity: Optional[Identity] = None) -> int:
+    def count(self, *, identity: Identity | None = None) -> int:
         return self._repo.count(identity=identity)
 
     @staticmethod
-    def get_draft_schema() -> Dict[str, Any]:
+    def get_draft_schema() -> dict[str, Any]:
         """
         Return the JSON schema of the BlueprintDraft model.
         """
         return BlueprintDraft.model_json_schema()
 
     # ────────── Prompt Shortcuts ──────────
-    def set_prompt_shortcuts(self, blueprint_id: str, prompts: list[dict],
-                             *, identity: Identity) -> PromptShortcuts:
+    def set_prompt_shortcuts(
+        self, blueprint_id: str, prompts: list[dict], *, identity: Identity
+    ) -> PromptShortcuts:
         try:
             doc = self._repo.load(blueprint_id)
         except KeyError as exc:
@@ -286,7 +316,8 @@ class BlueprintService:
             shortcuts = PromptShortcuts.parse(prompts)
         except PromptShortcutsValidationError as exc:
             raise PromptShortcutsValidationError(
-                exc.message, blueprint_id=blueprint_id,
+                exc.message,
+                blueprint_id=blueprint_id,
             ) from exc
         if not self._repo.set_prompt_shortcuts(blueprint_id=blueprint_id, shortcuts=shortcuts):
             raise BlueprintNotFoundError(blueprint_id)
@@ -302,7 +333,7 @@ class BlueprintService:
         return PromptShortcuts.from_spec(doc.spec_dict)
 
     # ────────── Blueprint Metadata ──────────
-    def set_metadata(self, blueprint_id: str, metadata: Dict[str, Any]) -> bool:
+    def set_metadata(self, blueprint_id: str, metadata: dict[str, Any]) -> bool:
         """
         Merge keys into a blueprint's metadata (key-level upsert, not full replace).
         """
@@ -326,16 +357,16 @@ class BlueprintService:
     ) -> BlueprintValidationResult:
         """
         Validate all elements in a saved blueprint.
-        
+
         Args:
             blueprint_id: Blueprint ID to validate
             caller: Caller identity/admin status, used to resolve built-in overlays
             user_id: Logged-in user (for auth-aware validators)
             timeout_seconds: Timeout for network checks
-            
+
         Returns:
             BlueprintValidationResult with all element results
-            
+
         Raises:
             RuntimeError: If validation service not configured
             KeyError: If the blueprint itself does not exist
@@ -346,8 +377,11 @@ class BlueprintService:
         self._ensure_validation_service()
         spec, broken_refs = self.load_resolved_tolerant(blueprint_id, caller=caller)
         return self._validate_spec(
-            spec, blueprint_id, timeout_seconds,
-            user_id=user_id, credential_user_id=credential_user_id,
+            spec,
+            blueprint_id,
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
             broken_refs=broken_refs,
         )
 
@@ -369,8 +403,11 @@ class BlueprintService:
         draft = BlueprintDraft(**draft_dict)
         spec, broken_refs = self._resolver.resolve_tolerant(draft, caller=caller)
         return self._validate_spec(
-            spec, "draft", timeout_seconds,
-            user_id=user_id, credential_user_id=credential_user_id,
+            spec,
+            "draft",
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
             broken_refs=broken_refs,
         )
 
@@ -379,7 +416,7 @@ class BlueprintService:
         self,
         blueprint_id: str,
         caller: CallerScope = CallerScope(),
-    ) -> Dict[str, ElementCard]:
+    ) -> dict[str, ElementCard]:
         """
         Get element cards for all elements in a saved blueprint.
         """
@@ -391,7 +428,7 @@ class BlueprintService:
         self,
         draft_dict: dict,
         caller: CallerScope = CallerScope(),
-    ) -> Dict[str, ElementCard]:
+    ) -> dict[str, ElementCard]:
         """
         Get element cards for a blueprint draft.
         """
@@ -417,7 +454,7 @@ class BlueprintService:
         timeout_seconds: float,
         user_id: str = "",
         credential_user_id: str = "",
-        broken_refs: Optional[Dict[str, str]] = None,
+        broken_refs: dict[str, str] | None = None,
     ) -> BlueprintValidationResult:
         """Collect configs from spec, validate, and build result.
 
@@ -443,7 +480,7 @@ class BlueprintService:
     def _build_cards_from_spec(
         self,
         spec: BlueprintSpec,
-    ) -> Dict[str, ElementCard]:
+    ) -> dict[str, ElementCard]:
         """Collect configs from spec and build cards."""
         configs = self._config_collector.collect(spec)
         return self._card_service.build_all_cards(configs)

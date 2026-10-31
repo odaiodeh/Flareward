@@ -1,6 +1,6 @@
 import React, { memo, useCallback, useMemo, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Wrench, ShieldAlert } from "lucide-react";
-import { StreamLogEntry, ToolEntry, ApprovalEntry, ApprovalDecision, AutoRuleAction } from './types';
+import { StreamLogEntry, ToolEntry, ApprovalEntry, ApprovalDecisionHandler, AutoRuleHandler } from './types';
 import { StatusIndicator } from './StatusIndicator';
 import { preprocessText, MarkdownComponents } from "./helpers/TextComponents";
 import { ApprovalCard } from './ApprovalCard';
@@ -12,18 +12,8 @@ interface StreamLogItemProps {
   messageId: string;
   sessionId: string;
   onToggleExpansion: (messageId: string, nodeId: string) => void;
-  onApprovalDecision?: (
-    requestId: string,
-    decision: ApprovalDecision,
-    feedback?: string,
-    modifiedArgs?: Record<string, any>,
-  ) => Promise<void>;
-  onAutoRule?: (
-    requestId: string,
-    nodeUid: string | null,
-    toolName: string | null,
-    action: AutoRuleAction,
-  ) => Promise<void>;
+  onApprovalDecision?: ApprovalDecisionHandler;
+  onAutoRule?: AutoRuleHandler;
 }
 
 // Separate component for tool call display
@@ -210,7 +200,8 @@ export const StreamLogItem = memo(({
     };
   }, [log.message]);
 
-  const hasTools = log.tools && log.tools.length > 0;
+  const toolCallCount = log.tools?.length ?? 0;
+  const hasTools = toolCallCount > 0;
   const uniqueToolCount = useMemo(() => {
     if (!log.tools || log.tools.length === 0) return 0;
     return new Set(log.tools.map(t => t.name)).size;
@@ -243,7 +234,7 @@ export const StreamLogItem = memo(({
             <div className="flex items-center space-x-1">
               <Wrench className="h-3 w-3 text-blue-400" />
               <span className="text-xs text-blue-400">
-                {uniqueToolCount} tool{uniqueToolCount !== 1 ? 's' : ''} used · {log.tools.length} call{log.tools.length !== 1 ? 's' : ''}
+                {uniqueToolCount} tool{uniqueToolCount !== 1 ? 's' : ''} used · {toolCallCount} call{toolCallCount !== 1 ? 's' : ''}
               </span>
             </div>
           )}
@@ -279,7 +270,7 @@ export const StreamLogItem = memo(({
           <div className="bg-gray-900 border-t border-gray-700 w-full px-3 py-2 space-y-2">
             {approvals.map((approval) => (
               <ApprovalCard
-                key={approval.requestId}
+                key={`${approval.executionId ?? "legacy"}:${approval.requestId}`}
                 approval={approval}
                 sessionId={sessionId}
                 onDecision={onApprovalDecision || (async () => {})}
@@ -333,6 +324,8 @@ export const StreamLogItem = memo(({
     prevLog.nodeId !== nextLog.nodeId ||
     prevProps.messageId !== nextProps.messageId ||
     prevProps.sessionId !== nextProps.sessionId ||
+    prevProps.onApprovalDecision !== nextProps.onApprovalDecision ||
+    prevProps.onAutoRule !== nextProps.onAutoRule ||
     prevLog.status !== nextLog.status ||
     prevLog.nodeName !== nextLog.nodeName ||
     prevLog.isExpanded !== nextLog.isExpanded
@@ -366,6 +359,7 @@ export const StreamLogItem = memo(({
   for (let i = 0; i < prevApprovals.length; i++) {
     if (
       prevApprovals[i]?.requestId !== nextApprovals[i]?.requestId ||
+      prevApprovals[i]?.executionId !== nextApprovals[i]?.executionId ||
       prevApprovals[i]?.status !== nextApprovals[i]?.status
     ) {
       return false;

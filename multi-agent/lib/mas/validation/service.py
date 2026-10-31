@@ -15,19 +15,20 @@ Does NOT:
 - Resolve references
 """
 
-from typing import Dict, List, Optional, Type
+import asyncio
 
-from mas.catalog.element_registry import ElementRegistry
-from mas.core.element_meta import ElementConfigMeta
-from mas.elements.common.validator import (
-    ElementValidator,
+from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.application.elements.validation import (
     ElementValidationResult,
-    ValidatorReport,
+    ValidationCode,
     ValidationContext,
     ValidationMessage,
     ValidationSeverity,
-    ValidationCode,
+    ValidatorReport,
 )
+from mas.core.async_work import await_owned
+from mas.core.element_meta import ElementConfigMeta
+from mas.core.secrets import redact_configuration_values
 
 
 class ElementValidationService:
@@ -36,7 +37,7 @@ class ElementValidationService:
 
     Receives configs, returns results.
     Only dependency is ElementRegistry (to find validators).
-    All methods are synchronous.
+    Native async validation and retained synchronous callers share report construction.
 
     Validators return ValidatorReport (what they found).
     Service builds ElementValidationResult (report + metadata).
@@ -64,6 +65,38 @@ class ElementValidationService:
         (a plain flag on the metadata) rather than importing any
         Resources/built-in-specific logic here.
         """
+        result = self._preflight(config_meta)
+        if result is not None:
+            return result
+        validator = self._registry.get_spec(
+            config_meta.category, config_meta.type_key
+        ).validator_cls()
+        return self._build_result(config_meta, validator.validate(config_meta.config, context))
+
+    async def validate_async(
+        self, config_meta: ElementConfigMeta, context: ValidationContext
+    ) -> ElementValidationResult:
+        result = self._preflight(config_meta)
+        if result is not None:
+            return result
+        validator = self._registry.get_spec(
+            config_meta.category, config_meta.type_key
+        ).validator_cls()
+        operation = asyncio.create_task(validator.validate_async(config_meta.config, context))
+        report = await await_owned(operation, on_cancel=operation.cancel)
+        return self._build_result(config_meta, report)
+
+    async def validate_ordered_async(
+        self, configs: list[ElementConfigMeta], base_context: ValidationContext
+    ) -> dict[str, ElementValidationResult]:
+        results = {}
+        for meta in configs:
+            results[meta.rid] = await self.validate_async(
+                meta, base_context.with_dependency_results(results)
+            )
+        return results
+
+    def _preflight(self, config_meta: ElementConfigMeta) -> ElementValidationResult | None:
         if config_meta.validation_override_error:
             return ElementValidationResult(
                 is_valid=False,
@@ -79,16 +112,10 @@ class ElementValidationService:
                 ],
             )
 
-        spec = self._registry.get_spec(
-            config_meta.category,
-            config_meta.type_key
-        )
-
-        validator_cls: Optional[Type[ElementValidator]] = getattr(
-            spec, "validator_cls", None
-        )
-
-        if validator_cls is None:
+        if (
+            self._registry.get_spec(config_meta.category, config_meta.type_key).validator_cls
+            is None
+        ):
             return ElementValidationResult(
                 is_valid=True,
                 element_rid=config_meta.rid,
@@ -103,10 +130,7 @@ class ElementValidationService:
                 ],
             )
 
-        validator = validator_cls()
-        report = validator.validate(config_meta.config, context)
-
-        return self._build_result(config_meta, report)
+        return None
 
     def _build_result(
         self,
@@ -119,20 +143,26 @@ class ElementValidationService:
         The service knows the element metadata (rid, type, name).
         The validator only knows what it found (messages, checked deps).
         """
+        texts = redact_configuration_values(
+            config_meta.config, [message.message for message in report.messages]
+        )
         return ElementValidationResult(
             is_valid=report.is_valid,
             element_rid=config_meta.rid,
             element_type=config_meta.type_key,
             name=config_meta.name,
-            messages=report.messages,
+            messages=[
+                message.model_copy(update={"message": text})
+                for message, text in zip(report.messages, texts, strict=True)
+            ],
             dependency_results=report.checked_dependencies,
         )
 
     def validate_ordered(
         self,
-        configs: List[ElementConfigMeta],
+        configs: list[ElementConfigMeta],
         base_context: ValidationContext,
-    ) -> Dict[str, ElementValidationResult]:
+    ) -> dict[str, ElementValidationResult]:
         """
         Validate multiple configs in the given order.
 
@@ -142,7 +172,7 @@ class ElementValidationService:
         Results accumulate in context so later validators can see
         earlier results.
         """
-        results: Dict[str, ElementValidationResult] = {}
+        results: dict[str, ElementValidationResult] = {}
 
         for config_meta in configs:
             context = base_context.with_dependency_results(results)

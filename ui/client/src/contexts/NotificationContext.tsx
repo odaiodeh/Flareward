@@ -1,14 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { 
-  ShareInvite, 
-  listShares, 
-  createShare, 
-  acceptShare, 
-  declineShare,
-  CreateShareRequest,
-  AcceptShareRequest,
-  DeclineShareRequest 
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import {
+  ShareInvite, listShares, createShare, acceptShare, declineShare, CreateShareRequest,
 } from '@/api/shares';
+import { useLatestRequest } from '@/hooks/use-latest-request';
 import { useAuth } from './AuthContext';
 import { useView } from './ViewContext';
 
@@ -28,175 +22,97 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-interface NotificationProviderProps {
-  children: ReactNode;
-}
-
-export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
+export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
-  const { viewMode, selectedTeam, teams } = useView();
+  const { viewMode, selectedTeam } = useView();
   const [receivedNotifications, setReceivedNotifications] = useState<ShareInvite[]>([]);
   const [sentNotifications, setSentNotifications] = useState<ShareInvite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const userId = user?.username || '';
-  const contextUserId = viewMode === 'team' && selectedTeam
-    ? selectedTeam.id
-    : userId;
+  const teamId = viewMode === 'team' ? selectedTeam?.id : undefined;
+  const scopeKey = JSON.stringify([isAuthenticated, userId, viewMode, teamId]);
+  const currentScope = useRef(scopeKey);
+  currentScope.current = scopeKey;
+  const scopeRequests = useRef(new AbortController());
+  const beginRefresh = useLatestRequest();
 
-  // Computed values
-  const pendingNotificationsCount = receivedNotifications.filter(
-    (notification) => notification.status === 'pending'
-  ).length;
+  useEffect(() => {
+    const owned = new AbortController();
+    scopeRequests.current = owned;
+    return () => owned.abort();
+  }, [scopeKey]);
 
-  const hasUnreadNotifications = pendingNotificationsCount > 0;
-
-  // Refresh notifications from the API
-  const refreshNotifications = async () => {
-    if (!isAuthenticated || !userId) return;
-
+  const refreshNotifications = useCallback(async () => {
+    const signal = beginRefresh();
+    const key = scopeKey;
+    const active = () => !signal.aborted && currentScope.current === key;
+    if (!isAuthenticated || !userId || (viewMode === 'team' && !teamId)) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
-
     try {
-      const teamId = viewMode === 'team' && selectedTeam ? selectedTeam.id : undefined;
-      const [receivedResponse, sentResponse] = await Promise.all([
-        listShares('received', undefined, 0, 100, teamId),
-        listShares('sent', undefined, 0, 100, teamId),
+      const [received, sent] = await Promise.all([
+        listShares('received', undefined, 0, 100, teamId, signal),
+        listShares('sent', undefined, 0, 100, teamId, signal),
       ]);
-
-      setReceivedNotifications(receivedResponse.invites);
-      setSentNotifications(sentResponse.invites);
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch notifications');
+      if (!active()) return;
+      setReceivedNotifications(received.invites);
+      setSentNotifications(sent.invites);
+    } catch (failure) {
+      if (active()) setError(failure instanceof Error ? failure.message : 'Failed to fetch notifications');
     } finally {
-      setIsLoading(false);
+      if (active()) setIsLoading(false);
     }
-  };
+  }, [beginRefresh, isAuthenticated, userId, viewMode, teamId, scopeKey]);
 
-  const sendNotification = async (request: CreateShareRequest) => {
-    setError(null);
-    
-    try {
-      const senderType = viewMode === 'team' && selectedTeam ? 'team' : 'user';
-      const senderDisplayName =
-        senderType === 'team'
-          ? (
-              selectedTeam?.name?.trim()
-              || teams.find((t) => t.id === selectedTeam?.id)?.name?.trim()
-              || selectedTeam?.id
-            )
-          : (user?.username || contextUserId);
-      await createShare({
-        ...request,
-        senderIdentityId: contextUserId,
-        senderType,
-        senderDisplayName,
-      });
-      await refreshNotifications();
-    } catch (err) {
-      console.error('Failed to send notification:', err);
-      setError(err instanceof Error ? err.message : 'Failed to send notification');
-      throw err;
-    }
-  };
-
-  // Accept a notification
-  const acceptNotification = async (shareId: string) => {
-    setError(null);
-    
-    try {
-      await acceptShare({ shareId });
-      
-      // Update the local state to reflect the change
-      setReceivedNotifications(prev => 
-        prev.map(notification => 
-          notification.share_id === shareId 
-            ? { ...notification, status: 'accepted' as const }
-            : notification
-        )
-      );
-    } catch (err) {
-      console.error('Failed to accept notification:', err);
-      setError(err instanceof Error ? err.message : 'Failed to accept notification');
-      throw err;
-    }
-  };
-
-  // Decline a notification
-  const declineNotification = async (shareId: string) => {
-    setError(null);
-    
-    try {
-      await declineShare({ shareId });
-      
-      // Update the local state to reflect the change
-      setReceivedNotifications(prev => 
-        prev.map(notification => 
-          notification.share_id === shareId 
-            ? { ...notification, status: 'declined' as const }
-            : notification
-        )
-      );
-    } catch (err) {
-      console.error('Failed to decline notification:', err);
-      setError(err instanceof Error ? err.message : 'Failed to decline notification');
-      throw err;
-    }
-  };
-
-  const clearError = () => setError(null);
-
-  // Auto-fetch notifications when user logs in
   useEffect(() => {
-    if (isAuthenticated && userId) {
-      refreshNotifications();
-    } else {
-      // Clear notifications when user logs out
-      setReceivedNotifications([]);
-      setSentNotifications([]);
-      setError(null);
-    }
-  }, [isAuthenticated, userId, viewMode, selectedTeam?.id, teams]);
-
-  // Set up periodic refresh (every 30 seconds)
-  useEffect(() => {
-    if (!isAuthenticated || !userId) return;
-
-    const interval = setInterval(() => {
-      refreshNotifications();
-    }, 30000); // 30 seconds
-
+    setReceivedNotifications([]);
+    setSentNotifications([]);
+    setError(null);
+    void refreshNotifications();
+    const interval = setInterval(() => { void refreshNotifications(); }, 30000);
     return () => clearInterval(interval);
-  }, [isAuthenticated, userId, viewMode, selectedTeam?.id, teams]);
+  }, [refreshNotifications]);
 
-  const value: NotificationContextType = {
-    receivedNotifications,
-    sentNotifications,
-    isLoading,
-    error,
-    pendingNotificationsCount,
-    hasUnreadNotifications,
-    refreshNotifications,
-    sendNotification,
-    acceptNotification,
-    declineNotification,
-    clearError,
+  const mutate = async (operation: (signal: AbortSignal) => Promise<unknown>) => {
+    const key = scopeKey;
+    const signal = scopeRequests.current.signal;
+    const active = () => !signal.aborted && currentScope.current === key;
+    setError(null);
+    try {
+      await operation(signal);
+      if (active()) await refreshNotifications();
+    } catch (failure) {
+      if (!active()) return;
+      setError(failure instanceof Error ? failure.message : 'Failed to update invitation');
+      throw failure;
+    }
   };
 
-  return (
-    <NotificationContext.Provider value={value}>
-      {children}
-    </NotificationContext.Provider>
-  );
+  const sendNotification = (request: CreateShareRequest) => mutate(signal => createShare({
+    ...request,
+    teamId,
+    senderIdentityId: teamId || userId,
+    senderType: teamId ? 'team' : 'user',
+    senderDisplayName: teamId ? selectedTeam?.name?.trim() || teamId : userId,
+  }, signal));
+  const acceptNotification = (shareId: string) => mutate(signal => acceptShare({ shareId, teamId }, signal));
+  const declineNotification = (shareId: string) => mutate(signal => declineShare({ shareId, teamId }, signal));
+  const pendingNotificationsCount = receivedNotifications.filter(item => item.status === 'pending' && !item.is_expired).length;
+
+  return <NotificationContext.Provider value={{
+    receivedNotifications, sentNotifications, isLoading, error,
+    pendingNotificationsCount, hasUnreadNotifications: pendingNotificationsCount > 0,
+    refreshNotifications, sendNotification, acceptNotification, declineNotification,
+    clearError: () => setError(null),
+  }}>{children}</NotificationContext.Provider>;
 };
 
 export const useNotifications = (): NotificationContextType => {
   const context = useContext(NotificationContext);
-  if (context === undefined) {
-    throw new Error('useNotifications must be used within a NotificationProvider');
-  }
+  if (context === undefined) throw new Error('useNotifications must be used within a NotificationProvider');
   return context;
 };

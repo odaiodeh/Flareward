@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
-from typing import Any, Dict, Iterator, List, Optional
+from contextlib import AbstractContextManager
+from typing import Any
 
 from mas.core.tracing.models import ObservationHandle
 
@@ -19,54 +17,49 @@ class TracingService(ABC):
     @abstractmethod
     def enabled(self) -> bool: ...
 
-    @contextmanager
     @abstractmethod
     def trace_session(
         self,
         session_id: str,
         user_id: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Iterator[ObservationHandle]: ...
+        metadata: dict[str, Any] | None = None,
+    ) -> AbstractContextManager[ObservationHandle]: ...
 
-    @contextmanager
     @abstractmethod
     def trace_node(
         self,
         node_uid: str,
         node_type: str,
         display_name: str = "",
-    ) -> Iterator[ObservationHandle]: ...
+    ) -> AbstractContextManager[ObservationHandle]: ...
 
-    @contextmanager
     @abstractmethod
     def trace_llm(
         self,
         model: str,
         provider: str,
-        input_messages: Optional[List[Any]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Iterator[ObservationHandle]: ...
+        input_messages: list[Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> AbstractContextManager[ObservationHandle]: ...
 
-    @contextmanager
     @abstractmethod
     def trace_tool(
         self,
         tool_name: str,
-        tool_input: Optional[Dict[str, Any]] = None,
-    ) -> Iterator[ObservationHandle]: ...
+        tool_input: dict[str, Any] | None = None,
+    ) -> AbstractContextManager[ObservationHandle]: ...
 
-    @contextmanager
     @abstractmethod
     def trace_agent_iteration(
         self,
         iteration: int,
         strategy: str = "",
-    ) -> Iterator[ObservationHandle]: ...
+    ) -> AbstractContextManager[ObservationHandle]: ...
 
     @abstractmethod
     def flush(self) -> None: ...
 
-    def get_session_cost(self, session_id: str) -> Optional[float]:
+    def get_session_cost(self, session_id: str) -> float | None:
         """Fetch the total USD cost for a session from the tracing backend.
 
         Returns a float (>= 0) when the session exists in the tracing

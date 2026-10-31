@@ -5,31 +5,37 @@ Uses clean Pydantic models and enums to define orchestrator phases professionall
 """
 
 import logging
+from collections.abc import Callable
 from enum import Enum
-from typing import List, Callable, Any, Optional
-from mas.elements.tools.common.base_tool import BaseTool
-from mas.elements.llms.common.chat.message import ChatMessage
-from mas.elements.nodes.common.agent.phases.unified_phase_provider import PhaseProvider
-from mas.elements.nodes.common.agent.phases.phase_definition import PhaseSystem, PhaseDefinition
-from mas.elements.nodes.common.agent.phases.phase_protocols import PhaseState, create_phase_state
-from mas.elements.nodes.common.agent.phases.models import PhaseValidationContext
-from .phases.models import PhaseIterationLimits, PhaseIterationState
-from .phases.validators import (
-    AllocationValidator, PlanningValidator, ExecutionValidator,
-    MonitoringValidator, SynthesisValidator
-)
-from .context import OrchestratorContextBuilder
-from .context.models import CycleTriggerReason
+from typing import Any
+
+from mas.application.agents.phases.models import PhaseValidationContext
+from mas.application.agents.phases.phase_definition import PhaseDefinition, PhaseSystem
+from mas.application.agents.phases.phase_protocols import PhaseState, create_phase_state
+from mas.application.agents.phases.unified_phase_provider import PhaseProvider
+from mas.application.ports.tool import BaseTool
+from mas.domain.messages import ChatMessage
+from mas.elements.tools.builtin.delegation.delegate_task import DelegateTaskTool
+from mas.elements.tools.builtin.time import GetCurrentTimeTool
+from mas.elements.tools.builtin.topology.get_node_card import GetNodeCardTool
+from mas.elements.tools.builtin.topology.list_adjacent import ListAdjacentNodesTool
+from mas.elements.tools.builtin.workplan.assign_item import AssignWorkItemTool
 
 # Built-in orchestration tools
 from mas.elements.tools.builtin.workplan.create_or_update import CreateOrUpdateWorkPlanTool
-from mas.elements.tools.builtin.workplan.assign_item import AssignWorkItemTool
 from mas.elements.tools.builtin.workplan.mark_status import MarkWorkItemStatusTool
 from mas.elements.tools.builtin.workplan.record_execution import RecordLocalExecutionTool
-from mas.elements.tools.builtin.delegation.delegate_task import DelegateTaskTool
-from mas.elements.tools.builtin.topology.list_adjacent import ListAdjacentNodesTool
-from mas.elements.tools.builtin.topology.get_node_card import GetNodeCardTool
-from mas.elements.tools.builtin.time import GetCurrentTimeTool
+
+from .context import OrchestratorContextBuilder
+from .context.models import CycleTriggerReason
+from .phases.models import PhaseIterationLimits, PhaseIterationState
+from .phases.validators import (
+    AllocationValidator,
+    ExecutionValidator,
+    MonitoringValidator,
+    PlanningValidator,
+    SynthesisValidator,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +46,7 @@ class OrchestratorPhase(Enum):
 
     Defines the complete orchestrator workflow in execution order.
     """
+
     PLANNING = "planning"
     ALLOCATION = "allocation"
     EXECUTION = "execution"
@@ -47,18 +54,12 @@ class OrchestratorPhase(Enum):
     SYNTHESIS = "synthesis"
 
     @classmethod
-    def get_execution_order(cls) -> List['OrchestratorPhase']:
+    def get_execution_order(cls) -> list[OrchestratorPhase]:
         """Get phases in their natural execution order."""
-        return [
-            cls.PLANNING,
-            cls.ALLOCATION,
-            cls.EXECUTION,
-            cls.MONITORING,
-            cls.SYNTHESIS
-        ]
+        return [cls.PLANNING, cls.ALLOCATION, cls.EXECUTION, cls.MONITORING, cls.SYNTHESIS]
 
     @classmethod
-    def get_phase_names(cls) -> List[str]:
+    def get_phase_names(cls) -> list[str]:
         """Get phase names as strings in execution order."""
         return [phase.value for phase in cls.get_execution_order()]
 
@@ -80,15 +81,15 @@ class OrchestratorPhaseProvider(PhaseProvider):
     """
 
     def __init__(
-            self,
-            domain_tools: List[BaseTool],
-            get_adjacent_nodes: Callable[[], Any],
-            send_task: Callable[..., Any],
-            node_uid: str,
-            thread_id: str,
-            get_workload_service: Callable[[], Any],
-            context_builder: Optional[OrchestratorContextBuilder] = None,
-            iteration_limits: Optional[PhaseIterationLimits] = None
+        self,
+        domain_tools: list[BaseTool],
+        get_adjacent_nodes: Callable[[], Any],
+        send_task: Callable[..., Any],
+        node_uid: str,
+        thread_id: str,
+        get_workload_service: Callable[[], Any],
+        context_builder: OrchestratorContextBuilder | None = None,
+        iteration_limits: PhaseIterationLimits | None = None,
     ):
         """
         Initialize orchestrator phase provider.
@@ -129,7 +130,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         self._current_orch_context = None
 
         # Track current user request for focused prompts
-        self._current_user_request: Optional[str] = None
+        self._current_user_request: str | None = None
 
         super().__init__(domain_tools)  # This calls _create_phase_system()
 
@@ -150,8 +151,6 @@ class OrchestratorPhaseProvider(PhaseProvider):
             phase_name: Name of the phase to increment
         """
         self._iteration_state = self._iteration_state.increment(phase_name)
-        current = self._iteration_state.get_count(phase_name)
-        limit = self._iteration_limits.get_limit(phase_name)
 
     def _is_phase_limit_exceeded(self, phase_name: str) -> bool:
         """
@@ -172,7 +171,6 @@ class OrchestratorPhaseProvider(PhaseProvider):
         Args:
             phase_name: Name of the phase to reset
         """
-        old_count = self._iteration_state.get_count(phase_name)
         self._iteration_state = self._iteration_state.reset(phase_name)
 
     def _create_phase_system(self) -> PhaseSystem:
@@ -188,9 +186,13 @@ class OrchestratorPhaseProvider(PhaseProvider):
         - No policy logic here - orchestrator has already applied its delegation policy
         - Provider simply uses the nodes it's given
         """
+
         # Clean SOLID dependencies
-        get_tid = lambda: self._thread_id
-        get_uid = lambda: self._node_uid
+        def get_tid() -> str:
+            return self._thread_id
+
+        def get_uid() -> str:
+            return self._node_uid
 
         # Get adjacent nodes (already filtered by orchestrator)
         adjacent_nodes = self._get_adjacent_nodes()
@@ -199,22 +201,22 @@ class OrchestratorPhaseProvider(PhaseProvider):
         create_plan_tool = CreateOrUpdateWorkPlanTool(
             get_thread_id=get_tid,
             get_owner_uid=get_uid,
-            get_workload_service=self._get_workload_service
+            get_workload_service=self._get_workload_service,
         )
         assign_tool = AssignWorkItemTool(
             get_thread_id=get_tid,
             get_owner_uid=get_uid,
-            get_workload_service=self._get_workload_service
+            get_workload_service=self._get_workload_service,
         )
         mark_status_tool = MarkWorkItemStatusTool(
             get_thread_id=get_tid,
             get_owner_uid=get_uid,
-            get_workload_service=self._get_workload_service
+            get_workload_service=self._get_workload_service,
         )
         record_execution_tool = RecordLocalExecutionTool(
             get_thread_id=get_tid,
             get_owner_uid=get_uid,
-            get_workload_service=self._get_workload_service
+            get_workload_service=self._get_workload_service,
         )
         # Note: SummarizeWorkPlanTool removed - work plan is now provided via dynamic context
 
@@ -225,7 +227,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
             get_current_thread=lambda: self._get_current_thread(),
             get_thread_service=lambda: self._get_workload_service().get_thread_service(),
             get_workspace_service=lambda: self._get_workload_service().get_workspace_service(),
-            check_adjacency=lambda uid: uid in adjacent_nodes  # Simple membership check
+            check_adjacency=lambda uid: uid in adjacent_nodes,  # Simple membership check
         )
         list_nodes_tool = ListAdjacentNodesTool(
             get_adjacent_nodes=self._get_adjacent_nodes  # Uses orchestrator-provided nodes
@@ -250,113 +252,109 @@ class OrchestratorPhaseProvider(PhaseProvider):
             description="Create or update work plan with dependencies and task breakdown",
             tools=[create_plan_tool, list_nodes_tool, get_node_card_tool, time_tool],
             guidance=(
-                "PHASE: PLANNING - Create or update work plan based on new request.\n\n"
-                "YOUR ROLE IN THIS PHASE:\n"
-                "- ONLY create the work plan structure (items, dependencies, assignments)\n"
-                "- DO NOT execute work or delegate tasks\n"
-                "- DO NOT try to use delegation tools (not available in this phase)\n"
-                "- Delegation happens automatically in ALLOCATION phase (next phase)\n\n"
-
-                "MULTI-REQUEST WORKFLOW (Same Thread):\n"
-                "1. FIRST: Check 'Current Work Plan' section above to see if work plan already exists\n\n"
-                "2. IF NO PLAN EXISTS:\n"
-                "   Create comprehensive work plan using CreateOrUpdateWorkPlanTool:\n"
-                "   - Break down request into specific, actionable work items\n"
-                "   - Give each item a descriptive snake_case ID (e.g., 'research_trends', 'analyze_data')\n"
-                "   - Write clear title and detailed description for each item\n"
-                "   - Identify dependencies between items (which must complete before others)\n"
-                "   - Determine execution type:\n"
-                "     * LOCAL: Tasks you can execute yourself (with or without domain tools)\n"
-                "     * REMOTE: Tasks requiring specialized agents (check with ListAdjacentNodesTool)\n"
-                "   - For REMOTE items: Set assigned_uid to target agent, but DO NOT delegate yet\n"
-                "   - Write comprehensive summary describing overall goal\n"
-                "   - Start simple: 3-5 well-defined items better than 20 vague ones\n\n"
-                "3. IF PLAN EXISTS:\n"
-                "   - Review existing items (DONE/IN_PROGRESS/PENDING/FAILED)\n"
-                "   - Understand what work has been completed\n"
-                "   - Determine how new request relates to existing work\n"
-                "   - Update plan accordingly (add new items, update descriptions, adjust dependencies)\n\n"
-                "HANDLING EXISTING WORK PLANS:\n"
-                "- NEW independent work → Add new items to existing plan\n"
-                "- FOLLOW-UP on completed work → Add items that depend on DONE items\n"
-                "- CLARIFICATION → May not need new items, just check existing results\n"
-                "- CONTINUATION → Add items that build on IN_PROGRESS work\n"
-                "- RE-DO failed work → Can reuse failed item IDs with updated approach\n\n"
-                "WORK ITEM BEST PRACTICES:\n"
-                "- Dependencies: Use item IDs in dependencies list (e.g., dependencies: ['research_trends'])\n"
-                "- Specificity: 'Research top 5 AI trends in 2024' > 'Research AI'\n"
-                "- Granularity: Break complex tasks into smaller steps\n"
-                "- Logical order: Arrange items in execution sequence\n\n"
-
-                "WORK ITEM STRATEGY:\n"
-                "- Consider information completeness requirements:\n"
-                "  * If comprehensive coverage is valuable: Create work items for multiple agents\n"
-                "  * Each agent searches their respective data domain in parallel\n"
-                "  * Aggregate results to ensure no relevant information is missed\n"
-                "- Consider specificity of target:\n"
-                "  * If action requires specific capability: Create focused work item for that agent\n"
-                "  * If information could exist in multiple sources: Query broadly\n\n"
-
-                "PHASE SEPARATION (IMPORTANT):\n"
-                "- PLANNING phase (you are here): Create work plan structure only\n"
-                "- ALLOCATION phase (next): Delegate REMOTE items to agents\n"
-                "- EXECUTION phase: Execute LOCAL items\n"
-                "- MONITORING phase: Review responses and results\n"
-                "- SYNTHESIS phase: Create final answer\n\n"
-
-                "CRITICAL CONSTRAINTS:\n"
-                "- DO NOT try to delegate tasks (happens in ALLOCATION phase)\n"
-                "- DO NOT try to execute work (happens in EXECUTION phase)\n"
-                "- ONLY use CreateOrUpdateWorkPlanTool, ListAdjacentNodesTool, GetNodeCardTool\n"
-                "- Once plan is created, phase will automatically transition to ALLOCATION"
+                "PHASE: PLANNING - Create or update work plan based on new "
+                "request.\n\nYOUR ROLE IN THIS PHASE:\n- ONLY create the work plan "
+                "structure (items, dependencies, assignments)\n- DO NOT execute "
+                "work or delegate tasks\n- DO NOT try to use delegation tools (not "
+                "available in this phase)\n- Delegation happens automatically in "
+                "ALLOCATION phase (next phase)\n\nMULTI-REQUEST WORKFLOW (Same "
+                "Thread):\n1. FIRST: Check 'Current Work Plan' section above to see "
+                "if work plan already exists\n\n2. IF NO PLAN EXISTS:\n   Create "
+                "comprehensive work plan using CreateOrUpdateWorkPlanTool:\n   - "
+                "Break down request into specific, actionable work items\n   - Give "
+                "each item a descriptive snake_case ID (e.g., 'research_trends', "
+                "'analyze_data')\n   - Write clear title and detailed description "
+                "for each item\n   - Identify dependencies between items (which "
+                "must complete before others)\n   - Determine execution type:\n     "
+                "* LOCAL: Tasks you can execute yourself (with or without domain "
+                "tools)\n     * REMOTE: Tasks requiring specialized agents (check "
+                "with ListAdjacentNodesTool)\n   - For REMOTE items: Set "
+                "assigned_uid to target agent, but DO NOT delegate yet\n   - Write "
+                "comprehensive summary describing overall goal\n   - Start simple: "
+                "3-5 well-defined items better than 20 vague ones\n\n3. IF PLAN "
+                "EXISTS:\n   - Review existing items "
+                "(DONE/IN_PROGRESS/PENDING/FAILED)\n   - Understand what work has "
+                "been completed\n   - Determine how new request relates to existing "
+                "work\n   - Update plan accordingly (add new items, update "
+                "descriptions, adjust dependencies)\n\nHANDLING EXISTING WORK "
+                "PLANS:\n- NEW independent work → Add new items to existing plan\n- "
+                "FOLLOW-UP on completed work → Add items that depend on DONE "
+                "items\n- CLARIFICATION → May not need new items, just check "
+                "existing results\n- CONTINUATION → Add items that build on "
+                "IN_PROGRESS work\n- RE-DO failed work → Can reuse failed item IDs "
+                "with updated approach\n\nWORK ITEM BEST PRACTICES:\n- Dependencies: "
+                "Use item IDs in dependencies list (e.g., dependencies: "
+                "['research_trends'])\n- Specificity: 'Research top 5 AI trends in "
+                "2024' > 'Research AI'\n- Granularity: Break complex tasks into "
+                "smaller steps\n- Logical order: Arrange items in execution "
+                "sequence\n\nWORK ITEM STRATEGY:\n- Consider information completeness "
+                "requirements:\n  * If comprehensive coverage is valuable: Create "
+                "work items for multiple agents\n  * Each agent searches their "
+                "respective data domain in parallel\n  * Aggregate results to "
+                "ensure no relevant information is missed\n- Consider specificity "
+                "of target:\n  * If action requires specific capability: Create "
+                "focused work item for that agent\n  * If information could exist "
+                "in multiple sources: Query broadly\n\nPHASE SEPARATION "
+                "(IMPORTANT):\n- PLANNING phase (you are here): Create work plan "
+                "structure only\n- ALLOCATION phase (next): Delegate REMOTE items "
+                "to agents\n- EXECUTION phase: Execute LOCAL items\n- MONITORING "
+                "phase: Review responses and results\n- SYNTHESIS phase: Create "
+                "final answer\n\nCRITICAL CONSTRAINTS:\n- DO NOT try to delegate "
+                "tasks (happens in ALLOCATION phase)\n- DO NOT try to execute work "
+                "(happens in EXECUTION phase)\n- ONLY use "
+                "CreateOrUpdateWorkPlanTool, ListAdjacentNodesTool, "
+                "GetNodeCardTool\n- Once plan is created, phase will automatically "
+                "transition to ALLOCATION"
             ),
-            max_iterations=self._iteration_limits.planning
+            max_iterations=self._iteration_limits.planning,
         )
         planning_phase.add_validator(planning_validator)
 
         allocation_phase = PhaseDefinition(
             name=OrchestratorPhase.ALLOCATION.value,
             description="Assign work items to appropriate nodes and delegate tasks",
-            tools=[assign_tool, delegate_tool, list_nodes_tool, get_node_card_tool, create_plan_tool, time_tool],
+            tools=[
+                assign_tool,
+                delegate_tool,
+                list_nodes_tool,
+                get_node_card_tool,
+                create_plan_tool,
+                time_tool,
+            ],
             guidance=(
-                "PHASE: ALLOCATION - Assign REMOTE work items to appropriate agents and delegate tasks.\n\n"
-                "WORKFLOW:\n"
-                "1. Review work plan for PENDING items with kind=REMOTE\n"
-                "2. For each REMOTE item:\n"
-                "   a. Review 'Available Agents' section to see agent capabilities\n"
-                "   b. Choose best agent based on task requirements and capabilities\n"
-                "   c. Use AssignWorkItemTool to assign item to chosen agent\n"
-                "   d. Use DelegateTaskTool to send task (MUST include work_item_id)\n"
-                "3. Skip LOCAL items (handled in EXECUTION phase)\n\n"
-                "ALLOCATION STRATEGY:\n"
-                "- Review 'Available Agents for Delegation' section above\n"
-                "- Use GetNodeCardTool only if you need more detailed capabilities\n"
-                "- Match work item requirements to agent capabilities\n"
-                "- For information gathering: Parallel delegation across relevant agents\n"
-                "- For specific actions: Direct delegation to capable agent\n\n"
-                "BEST PRACTICES:\n"
-                "- All agents can be queried in parallel - leverage this for comprehensive results\n"
-                "- Check agent is in adjacency list (can't delegate to non-adjacent nodes)\n"
-                "- One work item → One agent (no multi-assignment yet)\n\n"
-                "DELEGATION COORDINATION:\n"
-                "- CRITICAL: Always assign BEFORE delegate\n"
-                "  1. AssignWorkItemTool(item_id, agent_uid) - marks assigned_uid\n"
-                "  2. DelegateTaskTool(dst_uid, content, work_item_id) - creates child thread\n"
-                "- MUST include work_item_id in DelegateTaskTool (enables response tracking)\n"
-                "- Child thread created automatically (context for agent)\n"
-                "- Correlation ID tracked for linking responses back to work item\n\n"
-                "WHAT TO DELEGATE:\n"
-                "- Only REMOTE items (kind=REMOTE)\n"
-                "- Only PENDING or ready items (dependencies satisfied)\n"
-                "- Include clear instructions in task content\n"
-                "- Include context and expected deliverables\n\n"
-                "IMPORTANT:\n"
-                "- Don't execute LOCAL items here - wait for EXECUTION phase\n"
-                "- Don't skip REMOTE items - all must be delegated\n"
-                "- Incomplete delegation → Infinite loop risk (validator catches this)\n"
-                "- Status changes: PENDING → IN_PROGRESS (remote) after delegation"
+                "PHASE: ALLOCATION - Assign REMOTE work items to appropriate "
+                "agents and delegate tasks.\n\nWORKFLOW:\n1. Review work plan for "
+                "PENDING items with kind=REMOTE\n2. For each REMOTE item:\n   a. "
+                "Review 'Available Agents' section to see agent capabilities\n   b. "
+                "Choose best agent based on task requirements and capabilities\n   "
+                "c. Use AssignWorkItemTool to assign item to chosen agent\n   d. "
+                "Use DelegateTaskTool to send task (MUST include work_item_id)\n3. "
+                "Skip LOCAL items (handled in EXECUTION phase)\n\nALLOCATION "
+                "STRATEGY:\n- Review 'Available Agents for Delegation' section "
+                "above\n- Use GetNodeCardTool only if you need more detailed "
+                "capabilities\n- Match work item requirements to agent "
+                "capabilities\n- For information gathering: Parallel delegation "
+                "across relevant agents\n- For specific actions: Direct delegation "
+                "to capable agent\n\nBEST PRACTICES:\n- All agents can be queried in "
+                "parallel - leverage this for comprehensive results\n- Check agent "
+                "is in adjacency list (can't delegate to non-adjacent nodes)\n- One "
+                "work item → One agent (no multi-assignment yet)\n\nDELEGATION "
+                "COORDINATION:\n- CRITICAL: Always assign BEFORE delegate\n  1. "
+                "AssignWorkItemTool(item_id, agent_uid) - marks assigned_uid\n  2. "
+                "DelegateTaskTool(dst_uid, content, work_item_id) - creates child "
+                "thread\n- MUST include work_item_id in DelegateTaskTool (enables "
+                "response tracking)\n- Child thread created automatically (context "
+                "for agent)\n- Correlation ID tracked for linking responses back to "
+                "work item\n\nWHAT TO DELEGATE:\n- Only REMOTE items (kind=REMOTE)\n- "
+                "Only PENDING or ready items (dependencies satisfied)\n- Include "
+                "clear instructions in task content\n- Include context and expected "
+                "deliverables\n\nIMPORTANT:\n- Don't execute LOCAL items here - wait "
+                "for EXECUTION phase\n- Don't skip REMOTE items - all must be "
+                "delegated\n- Incomplete delegation → Infinite loop risk (validator "
+                "catches this)\n- Status changes: PENDING → IN_PROGRESS (remote) "
+                "after delegation"
             ),
-            max_iterations=self._iteration_limits.allocation
+            max_iterations=self._iteration_limits.allocation,
         )
         allocation_phase.add_validator(allocation_validator)
 
@@ -366,7 +364,6 @@ class OrchestratorPhaseProvider(PhaseProvider):
             tools=[record_execution_tool, time_tool] + domain_tools_list,
             guidance=(
                 "PHASE: EXECUTION - Execute LOCAL work items directly.\n\n"
-
                 "🎯 WORKFLOW FOR EACH LOCAL ITEM:\n"
                 "1. Identify PENDING items with kind=LOCAL\n"
                 "2. Check dependencies are satisfied\n"
@@ -376,35 +373,30 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 "4. Record your execution:\n"
                 "   RecordLocalExecutionTool(item_id='...', outcome='...')\n"
                 "   → This automatically marks the item as DONE\n\n"
-
                 "🔧 EXECUTION APPROACHES:\n"
                 "WITH TOOLS: Use domain tools for specialized tasks (search, analysis, etc.)\n"
                 "WITHOUT TOOLS: Execute directly using your reasoning and knowledge\n\n"
-
                 "📝 RECORDING OUTCOMES:\n"
                 "Write naturally - describe execution as a complete narrative:\n"
                 "- What approach you took and why\n"
                 "- What steps or tools you used\n"
                 "- What results, findings, or outputs you produced\n"
                 "- Any insights or conclusions you reached\n\n"
-
                 "⚡ ONE-STEP PROCESS:\n"
                 "RecordLocalExecutionTool does it all:\n"
                 "  ✓ Captures what you did\n"
                 "  ✓ Automatically marks as DONE\n"
                 "  ✓ Makes results available for SYNTHESIS\n\n"
-
                 "🔗 DEPENDENCIES:\n"
                 "- Only execute items whose dependencies are DONE\n"
                 "- Blocked items will appear in next iteration once dependencies complete\n"
                 "- You may need multiple iterations if dependencies resolve sequentially\n\n"
-
                 "⚠️  DO NOT:\n"
                 "- Mark items as IN_PROGRESS (not needed for local execution)\n"
                 "- Use MarkWorkItemStatusTool (not available in this phase)\n"
                 "- Attempt to execute REMOTE items (use ALLOCATION → MONITORING)\n"
             ),
-            max_iterations=self._iteration_limits.execution
+            max_iterations=self._iteration_limits.execution,
         )
         execution_phase.add_validator(execution_validator)
 
@@ -413,85 +405,59 @@ class OrchestratorPhaseProvider(PhaseProvider):
             description="Interpret responses and execution results, manage work item lifecycle",
             tools=[mark_status_tool, delegate_tool, list_nodes_tool, time_tool],
             guidance=(
-                "PHASE: MONITORING - Review completed work (both remote and local) and decide next actions.\n\n"
-                "YOUR ROLE:\n"
-                "- Review responses from REMOTE delegated agents\n"
-                "- Review execution results from LOCAL work items\n"
-                "- Evaluate quality and completeness of all work\n"
-                "- Decide: accept, request follow-up, or mark failed\n"
-                "- YOU CANNOT EXECUTE WORK YOURSELF (no direct searches, queries, or analysis)\n\n"
-
-                "WHAT YOU MONITOR:\n"
-                "1. REMOTE items: Responses from delegated agents\n"
-                "   - Check work plan for items with new responses (needs your interpretation)\n"
-                "   - Agent responses appear in work item conversation history\n"
-                "   - Thread context preserved across multiple follow-ups\n\n"
-
-                "2. LOCAL items: Execution results from local work\n"
-                "   - Check work plan for LOCAL items marked DONE or IN_PROGRESS\n"
-                "   - Review execution notes and outcomes\n"
-                "   - Validate results meet requirements\n\n"
-
-                "DECISION FRAMEWORK FOR REMOTE ITEMS:\n"
-                "For each REMOTE item with a response:\n\n"
-
-                "1. ACCEPT if response fully satisfies requirements:\n"
-                "   - Complete information provided\n"
-                "   - Quality is acceptable\n"
-                "   - No clarification needed\n"
-                "   Action: Use MarkWorkItemStatusTool to mark item as done\n\n"
-
-                "2. REQUEST FOLLOW-UP if response needs improvement:\n"
-                "   - Response is vague or incomplete\n"
-                "   - Need specific clarification or detail\n"
-                "   - Agent offered additional information\n"
-                "   - Quality could be better\n"
-                "   Action: Use DelegateTaskTool to continue conversation with same agent\n"
-                "   Note: Agent sees full conversation history automatically\n\n"
-
-                "3. MARK FAILED if work is impossible:\n"
-                "   - Agent tried multiple times without success\n"
-                "   - Required resources or data don't exist\n"
-                "   - Task is fundamentally not achievable\n"
-                "   Action: Use MarkWorkItemStatusTool to mark item as failed\n\n"
-
-                "DECISION FRAMEWORK FOR LOCAL ITEMS:\n"
-                "For each LOCAL item that was executed:\n\n"
-
-                "1. VERIFY execution results:\n"
-                "   - Read execution notes and outcomes\n"
-                "   - Confirm results meet task requirements\n"
-                "   - Check for errors or incomplete work\n\n"
-
-                "2. ACCEPT if execution successful:\n"
-                "   - Results satisfy requirements\n"
-                "   - Execution completed without errors\n"
-                "   - Item already marked DONE by execution phase (no action needed)\n\n"
-
-                "FOLLOW-UP BEST PRACTICES (REMOTE ITEMS):\n"
-                "- Ask specific questions, not generic requests\n"
-                "- Reference specific parts of the response when seeking clarity\n"
-                "- Use follow-ups for iterative quality improvement\n"
-                "- Same work_item_id preserves conversation thread\n"
-                "- Multiple follow-ups are acceptable for quality\n"
-                "- Do NOT accept incomplete responses to move faster\n"
-                "- Do NOT mark failed when you just need more information\n\n"
-
-                "CRITICAL CONSTRAINTS:\n"
-                "- You are a COORDINATOR, not an EXECUTOR\n"
-                "- You cannot perform searches, queries, or domain operations\n"
-                "- To get more information: Re-delegate to appropriate agent\n"
-                "- Do NOT execute tools meant for specialized agents\n"
-                "- Do NOT mark REMOTE items as IN_PROGRESS (they are already delegated)\n"
-                "- Do NOT mark LOCAL items as IN_PROGRESS (they execute in EXECUTION phase)\n\n"
-
-                "QUALITY STANDARDS:\n"
-                "- Quality over speed: Multiple follow-ups better than poor results\n"
-                "- Mark done only when truly satisfied\n"
-                "- Clear, actionable, complete work deserves acceptance\n"
-                "- Vague, incomplete, or ambiguous work deserves follow-up or rejection"
+                "PHASE: MONITORING - Review completed work (both remote and local) "
+                "and decide next actions.\n\nYOUR ROLE:\n- Review responses from "
+                "REMOTE delegated agents\n- Review execution results from LOCAL "
+                "work items\n- Evaluate quality and completeness of all work\n- "
+                "Decide: accept, request follow-up, or mark failed\n- YOU CANNOT "
+                "EXECUTE WORK YOURSELF (no direct searches, queries, or "
+                "analysis)\n\nWHAT YOU MONITOR:\n1. REMOTE items: Responses from "
+                "delegated agents\n   - Check work plan for items with new "
+                "responses (needs your interpretation)\n   - Agent responses appear "
+                "in work item conversation history\n   - Thread context preserved "
+                "across multiple follow-ups\n\n2. LOCAL items: Execution results "
+                "from local work\n   - Check work plan for LOCAL items marked DONE "
+                "or IN_PROGRESS\n   - Review execution notes and outcomes\n   - "
+                "Validate results meet requirements\n\nDECISION FRAMEWORK FOR REMOTE "
+                "ITEMS:\nFor each REMOTE item with a response:\n\n1. ACCEPT if "
+                "response fully satisfies requirements:\n   - Complete information "
+                "provided\n   - Quality is acceptable\n   - No clarification needed\n "
+                "  Action: Use MarkWorkItemStatusTool to mark item as done\n\n2. "
+                "REQUEST FOLLOW-UP if response needs improvement:\n   - Response is "
+                "vague or incomplete\n   - Need specific clarification or detail\n   "
+                "- Agent offered additional information\n   - Quality could be "
+                "better\n   Action: Use DelegateTaskTool to continue conversation "
+                "with same agent\n   Note: Agent sees full conversation history "
+                "automatically\n\n3. MARK FAILED if work is impossible:\n   - Agent "
+                "tried multiple times without success\n   - Required resources or "
+                "data don't exist\n   - Task is fundamentally not achievable\n   "
+                "Action: Use MarkWorkItemStatusTool to mark item as "
+                "failed\n\nDECISION FRAMEWORK FOR LOCAL ITEMS:\nFor each LOCAL item "
+                "that was executed:\n\n1. VERIFY execution results:\n   - Read "
+                "execution notes and outcomes\n   - Confirm results meet task "
+                "requirements\n   - Check for errors or incomplete work\n\n2. ACCEPT "
+                "if execution successful:\n   - Results satisfy requirements\n   - "
+                "Execution completed without errors\n   - Item already marked DONE "
+                "by execution phase (no action needed)\n\nFOLLOW-UP BEST PRACTICES "
+                "(REMOTE ITEMS):\n- Ask specific questions, not generic requests\n- "
+                "Reference specific parts of the response when seeking clarity\n- "
+                "Use follow-ups for iterative quality improvement\n- Same "
+                "work_item_id preserves conversation thread\n- Multiple follow-ups "
+                "are acceptable for quality\n- Do NOT accept incomplete responses "
+                "to move faster\n- Do NOT mark failed when you just need more "
+                "information\n\nCRITICAL CONSTRAINTS:\n- You are a COORDINATOR, not "
+                "an EXECUTOR\n- You cannot perform searches, queries, or domain "
+                "operations\n- To get more information: Re-delegate to appropriate "
+                "agent\n- Do NOT execute tools meant for specialized agents\n- Do "
+                "NOT mark REMOTE items as IN_PROGRESS (they are already "
+                "delegated)\n- Do NOT mark LOCAL items as IN_PROGRESS (they execute "
+                "in EXECUTION phase)\n\nQUALITY STANDARDS:\n- Quality over speed: "
+                "Multiple follow-ups better than poor results\n- Mark done only "
+                "when truly satisfied\n- Clear, actionable, complete work deserves "
+                "acceptance\n- Vague, incomplete, or ambiguous work deserves "
+                "follow-up or rejection"
             ),
-            max_iterations=self._iteration_limits.monitoring
+            max_iterations=self._iteration_limits.monitoring,
         )
         monitoring_phase.add_validator(monitoring_validator)
 
@@ -500,57 +466,40 @@ class OrchestratorPhaseProvider(PhaseProvider):
             description="Create comprehensive answer from all work items regardless of status",
             tools=[],  # NO TOOLS - synthesis only produces text responses
             guidance=(
-                "PHASE: SYNTHESIS - Answer user's question using ALL available information.\n\n"
-
-                "⚠️  HOW TO DELIVER YOUR ANSWER:\n"
-                "Your response must be DIRECT TEXT - no tool calls, no actions.\n"
-                "You are in read-only analysis mode. Just think and write your answer.\n"
-                "Your text response IS the final answer delivered to the user.\n\n"
-
-                "YOUR MISSION:\n"
-                "Extract value from EVERY work item regardless of status.\n"
-                "Provide the most complete answer possible based on what was learned.\n\n"
-
-                "SYNTHESIS WORKFLOW:\n"
-                "1. Review ENTIRE work plan - all items, all statuses\n"
-                "2. Extract information from each status:\n"
-                "   - DONE: Use results and findings\n"
-                "   - FAILED: What was learned? Why did it fail?\n"
-                "   - IN_PROGRESS: Any partial results in conversation?\n"
-                "   - PENDING: Why blocked? Still relevant?\n"
-                "3. Construct answer that addresses user's original question\n\n"
-
-                "ANSWER STRUCTURE:\n"
-                "1. DIRECT ANSWER: Start with answer to user's question\n"
-                "   - Use all available information\n"
-                "   - Be specific and actionable\n\n"
-
-                "2. SUPPORTING DETAILS:\n"
-                "   - Key findings from completed work\n"
-                "   - Insights from failures (negative results are valuable)\n"
-                "   - Partial information if relevant\n\n"
-
-                "3. TRANSPARENCY:\n"
-                "   - State confidence level (complete/partial/uncertain)\n"
-                "   - Explain limitations or gaps if any\n"
-                "   - Note what worked and what didn't\n\n"
-
-                "HANDLING DIFFERENT SCENARIOS:\n"
-                "- All DONE: Comprehensive answer with full confidence\n"
-                "- Mix DONE/FAILED: Answer using successes, explain what failures revealed\n"
-                "- Mostly FAILED: Extract value from failures (error messages, patterns) and use reasoning\n"
-                "- Still IN_PROGRESS: Use completed and partial results, note what's pending\n\n"
-
-                "CRITICAL PRINCIPLES:\n"
-                "- ALWAYS provide an answer, even if incomplete\n"
-                "- Extract value from failures (they contain information)\n"
-                "- Focus on answering the question, not reporting status\n"
-                "- Be honest about confidence and completeness\n"
-                "- Do NOT skip failed items - they tell us something\n"
-                "- Do NOT apologize - deliver value from what exists\n"
-                "- NO TOOL CALLS - your text response IS the final answer"
+                "PHASE: SYNTHESIS - Answer user's question using ALL available "
+                "information.\n\n⚠️  HOW TO DELIVER YOUR ANSWER:\nYour response must "
+                "be DIRECT TEXT - no tool calls, no actions.\nYou are in read-only "
+                "analysis mode. Just think and write your answer.\nYour text "
+                "response IS the final answer delivered to the user.\n\nYOUR "
+                "MISSION:\nExtract value from EVERY work item regardless of "
+                "status.\nProvide the most complete answer possible based on what "
+                "was learned.\n\nSYNTHESIS WORKFLOW:\n1. Review ENTIRE work plan - "
+                "all items, all statuses\n2. Extract information from each status:\n "
+                "  - DONE: Use results and findings\n   - FAILED: What was learned? "
+                "Why did it fail?\n   - IN_PROGRESS: Any partial results in "
+                "conversation?\n   - PENDING: Why blocked? Still relevant?\n3. "
+                "Construct answer that addresses user's original question\n\nANSWER "
+                "STRUCTURE:\n1. DIRECT ANSWER: Start with answer to user's "
+                "question\n   - Use all available information\n   - Be specific and "
+                "actionable\n\n2. SUPPORTING DETAILS:\n   - Key findings from "
+                "completed work\n   - Insights from failures (negative results are "
+                "valuable)\n   - Partial information if relevant\n\n3. TRANSPARENCY:\n "
+                "  - State confidence level (complete/partial/uncertain)\n   - "
+                "Explain limitations or gaps if any\n   - Note what worked and what "
+                "didn't\n\nHANDLING DIFFERENT SCENARIOS:\n- All DONE: Comprehensive "
+                "answer with full confidence\n- Mix DONE/FAILED: Answer using "
+                "successes, explain what failures revealed\n- Mostly FAILED: "
+                "Extract value from failures (error messages, patterns) and use "
+                "reasoning\n- Still IN_PROGRESS: Use completed and partial results, "
+                "note what's pending\n\nCRITICAL PRINCIPLES:\n- ALWAYS provide an "
+                "answer, even if incomplete\n- Extract value from failures (they "
+                "contain information)\n- Focus on answering the question, not "
+                "reporting status\n- Be honest about confidence and completeness\n- "
+                "Do NOT skip failed items - they tell us something\n- Do NOT "
+                "apologize - deliver value from what exists\n- NO TOOL CALLS - your "
+                "text response IS the final answer"
             ),
-            max_iterations=self._iteration_limits.synthesis
+            max_iterations=self._iteration_limits.synthesis,
         )
         synthesis_phase.add_validator(synthesis_validator)
 
@@ -559,14 +508,15 @@ class OrchestratorPhaseProvider(PhaseProvider):
             allocation_phase,
             execution_phase,
             monitoring_phase,
-            synthesis_phase
+            synthesis_phase,
         ]
 
         # Create the complete phase system
         return PhaseSystem(
             name="orchestrator",
-            description="Complete orchestrator workflow: " + " → ".join(OrchestratorPhase.get_phase_names()),
-            phases=phases
+            description="Complete orchestrator workflow: "
+            + " → ".join(OrchestratorPhase.get_phase_names()),
+            phases=phases,
         )
 
     def get_phase_context(self) -> PhaseState:
@@ -578,21 +528,20 @@ class OrchestratorPhaseProvider(PhaseProvider):
         try:
             workload_service = self._get_workload_service()
             workspace_service = workload_service.get_workspace_service()
-            work_plan_status = workspace_service.get_work_plan_status(self._thread_id, self._node_uid)
+            work_plan_status = workspace_service.get_work_plan_status(
+                self._thread_id, self._node_uid
+            )
 
             # No conversion needed - WorkPlanStatus is now the single source of truth
             return create_phase_state(
                 work_plan_status=work_plan_status,
                 thread_id=self._thread_id,
-                node_uid=self._node_uid
+                node_uid=self._node_uid,
             )
 
-        except Exception as e:
+        except Exception:
             # Return minimal context on error
-            return create_phase_state(
-                thread_id=self._thread_id,
-                node_uid=self._node_uid
-            )
+            return create_phase_state(thread_id=self._thread_id, node_uid=self._node_uid)
 
     def get_initial_phase(self) -> str:
         """
@@ -618,11 +567,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         """
         return phase_name == OrchestratorPhase.SYNTHESIS.value
 
-    def update_phase(
-            self,
-            current_phase: str,
-            observations: List[Any]
-    ) -> str:
+    def update_phase(self, current_phase: str, observations: list[Any]) -> str:
         """
         Update phase with orchestrator's internal cascade logic.
 
@@ -706,23 +651,22 @@ class OrchestratorPhaseProvider(PhaseProvider):
             # This means we've delegated everything we can and are waiting
             # for the router to re-invoke us when responses arrive.
             if status.has_remote_waiting:
-                if (not status.has_responses
-                        and not status.has_local_ready
-                        and not status.has_remote_ready):
+                if (
+                    not status.has_responses
+                    and not status.has_local_ready
+                    and not status.has_remote_ready
+                ):
                     return True
 
             # Otherwise, keep working (including transitioning to SYNTHESIS if complete)
             return False
 
-        except Exception as e:
+        except Exception:
             # On error, allow finish (defensive - don't block forever)
             return True
 
     def _cascade_to_stable(
-            self,
-            current_phase: str,
-            context: PhaseState,
-            observations: List[Any]
+        self, current_phase: str, context: PhaseState, observations: list[Any]
     ) -> str:
         """
         Private: Cascade transitions until reaching stable phase.
@@ -748,17 +692,17 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
             # Stable - done
             if next_phase == current:
-                self._log_cascade(transitions, cascade_num, 'stable')
+                self._log_cascade(transitions, cascade_num, "stable")
                 return current
 
             # Validate transition
             if not self.validate_transition(current, next_phase):
-                self._log_cascade(transitions, cascade_num, 'invalid')
+                self._log_cascade(transitions, cascade_num, "invalid")
                 return current
 
             # Cycle detection - force to SYNTHESIS
             if next_phase in visited:
-                self._log_cascade(transitions + [next_phase], cascade_num, 'cycle')
+                self._log_cascade(transitions + [next_phase], cascade_num, "cycle")
                 return OrchestratorPhase.SYNTHESIS.value
 
             # Continue cascade
@@ -770,7 +714,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 self._context_builder.record_phase_transition(
                     from_phase=current,
                     to_phase=next_phase,
-                    reason=f"Cascade transition (started from {transitions[0]})"
+                    reason=f"Cascade transition (started from {transitions[0]})",
                 )
 
             current = next_phase
@@ -779,10 +723,10 @@ class OrchestratorPhaseProvider(PhaseProvider):
             context = self.get_phase_context()
 
         # Max transitions reached
-        self._log_cascade(transitions, self._max_cascade_transitions, 'max_transitions')
+        self._log_cascade(transitions, self._max_cascade_transitions, "max_transitions")
         return current
 
-    def _log_cascade(self, transitions: List[str], count: int, reason: str) -> None:
+    def _log_cascade(self, transitions: list[str], count: int, reason: str) -> None:
         """
         Private: Log cascade results.
 
@@ -796,20 +740,52 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
         path = " → ".join(transitions)
 
-        if reason == 'stable':
-            logger.info("phase.cascade", extra={"thread_id": self._thread_id, "path": path, "reason": reason, "transition_count": count})
-        elif reason == 'cycle':
-            logger.warning("phase.cycle_detected", extra={"thread_id": self._thread_id, "path": path, "forcing": "SYNTHESIS", "transition_count": count})
-        elif reason == 'max_transitions':
-            logger.warning("phase.cascade", extra={"thread_id": self._thread_id, "path": path, "reason": reason, "transition_count": count})
-        elif reason == 'invalid':
-            logger.warning("phase.validate_error", extra={"thread_id": self._thread_id, "path": path, "reason": reason, "transition_count": count})
+        if reason == "stable":
+            logger.info(
+                "phase.cascade",
+                extra={
+                    "thread_id": self._thread_id,
+                    "path": path,
+                    "reason": reason,
+                    "transition_count": count,
+                },
+            )
+        elif reason == "cycle":
+            logger.warning(
+                "phase.cycle_detected",
+                extra={
+                    "thread_id": self._thread_id,
+                    "path": path,
+                    "forcing": "SYNTHESIS",
+                    "transition_count": count,
+                },
+            )
+        elif reason == "max_transitions":
+            logger.warning(
+                "phase.cascade",
+                extra={
+                    "thread_id": self._thread_id,
+                    "path": path,
+                    "reason": reason,
+                    "transition_count": count,
+                },
+            )
+        elif reason == "invalid":
+            logger.warning(
+                "phase.validate_error",
+                extra={
+                    "thread_id": self._thread_id,
+                    "path": path,
+                    "reason": reason,
+                    "transition_count": count,
+                },
+            )
 
     def decide_next_phase(
-            self,
-            current_phase: str,
-            context: PhaseState,
-            observations: List[Any]  # Not used but required by protocol
+        self,
+        current_phase: str,
+        context: PhaseState,
+        observations: list[Any],  # Not used but required by protocol
     ) -> str:
         """
         Decide next phase based on orchestrator-specific logic using enums.
@@ -839,187 +815,603 @@ class OrchestratorPhaseProvider(PhaseProvider):
             # Access orchestrator context for smart decisions
             orch_ctx = self._current_orch_context
 
-            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "decide_next_phase called", "has_orch_ctx": orch_ctx is not None, "total_items": status.total_items, "pending_items": status.pending_items, "blocked_items": status.blocked_items, "in_progress_items": status.in_progress_items, "has_remote_ready": status.has_remote_ready, "has_local_ready": status.has_local_ready, "is_complete": status.is_complete, "trigger_reason": str(orch_ctx.trigger.reason) if orch_ctx else None})
+            logger.info(
+                "phase.decision",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": "planning",
+                    "detail": "decide_next_phase called",
+                    "has_orch_ctx": orch_ctx is not None,
+                    "total_items": status.total_items,
+                    "pending_items": status.pending_items,
+                    "blocked_items": status.blocked_items,
+                    "in_progress_items": status.in_progress_items,
+                    "has_remote_ready": status.has_remote_ready,
+                    "has_local_ready": status.has_local_ready,
+                    "is_complete": status.is_complete,
+                    "trigger_reason": str(orch_ctx.trigger.reason) if orch_ctx else None,
+                },
+            )
 
             # CASE 1: No plan exists - must stay in planning to create one
             if status.total_items == 0:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "STAY", "to_phase": "planning", "reason": "no items"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "planning",
+                        "decision": "STAY",
+                        "to_phase": "planning",
+                        "reason": "no items",
+                    },
+                )
                 return OrchestratorPhase.PLANNING.value
 
             # CASE 2: Plan exists - use trigger reason for smart transition
             if orch_ctx:
                 trigger_reason = orch_ctx.trigger.reason
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "has orch_ctx", "trigger_reason": str(trigger_reason)})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "planning",
+                        "detail": "has orch_ctx",
+                        "trigger_reason": str(trigger_reason),
+                    },
+                )
 
                 # CASE 2A: RESPONSE_ARRIVED - skip planning, go process responses
                 if trigger_reason == CycleTriggerReason.RESPONSE_ARRIVED:
-                    logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "CASE 2A: RESPONSE_ARRIVED"})
+                    logger.info(
+                        "phase.decision",
+                        extra={
+                            "thread_id": self._thread_id,
+                            "phase": "planning",
+                            "detail": "CASE 2A: RESPONSE_ARRIVED",
+                        },
+                    )
                     # Responses don't need new planning - just process them
                     if status.has_responses:
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "MONITORING", "to_phase": "monitoring", "reason": "has_responses"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "decision": "MONITORING",
+                                "to_phase": "monitoring",
+                                "reason": "has_responses",
+                            },
+                        )
                         return OrchestratorPhase.MONITORING.value
                     elif status.is_complete:
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "SYNTHESIS", "to_phase": "synthesis", "reason": "is_complete"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "decision": "SYNTHESIS",
+                                "to_phase": "synthesis",
+                                "reason": "is_complete",
+                            },
+                        )
                         return OrchestratorPhase.SYNTHESIS.value
                     else:
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "ALLOCATION", "to_phase": "allocation", "reason": "fallback"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "decision": "ALLOCATION",
+                                "to_phase": "allocation",
+                                "reason": "fallback",
+                            },
+                        )
                         return OrchestratorPhase.ALLOCATION.value
 
                 # CASE 2B: NEW_REQUEST with existing plan
                 elif trigger_reason == CycleTriggerReason.NEW_REQUEST:
-                    logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "CASE 2B: NEW_REQUEST"})
+                    logger.info(
+                        "phase.decision",
+                        extra={
+                            "thread_id": self._thread_id,
+                            "phase": "planning",
+                            "detail": "CASE 2B: NEW_REQUEST",
+                        },
+                    )
                     # Check if this is a fresh plan (nothing executed yet)
                     # Note: Don't check pending_items == total_items because blocked items
                     # are counted separately. A fresh plan with dependencies will have
                     # some items blocked, but that's still a fresh plan (no work done yet).
-                    all_pending = (status.done_items == 0 and
-                                   status.failed_items == 0 and
-                                   status.in_progress_items == 0)
-                    logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "fresh plan check", "all_pending": all_pending, "done_items": status.done_items, "failed_items": status.failed_items, "in_progress_items": status.in_progress_items})
+                    all_pending = (
+                        status.done_items == 0
+                        and status.failed_items == 0
+                        and status.in_progress_items == 0
+                    )
+                    logger.info(
+                        "phase.decision",
+                        extra={
+                            "thread_id": self._thread_id,
+                            "phase": "planning",
+                            "detail": "fresh plan check",
+                            "all_pending": all_pending,
+                            "done_items": status.done_items,
+                            "failed_items": status.failed_items,
+                            "in_progress_items": status.in_progress_items,
+                        },
+                    )
 
                     if all_pending:
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "fresh plan detected"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "detail": "fresh plan detected",
+                            },
+                        )
                         # Fresh plan just created - determine next phase based on what's actionable
                         if status.has_remote_ready:
                             # Has REMOTE items ready - go delegate them
                             # (Will cascade to EXECUTION if also has_local_ready)
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "ALLOCATION", "to_phase": "allocation", "reason": "has_remote_ready"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "ALLOCATION",
+                                    "to_phase": "allocation",
+                                    "reason": "has_remote_ready",
+                                },
+                            )
                             return OrchestratorPhase.ALLOCATION.value
                         elif status.has_local_ready:
                             # Has LOCAL items ready but NO REMOTE ready
                             # Skip ALLOCATION, go straight to EXECUTION
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "EXECUTION", "to_phase": "execution", "reason": "has_local_ready"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "EXECUTION",
+                                    "to_phase": "execution",
+                                    "reason": "has_local_ready",
+                                },
+                            )
                             return OrchestratorPhase.EXECUTION.value
                         elif status.blocked_items == status.total_items:
                             # Everything is blocked by dependencies (bad plan)
                             # Force SYNTHESIS to report the issue
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "SYNTHESIS", "to_phase": "synthesis", "reason": "all blocked"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "SYNTHESIS",
+                                    "to_phase": "synthesis",
+                                    "reason": "all blocked",
+                                },
+                            )
                             return OrchestratorPhase.SYNTHESIS.value
                         else:
                             # Fallback: go to ALLOCATION
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "ALLOCATION", "to_phase": "allocation", "reason": "fallback"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "ALLOCATION",
+                                    "to_phase": "allocation",
+                                    "reason": "fallback",
+                                },
+                            )
                             return OrchestratorPhase.ALLOCATION.value
 
                     # Not a fresh plan - work is in progress
-                    logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "not a fresh plan, work in progress"})
+                    logger.info(
+                        "phase.decision",
+                        extra={
+                            "thread_id": self._thread_id,
+                            "phase": "planning",
+                            "detail": "not a fresh plan, work in progress",
+                        },
+                    )
                     if status.is_complete:
                         # Complete plan + new request = LLM might add new work
                         # But check if new items were already added and are ready
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "plan was complete, checking if new items added"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "detail": "plan was complete, checking if new items added",
+                            },
+                        )
                         if status.has_remote_ready or status.has_local_ready:
                             # New items added and ready - transition to handle them
                             if status.has_remote_ready:
-                                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "ALLOCATION", "to_phase": "allocation", "reason": "has_remote_ready"})
+                                logger.info(
+                                    "phase.decision",
+                                    extra={
+                                        "thread_id": self._thread_id,
+                                        "phase": "planning",
+                                        "decision": "ALLOCATION",
+                                        "to_phase": "allocation",
+                                        "reason": "has_remote_ready",
+                                    },
+                                )
                                 return OrchestratorPhase.ALLOCATION.value
                             else:
-                                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "EXECUTION", "to_phase": "execution", "reason": "has_local_ready"})
+                                logger.info(
+                                    "phase.decision",
+                                    extra={
+                                        "thread_id": self._thread_id,
+                                        "phase": "planning",
+                                        "decision": "EXECUTION",
+                                        "to_phase": "execution",
+                                        "reason": "has_local_ready",
+                                    },
+                                )
                                 return OrchestratorPhase.EXECUTION.value
                         else:
                             # No ready items yet - give LLM chance to plan
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "STAY", "to_phase": "planning", "reason": "complete + new request"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "STAY",
+                                    "to_phase": "planning",
+                                    "reason": "complete + new request",
+                                },
+                            )
                             return OrchestratorPhase.PLANNING.value
                     elif orch_ctx.health.progress_metrics.is_stalled:
                         # Stalled work - may need replanning or pivot
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "STAY", "to_phase": "planning", "reason": "stalled"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "decision": "STAY",
+                                "to_phase": "planning",
+                                "reason": "stalled",
+                            },
+                        )
                         return OrchestratorPhase.PLANNING.value
                     elif status.failed_items == status.total_items > 0:
                         # All items failed - definitely need replanning
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "STAY", "to_phase": "planning", "reason": "all failed"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "decision": "STAY",
+                                "to_phase": "planning",
+                                "reason": "all failed",
+                            },
+                        )
                         return OrchestratorPhase.PLANNING.value
                     else:
                         # In-progress work with new request
                         # Check if new items are ready to execute/delegate
-                        logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "checking readiness for follow-up items"})
+                        logger.info(
+                            "phase.decision",
+                            extra={
+                                "thread_id": self._thread_id,
+                                "phase": "planning",
+                                "detail": "checking readiness for follow-up items",
+                            },
+                        )
                         if status.has_remote_ready:
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "ALLOCATION", "to_phase": "allocation", "reason": "has_remote_ready"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "ALLOCATION",
+                                    "to_phase": "allocation",
+                                    "reason": "has_remote_ready",
+                                },
+                            )
                             return OrchestratorPhase.ALLOCATION.value
                         elif status.has_local_ready:
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "EXECUTION", "to_phase": "execution", "reason": "has_local_ready"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "EXECUTION",
+                                    "to_phase": "execution",
+                                    "reason": "has_local_ready",
+                                },
+                            )
                             return OrchestratorPhase.EXECUTION.value
                         else:
                             # Nothing ready yet - stay in planning to add/update items
-                            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "STAY", "to_phase": "planning", "reason": "no ready items"})
+                            logger.info(
+                                "phase.decision",
+                                extra={
+                                    "thread_id": self._thread_id,
+                                    "phase": "planning",
+                                    "decision": "STAY",
+                                    "to_phase": "planning",
+                                    "reason": "no ready items",
+                                },
+                            )
                             return OrchestratorPhase.PLANNING.value
 
             # CASE 3: Fallback if no orchestrator context (shouldn't happen normally)
-            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "detail": "CASE 3: no orch_ctx fallback"})
+            logger.info(
+                "phase.decision",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": "planning",
+                    "detail": "CASE 3: no orch_ctx fallback",
+                },
+            )
             if status.total_items > 0:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "ALLOCATION", "to_phase": "allocation", "reason": "fallback, has items"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "planning",
+                        "decision": "ALLOCATION",
+                        "to_phase": "allocation",
+                        "reason": "fallback, has items",
+                    },
+                )
                 return OrchestratorPhase.ALLOCATION.value
             else:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "planning", "decision": "STAY", "to_phase": "planning", "reason": "fallback, no items"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "planning",
+                        "decision": "STAY",
+                        "to_phase": "planning",
+                        "reason": "fallback, no items",
+                    },
+                )
                 return OrchestratorPhase.PLANNING.value
 
         elif current_phase_enum == OrchestratorPhase.ALLOCATION:
-            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "allocation", "detail": "decide_next_phase called", "has_local_ready": status.has_local_ready, "has_remote_ready": status.has_remote_ready, "has_responses": status.has_responses, "has_remote_waiting": status.has_remote_waiting})
+            logger.info(
+                "phase.decision",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": "allocation",
+                    "detail": "decide_next_phase called",
+                    "has_local_ready": status.has_local_ready,
+                    "has_remote_ready": status.has_remote_ready,
+                    "has_responses": status.has_responses,
+                    "has_remote_waiting": status.has_remote_waiting,
+                },
+            )
 
             # Move to execution if we have local work ready
             if status.has_local_ready:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "allocation", "decision": "EXECUTION", "to_phase": "execution", "reason": "has_local_ready"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "allocation",
+                        "decision": "EXECUTION",
+                        "to_phase": "execution",
+                        "reason": "has_local_ready",
+                    },
+                )
                 return OrchestratorPhase.EXECUTION.value
             # Move to monitoring if we have responses to interpret
             elif status.has_responses:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "allocation", "decision": "MONITORING", "to_phase": "monitoring", "reason": "has_responses"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "allocation",
+                        "decision": "MONITORING",
+                        "to_phase": "monitoring",
+                        "reason": "has_responses",
+                    },
+                )
                 return OrchestratorPhase.MONITORING.value
-            # If just waiting (no responses yet), stay in allocation (will finish and wait for graph)
+            # If just waiting (no responses yet), stay in allocation (will finish and wait for
+            # graph)
             elif status.has_remote_waiting:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "allocation", "decision": "STAY", "to_phase": "allocation", "reason": "has_remote_waiting"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "allocation",
+                        "decision": "STAY",
+                        "to_phase": "allocation",
+                        "reason": "has_remote_waiting",
+                    },
+                )
                 return OrchestratorPhase.ALLOCATION.value  # Stay → finish
             else:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "allocation", "decision": "STAY", "to_phase": "allocation", "reason": "default"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "allocation",
+                        "decision": "STAY",
+                        "to_phase": "allocation",
+                        "reason": "default",
+                    },
+                )
                 return OrchestratorPhase.ALLOCATION.value  # Stay in allocation
 
         elif current_phase_enum == OrchestratorPhase.EXECUTION:
-            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "execution", "detail": "decide_next_phase called", "is_complete": status.is_complete, "has_local_ready": status.has_local_ready})
+            logger.info(
+                "phase.decision",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": "execution",
+                    "detail": "decide_next_phase called",
+                    "is_complete": status.is_complete,
+                    "has_local_ready": status.has_local_ready,
+                },
+            )
 
             # Check if work is complete
             if status.is_complete:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "execution", "decision": "SYNTHESIS", "to_phase": "synthesis", "reason": "is_complete"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "execution",
+                        "decision": "SYNTHESIS",
+                        "to_phase": "synthesis",
+                        "reason": "is_complete",
+                    },
+                )
                 return OrchestratorPhase.SYNTHESIS.value
             # If still have local ready items, stay in execution (LLM may need multiple iterations)
             elif status.has_local_ready:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "execution", "decision": "STAY", "to_phase": "execution", "reason": "has_local_ready"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "execution",
+                        "decision": "STAY",
+                        "to_phase": "execution",
+                        "reason": "has_local_ready",
+                    },
+                )
                 return OrchestratorPhase.EXECUTION.value
             # Otherwise move to monitoring
             else:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "execution", "decision": "MONITORING", "to_phase": "monitoring", "reason": "no local ready"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "execution",
+                        "decision": "MONITORING",
+                        "to_phase": "monitoring",
+                        "reason": "no local ready",
+                    },
+                )
                 return OrchestratorPhase.MONITORING.value
 
         elif current_phase_enum == OrchestratorPhase.MONITORING:
-            logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "detail": "decide_next_phase called", "total_items": status.total_items, "pending_items": status.pending_items, "in_progress_items": status.in_progress_items, "waiting_items": status.waiting_items, "done_items": status.done_items, "failed_items": status.failed_items, "blocked_items": status.blocked_items, "has_responses": status.has_responses, "has_local_ready": status.has_local_ready, "has_remote_ready": status.has_remote_ready, "has_remote_waiting": status.has_remote_waiting, "is_complete": status.is_complete})
+            logger.info(
+                "phase.decision",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": "monitoring",
+                    "detail": "decide_next_phase called",
+                    "total_items": status.total_items,
+                    "pending_items": status.pending_items,
+                    "in_progress_items": status.in_progress_items,
+                    "waiting_items": status.waiting_items,
+                    "done_items": status.done_items,
+                    "failed_items": status.failed_items,
+                    "blocked_items": status.blocked_items,
+                    "has_responses": status.has_responses,
+                    "has_local_ready": status.has_local_ready,
+                    "has_remote_ready": status.has_remote_ready,
+                    "has_remote_waiting": status.has_remote_waiting,
+                    "is_complete": status.is_complete,
+                },
+            )
 
             # Check if work is complete
             if status.is_complete:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "decision": "SYNTHESIS", "to_phase": "synthesis", "reason": "is_complete"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "monitoring",
+                        "decision": "SYNTHESIS",
+                        "to_phase": "synthesis",
+                        "reason": "is_complete",
+                    },
+                )
                 return OrchestratorPhase.SYNTHESIS.value
             # PRIORITY: Stay in monitoring if we still have responses to interpret
             # (Process responses BEFORE transitioning to handle new pending work)
             elif status.has_responses:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "decision": "STAY", "to_phase": "monitoring", "reason": "has_responses"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "monitoring",
+                        "decision": "STAY",
+                        "to_phase": "monitoring",
+                        "reason": "has_responses",
+                    },
+                )
                 return OrchestratorPhase.MONITORING.value
             # Check for all-blocked scenario (no actionable work)
             # If all remaining items are blocked and we can't make progress, force SYNTHESIS
-            elif (status.blocked_items > 0 and
-                  status.pending_items == 0 and
-                  not status.has_local_ready and
-                  not status.has_remote_waiting):
-                logger.warning("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "detail": "all items blocked, forcing synthesis", "blocked_items": status.blocked_items})
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "decision": "SYNTHESIS", "to_phase": "synthesis", "reason": "all blocked"})
+            elif (
+                status.blocked_items > 0
+                and status.pending_items == 0
+                and not status.has_local_ready
+                and not status.has_remote_waiting
+            ):
+                logger.warning(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "monitoring",
+                        "detail": "all items blocked, forcing synthesis",
+                        "blocked_items": status.blocked_items,
+                    },
+                )
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "monitoring",
+                        "decision": "SYNTHESIS",
+                        "to_phase": "synthesis",
+                        "reason": "all blocked",
+                    },
+                )
                 return OrchestratorPhase.SYNTHESIS.value
             # Go back to execution if we have local ready items
             # (Check this BEFORE pending items to prioritize actual work over allocation)
             elif status.has_local_ready:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "decision": "EXECUTION", "to_phase": "execution", "reason": "has_local_ready"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "monitoring",
+                        "decision": "EXECUTION",
+                        "to_phase": "execution",
+                        "reason": "has_local_ready",
+                    },
+                )
                 return OrchestratorPhase.EXECUTION.value
             # Go back to allocation if we have pending items (and no responses)
             # Note: blocked items (pending=0, blocked>0) will NOT trigger this
             elif status.pending_items > 0:
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "decision": "ALLOCATION", "to_phase": "allocation", "reason": "pending_items", "pending_items": status.pending_items})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "monitoring",
+                        "decision": "ALLOCATION",
+                        "to_phase": "allocation",
+                        "reason": "pending_items",
+                        "pending_items": status.pending_items,
+                    },
+                )
                 return OrchestratorPhase.ALLOCATION.value
             else:
                 # No responses, no ready work, no pending work
                 # Either waiting for delegated responses or all items blocked/complete
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": "monitoring", "decision": "STAY", "to_phase": "monitoring", "reason": "waiting for responses or no actionable work"})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": "monitoring",
+                        "decision": "STAY",
+                        "to_phase": "monitoring",
+                        "reason": "waiting for responses or no actionable work",
+                    },
+                )
                 return OrchestratorPhase.MONITORING.value  # Stay in monitoring
 
         elif current_phase_enum == OrchestratorPhase.SYNTHESIS:
@@ -1041,7 +1433,14 @@ class OrchestratorPhaseProvider(PhaseProvider):
         Returns:
             Next phase to transition to (or synthesis for terminal)
         """
-        logger.warning("phase.decision", extra={"thread_id": self._thread_id, "phase": current_phase, "detail": "phase limit exceeded"})
+        logger.warning(
+            "phase.decision",
+            extra={
+                "thread_id": self._thread_id,
+                "phase": current_phase,
+                "detail": "phase limit exceeded",
+            },
+        )
 
         try:
             current_phase_enum = OrchestratorPhase(current_phase)
@@ -1097,8 +1496,6 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
         # Enrich with orchestrator-specific data
         try:
-            from mas.graph.models import AdjacentNodes
-
             workload_service = self._get_workload_service()
             workspace_service = workload_service.get_workspace_service()
             plan = workspace_service.load_work_plan(self._thread_id, self._node_uid)
@@ -1111,20 +1508,18 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 thread_id=self._thread_id,
                 node_uid=self._node_uid,
                 plan=plan,
-                adjacent_nodes=adjacent_nodes
+                adjacent_nodes=adjacent_nodes,
             )
-        except Exception as e:
+        except Exception:
             # Return minimal context on error
             return PhaseValidationContext(
-                phase_state=phase_state,
-                thread_id=self._thread_id,
-                node_uid=self._node_uid
+                phase_state=phase_state, thread_id=self._thread_id, node_uid=self._node_uid
             )
 
     def _print_work_plan_after_phase(self, phase: str) -> None:
         """Print work plan status after phase transition."""
         try:
-            from mas.elements.nodes.common.workload import WorkItemStatus, WorkItemKind
+            from mas.domain.workloads import WorkItemKind, WorkItemStatus
 
             workspace_service = self._get_workload_service()
             plan = workspace_service.load_work_plan(self._thread_id, self._node_uid)
@@ -1142,11 +1537,30 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
             extra_str = f" [{', '.join(extras)}]" if extras else ""
 
-            logger.info("phase.transition", extra={"thread_id": self._thread_id, "phase": phase, "detail": "work_plan_after_phase", "total_items": status.total_items, "pending_items": status.pending_items, "in_progress_items": status.in_progress_items, "done_items": status.done_items, "failed_items": status.failed_items, "blocked_items": status.blocked_items, "waiting_items": status.waiting_items, "extra": extra_str or None})
+            logger.info(
+                "phase.transition",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": phase,
+                    "detail": "work_plan_after_phase",
+                    "total_items": status.total_items,
+                    "pending_items": status.pending_items,
+                    "in_progress_items": status.in_progress_items,
+                    "done_items": status.done_items,
+                    "failed_items": status.failed_items,
+                    "blocked_items": status.blocked_items,
+                    "waiting_items": status.waiting_items,
+                    "extra": extra_str or None,
+                },
+            )
 
             # Show items compactly
-            for item_status in [WorkItemStatus.PENDING, WorkItemStatus.IN_PROGRESS, WorkItemStatus.DONE,
-                                WorkItemStatus.FAILED]:
+            for item_status in [
+                WorkItemStatus.PENDING,
+                WorkItemStatus.IN_PROGRESS,
+                WorkItemStatus.DONE,
+                WorkItemStatus.FAILED,
+            ]:
                 items = plan.get_items_by_status(item_status)
                 if not items:
                     continue
@@ -1156,7 +1570,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
                         WorkItemStatus.PENDING: "⏸️",
                         WorkItemStatus.IN_PROGRESS: "🔄",
                         WorkItemStatus.DONE: "✅",
-                        WorkItemStatus.FAILED: "❌"
+                        WorkItemStatus.FAILED: "❌",
                     }.get(item_status, "❓")
 
                     # Compact one-line per item
@@ -1173,7 +1587,11 @@ class OrchestratorPhaseProvider(PhaseProvider):
                         for dep_id in item.dependencies:
                             dep_item = plan.items.get(dep_id)
                             if dep_item:
-                                dep_title = dep_item.title[:20] + "..." if len(dep_item.title) > 20 else dep_item.title
+                                dep_title = (
+                                    dep_item.title[:20] + "..."
+                                    if len(dep_item.title) > 20
+                                    else dep_item.title
+                                )
                                 if dep_id in completed_deps:
                                     dep_status.append(f"✓{dep_title}")
                                 else:
@@ -1188,44 +1606,78 @@ class OrchestratorPhaseProvider(PhaseProvider):
                         delegation_count = len(item.result.delegations)
                         processed_count = sum(1 for d in item.result.delegations if d.processed)
                         pending_count = sum(1 for d in item.result.delegations if d.is_pending)
-                        unprocessed_count = sum(1 for d in item.result.delegations if d.needs_attention)
+                        unprocessed_count = sum(
+                            1 for d in item.result.delegations if d.needs_attention
+                        )
 
                         if delegation_count == 1:
                             # Single delegation - show content with status
                             latest = item.result.delegations[0]
                             if latest.is_pending:
-                                item_line += f"\n      ⏳ Waiting for response from {latest.delegated_to}"
+                                item_line += (
+                                    f"\n      ⏳ Waiting for response from {latest.delegated_to}"
+                                )
                             elif latest.needs_attention:
-                                resp_preview = latest.response_content[:100].replace('\n',
-                                                                                     ' ') if latest.response_content else "No content"
+                                resp_preview = (
+                                    latest.response_content[:100].replace("\n", " ")
+                                    if latest.response_content
+                                    else "No content"
+                                )
                                 item_line += f"\n      ⚡ NEW: {resp_preview}..."
                             else:
-                                resp_preview = latest.response_content[:100].replace('\n',
-                                                                                     ' ') if latest.response_content else "No content"
+                                resp_preview = (
+                                    latest.response_content[:100].replace("\n", " ")
+                                    if latest.response_content
+                                    else "No content"
+                                )
                                 item_line += f"\n      ✓ Processed: {resp_preview}..."
                         else:
                             # Multiple delegations - show count summary
-                            item_line += f"\n      💬 {delegation_count} turns ({processed_count}✓ processed, {unprocessed_count}⚡ pending, {pending_count}⏳ waiting)"
+                            item_line += (
+                                f"\n      💬 {delegation_count} turns "
+                                f"({processed_count}✓ processed, {unprocessed_count}⚡ pending, "
+                                f"{pending_count}⏳ waiting)"
+                            )
                             # Show latest exchange
                             latest = item.result.delegations[-1]
                             if latest.is_pending:
                                 item_line += f"\n      ⏳ Latest: Waiting for {latest.delegated_to}"
                             elif latest.needs_attention:
-                                resp_preview = latest.response_content[:100].replace('\n',
-                                                                                     ' ') if latest.response_content else "No content"
+                                resp_preview = (
+                                    latest.response_content[:100].replace("\n", " ")
+                                    if latest.response_content
+                                    else "No content"
+                                )
                                 item_line += f"\n      ⚡ Latest: {resp_preview}..."
                             else:
-                                resp_preview = latest.response_content[:100].replace('\n',
-                                                                                     ' ') if latest.response_content else "No content"
+                                resp_preview = (
+                                    latest.response_content[:100].replace("\n", " ")
+                                    if latest.response_content
+                                    else "No content"
+                                )
                                 item_line += f"\n      ✓ Latest: {resp_preview}..."
 
-                    logger.info("phase.transition", extra={"thread_id": self._thread_id, "phase": phase, "item_line": item_line})
+                    logger.info(
+                        "phase.transition",
+                        extra={
+                            "thread_id": self._thread_id,
+                            "phase": phase,
+                            "item_line": item_line,
+                        },
+                    )
 
-            logger.info("phase.transition", extra={"thread_id": self._thread_id, "phase": phase, "detail": "work_plan_after_phase_end"})
-        except Exception as e:
+            logger.info(
+                "phase.transition",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": phase,
+                    "detail": "work_plan_after_phase_end",
+                },
+            )
+        except Exception:
             pass
 
-    def get_dynamic_context_messages(self, phase_name: str) -> List["ChatMessage"]:
+    def get_dynamic_context_messages(self, phase_name: str) -> list[ChatMessage]:
         """
         Provide fresh orchestrator context and work plan before each LLM call.
 
@@ -1246,7 +1698,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         Returns:
             List of ChatMessage with fresh context (single combined message)
         """
-        from mas.elements.llms.common.chat.message import ChatMessage, Role
+        from mas.domain.messages import ChatMessage, Role
 
         messages = []
 
@@ -1257,7 +1709,9 @@ class OrchestratorPhaseProvider(PhaseProvider):
             # Build work plan snapshot (full version for LLM)
             plan_snapshot = ""
             if plan:
-                plan_snapshot = self._build_plan_snapshot_internal(plan, workspace_service, truncate_for_console=False)
+                plan_snapshot = self._build_plan_snapshot_internal(
+                    plan, workspace_service, truncate_for_console=False
+                )
             else:
                 plan_snapshot = "No work plan exists yet."
 
@@ -1268,19 +1722,28 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 # Build truncated version for console printing
                 plan_snapshot_console = ""
                 if plan:
-                    plan_snapshot_console = self._build_plan_snapshot_internal(plan, workspace_service, truncate_for_console=True)
+                    plan_snapshot_console = self._build_plan_snapshot_internal(
+                        plan, workspace_service, truncate_for_console=True
+                    )
                 else:
                     plan_snapshot_console = "No work plan exists yet."
-                combined_context_console = self._current_orch_context.format_context(plan_snapshot_console)
+                combined_context_console = self._current_orch_context.format_context(
+                    plan_snapshot_console
+                )
 
                 # Log truncated context for debugging
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": phase_name, "detail": "dynamic_context_provided", "context": combined_context_console})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": phase_name,
+                        "detail": "dynamic_context_provided",
+                        "context": combined_context_console,
+                    },
+                )
 
                 # Send FULL context to LLM
-                messages.append(ChatMessage(
-                    role=Role.USER,
-                    content=combined_context
-                ))
+                messages.append(ChatMessage(role=Role.USER, content=combined_context))
             else:
                 # Fallback: just show work plan (backward compatibility)
                 fallback_context = f"Current Work Plan:\n{plan_snapshot}"
@@ -1288,23 +1751,38 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 # Build truncated version for console
                 plan_snapshot_console = ""
                 if plan:
-                    plan_snapshot_console = self._build_plan_snapshot_internal(plan, workspace_service, truncate_for_console=True)
+                    plan_snapshot_console = self._build_plan_snapshot_internal(
+                        plan, workspace_service, truncate_for_console=True
+                    )
                 else:
                     plan_snapshot_console = "No work plan exists yet."
                 fallback_context_console = f"Current Work Plan:\n{plan_snapshot_console}"
 
                 # Log truncated fallback context for debugging
-                logger.info("phase.decision", extra={"thread_id": self._thread_id, "phase": phase_name, "detail": "dynamic_context_fallback", "context": fallback_context_console})
+                logger.info(
+                    "phase.decision",
+                    extra={
+                        "thread_id": self._thread_id,
+                        "phase": phase_name,
+                        "detail": "dynamic_context_fallback",
+                        "context": fallback_context_console,
+                    },
+                )
 
                 # Send FULL context to LLM
-                messages.append(ChatMessage(
-                    role=Role.USER,
-                    content=fallback_context
-                ))
+                messages.append(ChatMessage(role=Role.USER, content=fallback_context))
 
         except Exception as e:
             # Fail gracefully - don't break execution if context building fails
-            logger.error("phase.validate_error", extra={"thread_id": self._thread_id, "phase": phase_name, "error": str(e), "detail": "error building dynamic context"})
+            logger.error(
+                "phase.validate_error",
+                extra={
+                    "thread_id": self._thread_id,
+                    "phase": phase_name,
+                    "error": str(e),
+                    "detail": "error building dynamic context",
+                },
+            )
 
         return messages
 
@@ -1334,8 +1812,11 @@ class OrchestratorPhaseProvider(PhaseProvider):
         variables = workspace_service.get_all_variables(self._thread_id)
         if variables:
             # Only show non-internal variables
-            public_vars = {k: v for k, v in variables.items()
-                           if not k.startswith('_') and k not in ['orchestrator_uid', 'original_task_id']}
+            public_vars = {
+                k: v
+                for k, v in variables.items()
+                if not k.startswith("_") and k not in ["orchestrator_uid", "original_task_id"]
+            }
             if public_vars:
                 lines.append(f"\nVariables ({len(public_vars)}):")
                 for key, value in list(public_vars.items())[:3]:
@@ -1343,16 +1824,20 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
         return "\n".join(lines) if lines else ""
 
-    def _build_plan_snapshot_internal(self, plan, workspace_service, truncate_for_console: bool = False) -> str:
+    def _build_plan_snapshot_internal(
+        self, plan, workspace_service, truncate_for_console: bool = False
+    ) -> str:
         """Build comprehensive work plan snapshot with responses."""
-        from mas.elements.nodes.common.workload import WorkItemStatus, WorkItemKind
+        from mas.domain.workloads import WorkItemKind, WorkItemStatus
 
         status = workspace_service.get_work_plan_status(self._thread_id, self._node_uid)
 
         lines = [
             f"Work Plan: {status.total_items} items total",
-            f"Status: pending={status.pending_items}, in_progress={status.in_progress_items} (waiting={status.waiting_items}), done={status.done_items}, failed={status.failed_items}",
-            f"Complete: {status.is_complete}"
+            f"Status: pending={status.pending_items}, in_progress={status.in_progress_items} "
+            f"(waiting={status.waiting_items}), done={status.done_items}, "
+            f"failed={status.failed_items}",
+            f"Complete: {status.is_complete}",
         ]
 
         if plan:
@@ -1383,8 +1868,10 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
                         # Show conversation for REMOTE items with delegation history
                         if item.result and item.result.delegations:
-                            conv_summary = item.result.conversation_summary(truncate=truncate_for_console, max_chars=250)
-                            for line in conv_summary.split('\n'):
+                            conv_summary = item.result.conversation_summary(
+                                truncate=truncate_for_console, max_chars=250
+                            )
+                            for line in conv_summary.split("\n"):
                                 lines.append(f"    {line}")
 
                         # Show local execution for LOCAL items
@@ -1394,8 +1881,9 @@ class OrchestratorPhaseProvider(PhaseProvider):
                                 outcome_text = exec_info.outcome
                                 # Truncate for console readability
                                 if truncate_for_console:
-                                    # Handle multi-line outcomes by truncating and showing first portion
-                                    outcome_lines = outcome_text.split('\n')
+                                    # Handle multi-line outcomes by truncating and showing first
+                                    # portion
+                                    outcome_lines = outcome_text.split("\n")
                                     if len(outcome_text) > 250:
                                         # Show first 250 chars across lines
                                         char_count = 0
@@ -1404,20 +1892,24 @@ class OrchestratorPhaseProvider(PhaseProvider):
                                             if char_count + len(oline) > 250:
                                                 remaining = 250 - char_count
                                                 if remaining > 0:
-                                                    truncated_lines.append(oline[:remaining] + "...")
+                                                    truncated_lines.append(
+                                                        oline[:remaining] + "..."
+                                                    )
                                                 break
                                             truncated_lines.append(oline)
                                             char_count += len(oline)
-                                        outcome_text = ' '.join(truncated_lines)  # Join with space for console
+                                        outcome_text = " ".join(
+                                            truncated_lines
+                                        )  # Join with space for console
                                     else:
                                         # If short, still flatten to single line for console
-                                        outcome_text = ' '.join(outcome_lines)
+                                        outcome_text = " ".join(outcome_lines)
 
                                 lines.append(f"    Execution: {outcome_text}")
 
         return "\n".join(lines)
 
-    def get_phase_static_context(self, phase_name: str) -> List[ChatMessage]:
+    def get_phase_static_context(self, phase_name: str) -> list[ChatMessage]:
         """
         Get phase-specific static context (reference material).
 
@@ -1437,7 +1929,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         Returns:
             List of SYSTEM ChatMessage with phase-specific context
         """
-        from mas.elements.llms.common.chat.message import Role
+        from mas.domain.messages import Role
 
         try:
             phase_enum = OrchestratorPhase(phase_name)
@@ -1448,20 +1940,17 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
         # Phases that need adjacent nodes information
         if phase_enum in [
-            OrchestratorPhase.PLANNING,    # Optional - for checking capabilities
+            OrchestratorPhase.PLANNING,  # Optional - for checking capabilities
             OrchestratorPhase.ALLOCATION,  # Required - for delegation
-            OrchestratorPhase.MONITORING   # Required - for re-delegation
+            OrchestratorPhase.MONITORING,  # Required - for re-delegation
         ]:
             adjacent_nodes = self._build_adjacent_nodes_context()
             if adjacent_nodes:
-                messages.append(ChatMessage(
-                    role=Role.SYSTEM,
-                    content=adjacent_nodes
-                ))
+                messages.append(ChatMessage(role=Role.SYSTEM, content=adjacent_nodes))
 
         return messages
 
-    def _build_adjacent_nodes_context(self) -> Optional[str]:
+    def _build_adjacent_nodes_context(self) -> str | None:
         """Build adjacent nodes reference context."""
         try:
             adjacent_nodes = self._get_adjacent_nodes()
@@ -1533,7 +2022,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         if trigger_reason == CycleTriggerReason.NEW_REQUEST and status.total_items == 0:
             return (
                 "🆕 **NEW REQUEST - CREATE WORK PLAN**\n\n"
-                f"User asked: \"{user_request}\"\n\n"
+                f'User asked: "{user_request}"\n\n'
                 "**Your task:** Create a comprehensive work plan.\n\n"
                 "**Steps:**\n"
                 "1. Analyze the request to understand information needs\n"
@@ -1553,7 +2042,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         elif trigger_reason == CycleTriggerReason.NEW_REQUEST and status.is_complete:
             return (
                 "🆕 **FOLLOW-UP REQUEST - EXTEND PLAN**\n\n"
-                f"User's follow-up: \"{user_request}\"\n\n"
+                f'User\'s follow-up: "{user_request}"\n\n'
                 f"**Context:** Existing plan has {status.total_items} items (all complete).\n\n"
                 "**Your task:** Add new work items to address this follow-up.\n\n"
                 "**Steps:**\n"
@@ -1566,12 +2055,15 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
         # Scenario 3: Follow-up request with in-progress plan
         elif trigger_reason == CycleTriggerReason.NEW_REQUEST and status.total_items > 0:
-            in_progress_count = status.in_progress_items + status.pending_items + status.waiting_items
+            in_progress_count = (
+                status.in_progress_items + status.pending_items + status.waiting_items
+            )
             return (
                 "🆕 **FOLLOW-UP REQUEST - UPDATE PLAN**\n\n"
-                f"User's follow-up: \"{user_request}\"\n\n"
+                f'User\'s follow-up: "{user_request}"\n\n'
                 f"**Context:** Plan has {status.total_items} items "
-                f"({status.done_items} done, {in_progress_count} in-progress, {status.failed_items} failed).\n\n"
+                f"({status.done_items} done, {in_progress_count} in-progress, "
+                f"{status.failed_items} failed).\n\n"
                 "**Your task:** Update plan to incorporate new request.\n\n"
                 "**Steps:**\n"
                 "1. Review current plan status (above)\n"
@@ -1611,7 +2103,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
     def _focused_prompt_allocation(self, context, plan, status, phase_changed: bool) -> str:
         """Allocation phase prompts with detailed assignment/delegation tracking."""
-        from mas.elements.nodes.common.workload import WorkItemKind, WorkItemStatus
+        from mas.domain.workloads import WorkItemKind, WorkItemStatus
 
         if not plan:
             return "Delegate pending REMOTE work items to appropriate agents."
@@ -1626,27 +2118,27 @@ class OrchestratorPhaseProvider(PhaseProvider):
         # ========== CATEGORIZE BY STATE ==========
         # State 1: Unassigned (need both assign + delegate)
         unassigned = [
-            item for item in all_remote
+            item
+            for item in all_remote
             if item.status == WorkItemStatus.PENDING and not item.assigned_uid
         ]
 
         # State 2: Assigned but not delegated (need delegate only)
         assigned_not_delegated = [
-            item for item in all_remote
+            item
+            for item in all_remote
             if item.status == WorkItemStatus.PENDING
-               and item.assigned_uid
-               and (not item.result or not item.result.delegations)
+            and item.assigned_uid
+            and (not item.result or not item.result.delegations)
         ]
 
         # State 3: Delegated (in progress)
-        delegated = [
-            item for item in all_remote
-            if item.status == WorkItemStatus.IN_PROGRESS
-        ]
+        delegated = [item for item in all_remote if item.status == WorkItemStatus.IN_PROGRESS]
 
         # State 4: Completed (done or failed)
         completed = [
-            item for item in all_remote
+            item
+            for item in all_remote
             if item.status in [WorkItemStatus.DONE, WorkItemStatus.FAILED]
         ]
 
@@ -1670,8 +2162,14 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
             # Show detailed breakdown
             lines.append("**Current Status:**")
-            lines.append(f"  • Unassigned: {len(unassigned)} ({len(unassigned_ready)} ready, {len(unassigned_blocked)} blocked)")
-            lines.append(f"  • Assigned (not delegated): {len(assigned_not_delegated)} ({len(assigned_ready)} ready, {len(assigned_blocked)} blocked)")
+            lines.append(
+                f"  • Unassigned: {len(unassigned)} ({len(unassigned_ready)} ready, "
+                f"{len(unassigned_blocked)} blocked)"
+            )
+            lines.append(
+                f"  • Assigned (not delegated): {len(assigned_not_delegated)} "
+                f"({len(assigned_ready)} ready, {len(assigned_blocked)} blocked)"
+            )
             lines.append(f"  • Delegated: {len(delegated)}")
             lines.append(f"  • Completed: {len(completed)}")
             lines.append("")
@@ -1689,7 +2187,9 @@ class OrchestratorPhaseProvider(PhaseProvider):
             # Case B: Items need delegation
             if assigned_ready:
                 lines.append(f"**STEP 2: DELEGATE {len(assigned_ready)} ITEM(S)**")
-                item_list = ", ".join([f"'{item.id}' → {item.assigned_uid}" for item in assigned_ready[:3]])
+                item_list = ", ".join(
+                    [f"'{item.id}' → {item.assigned_uid}" for item in assigned_ready[:3]]
+                )
                 if len(assigned_ready) > 3:
                     item_list += f" (+{len(assigned_ready) - 3} more)"
                 lines.append(f"Items: {item_list}")
@@ -1698,7 +2198,9 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 lines.append("")
 
             lines.append("**Tips:**")
-            lines.append("• Review capabilities of all agents shown in 'Available Agents' section above")
+            lines.append(
+                "• Review capabilities of all agents shown in 'Available Agents' section above"
+            )
             lines.append("• Use GetNodeCardTool only if you need more details about an agent")
             lines.append("• Match task intent to agent domain expertise")
             lines.append("• Parallel delegation enables comprehensive coverage across data sources")
@@ -1733,9 +2235,13 @@ class OrchestratorPhaseProvider(PhaseProvider):
             lines.append("")
 
             if unassigned_ready:
-                lines.append(f"**NEXT: Assign {len(unassigned_ready)} item(s) using AssignWorkItemTool**")
+                lines.append(
+                    f"**NEXT: Assign {len(unassigned_ready)} item(s) using AssignWorkItemTool**"
+                )
             elif assigned_ready:
-                lines.append(f"**NEXT: Delegate {len(assigned_ready)} item(s) using DelegateTaskTool**")
+                lines.append(
+                    f"**NEXT: Delegate {len(assigned_ready)} item(s) using DelegateTaskTool**"
+                )
 
             return "\n".join(lines)
 
@@ -1753,7 +2259,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
 
     def _focused_prompt_execution(self, context, plan, status, phase_changed: bool) -> str:
         """Execution phase prompts for ALL scenarios."""
-        from mas.elements.nodes.common.workload import WorkItemKind
+        from mas.domain.workloads import WorkItemKind
 
         if not plan:
             return "Execute pending LOCAL work items."
@@ -1766,10 +2272,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         pending_local = [item for item in ready_items if item.kind == WorkItemKind.LOCAL]
         blocked_local = [item for item in blocked_items if item.kind == WorkItemKind.LOCAL]
 
-        total_local = len([
-            item for item in plan.items.values()
-            if item.kind == WorkItemKind.LOCAL
-        ])
+        total_local = len([item for item in plan.items.values() if item.kind == WorkItemKind.LOCAL])
 
         # Scenario 1: First iteration with items to execute
         if phase_changed and pending_local:
@@ -1869,7 +2372,8 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 "**Your task:** Review the response (marked 🔔 or ⚡ in work plan).\n\n"
                 "**Decision:**\n"
                 f"• **Acceptable?** → `MarkWorkItemStatusTool('{item_id}', 'done')`\n"
-                f"• **Needs follow-up?** → `DelegateTaskTool(same agent, clarification, work_item_id)`\n"
+                "• **Needs follow-up?** → "
+                "`DelegateTaskTool(same agent, clarification, work_item_id)`\n"
                 "  ↳ Use same work_item_id to continue conversation\n"
                 f"• **Failed/impossible?** → `MarkWorkItemStatusTool('{item_id}', 'failed')`\n\n"
                 "**Quality bar:** Mark DONE only if response truly addresses the requirement."
@@ -1956,7 +2460,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
             return (
                 "✨ **SYNTHESIZE COMPLETE RESULTS**\n\n"
                 f"All {total_items} work items completed successfully!\n\n"
-                f"Original request: \"{user_request}\"\n\n"
+                f'Original request: "{user_request}"\n\n'
                 "**Your task:** Create comprehensive final response.\n\n"
                 "**Include:**\n"
                 "1. Direct answer to user's request\n"
@@ -1971,7 +2475,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
             return (
                 "⚠️ **SYNTHESIZE PARTIAL RESULTS**\n\n"
                 f"Work summary: {done_items}/{total_items} done, {failed_items} failed.\n\n"
-                f"Original request: \"{user_request}\"\n\n"
+                f'Original request: "{user_request}"\n\n'
                 "**Your task:** Create honest, transparent response.\n\n"
                 "**Include:**\n"
                 "1. What was successfully accomplished (from DONE items)\n"
@@ -1988,7 +2492,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 return (
                     "❌ **SYNTHESIZE FAILURE RESULTS**\n\n"
                     f"Unable to complete any of {total_items} work items.\n\n"
-                    f"Original request: \"{user_request}\"\n\n"
+                    f'Original request: "{user_request}"\n\n'
                     "**Your task:** Explain what went wrong.\n\n"
                     "**Include:**\n"
                     "1. Clear explanation of why work couldn't be completed\n"
@@ -2011,7 +2515,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
         elif trigger_reason == CycleTriggerReason.NEW_REQUEST:
             return (
                 "🆕 **USER FOLLOW-UP IN SYNTHESIS**\n\n"
-                f"User asked: \"{user_request}\"\n\n"
+                f'User asked: "{user_request}"\n\n'
                 "You're in SYNTHESIS phase (typically read-only).\n\n"
                 "**Options:**\n"
                 "• If follow-up is clarification → Answer directly and finish\n"
@@ -2029,7 +2533,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
                 "• Refine your response\n"
                 "• Add more context or details\n"
                 "• Finish when response is complete\n\n"
-                f"Original request: \"{user_request}\""
+                f'Original request: "{user_request}"'
             )
 
         # Fallback

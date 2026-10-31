@@ -1,26 +1,27 @@
 import logging
-from typing import Optional, Any, List, ClassVar, Set, Dict
 from copy import deepcopy
-from mas.graph.state.state_view import StateView
-from mas.elements.llms.common.chat.message import ChatMessage, Role
-from mas.elements.tools.common.base_tool import BaseTool
-from mas.elements.nodes.common.base_node import BaseNode
-from mas.elements.nodes.common.capabilities.iem_capable import IEMCapableMixin
-from mas.elements.nodes.common.capabilities.llm_capable import LlmCapableMixin
-from mas.elements.nodes.common.capabilities.retriever_capable import RetrieverCapableMixin
-from mas.elements.nodes.common.capabilities.agent_capable import AgentCapableMixin
-from mas.elements.nodes.common.capabilities.workload_capable import WorkloadCapableMixin
-from mas.elements.nodes.common.capabilities.hitl_capable import HITLCapableMixin
-from mas.elements.nodes.common.workload import Task, AgentResult, WorkspaceContext
-from mas.elements.providers.mcp_server_client.mcp_provider import McpProvider
+from typing import Any, ClassVar
+
+from mas.application.agents.config import AgentConfig
+from mas.application.agents.constants import StrategyType
+from mas.application.agents.execution import ExecutionMode
+from mas.application.agents.hitl_config import HITLHandlerConfig
+from mas.application.capabilities.agent_capable import AgentCapableMixin
+from mas.application.capabilities.hitl_capable import HITLCapableMixin
+from mas.application.capabilities.iem_capable import IEMCapableMixin
+from mas.application.capabilities.llm_capable import LlmCapableMixin
+from mas.application.capabilities.retriever_capable import RetrieverCapableMixin
+from mas.application.capabilities.workload_capable import WorkloadCapableMixin
+from mas.application.elements.node import BaseNode
+from mas.application.ports.tool import BaseTool
+from mas.application.ports.tool_provider import ToolProvider
+from mas.application.tools.config import ExecutorConfig
 from mas.core.hitl.models import HITLMode
-from mas.elements.nodes.common.agent import AgentConfig
-from mas.elements.nodes.common.agent.execution import ExecutionMode
-from mas.elements.nodes.common.agent.hitl_config import HITLHandlerConfig
-from mas.elements.nodes.common.agent.constants import StrategyType
-from mas.elements.tools.common.execution.models import ExecutorConfig
-from mas.elements.tools.builtin.time import GetCurrentTimeTool
+from mas.domain.messages import ChatMessage, Role
+from mas.domain.workloads import AgentResult, Task
 from mas.elements.tools.builtin.retriever import RetrieverTool
+from mas.elements.tools.builtin.time import GetCurrentTimeTool
+from mas.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +33,11 @@ class CustomAgentNode(
     LlmCapableMixin,
     RetrieverCapableMixin,
     HITLCapableMixin,
-    BaseNode
+    BaseNode,
 ):
     """
     CustomAgentNode with SOLID workload architecture integration.
-    
+
     Features:
     - Uses new focused workload services (threads, workspaces, work_plans)
     - Processes work using workspace conversation context
@@ -50,19 +51,19 @@ class CustomAgentNode(
     WRITES: ClassVar[set[str]] = set()
 
     def __init__(
-            self,
-            *,
-            llm: Any,
-            retriever: Any = None,
-            tools: List[BaseTool] = None,
-            system_message: str = "",
-            mcp_providers: List[McpProvider] = None,
-            max_rounds: Optional[int] = 15,
-            strategy_type: str = StrategyType.REACT.value,
-            include_builtin_tools: bool = True,
-            hitl_mode: HITLMode = HITLMode.SKIP,
-            execution_holder=None,
-            **kwargs: Any
+        self,
+        *,
+        llm: Any,
+        retriever: Any = None,
+        tools: list[BaseTool] = None,
+        system_message: str = "",
+        mcp_providers: list[ToolProvider] = None,
+        max_rounds: int | None = 15,
+        strategy_type: str = StrategyType.REACT.value,
+        include_builtin_tools: bool = True,
+        hitl_mode: HITLMode = HITLMode.SKIP,
+        execution_holder=None,
+        **kwargs: Any,
     ):
         super().__init__(
             llm=llm,
@@ -70,7 +71,7 @@ class CustomAgentNode(
             system_message=system_message,
             hitl_mode=hitl_mode,
             execution_holder=execution_holder,
-            **kwargs
+            **kwargs,
         )
         self.mcp_providers = mcp_providers or []
         self.max_rounds = max_rounds
@@ -80,22 +81,22 @@ class CustomAgentNode(
         self._include_builtin_tools = include_builtin_tools
         self.tools = []
 
-    def run(self, state: StateView) -> StateView:
+    async def run(self, state: StateView) -> StateView:
         """Main entry point - process all incoming TaskPackets."""
 
         # Build complete tools list (domain + builtin + mcp)
-        self.tools = self._get_all_tools()
+        self.tools = await self._get_all_tools()
 
         # Process all incoming packets
-        self.process_packets(state)
+        await self.process_packets(state)
         return state
 
     # ========== BUILTIN TOOLS (SOLID) ==========
 
-    def _get_all_tools(self) -> List[BaseTool]:
+    async def _get_all_tools(self) -> list[BaseTool]:
         """
         Combine all tools: domain tools + builtin tools + MCP tools.
-        
+
         SOLID Design:
         - Single Responsibility: Each tool type managed separately
         - Open/Closed: Easy to add new builtin tools
@@ -112,19 +113,19 @@ class CustomAgentNode(
 
         # 3. MCP tools from all providers
         for provider in self.mcp_providers:
-            all_tools.extend(provider.get_tools())
+            all_tools.extend(await provider.get_tools())
 
         return all_tools
 
-    def _create_builtin_tools(self) -> List[BaseTool]:
+    def _create_builtin_tools(self) -> list[BaseTool]:
         """
         Create built-in tools with dependency injection.
-        
+
         Pattern follows OrchestratorPhaseProvider design:
         - Tools initialized with clean lambda dependencies
         - No hard dependencies on node internals
         - Easy to test and mock
-        
+
         Returns:
             List of initialized builtin tools
         """
@@ -142,10 +143,10 @@ class CustomAgentNode(
 
     # ========== TASK PROCESSING ==========
 
-    def handle_task_packet(self, packet) -> None:
+    async def handle_task_packet(self, packet) -> None:
         """
         Process work using workspace conversation context.
-        
+
         SOLID Architecture Flow:
         1. Record task in workspace (self.workspaces.add_task)
         2. Build conversation context (self.workspaces.get_recent_messages + results)
@@ -166,7 +167,7 @@ class CustomAgentNode(
             conversation_context = self._build_conversation_context(task)
 
             # 2. Process with LLM - returns result dict
-            execution_result = self._process_with_llm(conversation_context)
+            execution_result = await self._process_with_llm(conversation_context)
 
             # 3. Create agent result from execution result
             agent_result = self._create_agent_result(execution_result)
@@ -187,13 +188,13 @@ class CustomAgentNode(
                 agent_id=self.uid,
                 agent_name=self.display_name,
                 success=False,
-                error=str(e)
+                error=str(e),
             )
             if task.thread_id:
                 self._add_agent_result_to_workspace(task.thread_id, error_result)
             self._route_response(task, error_result, packet)
 
-    def _build_conversation_context(self, task: Task) -> List[ChatMessage]:
+    def _build_conversation_context(self, task: Task) -> list[ChatMessage]:
         """
         Build conversation context:
         1. Get workspace conversation history
@@ -228,7 +229,7 @@ class CustomAgentNode(
 
         return context_messages
 
-    def _build_agent_results_context(self, thread_id: str) -> Optional[ChatMessage]:
+    def _build_agent_results_context(self, thread_id: str) -> ChatMessage | None:
         """Build agent results context from workspace."""
         if not thread_id:
             return None
@@ -245,10 +246,10 @@ class CustomAgentNode(
 
         return ChatMessage(role=Role.USER, content=results_text)
 
-    def _process_with_llm(self, conversation_context: List[ChatMessage]) -> Dict[str, Any]:
+    async def _process_with_llm(self, conversation_context: list[ChatMessage]) -> dict[str, Any]:
         """
         Process conversation with LLM (with optional tools).
-        
+
         Returns:
             Dict with keys: output, success, error, reasoning, metadata, metrics
         """
@@ -258,7 +259,7 @@ class CustomAgentNode(
                 tools=self.tools,
                 strategy_type=self.strategy_type,
                 system_message=self.system_message,
-                max_steps=self.max_rounds
+                max_steps=self.max_rounds,
             )
 
             hitl_active = self._should_activate_hitl()
@@ -277,7 +278,9 @@ class CustomAgentNode(
                 logger.info(
                     "HITL: CustomAgentNode '%s' using HITL execution mode "
                     "(hitl_mode=%s) with %d tools",
-                    self.uid, self._hitl_mode.value, len(self.tools),
+                    self.uid,
+                    self._hitl_mode.value,
+                    len(self.tools),
                 )
 
             config = AgentConfig(
@@ -286,17 +289,15 @@ class CustomAgentNode(
                 hitl_config=hitl_config,
             )
 
-            result = self.run_agent(
-                messages=conversation_context,
-                strategy=strategy,
-                config=config
+            result = await self.run_agent(
+                messages=conversation_context, strategy=strategy, config=config
             )
 
             # Return result dict as-is (contains success, error, output, etc.)
             return result
         else:
             # No tools - use basic chat
-            assistant_msg = self.chat(conversation_context)
+            assistant_msg = await self.chat(conversation_context)
             # Create a result dict that matches run_agent format
             return {
                 "success": True,
@@ -304,7 +305,7 @@ class CustomAgentNode(
                 "error": None,
                 "reasoning": "",
                 "metadata": {},
-                "metrics": {}
+                "metrics": {},
             }
 
     def _route_response(self, task: Task, agent_result: AgentResult, original_packet) -> None:
@@ -312,16 +313,16 @@ class CustomAgentNode(
         Agent Decision Logic:
         ┌─────────────────┐
         │ Custom Agent    │  IF task.should_respond == True:
-        │                 │    
+        │                 │
         │ ┌─────────────┐ │    Check adjacent nodes:
-        │ │ Check       │ │    
+        │ │ Check       │ │
         │ │ adjacent    │ │    IF original_requester in my_adjacent_nodes:
         │ │ nodes       │ │      → Respond directly
-        │ │             │ │    
+        │ │             │ │
         │ │ IF requester│ │    ELSE:
         │ │ adjacent:   │ │      → Broadcast with response request
         │ │ → respond   │ │         (carry original requester info)
-        │ │             │ │  
+        │ │             │ │
         │ │ ELSE:       │ │  ELSE (should_respond == False):
         │ │ → broadcast │ │    → Normal broadcast
         │ │ with        │ │
@@ -343,26 +344,24 @@ class CustomAgentNode(
                 # Broadcast with response request
                 self._execute_broadcast_with_response(task, agent_result)
 
-    def _get_adjacent_nodes_uids(self) -> Set[str]:
+    def _get_adjacent_nodes_uids(self) -> set[str]:
         """Get adjacent node UIDs from network topology."""
         adjacent_nodes = self.get_adjacent_nodes()
         return set(adjacent_nodes.keys())
 
-    def _execute_direct_response(self, task: Task, agent_result: AgentResult, original_packet) -> None:
+    def _execute_direct_response(
+        self, task: Task, agent_result: AgentResult, original_packet
+    ) -> None:
         """Send direct response to requester - finished work."""
         response_task = Task.respond_success(
-            original_task=task,
-            result=agent_result,
-            processed_by=self.uid
+            original_task=task, result=agent_result, processed_by=self.uid
         )
         self.reply_task(original_packet, response_task)
 
     def _execute_broadcast_with_response(self, task: Task, agent_result: AgentResult) -> None:
         """Broadcast with response request - finished work."""
         response_task = task.fork(
-            content="finished work",
-            processed_by=self.uid,
-            result=agent_result
+            content="finished work", processed_by=self.uid, result=agent_result
         )
         response_task.should_respond = True
         response_task.response_to = task.response_to
@@ -372,17 +371,13 @@ class CustomAgentNode(
 
     def _execute_normal_broadcast(self, task: Task, agent_result: AgentResult) -> None:
         """Normal broadcast - continue work."""
-        forked_task = task.fork(
-            content="continue work",
-            processed_by=self.uid,
-            result=agent_result
-        )
+        forked_task = task.fork(content="continue work", processed_by=self.uid, result=agent_result)
         self.broadcast_task(forked_task)
 
-    def _create_agent_result(self, execution_result: Dict[str, Any]) -> AgentResult:
+    def _create_agent_result(self, execution_result: dict[str, Any]) -> AgentResult:
         """
         Create AgentResult from execution result dict.
-        
+
         Args:
             execution_result: Result dict from _process_with_llm with keys:
                 - output: The content/response
@@ -396,10 +391,10 @@ class CustomAgentNode(
         output = execution_result.get("output", "")
         if output is None:
             output = ""
-        
+
         # If execution failed but no output, use error as content
         content = str(output) if output else execution_result.get("error", "No output produced")
-        
+
         return AgentResult(
             content=content,
             agent_id=self.uid,
@@ -408,7 +403,7 @@ class CustomAgentNode(
             error=execution_result.get("error"),
             reasoning=execution_result.get("reasoning", ""),
             execution_metadata=execution_result.get("metadata", {}),
-            metrics=execution_result.get("metrics", {})
+            metrics=execution_result.get("metrics", {}),
         )
 
     def _add_agent_result_to_workspace(self, thread_id: str, agent_result: AgentResult) -> None:
@@ -418,7 +413,7 @@ class CustomAgentNode(
     def get_thread_hierarchy_info(self, thread_id: str) -> str:
         """
         Example method showing clean usage of thread service.
-        
+
         Demonstrates how to access thread hierarchy information
         using the new SOLID architecture.
         """
@@ -440,7 +435,7 @@ class CustomAgentNode(
             f"Initiator: {thread.initiator}",
             f"Hierarchy Depth: {depth}",
             f"Root Thread: {root_thread}",
-            f"Hierarchy Path: {' → '.join(hierarchy_path)}"
+            f"Hierarchy Path: {' → '.join(hierarchy_path)}",
         ]
 
         return "\n".join(info)
@@ -448,7 +443,7 @@ class CustomAgentNode(
     def get_workspace_summary(self, thread_id: str) -> str:
         """
         Example method showing clean usage of workspace service.
-        
+
         Demonstrates comprehensive workspace content access
         using the new SOLID architecture.
         """
@@ -468,7 +463,7 @@ class CustomAgentNode(
             f"Results: {len(results)} items",
             f"Tasks: {len(tasks)} items",
             f"Recent Messages: {len(recent_messages)} items",
-            f"Last Updated: {summary.get('last_updated', 'Unknown')}"
+            f"Last Updated: {summary.get('last_updated', 'Unknown')}",
         ]
 
         # Add recent facts if any

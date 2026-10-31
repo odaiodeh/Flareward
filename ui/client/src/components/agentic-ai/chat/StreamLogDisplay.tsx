@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from 'react';
 import { Cpu } from 'lucide-react';
-import { Message, ApprovalDecision, AutoRuleAction } from './types';
+import { Message, ApprovalDecisionHandler, AutoRuleHandler } from './types';
 import { StreamLogItem } from './StreamLogItem';
 import { WorkPlanDisplay } from './WorkPlanDisplay';
 
@@ -9,18 +9,8 @@ interface StreamLogDisplayProps {
   sessionId: string;
   onToggleExpansion: (messageId: string, nodeId: string) => void;
   onToggleWorkPlanExpansion: (messageId: string, planId: string) => void;
-  onApprovalDecision?: (
-    requestId: string,
-    decision: ApprovalDecision,
-    feedback?: string,
-    modifiedArgs?: Record<string, any>,
-  ) => Promise<void>;
-  onAutoRule?: (
-    requestId: string,
-    nodeUid: string | null,
-    toolName: string | null,
-    action: AutoRuleAction,
-  ) => Promise<void>;
+  onApprovalDecision?: ApprovalDecisionHandler;
+  onAutoRule?: AutoRuleHandler;
 }
 
 export const StreamLogDisplay = memo(({
@@ -147,6 +137,7 @@ export const StreamLogDisplay = memo(({
     for (let j = 0; j < prevApprovals.length; j++) {
       if (
         prevApprovals[j]?.requestId !== nextApprovals[j]?.requestId ||
+        prevApprovals[j]?.executionId !== nextApprovals[j]?.executionId ||
         prevApprovals[j]?.status !== nextApprovals[j]?.status
       ) {
         return false;

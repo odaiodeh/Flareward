@@ -1,7 +1,8 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
-from .config import BranchChooserNodeConfig
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .branch_chooser import BranchChooserNode
+from .config import BranchChooserNodeConfig
 from .identifiers import Identifier
 
 
@@ -17,11 +18,8 @@ class BranchChooserNodeFactory(BaseFactory[BranchChooserNodeConfig, BranchChoose
           • step_ctx  – mandatory identity capsule
         """
         try:
-            return BranchChooserNode(
-                default_branch=getattr(cfg, "default_branch", None)
-            )
+            return BranchChooserNode(default_branch=getattr(cfg, "default_branch", None))
         except Exception as exc:
             raise PluginConfigurationError(
-                f"BranchChooserNodeFactory.create failed: {exc}",
-                cfg.dict()
+                f"BranchChooserNodeFactory.create failed: {exc}", cfg.dict()
             ) from exc

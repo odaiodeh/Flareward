@@ -1,14 +1,14 @@
-from typing import List, Tuple
 from mas.graph.graph_plan import GraphPlan
-from ..models import ValidationMessage, MessageSeverity, MessageCode
-from ...topology.models import CycleInfo
+
 from ...topology.cycle_algorithms import CycleDetector as TopologyCycleDetector
+from ...topology.models import CycleInfo
+from ..models import MessageCode, MessageSeverity, ValidationMessage
 
 
 class CycleDetector:
     """Detects cycles in graph execution flow."""
 
-    def detect_cycles(self, plan: GraphPlan) -> Tuple[List[CycleInfo], List[ValidationMessage]]:
+    def detect_cycles(self, plan: GraphPlan) -> tuple[list[CycleInfo], list[ValidationMessage]]:
         """Detect all cycles using topology utilities."""
         messages = []
 
@@ -24,14 +24,13 @@ class CycleDetector:
 
         # Create validation messages
         for cycle in dangerous_cycles:
-            messages.append(ValidationMessage(
-                text=f"Graph contains cycle: {' -> '.join(cycle.cycle_path)}",
-                severity=MessageSeverity.ERROR,
-                code=MessageCode.CYCLE_DETECTED,
-                context={
-                    "cycle_path": cycle.cycle_path,
-                    "cycle_length": cycle.cycle_length
-                }
-            ))
+            messages.append(
+                ValidationMessage(
+                    text=f"Graph contains cycle: {' -> '.join(cycle.cycle_path)}",
+                    severity=MessageSeverity.ERROR,
+                    code=MessageCode.CYCLE_DETECTED,
+                    context={"cycle_path": cycle.cycle_path, "cycle_length": cycle.cycle_length},
+                )
+            )
 
         return dangerous_cycles, messages

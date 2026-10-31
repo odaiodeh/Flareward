@@ -1,9 +1,8 @@
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 import pymongo
-
 from mas.core.enums import ResourceOwnership, ResourceVisibility
 from mas.core.identity import Identity
 from mas.resources.builtin_models import BuiltinResourceDescriptor
@@ -11,6 +10,8 @@ from mas.resources.models import Resource
 from mas.resources.repository.builtin_resource_descriptor_repository import (
     BuiltinResourceDescriptorRepository as BuiltinResourceDescriptorRepositoryPort,
 )
+from pymongo.database import Database
+
 from outbound.mongo.helpers import identity_q
 
 logger = logging.getLogger(__name__)
@@ -34,30 +35,38 @@ class MongoBuiltinResourceDescriptorRepository(BuiltinResourceDescriptorReposito
         db_name: str = "UnifAI",
         coll_name: str = "builtin_resource_descriptors",
         resources_coll_name: str = "resources",
+        *,
+        database: Database | None = None,
     ) -> None:
-        mongo_uri = f"mongodb://{mongodb_ip}:{mongodb_port}/"
-        self._client = pymongo.MongoClient(
-            mongo_uri,
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=5000,
-        )
-        self.col = self._client[db_name][coll_name]
-        self._resources_col = self._client[db_name][resources_coll_name]
+        self._client = None
+        if database is None:
+            mongo_uri = f"mongodb://{mongodb_ip}:{mongodb_port}/"
+            self._client = pymongo.MongoClient(
+                mongo_uri, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000
+            )
+            database = self._client[db_name]
+        self.col = database[coll_name]
+        self._resources_col = database[resources_coll_name]
         try:
             self.col.create_index("visibility", background=True)
         except pymongo.errors.PyMongoError:
             logger.warning(
                 "Could not create indexes on '%s' — MongoDB may be unreachable",
-                coll_name, exc_info=True,
+                coll_name,
+                exc_info=True,
             )
 
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
+
     # ---------- CRUD ----------
-    def get(self, rid: str) -> Optional[BuiltinResourceDescriptor]:
+    def get(self, rid: str) -> BuiltinResourceDescriptor | None:
         raw = self.col.find_one({"_id": rid})
         return BuiltinResourceDescriptor(**raw) if raw else None
 
     def save(self, descriptor: BuiltinResourceDescriptor) -> str:
-        descriptor.updated = datetime.now(timezone.utc)
+        descriptor.updated = datetime.now(UTC)
         doc = {"_id": descriptor.rid, **descriptor.model_dump(mode="json")}
         self.col.replace_one({"_id": descriptor.rid}, doc, upsert=True)
         return descriptor.rid
@@ -65,15 +74,15 @@ class MongoBuiltinResourceDescriptorRepository(BuiltinResourceDescriptorReposito
     def delete(self, rid: str) -> None:
         self.col.delete_one({"_id": rid})
 
-    def find_all_rids(self) -> List[str]:
+    def find_all_rids(self) -> list[str]:
         return [doc["_id"] for doc in self.col.find({}, {"_id": 1})]
 
     # ---------- joined reads ----------
     def find_all_builtins(
         self,
-        category: Optional[str] = None,
-        resource_type: Optional[str] = None,
-    ) -> List[Resource]:
+        category: str | None = None,
+        resource_type: str | None = None,
+    ) -> list[Resource]:
         """Every built-in resource (public and draft), unconditionally.
 
         Anchored on the (small, admin-curated) descriptor collection and
@@ -81,7 +90,7 @@ class MongoBuiltinResourceDescriptorRepository(BuiltinResourceDescriptorReposito
         much larger ``resources`` collection for a category/type match
         first.
         """
-        pipeline: List[Dict[str, Any]] = [
+        pipeline: list[dict[str, Any]] = [
             {
                 "$lookup": {
                     "from": self._resources_col.name,
@@ -103,16 +112,16 @@ class MongoBuiltinResourceDescriptorRepository(BuiltinResourceDescriptorReposito
     def find_visible_for_identity(
         self,
         *,
-        identity: Optional[Identity],
-        category: Optional[str],
-        resource_type: Optional[str],
-        ownership: Optional[ResourceOwnership],
+        identity: Identity | None,
+        category: str | None,
+        resource_type: str | None,
+        ownership: ResourceOwnership | None,
         is_admin: bool,
         limit: int,
         offset: int,
         sort_by: str,
         sort_order: str,
-    ) -> Tuple[List[Resource], int]:
+    ) -> tuple[list[Resource], int]:
         """Paginated resources visible to *identity*, joined with built-in
         descriptor metadata — see the port's docstring for the three
         ``ownership`` modes.
@@ -126,35 +135,37 @@ class MongoBuiltinResourceDescriptorRepository(BuiltinResourceDescriptorReposito
         if offset < 0:
             raise ValueError(f"offset must be non-negative, got {offset}")
 
-        base_match: Dict[str, Any] = {}
+        base_match: dict[str, Any] = {}
         if category:
             base_match["category"] = category
         if resource_type:
             base_match["type"] = resource_type
 
-        identity_cond: Dict[str, Any] = identity_q(identity)
+        identity_cond: dict[str, Any] = identity_q(identity)
 
         # For CUSTOM mode, scope to the caller's own resources before the
         # $lookup so the join operates on a smaller working set.
-        pre_lookup_match: Dict[str, Any] = dict(base_match)
+        pre_lookup_match: dict[str, Any] = dict(base_match)
         if ownership == ResourceOwnership.CUSTOM:
             pre_lookup_match.update(identity_cond)
 
-        pipeline: List[Dict[str, Any]] = []
+        pipeline: list[dict[str, Any]] = []
         if pre_lookup_match:
             pipeline.append({"$match": pre_lookup_match})
-        pipeline.append({
-            "$lookup": {
-                "from": self.col.name,
-                "localField": "_id",
-                "foreignField": "_id",
-                "as": "_descriptor",
+        pipeline.append(
+            {
+                "$lookup": {
+                    "from": self.col.name,
+                    "localField": "_id",
+                    "foreignField": "_id",
+                    "as": "_descriptor",
+                }
             }
-        })
+        )
         pipeline.append({"$addFields": {"_descriptor": {"$arrayElemAt": ["$_descriptor", 0]}}})
 
         if ownership == ResourceOwnership.BUILTIN:
-            cond: Dict[str, Any] = {"_descriptor": {"$ne": None}}
+            cond: dict[str, Any] = {"_descriptor": {"$ne": None}}
             if not is_admin:
                 cond["_descriptor.visibility"] = ResourceVisibility.PUBLIC.value
         elif ownership == ResourceOwnership.CUSTOM:
@@ -169,17 +180,19 @@ class MongoBuiltinResourceDescriptorRepository(BuiltinResourceDescriptorReposito
         pipeline.append({"$match": cond})
 
         sort_direction = pymongo.DESCENDING if sort_order == "desc" else pymongo.ASCENDING
-        pipeline.append({
-            "$facet": {
-                "metadata": [{"$count": "total"}],
-                "data": [
-                    {"$sort": {sort_by: sort_direction}},
-                    {"$skip": offset},
-                    *([ {"$limit": limit} ] if limit else []),
-                    {"$project": {"_descriptor": 0}},
-                ],
+        pipeline.append(
+            {
+                "$facet": {
+                    "metadata": [{"$count": "total"}],
+                    "data": [
+                        {"$sort": {sort_by: sort_direction}},
+                        {"$skip": offset},
+                        *([{"$limit": limit}] if limit else []),
+                        {"$project": {"_descriptor": 0}},
+                    ],
+                }
             }
-        })
+        )
 
         result = list(self._resources_col.aggregate(pipeline))
         facet = result[0] if result else {"metadata": [], "data": []}

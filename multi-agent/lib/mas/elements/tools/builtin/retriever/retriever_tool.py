@@ -3,29 +3,29 @@ Tool wrapper that adapts any BaseRetriever to be used as a BaseTool.
 Allows agents to decide when to perform retrieval.
 """
 
-from typing import Any, Type, Optional
-from pydantic import BaseModel, Field
-from mas.elements.tools.common.base_tool import BaseTool
-from mas.elements.retrievers.common.base_retriever import BaseRetriever
+from typing import Any
+
 from global_utils.utils.util import to_snake_case
+from pydantic import BaseModel, Field
+
+from mas.application.ports.retrieval import BaseRetriever
+from mas.application.ports.tool import BaseTool
 
 
 class RetrieverToolArgs(BaseModel):
     """Generic args schema for retriever tools."""
-    query: str = Field(
-        ...,
-        description="The search query to retrieve relevant information"
-    )
+
+    query: str = Field(..., description="The search query to retrieve relevant information")
 
 
 class RetrieverTool(BaseTool):
     """
     A wrapper that adapts any BaseRetriever to be used as a BaseTool.
-    
-    This follows the Adapter Pattern, allowing retrievers to be exposed 
-    as tools to LLM agents, giving agents the ability to decide when 
+
+    This follows the Adapter Pattern, allowing retrievers to be exposed
+    as tools to LLM agents, giving agents the ability to decide when
     to perform retrieval based on context.
-    
+
     Usage:
         retriever = SlackRetriever(api_url="...", top_k_results=5, threshold=0.7)
         tool = RetrieverTool(retriever)
@@ -39,19 +39,19 @@ class RetrieverTool(BaseTool):
 
     name: str = "retriever_tool"
     description: str = "Search and retrieve relevant information based on a query"
-    args_schema: Type[BaseModel] = RetrieverToolArgs
+    args_schema: type[BaseModel] = RetrieverToolArgs
 
     def __init__(
         self,
         retriever: BaseRetriever,
         *,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        args_schema: Optional[Type[BaseModel]] = None
+        name: str | None = None,
+        description: str | None = None,
+        args_schema: type[BaseModel] | None = None,
     ):
         """
         Initialize a retriever tool wrapper.
-        
+
         Args:
             retriever: The BaseRetriever instance to wrap
             name: Optional custom tool name (default: auto-generated from retriever class)
@@ -87,8 +87,7 @@ class RetrieverTool(BaseTool):
         if args_schema:
             self.args_schema = args_schema
 
-    def run(self, **kwargs) -> Any:
+    async def run(self, **kwargs) -> Any:
         """Execute the retriever with the given query."""
         args = self.args_schema(**kwargs)
-        return self._retriever.retrieve(args.query)
-
+        return await self._retriever.retrieve(args.query)

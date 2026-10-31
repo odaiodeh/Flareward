@@ -2,48 +2,68 @@
 Tool for creating or updating work plans.
 """
 
-from typing import Dict, Any, List, Optional, Callable
+from collections.abc import Callable
+from typing import Any
+
 from pydantic import BaseModel, Field
-from mas.elements.tools.common.base_tool import BaseTool
-from mas.elements.nodes.common.workload import WorkPlan, WorkItem, WorkItemKind
-from mas.elements.nodes.common.agent.constants import ToolNames
+
+from mas.application.agents.constants import ToolNames
+from mas.application.ports.tool import BaseTool
+from mas.core.hitl.models import ToolAccessMode
+from mas.domain.workloads import WorkItem, WorkItemKind
 
 
 class WorkItemSpec(BaseModel):
     """Specification for a work item to be created."""
-    id: str = Field(..., description="Unique identifier for the work item (use snake_case, e.g., 'analyze_data')")
+
+    id: str = Field(
+        ...,
+        description="Unique identifier for the work item (use snake_case, e.g., 'analyze_data')",
+    )
     title: str = Field(..., description="Short, descriptive title for the work item")
     description: str = Field(..., description="Detailed description of what needs to be done")
-    dependencies: List[str] = Field(
-        default_factory=list, 
-        description="List of work item IDs that must complete before this item can start"
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description="List of work item IDs that must complete before this item can start",
     )
     kind: WorkItemKind = Field(
         default=WorkItemKind.REMOTE,
-        description="LOCAL for tasks you can do yourself, REMOTE for tasks to delegate to other nodes"
+        description=(
+            "LOCAL for tasks you can do yourself, REMOTE for tasks to delegate to other nodes"
+        ),
     )
-    assigned_uid: Optional[str] = Field(
+    assigned_uid: str | None = Field(
         None,
-        description="Optional: Pre-assign to specific node UID (will be set automatically when delegating)"
+        description=(
+            "Optional: Pre-assign to specific node UID (will be set automatically when delegating)"
+        ),
     )
 
 
 class CreateOrUpdatePlanArgs(BaseModel):
     """Arguments for creating or updating a work plan."""
+
     summary: str = Field(
-        ..., 
-        description="High-level summary of what this work plan accomplishes (e.g., 'Analyze Q4 sales data and create presentation')"
-    )
-    items: List[WorkItemSpec] = Field(
         ...,
-        description="List of work items to create. Each item should have a clear purpose and dependencies.",
-        min_items=1
+        description=(
+            "High-level summary of what this work plan accomplishes (e.g., "
+            "'Analyze Q4 sales data and create presentation')"
+        ),
+    )
+    items: list[WorkItemSpec] = Field(
+        ...,
+        description=(
+            "List of work items to create. Each item should have a clear purpose and dependencies."
+        ),
+        min_items=1,
     )
 
 
 class CreateOrUpdateWorkPlanTool(BaseTool):
     """Create or update a work plan with structured work items."""
-    
+
+    access_mode = ToolAccessMode.WRITE
+
     name = ToolNames.WORKPLAN_CREATE_OR_UPDATE
     description = """Create a new work plan or update existing plan with structured work items.
     
@@ -68,16 +88,16 @@ class CreateOrUpdateWorkPlanTool(BaseTool):
     - Response handling: Add items for "I need X first" scenarios
     - Replanning: Adjust based on new information or failures"""
     args_schema = CreateOrUpdatePlanArgs
-    
+
     def __init__(
         self,
         get_thread_id: Callable[[], str],
         get_owner_uid: Callable[[], str],
-        get_workload_service: Callable[[], Any]
+        get_workload_service: Callable[[], Any],
     ):
         """
         Initialize with clean SOLID dependencies.
-        
+
         Args:
             get_thread_id: Function to get current thread ID
             get_owner_uid: Function to get owner node UID
@@ -86,19 +106,18 @@ class CreateOrUpdateWorkPlanTool(BaseTool):
         self._get_thread_id = get_thread_id
         self._get_owner_uid = get_owner_uid
         self._get_workload_service = get_workload_service
-    
-    def run(self, **kwargs) -> Dict[str, Any]:
+
+    async def run(self, **kwargs) -> dict[str, Any]:
         """Create or update work plan (thread-safe with atomic operations)."""
-        
+
         args = CreateOrUpdatePlanArgs(**kwargs)
-        
+
         # Get context
         thread_id = self._get_thread_id()
         owner_uid = self._get_owner_uid()
         workload_service = self._get_workload_service()
         workspace_service = workload_service.get_workspace_service()
-        
-        
+
         # ✅ FIX: Use lock to prevent race conditions with mark tool
         # All operations within single lock to ensure atomicity
         with workspace_service._with_work_plan_lock(thread_id, owner_uid):
@@ -106,33 +125,30 @@ class CreateOrUpdateWorkPlanTool(BaseTool):
             plan = workspace_service.load_work_plan(thread_id, owner_uid)
             if not plan:
                 plan = workspace_service.create_work_plan(
-                    thread_id=thread_id,
-                    owner_uid=owner_uid,
-                    summary=args.summary
+                    thread_id=thread_id, owner_uid=owner_uid, summary=args.summary
                 )
                 workspace_service.save_work_plan(plan)
             else:
                 plan.summary = args.summary
-            
+
             # Process each item atomically
             for i, item_spec in enumerate(args.items):
-                
                 if item_spec.id in plan.items:
                     # ✅ UPDATE: Preserve runtime state (status, result, error, etc.)
                     existing_item = plan.items[item_spec.id]
-                    
+
                     # Only update fields from LLM spec, preserve all runtime state
                     existing_item.title = item_spec.title
                     existing_item.description = item_spec.description
                     existing_item.dependencies = item_spec.dependencies
                     existing_item.kind = item_spec.kind
-                    
+
                     # ✅ Allow reassignment if LLM specifies it
                     if item_spec.assigned_uid is not None:
                         existing_item.assigned_uid = item_spec.assigned_uid
-                    
+
                     existing_item.mark_updated()
-                    
+
                     # ✅ Preserved properties: status, result, child_thread_id, error, delegations
                 else:
                     # ✅ CREATE: New item with defaults
@@ -142,16 +158,16 @@ class CreateOrUpdateWorkPlanTool(BaseTool):
                         description=item_spec.description,
                         dependencies=item_spec.dependencies,
                         kind=item_spec.kind,
-                        assigned_uid=item_spec.assigned_uid  # ✅ Support pre-assignment
+                        assigned_uid=item_spec.assigned_uid,  # ✅ Support pre-assignment
                     )
                     plan.items[item_spec.id] = new_item
-            
+
             # Save once at the end (within lock)
             workspace_service.save_work_plan(plan)
-        
+
         # Get status summary for response
         status_summary = workspace_service.get_work_plan_status(thread_id, owner_uid)
-        
+
         result = {
             "success": True,
             "plan_id": f"{thread_id}:{owner_uid}",
@@ -162,8 +178,8 @@ class CreateOrUpdateWorkPlanTool(BaseTool):
                 "in_progress": status_summary.in_progress_items,
                 "done": status_summary.done_items,
                 "failed": status_summary.failed_items,
-                "blocked": status_summary.blocked_items
-            }
+                "blocked": status_summary.blocked_items,
+            },
         }
-        
+
         return result

@@ -6,6 +6,7 @@
  * state or hooks.
  */
 
+import { isRecord } from "@/lib/json";
 import type { GraphFlow } from "./interfaces";
 import type { LayoutNode, ResolvedElement } from "@/utils/graphFlowLayout";
 import { extractUidFromRef } from "@/utils/graphFlowLayout";
@@ -462,7 +463,7 @@ export function buildElementBlockMap(
           name: d.name,
           category,
           type: d.type,
-          config: d.config ?? {},
+          config: isRecord(d.config) ? d.config : {},
           version: 1,
           created: "",
           updated: "",

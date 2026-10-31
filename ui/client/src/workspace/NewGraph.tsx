@@ -19,6 +19,7 @@ export default function NewGraph({ onBack, editBlueprintId }: NewGraphProps) {
     conditionsData,
     isLoadingBlocks,
     yamlFlow,
+    teamId,
     onDrop,
     onDragOver,
     onDragStart,
@@ -153,6 +154,8 @@ export default function NewGraph({ onBack, editBlueprintId }: NewGraphProps) {
         currentName={editBlueprintName}
         currentDescription={editBlueprintDescription}
         currentPromptShortcuts={currentPromptShortcuts}
+        flow={yamlFlow}
+        teamId={teamId}
       />
     </div>
   );

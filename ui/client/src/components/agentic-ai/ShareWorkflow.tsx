@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, Share2, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useWorkspaceIdentity } from "@/hooks/use-workspace-identity";
 import { setBlueprintMetadata } from "@/api/blueprints";
 import { constructShareLink } from "@/utils/blueprintHelpers";
 import SimpleTooltip from "@/components/shared/SimpleTooltip";
@@ -37,7 +37,7 @@ export default function ShareWorkflow({
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { teamId } = useWorkspaceIdentity();
   
   // Determine if the toggle should be disabled
   const isSharingDisabled = isLoading || isValidating || (!isValid && !enabled);
@@ -55,7 +55,7 @@ export default function ShareWorkflow({
     setIsLoading(true);
     try {
       const newScope = checked ? "public" : "private";
-      await setBlueprintMetadata(blueprintId, { usageScope: newScope }, user?.username || "");
+      await setBlueprintMetadata(blueprintId, { usageScope: newScope }, teamId);
       setEnabled(checked);
       setShareLink(checked ? constructShareLink(blueprintId) : null);
       toast({

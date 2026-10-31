@@ -1,7 +1,9 @@
 from typing import Any
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
 from mas.core.element_deps import ElementBuildContext
+
 from .config import DocsRagRetrieverConfig
 from .docs_rag_retriever import DocsRagRetriever
 from .identifiers import Identifier
@@ -28,6 +30,5 @@ class DocsRagRetrieverFactory(BaseFactory[DocsRagRetrieverConfig, DocsRagRetriev
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"DocsRagRetrieverFactory.create() failed: {e}",
-                cfg.model_dump()
+                f"DocsRagRetrieverFactory.create() failed: {e}", cfg.model_dump()
             ) from e

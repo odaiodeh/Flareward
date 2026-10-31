@@ -6,15 +6,16 @@ Uses clean task-based architecture with agentic threading.
 """
 
 import logging
-from mas.elements.nodes.common.base_node import BaseNode
-from mas.elements.nodes.common.capabilities.iem_capable import IEMCapableMixin
-from mas.elements.nodes.common.capabilities.workload_capable import WorkloadCapableMixin
-from mas.elements.nodes.common.workload import Task
-from mas.elements.nodes.common.workload.thread import ThreadStatus
+from typing import ClassVar
+
+from mas.application.capabilities.iem_capable import IEMCapableMixin
+from mas.application.capabilities.workload_capable import WorkloadCapableMixin
+from mas.application.elements.node import BaseNode
+from mas.domain.messages import ChatMessage, Role
+from mas.domain.workloads import Task
+from mas.domain.workloads.thread import ThreadStatus
 from mas.graph.state.graph_state import Channel
 from mas.graph.state.state_view import StateView
-from mas.elements.llms.common.chat.message import ChatMessage, Role
-from typing import ClassVar
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
     """
     Workflow initiator that processes user input.
-    
+
     Enhanced workload management design:
     1. Create thread and workspace for workflow
     2. Copy conversation history to workspace
@@ -38,7 +39,8 @@ class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
     def __init__(self, *, name: str = "user_question", **kwargs):
         super().__init__(**kwargs)
         self.name = name
-    def run(self, state: StateView) -> StateView:
+
+    async def run(self, state: StateView) -> StateView:
         """Main execution - initiate workflow for user query."""
         prompt = state[Channel.USER_PROMPT]
 
@@ -73,17 +75,16 @@ class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
             return False
         last = msgs[-1]
         if isinstance(last, dict):
-            return last.get("role") in (Role.USER, Role.USER.value) and last.get("content") == user_query
-        return (
-            hasattr(last, "role")
-            and last.role == Role.USER
-            and last.content == user_query
-        )
+            return (
+                last.get("role") in (Role.USER, Role.USER.value)
+                and last.get("content") == user_query
+            )
+        return hasattr(last, "role") and last.role == Role.USER and last.content == user_query
 
     def _initiate_workflow(self, user_query: str, state: StateView) -> None:
         """
         Create or reuse thread, workspace, and broadcast task to start workflow.
-        
+
         Enhanced workload management with thread reuse:
         1. Check for existing active thread by this initiator (user question node)
         2. Reuse existing thread if found (conversation continuity)
@@ -91,7 +92,7 @@ class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
         4. Copy conversation history to workspace
         5. Add workflow facts to workspace
         6. Create and broadcast task with thread context
-        
+
         Thread reuse ensures:
         - Conversation continuity across multiple user inputs
         - Orchestrator can reference previous work plans
@@ -100,15 +101,18 @@ class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
         # Try to find existing active thread for this user question node
         existing_threads = self.threads.list_threads_by_initiator(self.uid)
         active_thread = None
-        
+
         # Find most recent active root thread
         for thread in existing_threads:
             if thread.status == ThreadStatus.ACTIVE and not thread.parent_thread_id:
                 # Found an active root thread initiated by this node
                 active_thread = thread
-                logger.info("session.thread_reuse", extra={"node_uid": self.uid, "thread_id": thread.thread_id})
+                logger.info(
+                    "session.thread_reuse",
+                    extra={"node_uid": self.uid, "thread_id": thread.thread_id},
+                )
                 break
-        
+
         if active_thread:
             # Reuse existing thread
             thread = active_thread
@@ -117,34 +121,45 @@ class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
             thread = self.threads.create_root_thread(
                 title="User Query Processing",
                 objective=f"Process user query: {user_query[:50]}...",
-                initiator=self.uid
+                initiator=self.uid,
             )
-            logger.info("session.thread_created", extra={"node_uid": self.uid, "thread_id": thread.thread_id})
-        
+            logger.info(
+                "session.thread_created",
+                extra={"node_uid": self.uid, "thread_id": thread.thread_id},
+            )
+
         # Copy current conversation to workspace using new SOLID API
         self.copy_graphstate_messages_to_workspace(thread.thread_id)
-        
+
         # Add workflow context to workspace
         self.workspaces.add_fact(thread.thread_id, f"User query: {user_query}")
         self.workspaces.add_fact(thread.thread_id, f"Initiated by: {self.uid}")
         self.workspaces.set_variable(thread.thread_id, "workflow_type", "user_query_processing")
         self.workspaces.set_variable(thread.thread_id, "initiator", self.uid)
 
-        
         # Create clean, minimal task
         task = Task.create(
             content=user_query,
             should_respond=False,  # No direct response needed
             thread_id=thread.thread_id,
-            created_by=self.uid
+            created_by=self.uid,
         )
-        
+
         # Broadcast to all adjacent nodes
-        packet_ids = self.broadcast_task(task)
-        
+        self.broadcast_task(task)
+
         # Log workflow initiation with enhanced context
         if active_thread:
-            logger.info("session.thread_reuse", extra={"node_uid": self.uid, "thread_id": thread.thread_id, "continued": True})
+            logger.info(
+                "session.thread_reuse",
+                extra={"node_uid": self.uid, "thread_id": thread.thread_id, "continued": True},
+            )
         else:
-            logger.info("session.thread_created", extra={"node_uid": self.uid, "thread_id": thread.thread_id, "workflow_initiated": True})
-
+            logger.info(
+                "session.thread_created",
+                extra={
+                    "node_uid": self.uid,
+                    "thread_id": thread.thread_id,
+                    "workflow_initiated": True,
+                },
+            )

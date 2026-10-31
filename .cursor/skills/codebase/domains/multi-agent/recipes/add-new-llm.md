@@ -213,7 +213,7 @@ class <Name>LLM(BaseLLM):
 
 ```python
 # <name>_factory.py
-from mas.elements.common.base_factory import BaseFactory
+from mas.application.elements.factory import BaseFactory
 from mas.elements.llms.<name>.config import <Name>Config
 from mas.elements.llms.<name>.<name> import <Name>LLM
 from mas.elements.llms.<name>.identifiers import Identifier
@@ -237,7 +237,7 @@ class <Name>Factory(BaseFactory[<Name>Config, <Name>LLM]):
 
 ```python
 # spec/spec.py
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
 from mas.elements.llms.<name>.identifiers import Identifier, META
 from mas.elements.llms.<name>.config import <Name>Config

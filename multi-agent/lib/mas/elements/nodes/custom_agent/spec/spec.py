@@ -1,11 +1,11 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+from mas.elements.nodes.custom_agent.card_builder import CustomAgentCardBuilder
 from mas.elements.nodes.custom_agent.config import CustomAgentNodeConfig
 from mas.elements.nodes.custom_agent.custom_agent import CustomAgentNode
 from mas.elements.nodes.custom_agent.custom_agent_node_factory import CustomAgentNodeFactory
-from mas.elements.nodes.custom_agent.identifiers import Identifier, META
+from mas.elements.nodes.custom_agent.identifiers import META, Identifier
 from mas.elements.nodes.custom_agent.validator import CustomAgentNodeValidator
-from mas.elements.nodes.custom_agent.card_builder import CustomAgentCardBuilder
 
 
 class CustomAgentNodeElementSpec(BaseElementSpec):

@@ -10,7 +10,6 @@ Structurally satisfies the ``AdminEditLockReader`` protocol defined in
 ``mas.resources.ports``, so it can be injected directly into
 ``ResourcesService.guard_write_access`` without an adapter wrapper.
 """
-from typing import Optional, Tuple
 
 from mas.collaboration.models import TeamEditLockHolder
 from mas.collaboration.ports import CollaborationStore
@@ -34,32 +33,48 @@ class AdminEditLockService:
         self._edit_lock_ttl = edit_lock_ttl
 
     def acquire(
-        self, entity_id: str, user_id: str,
-    ) -> Tuple[bool, Optional[TeamEditLockHolder]]:
+        self,
+        entity_id: str,
+        user_id: str,
+    ) -> tuple[bool, TeamEditLockHolder | None]:
         return self._store.acquire_team_edit_lock(
-            ADMIN_LOCK_NAMESPACE, BUILTIN_LOCK_KIND, entity_id,
-            user_id, user_id, ttl=self._edit_lock_ttl,
+            ADMIN_LOCK_NAMESPACE,
+            BUILTIN_LOCK_KIND,
+            entity_id,
+            user_id,
+            user_id,
+            ttl=self._edit_lock_ttl,
         )
 
     def release(self, entity_id: str, user_id: str) -> None:
         self._store.release_team_edit_lock(
-            ADMIN_LOCK_NAMESPACE, BUILTIN_LOCK_KIND, entity_id, user_id,
+            ADMIN_LOCK_NAMESPACE,
+            BUILTIN_LOCK_KIND,
+            entity_id,
+            user_id,
         )
 
     def renew(self, entity_id: str, user_id: str) -> bool:
         return self._store.renew_team_edit_lock(
-            ADMIN_LOCK_NAMESPACE, BUILTIN_LOCK_KIND, entity_id,
-            user_id, user_id, ttl=self._edit_lock_ttl,
+            ADMIN_LOCK_NAMESPACE,
+            BUILTIN_LOCK_KIND,
+            entity_id,
+            user_id,
+            user_id,
+            ttl=self._edit_lock_ttl,
         )
 
     def get_admin_edit_lock(
-        self, entity_id: str,
-    ) -> Optional[TeamEditLockHolder]:
+        self,
+        entity_id: str,
+    ) -> TeamEditLockHolder | None:
         """Return the current lock holder, or ``None`` if unlocked.
 
         Named to match the ``AdminEditLockReader`` protocol so this
         service satisfies it structurally.
         """
         return self._store.get_team_edit_lock(
-            ADMIN_LOCK_NAMESPACE, BUILTIN_LOCK_KIND, entity_id,
+            ADMIN_LOCK_NAMESPACE,
+            BUILTIN_LOCK_KIND,
+            entity_id,
         )

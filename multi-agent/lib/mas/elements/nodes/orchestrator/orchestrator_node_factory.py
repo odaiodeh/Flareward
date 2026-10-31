@@ -1,14 +1,15 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import OrchestratorNodeConfig
-from .orchestrator_node import OrchestratorNode
 from .identifiers import Identifier
+from .orchestrator_node import OrchestratorNode
 
 
 class OrchestratorNodeFactory(BaseFactory[OrchestratorNodeConfig, OrchestratorNode]):
     """
     Factory for creating OrchestratorNode instances.
-    
+
     Handles dependency injection and configuration validation
     for orchestrator nodes.
     """
@@ -20,14 +21,14 @@ class OrchestratorNodeFactory(BaseFactory[OrchestratorNodeConfig, OrchestratorNo
     def create(self, cfg: OrchestratorNodeConfig, **deps) -> OrchestratorNode:
         """
         Create an OrchestratorNode instance.
-        
+
         Args:
             cfg: Orchestrator node configuration
             **deps: Injected dependencies (llm, tools)
-            
+
         Returns:
             Configured OrchestratorNode instance
-            
+
         Raises:
             PluginConfigurationError: If creation fails
         """
@@ -45,8 +46,5 @@ class OrchestratorNodeFactory(BaseFactory[OrchestratorNodeConfig, OrchestratorNo
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"OrchestratorNodeFactory.create failed: {e}",
-                cfg.dict()
+                f"OrchestratorNodeFactory.create failed: {e}", cfg.dict()
             ) from e
-
-

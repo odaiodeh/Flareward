@@ -1,0 +1,1 @@
+"""Installed-element discovery adapters."""

@@ -5,7 +5,7 @@ Uses the default card composition strategy — skills and capabilities
 are aggregated from dependency cards (tools, providers).
 """
 
-from mas.elements.common.card.default import DefaultCardBuilder
+from mas.application.elements.cards.default import DefaultCardBuilder
 
 
 class DeepAgentCardBuilder(DefaultCardBuilder):
@@ -14,4 +14,5 @@ class DeepAgentCardBuilder(DefaultCardBuilder):
     Skills come from tools and MCP providers referenced in config.
     Capabilities come from retrievers referenced in config.
     """
+
     pass

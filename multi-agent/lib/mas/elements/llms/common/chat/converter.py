@@ -1,5 +1,5 @@
 import json
-from typing import Any, List, Union
+from typing import Any
 
 from langchain_core.messages import (
     AIMessage,
@@ -10,11 +10,12 @@ from langchain_core.messages import (
     ToolMessage,
 )
 
-from mas.elements.llms.common.chat.message import ChatMessage, Role, ToolCall
+from mas.domain.messages import ChatMessage, Role, ToolCall
+
 from .utils import ensure_tool_call_id
 
 
-def normalise_content(content: Union[str, list, Any]) -> str:
+def normalise_content(content: str | list | Any) -> str:
     """Normalise LangChain message content to a plain string.
 
     LangChain messages may carry ``content`` as:
@@ -30,7 +31,7 @@ def normalise_content(content: Union[str, list, Any]) -> str:
         return content
 
     if isinstance(content, list):
-        parts: List[str] = []
+        parts: list[str] = []
         for block in content:
             if isinstance(block, str):
                 parts.append(block)
@@ -49,7 +50,7 @@ class LangChainConverter:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def to_lc(history: List[ChatMessage]) -> List[BaseMessage]:
+    def to_lc(history: list[ChatMessage]) -> list[BaseMessage]:
         return [LangChainConverter.to_lc_message(m) for m in history]
 
     @staticmethod
@@ -94,7 +95,7 @@ class LangChainConverter:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def from_lc(lc_msgs: List[BaseMessage]) -> List[ChatMessage]:
+    def from_lc(lc_msgs: list[BaseMessage]) -> list[ChatMessage]:
         return [LangChainConverter.from_lc_message(m) for m in lc_msgs]
 
     @staticmethod
@@ -118,7 +119,9 @@ class LangChainConverter:
             return ChatMessage(
                 role=Role.ASSISTANT,
                 content=text or " " if tool_calls else text,
-                tool_calls=[ToolCall(**tc.model_dump()) for tc in tool_calls] if tool_calls else None,
+                tool_calls=[ToolCall(**tc.model_dump()) for tc in tool_calls]
+                if tool_calls
+                else None,
                 additional_kwargs=getattr(m, "additional_kwargs", None),
             )
 
@@ -158,6 +161,12 @@ class LangChainConverter:
                 {"name": tc.name, "args": tc.args, "id": tc.tool_call_id, "type": "tool_call"}
             )
             tool_call_chunks.append(
-                {"name": tc.name, "args": json.dumps(tc.args), "id": tc.tool_call_id, "index": i, "type": "tool_call_chunk"}
+                {
+                    "name": tc.name,
+                    "args": json.dumps(tc.args),
+                    "id": tc.tool_call_id,
+                    "index": i,
+                    "type": "tool_call_chunk",
+                }
             )
         return tool_calls, tool_call_chunks

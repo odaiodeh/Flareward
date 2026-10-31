@@ -1,23 +1,23 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
-from mas.core.auth.credentials.credential import AuthCredential
+from typing import Any
+
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import McpProviderConfig
-from .mcp_provider import McpProvider
 from .identifiers import Identifier
+from .mcp_provider import McpProvider
 
 logger = logging.getLogger(__name__)
 
 
 class McpProviderFactory(BaseFactory[McpProviderConfig, McpProvider]):
-
     def accepts(self, cfg: McpProviderConfig, element_type: str) -> bool:
         return element_type == Identifier.TYPE
 
-    def _build_headers(self, cfg: McpProviderConfig) -> Optional[Dict[str, str]]:
+    def _build_headers(self, cfg: McpProviderConfig) -> dict[str, str] | None:
         headers = dict(cfg.additional_headers) if cfg.additional_headers else {}
         if cfg.bearer_token:
             headers["Authorization"] = f"Bearer {cfg.bearer_token}"
@@ -37,7 +37,8 @@ class McpProviderFactory(BaseFactory[McpProviderConfig, McpProvider]):
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"McpProvider.create() failed: {e}", cfg.dict(),
+                f"McpProvider.create() failed: {e}",
+                cfg.dict(),
             ) from e
 
     async def create_async(self, cfg: McpProviderConfig, **kwargs: Any) -> McpProvider:
@@ -54,5 +55,6 @@ class McpProviderFactory(BaseFactory[McpProviderConfig, McpProvider]):
             )
         except Exception as e:
             raise PluginConfigurationError(
-                f"McpProvider.create_async() failed: {e}", cfg.dict(),
+                f"McpProvider.create_async() failed: {e}",
+                cfg.dict(),
             ) from e

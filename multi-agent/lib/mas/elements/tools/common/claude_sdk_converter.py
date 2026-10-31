@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from claude_agent_sdk import SdkMcpTool
 
-from claude_agent_sdk import SdkMcpTool, create_sdk_mcp_server
-
-from .base_tool import BaseTool
+from mas.application.ports.tool import BaseTool
 
 
 class ClaudeSDKConverter:
@@ -17,7 +15,7 @@ class ClaudeSDKConverter:
     """
 
     @classmethod
-    def to_sdk(cls, tools: List[BaseTool]) -> List[SdkMcpTool]:
+    def to_sdk(cls, tools: list[BaseTool]) -> list[SdkMcpTool]:
         """Convert domain tools to Claude SDK ``SdkMcpTool`` instances."""
         if not tools:
             return []
@@ -28,10 +26,8 @@ class ClaudeSDKConverter:
         """Convert a single domain tool to an ``SdkMcpTool``."""
 
         async def handler(args: dict) -> dict:
-            result = await tool.arun(**args)
-            return {
-                "content": [{"type": "text", "text": str(result)}]
-            }
+            result = await tool.run(**args)
+            return {"content": [{"type": "text", "text": str(result)}]}
 
         return SdkMcpTool(
             name=tool.name,

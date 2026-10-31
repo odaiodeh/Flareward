@@ -1,18 +1,18 @@
-from typing import ClassVar, Type, List
+from typing import ClassVar
 
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
-from mas.elements.providers.mcp_server_client.config import McpProviderConfig
-from mas.elements.providers.mcp_server_client.mcp_provider_factory import McpProviderFactory
-from mas.elements.providers.mcp_server_client.identifiers import Identifier, META
-from mas.elements.providers.mcp_server_client.validator import McpProviderValidator
 from mas.elements.providers.mcp_server_client.card_builder import McpProviderCardBuilder
+from mas.elements.providers.mcp_server_client.config import McpProviderConfig
+from mas.elements.providers.mcp_server_client.identifiers import META, Identifier
+from mas.elements.providers.mcp_server_client.mcp_provider_factory import McpProviderFactory
+from mas.elements.providers.mcp_server_client.validator import McpProviderValidator
 
 
 class McpProviderElementSpec(BaseElementSpec):
     """
     Element specification for MCP Provider.
-    
+
     Provides MCP server connection and management capabilities.
     Note: Actions for MCP operations are now managed independently via the ActionsService.
     """

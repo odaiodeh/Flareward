@@ -1,8 +1,9 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import RouterDirectConditionConfig
-from .router import RouterDirectCondition
 from .identifiers import Identifier
+from .router import RouterDirectCondition
 
 
 class RouterDirectConditionFactory(BaseFactory[RouterDirectConditionConfig, RouterDirectCondition]):
@@ -20,6 +21,5 @@ class RouterDirectConditionFactory(BaseFactory[RouterDirectConditionConfig, Rout
             return RouterDirectCondition()
         except Exception as exc:
             raise PluginConfigurationError(
-                f"RouterDirectConditionFactory.create failed: {exc}",
-                cfg.dict()
+                f"RouterDirectConditionFactory.create failed: {exc}", cfg.dict()
             ) from exc

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type, Union
-
-from langchain_core.tools import StructuredTool
 from langchain_core.tools import BaseTool as LangChainBaseTool
-from pydantic import BaseModel
+from langchain_core.tools import StructuredTool
 
-from .base_tool import BaseTool
+from mas.application.ports.tool import BaseTool
 
 
 class LangChainToolsConverter:
@@ -19,7 +16,7 @@ class LangChainToolsConverter:
     """
 
     @classmethod
-    def to_lc(cls, tools: List[BaseTool]) -> List[LangChainBaseTool]:
+    def to_lc(cls, tools: list[BaseTool]) -> list[LangChainBaseTool]:
         if not tools:
             return []
         return [cls._convert_tool(tool) for tool in tools]
@@ -30,7 +27,6 @@ class LangChainToolsConverter:
         return StructuredTool(
             name=tool.name,
             description=tool.description or "",
-            func=tool.run,
-            coroutine=tool.arun,
+            coroutine=tool.run,
             args_schema=tool.args_schema,
         )

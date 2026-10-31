@@ -4,28 +4,26 @@ elements/retrievers/docs_rag/validator.py
 Validator for DocsRag Retriever - checks RAG service health.
 """
 
-from typing import List
-
-from mas.elements.common.validator import (
+from mas.application.elements.validation import (
     BaseElementValidator,
-    ValidatorReport,
+    ValidationCode,
     ValidationContext,
     ValidationMessage,
-    ValidationCode,
+    ValidatorReport,
 )
-from mas.elements.retrievers.docs_rag.config import DocsRagRetrieverConfig
-from mas.elements.providers.rag_client.config import RagProviderConfig
 from mas.elements.providers.rag_client.client import (
     RagClient,
     RagClientError,
     RagConnectionError,
 )
+from mas.elements.providers.rag_client.config import RagProviderConfig
+from mas.elements.retrievers.docs_rag.config import DocsRagRetrieverConfig
 
 
 class DocsRagRetrieverValidator(BaseElementValidator):
     """
     Validates DocsRag Retriever configuration.
-    
+
     Checks:
     - RAG service reachability
     - RAG service health
@@ -38,13 +36,13 @@ class DocsRagRetrieverValidator(BaseElementValidator):
     ) -> ValidatorReport:
         """
         Validate DocsRag Retriever config.
-        
+
         The retriever uses the default RAG service URL.
         We check if that service is healthy.
-        
+
         Returns ValidatorReport (service adds metadata).
         """
-        messages: List[ValidationMessage] = []
+        messages: list[ValidationMessage] = []
 
         # Get default RAG URL from provider config
         provider_config = RagProviderConfig()
@@ -58,31 +56,40 @@ class DocsRagRetrieverValidator(BaseElementValidator):
                 health = client.health_check()
 
             if health.is_healthy:
-                messages.append(self._info(
-                    "CONNECTION_OK",
-                    f"RAG service is healthy at {base_url}",
-                ))
+                messages.append(
+                    self._info(
+                        "CONNECTION_OK",
+                        f"RAG service is healthy at {base_url}",
+                    )
+                )
             else:
-                messages.append(self._error(
-                    ValidationCode.ENDPOINT_UNREACHABLE.value,
-                    f"RAG service unhealthy: {health.message}",
-                ))
+                messages.append(
+                    self._error(
+                        ValidationCode.ENDPOINT_UNREACHABLE.value,
+                        f"RAG service unhealthy: {health.message}",
+                    )
+                )
 
         except RagConnectionError as e:
-            messages.append(self._error(
-                ValidationCode.ENDPOINT_UNREACHABLE.value,
-                f"Cannot connect to RAG service: {str(e)}",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.ENDPOINT_UNREACHABLE.value,
+                    f"Cannot connect to RAG service: {str(e)}",
+                )
+            )
         except RagClientError as e:
-            messages.append(self._error(
-                ValidationCode.NETWORK_ERROR.value,
-                f"RAG error: {str(e)}",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.NETWORK_ERROR.value,
+                    f"RAG error: {str(e)}",
+                )
+            )
         except Exception as e:
-            messages.append(self._error(
-                ValidationCode.NETWORK_ERROR.value,
-                f"Unexpected error: {type(e).__name__}",
-            ))
+            messages.append(
+                self._error(
+                    ValidationCode.NETWORK_ERROR.value,
+                    f"Unexpected error: {type(e).__name__}",
+                )
+            )
 
         return self._build_report(messages=messages)
-

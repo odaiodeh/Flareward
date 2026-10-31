@@ -244,6 +244,7 @@ export function useGraphCreationCanvas({
       const conditionCount = n.data.referencedConditions?.length || 0;
       const hasElements = resolvedElements.length > 0 || conditionCount > 0;
 
+      const hitlMode = n.data.workspaceData?.config?.hitl_mode;
       headers.push({
         nodeId: n.id,
         label: n.data.label,
@@ -254,6 +255,7 @@ export function useGraphCreationCanvas({
         width: NODE_WIDTH,
         nodeHeight: size.height,
         nodeRid: n.data.workspaceData?.rid,
+        hitlMode: typeof hitlMode === "string" ? hitlMode : undefined,
       });
 
       if (resolvedElements.length === 0) continue;

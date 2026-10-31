@@ -1,24 +1,25 @@
-from typing import Iterator, List, Union
+from collections.abc import AsyncGenerator
 
-from ..common.base_llm import BaseLLM
-from ..common.chat.message import ChatMessage, Role
-from ...tools.common.tool_definition import ToolDefinition
+from mas.application.ports.llm import BaseLLM
+from mas.domain.messages import ChatMessage, Role
+from mas.domain.tools import ToolDefinition
 
 
 class MockLLM(BaseLLM):
-
-    def chat(self, messages: List[ChatMessage]) -> ChatMessage:
+    async def chat(self, messages: list[ChatMessage]) -> ChatMessage:
         last_content = messages[-1].content if messages else ""
         return ChatMessage(
             role=Role.ASSISTANT,
             content=f"[MOCK RESPONSE] Hello! You said: {last_content}",
         )
 
-    def stream(self, messages: List[ChatMessage], **call_params) -> Iterator[Union[str, ChatMessage]]:
-        response = self.chat(messages)
+    async def stream(
+        self, messages: list[ChatMessage], **call_params
+    ) -> AsyncGenerator[str | ChatMessage]:
+        response = await self.chat(messages)
         yield response.content
 
-    def bind_tools(self, tools: List[ToolDefinition]) -> "MockLLM":
+    def bind_tools(self, tools: list[ToolDefinition]) -> MockLLM:
         return MockLLM()
 
     @property

@@ -1,0 +1,253 @@
+diff --git a/src/runengine/invocation/config.py b/src/runengine/invocation/config.py
+--- a/src/runengine/invocation/config.py
++++ b/src/runengine/invocation/config.py
+@@ -9,13 +9,16 @@
+ 
+ from __future__ import annotations
+ 
+-from typing import Any, Literal, Self
++from enum import StrEnum
++from ipaddress import IPv6Address
++from typing import Annotated, Any, Literal, Self
+ 
+ from pydantic import (
+     BaseModel,
+     ConfigDict,
+     Field,
+     SerializerFunctionWrapHandler,
++    field_validator,
+     model_serializer,
+     model_validator,
+ )
+@@ -109,6 +112,19 @@
+     host: str = Field(min_length=1, strict=True)
+     port: int = Field(default=443, strict=True, ge=1, le=65535)
+ 
++    @field_validator("host")
++    @classmethod
++    def require_host(cls, value: str) -> str:
++        message = "Policy endpoint host must omit URL scheme, port, path and credentials"
++        if any(character.isspace() or character in "/\\?#@" for character in value):
++            raise ValueError(message)
++        if ":" in value:
++            try:
++                IPv6Address(value)
++            except ValueError:
++                raise ValueError(message) from None
++        return value
++
+ 
+ class OpenShellNetworkBinary(BaseModel):
+     model_config = ConfigDict(extra="forbid", revalidate_instances="always")
+@@ -122,12 +138,50 @@
+     binaries: list[OpenShellNetworkBinary] = Field(default_factory=list)
+ 
+ 
++class OpenShellFilesystemPolicy(BaseModel):
++    model_config = ConfigDict(extra="forbid", revalidate_instances="always")
++    include_workdir: bool = Field(default=False, strict=True)
++    read_only: list[Annotated[str, Field(strict=True, pattern=r"^/", min_length=1)]] = Field(
++        default_factory=list
++    )
++    read_write: list[Annotated[str, Field(strict=True, pattern=r"^/", min_length=1)]] = Field(
++        default_factory=list
++    )
++
++
++class LandlockCompatibility(StrEnum):
++    BEST_EFFORT = "best_effort"
++    HARD_REQUIREMENT = "hard_requirement"
++
++
++class OpenShellLandlockPolicy(BaseModel):
++    model_config = ConfigDict(extra="forbid", revalidate_instances="always")
++    compatibility: LandlockCompatibility = LandlockCompatibility.BEST_EFFORT
++
++
++class OpenShellProcessPolicy(BaseModel):
++    model_config = ConfigDict(extra="forbid", revalidate_instances="always")
++    run_as_user: str = Field(min_length=1, strict=True)
++    run_as_group: str = Field(min_length=1, strict=True)
++
++
+ class OpenShellPolicy(BaseModel):
+     """Portable supported policy fields; SDK conversion belongs to the adapter."""
+ 
+     model_config = ConfigDict(extra="forbid", revalidate_instances="always")
+     version: int = Field(default=1, strict=True, ge=0, le=2**32 - 1)
+     network_policies: dict[str, OpenShellNetworkRule] = Field(default_factory=dict)
++    filesystem_policy: OpenShellFilesystemPolicy | None = None
++    landlock: OpenShellLandlockPolicy | None = None
++    process: OpenShellProcessPolicy | None = None
++
++    @model_serializer(mode="wrap")
++    def omit_unconfigured_sections(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
++        data: dict[str, Any] = handler(self)
++        for name in ("filesystem_policy", "landlock", "process"):
++            if getattr(self, name) is None:
++                data.pop(name, None)
++        return data
+ 
+ 
+ class OpenShellTLSConfig(BaseModel):
+@@ -151,7 +205,7 @@
+     **Managed mode** (recommended): provide ``image`` — each node invocation
+     lazily creates an isolated sandbox and destroys it during cleanup.
+     Parallel invocations automatically get separate sandboxes. Optionally
+-    provide ``policy`` for the adapter's supported network rules.
++    provide ``policy`` for the adapter's supported sandbox policy fields.
+ 
+     **Pre-existing mode**: provide ``sandbox_id`` — the runner uses an
+     already-running sandbox (caller manages the lifecycle).
+@@ -180,6 +234,8 @@
+     def validate_sandbox_mode(self) -> Self:
+         if bool(self.image) == bool(self.sandbox_id):
+             raise ValueError("Provide exactly one of image or sandbox_id")
++        if self.sandbox_id and self.policy is not None:
++            raise ValueError("A pre-existing sandbox retains its policy; omit policy")
+         return self
+ 
+ 
+diff --git a/src/runengine/adapters/invocation/openshell/executor.py b/src/runengine/adapters/invocation/openshell/executor.py
+--- a/src/runengine/adapters/invocation/openshell/executor.py
++++ b/src/runengine/adapters/invocation/openshell/executor.py
+@@ -55,6 +55,8 @@
+         env: dict[str, str] | None = None,
+         policy: OpenShellPolicy | dict[str, Any] | None = None,
+     ) -> None:
++        if sandbox_id and policy is not None:
++            raise ValueError("A pre-existing sandbox retains its policy; omit policy")
+         self._client = sandbox_client
+         self._image = image
+         self._initialization_lock = threading.Lock()
+@@ -98,6 +100,16 @@
+     def _apply_policy(spec: openshell_pb2.SandboxSpec, policy: OpenShellPolicy) -> None:
+         """Translate only the validated, supported policy fields into SDK data."""
+         spec.policy.version = policy.version
++        if policy.filesystem_policy is not None:
++            filesystem = policy.filesystem_policy
++            spec.policy.filesystem.include_workdir = filesystem.include_workdir
++            spec.policy.filesystem.read_only.extend(filesystem.read_only)
++            spec.policy.filesystem.read_write.extend(filesystem.read_write)
++        if policy.landlock is not None:
++            spec.policy.landlock.compatibility = policy.landlock.compatibility.value
++        if policy.process is not None:
++            spec.policy.process.run_as_user = policy.process.run_as_user
++            spec.policy.process.run_as_group = policy.process.run_as_group
+         for key, rule_data in policy.network_policies.items():
+             rule = sandbox_pb2.NetworkPolicyRule()
+             rule.name = rule_data.name or key
+diff --git a/src/runengine/adapters/invocation/openshell/README.md b/src/runengine/adapters/invocation/openshell/README.md
+--- a/src/runengine/adapters/invocation/openshell/README.md
++++ b/src/runengine/adapters/invocation/openshell/README.md
+@@ -56,11 +56,19 @@
+ endpoint host/port and binary path. Port defaults to 443 and must be an integer
+ between 1 and 65535; an omitted rule name uses its mapping key. The version field
+ must fit the SDK's unsigned 32-bit field; backend support for its meaning remains
+-a receiving-environment check. This is not the full OpenShell policy YAML schema:
+-filesystem, process and richer network fields are not implemented by this adapter
+-and now fail explicitly instead of being ignored. Configure those through the
+-appropriate deployment/sandbox tooling. A pre-existing sandbox retains its own
+-policy; this adapter does not reconfigure it.
++a receiving-environment check. Optional `filesystem_policy` supports
++`include_workdir`, absolute `read_only` paths and absolute `read_write` paths.
++Optional `landlock.compatibility` accepts `best_effort` or `hard_requirement`.
++Optional `process` requires both `run_as_user` and `run_as_group`. These settings
++are translated by the same adapter for invocation-owned and retained environments.
++This is not the full OpenShell policy YAML schema: richer network fields such as
++HTTP method/path rules are rejected. The gateway validates backend semantics.
++
++A supplied policy replaces the image policy; it is not an overlay. Include the
++filesystem, process and Landlock settings needed by the selected image when
++customizing its network rules. Omitting policy preserves the image's policy.
++A pre-existing sandbox retains its own policy; pairing `sandbox_id` with `policy`
++is rejected before client allocation rather than silently ignoring the policy.
+ 
+ ## Resource ownership
+ 
+diff --git a/tests/unit/adapters/test_openshell_cleanup.py b/tests/unit/adapters/test_openshell_cleanup.py
+--- a/tests/unit/adapters/test_openshell_cleanup.py
++++ b/tests/unit/adapters/test_openshell_cleanup.py
+@@ -74,12 +74,19 @@
+ @pytest.mark.parametrize("typed", [False, True])
+ def test_policy_round_trip_and_receiver_conversion_keep_an_independent_snapshot(typed):
+     policy = {
++        "filesystem_policy": {
++            "include_workdir": True,
++            "read_only": ["/usr", "/app"],
++            "read_write": ["/sandbox", "/tmp"],
++        },
++        "landlock": {"compatibility": "hard_requirement"},
++        "process": {"run_as_user": "sandbox", "run_as_group": "sandbox"},
+         "network_policies": {
+             "api": {
+                 "endpoints": [{"host": "api.example", "port": 8443}],
+                 "binaries": [{"path": "/usr/bin/python"}],
+             }
+-        }
++        },
+     }
+     config = OpenShellRunnerConfig(endpoint="localhost:8080", image="test", policy=policy)
+     config = OpenShellRunnerConfig.model_validate_json(config.model_dump_json())
+@@ -97,6 +104,12 @@
+         assert rule.endpoints[0].host == "api.example"
+         assert rule.endpoints[0].port == 8443
+         assert rule.binaries[0].path == "/usr/bin/python"
++        assert client.spec.policy.filesystem.include_workdir
++        assert list(client.spec.policy.filesystem.read_only) == ["/usr", "/app"]
++        assert list(client.spec.policy.filesystem.read_write) == ["/sandbox", "/tmp"]
++        assert client.spec.policy.landlock.compatibility == "hard_requirement"
++        assert client.spec.policy.process.run_as_user == "sandbox"
++        assert client.spec.policy.process.run_as_group == "sandbox"
+     finally:
+         runner.clean()
+ 
+@@ -232,3 +245,48 @@
+     finally:
+         runner.clean()
+     assert client.close_calls == 1
++
++
++@pytest.mark.parametrize(
++    "policy",
++    [
++        {"filesystem_policy": {"include_workdir": "true"}},
++        {"filesystem_policy": {"read_only": ["relative/path"]}},
++        {"filesystem_policy": {"unsupported": True}},
++        {"landlock": {"compatibility": "ignore"}},
++        {"process": {"run_as_user": "sandbox"}},
++        {"process": {"run_as_user": "sandbox", "run_as_group": "sandbox", "uid": 0}},
++        {"network_policies": {"api": {"endpoints": [{"host": "https://example.com/api"}]}}},
++        {"network_policies": {"api": {"endpoints": [{"host": "example.com:443"}]}}},
++        {"network_policies": {"api": {"endpoints": [{"host": "user@example.com"}]}}},
++        {"network_policies": {"api": {"endpoints": [{"host": " example.com"}]}}},
++    ],
++)
++def test_invalid_policy_sections_are_rejected_before_client_allocation(monkeypatch, policy):
++    def unexpected_client(*args, **kwargs):
++        pytest.fail("Invalid policy reached SDK client construction")
++
++    monkeypatch.setattr(factory, "SandboxClient", unexpected_client)
++    with pytest.raises(ValidationError):
++        factory.Factory.create_from_dict({"endpoint": "gateway", "image": "test", "policy": policy})
++
++
++@pytest.mark.parametrize("direct", [False, True])
++def test_existing_sandbox_cannot_silently_ignore_a_requested_policy(direct):
++    with pytest.raises(ValueError, match="pre-existing sandbox retains its policy"):
++        if direct:
++            OpenShellExecutor(sandbox_client=RecordingClient(), sandbox_id="existing", policy={})
++        else:
++            OpenShellRunnerConfig(endpoint="gateway", sandbox_id="existing", policy={})
++
++
++def test_new_policy_sections_do_not_change_the_wire_shape_when_unconfigured():
++    assert OpenShellPolicy().model_dump(mode="json") == {"version": 1, "network_policies": {}}
++
++
++@pytest.mark.parametrize("host", ["api.example.com", "*.example.com", "127.0.0.1", "::1"])
++def test_policy_endpoints_accept_hosts_without_rewriting_their_identity(host):
++    policy = OpenShellPolicy.model_validate(
++        {"network_policies": {"api": {"endpoints": [{"host": host}]}}}
++    )
++    assert policy.network_policies["api"].endpoints[0].host == host

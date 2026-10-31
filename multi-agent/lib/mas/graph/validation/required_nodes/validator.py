@@ -1,5 +1,5 @@
-from typing import Set
 from mas.graph.graph_plan import GraphPlan
+
 from ..interfaces import ValidationProvider
 from ..models import ValidationReport
 from ..settings import ValidationSettings
@@ -9,6 +9,8 @@ from .checker import RequiredNodesChecker
 class RequiredNodesValidator(ValidationProvider):
     """Validates that required node types are present and counts are within limits."""
 
+    name = "required_nodes"
+
     def __init__(self, settings: ValidationSettings = None, *args, **kwargs):
         settings = settings or ValidationSettings()
         self._checker = RequiredNodesChecker(
@@ -17,15 +19,15 @@ class RequiredNodesValidator(ValidationProvider):
             required_any_nodes=settings.required_any_nodes,
             max_start_nodes=settings.max_start_nodes,
             max_end_nodes=settings.max_end_nodes,
-            max_any_nodes=settings.max_any_nodes
+            max_any_nodes=settings.max_any_nodes,
         )
 
     def validate(self, plan: GraphPlan) -> ValidationReport:
         issues, messages = self._checker.check_required_nodes(plan)
-        
+
         return ValidationReport(
             validator_name=self.name,
             is_valid=len(issues) == 0,
             messages=messages,
-            details={"required_node_issues": [issue.model_dump() for issue in issues]}
-        ) 
+            details={"required_node_issues": [issue.model_dump() for issue in issues]},
+        )

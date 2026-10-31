@@ -20,23 +20,25 @@ that ``self.get_visible()`` dispatches to *this* class's version (with the
 draft-gate), not the inner's.  Pure-delegation methods whose bodies never
 call an overridden method are covered by ``__getattr__``.
 """
+
+import asyncio
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from pydantic import BaseModel
 
+from mas.application.elements.validation import ElementValidationResult
+from mas.core.async_work import await_owned
 from mas.core.caller_scope import CallerScope
-from mas.core.enums import ResourceCategory, ResourceOwnership, ResourceVisibility
 from mas.core.element_meta import ElementConfigMeta
+from mas.core.enums import ResourceCategory, ResourceOwnership
 from mas.core.identity import Identity
 from mas.core.ref import RefWalker
-from mas.elements.common.card import ElementCard
-from mas.elements.common.validator import ElementValidationResult
+from mas.domain.element_card import ElementCard
+from mas.resources.access import require_custom_write, require_visible
 from mas.resources.builtin_models import identity_to_key
 from mas.resources.errors import (
-    BuiltInWriteProtectedError,
-    ResourceAccessDeniedError,
     ResourceLockedError,
 )
 from mas.resources.models import Resource
@@ -69,8 +71,8 @@ class BuiltinAwareResourceService:
         inner: CoreResourceService,
         *,
         descriptor_repo: BuiltinResourceDescriptorRepository,
-        builtin_user_config_repo: Optional[BuiltinUserConfigRepository] = None,
-        admin_lock_reader: Optional[AdminEditLockReader] = None,
+        builtin_user_config_repo: BuiltinUserConfigRepository | None = None,
+        admin_lock_reader: AdminEditLockReader | None = None,
     ) -> None:
         self._inner = inner
         self._descriptors = descriptor_repo
@@ -95,29 +97,42 @@ class BuiltinAwareResourceService:
     # Methods already overridden or re-implemented below are NOT repeated
     # here — only the pure pass-through ones.
 
-    def create(self, *, identity: Identity, category: str, type: str, name: str, config: dict) -> Resource:
+    def create(
+        self, *, identity: Identity, category: str, type: str, name: str, config: dict
+    ) -> Resource:
         return self._inner.create(
-            identity=identity, category=category, type=type, name=name, config=config,
+            identity=identity,
+            category=category,
+            type=type,
+            name=name,
+            config=config,
         )
 
     def save_resource(self, resource: Resource) -> Resource:
         return self._inner.save_resource(resource)
 
-    def update(self, rid: str, *, config: dict, name: Optional[str] = None) -> Resource:
+    def update(self, rid: str, *, config: dict, name: str | None = None) -> Resource:
         return self._inner.update(rid, config=config, name=name)
 
     def get(self, rid: str) -> Resource:
         return self._inner.get(rid)
 
     def exists_by_name(
-        self, identity: Identity, category: str, type_: str, name: str,
+        self,
+        identity: Identity,
+        category: str,
+        type_: str,
+        name: str,
     ) -> bool:
         return self._inner.exists_by_name(identity, category, type_, name)
 
     # ── Overridden methods (add built-in policies) ───────────────────────
 
     def get_visible(
-        self, rid: str, *, caller: CallerScope = CallerScope(),
+        self,
+        rid: str,
+        *,
+        caller: CallerScope = CallerScope(),
     ) -> Resource:
         """Draft-gate + identity ownership check.
 
@@ -125,31 +140,19 @@ class BuiltinAwareResourceService:
         receive a ``KeyError`` (404) for draft built-ins.
         """
         resource = self._inner._store.get(rid)
-        if caller.is_admin:
-            return resource
         descriptor = self._descriptors.get(rid)
-        if descriptor is not None and descriptor.visibility != ResourceVisibility.PUBLIC:
-            raise KeyError(rid)
-        if (
-            caller.identity is not None
-            and descriptor is None
-            and (
-                resource.identity.type != caller.identity.type
-                or resource.identity.id != caller.identity.id
-            )
-        ):
-            raise KeyError(rid)
+        require_visible(resource, descriptor, caller)
         return resource
 
     def find_resources(
         self,
-        category: Optional[str] = None,
-        type: Optional[str] = None,
-        ownership: Optional[str] = None,
+        category: str | None = None,
+        type: str | None = None,
+        ownership: str | None = None,
         limit: int = 50,
         offset: int = 0,
         caller: CallerScope = CallerScope(),
-    ) -> Tuple[List[dict], int]:
+    ) -> tuple[list[dict], int]:
         """Merge user's resources + public built-ins."""
         category_enum = ResourceCategory(category) if category else None
         ownership_enum = ResourceOwnership(ownership) if ownership else None
@@ -168,7 +171,9 @@ class BuiltinAwareResourceService:
         return self.to_dicts(resources, identity=caller.identity), total
 
     def resolve_resource(
-        self, resource: Resource, caller: CallerScope = CallerScope(),
+        self,
+        resource: Resource,
+        caller: CallerScope = CallerScope(),
     ) -> BaseModel:
         """Resolve config, then merge built-in overlay if applicable."""
         config = self._inner._store.raw_config_for(resource)
@@ -178,8 +183,9 @@ class BuiltinAwareResourceService:
             config = self._strip_and_merge_overlay(resource, config, caller.identity)
 
         model_cls = self._inner.element_registry.get_schema(
-            ResourceCategory(resource.category), resource.type)
-        return model_cls(**config)
+            ResourceCategory(resource.category), resource.type
+        )
+        return model_cls.model_validate(config, by_name=True)
 
     def delete(self, rid: str) -> None:
         """Delete resource, then clean up descriptor + overlays."""
@@ -191,34 +197,29 @@ class BuiltinAwareResourceService:
                 self._user_configs.delete_all_for_resource(rid)
 
     def guard_write_access(
-        self, rid: str, caller: CallerScope, *, username: str = "",
+        self,
+        rid: str,
+        caller: CallerScope,
+        *,
+        username: str = "",
     ) -> Resource:
         """Built-in write protection + lock check, then ownership check."""
         resource = self._inner._store.get(rid)
         descriptor = self._descriptors.get(rid)
         is_builtin = descriptor is not None
-
+        require_custom_write(resource, descriptor, caller)
         if caller.is_admin:
             if is_builtin:
                 self._check_admin_edit_lock(rid, username)
             return resource
 
-        if is_builtin:
-            raise BuiltInWriteProtectedError()
-
-        if (
-            caller.identity is None
-            or resource.identity.type != caller.identity.type
-            or resource.identity.id != caller.identity.id
-        ):
-            raise ResourceAccessDeniedError(rid)
         return resource
 
     def to_dict(
         self,
         resource: Resource,
         *,
-        identity: Optional[Identity] = None,
+        identity: Identity | None = None,
     ) -> dict:
         """Serialize, stamping ownership/visibility from descriptor.
 
@@ -240,23 +241,24 @@ class BuiltinAwareResourceService:
 
         if identity is not None:
             data["cfg_dict"] = self._strip_and_merge_overlay(
-                resource, dict(data.get("cfg_dict") or {}), identity,
+                resource,
+                dict(data.get("cfg_dict") or {}),
+                identity,
             )
             if self._user_configs:
                 key = identity_to_key(identity)
-                data["user_configured"] = (
-                    self._user_configs.get(resource.rid, key) is not None
-                )
+                overlay = self._user_configs.get(resource.rid, key)
+                data["user_configured"] = overlay is not None and bool(overlay.fields)
             else:
                 data["user_configured"] = False
         return data
 
     def to_dicts(
         self,
-        resources: List[Resource],
+        resources: list[Resource],
         *,
-        identity: Optional[Identity] = None,
-    ) -> List[dict]:
+        identity: Identity | None = None,
+    ) -> list[dict]:
         """Serialize resources, attaching ``user_configured`` for built-ins.
 
         Batches the ``user_configured`` lookup via ``find_by_identity`` so a
@@ -267,7 +269,8 @@ class BuiltinAwareResourceService:
         if identity is not None and self._user_configs:
             key = identity_to_key(identity)
             for cfg in self._user_configs.find_by_identity(key):
-                configured_rids.add(cfg.resource_id)
+                if cfg.fields:
+                    configured_rids.add(cfg.resource_id)
 
         result = []
         for doc in resources:
@@ -286,10 +289,21 @@ class BuiltinAwareResourceService:
     # the decorator's versions.  Internal state is accessed via the inner.
 
     def resolve(
-        self, rid: str, caller: CallerScope = CallerScope(),
+        self,
+        rid: str,
+        caller: CallerScope = CallerScope(),
     ) -> BaseModel:
         resource = self.get_visible(rid, caller=caller)
         return self.resolve_resource(resource, caller=caller)
+
+    def _resource_configurations(self, rid: str, caller: CallerScope) -> list[ElementConfigMeta]:
+        self._inner._ensure_validation_service()
+        self.get_visible(rid, caller=caller)
+        ordered_rids = self._inner._dependency_resolver.resolve_with_deps(rid)
+        if not ordered_rids:
+            raise KeyError(f"Resource not found: {rid}")
+        ordered_configs = self._build_configs_from_rids(ordered_rids, caller=caller)
+        return ordered_configs
 
     def validate_resource(
         self,
@@ -299,54 +313,84 @@ class BuiltinAwareResourceService:
         timeout_seconds: float = 10.0,
         credential_user_id: str = "",
     ) -> ElementValidationResult:
-        self._inner._ensure_validation_service()
-        self.get_visible(rid, caller=caller)
-        ordered_rids = self._inner._dependency_resolver.resolve_with_deps(rid)
-        if not ordered_rids:
-            raise KeyError(f"Resource not found: {rid}")
-        ordered_configs = self._build_configs_from_rids(ordered_rids, caller=caller)
+        ordered_configs = self._resource_configurations(rid, caller)
         return self._inner._validate_and_get(
-            ordered_configs, rid, timeout_seconds,
-            user_id=user_id, credential_user_id=credential_user_id,
+            ordered_configs,
+            rid,
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
+        )
+
+    async def validate_resource_async(
+        self,
+        rid: str,
+        caller: CallerScope = CallerScope(),
+        user_id: str = "",
+        timeout_seconds: float = 10.0,
+        credential_user_id: str = "",
+    ) -> ElementValidationResult:
+        configurations = await await_owned(
+            asyncio.to_thread(self._resource_configurations, rid, caller)
+        )
+        return await self._inner._validate_and_get_async(
+            configurations,
+            rid,
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
         )
 
     def validate_resources(
         self,
-        rids: List[str],
+        rids: list[str],
         caller: CallerScope = CallerScope(),
         user_id: str = "",
         timeout_seconds: float = 10.0,
         max_workers: int = 10,
         credential_user_id: str = "",
-    ) -> List[ElementValidationResult]:
+    ) -> list[ElementValidationResult]:
         self._inner._ensure_validation_service()
         if not rids:
             return []
         if len(rids) == 1:
             return [
                 self._validate_resource_safe(
-                    rids[0], caller, user_id, timeout_seconds, credential_user_id,
+                    rids[0],
+                    caller,
+                    user_id,
+                    timeout_seconds,
+                    credential_user_id,
                 ),
             ]
         return self._validate_in_parallel(
-            rids, caller, user_id, timeout_seconds, max_workers, credential_user_id,
+            rids,
+            caller,
+            user_id,
+            timeout_seconds,
+            max_workers,
+            credential_user_id,
         )
 
     def _validate_in_parallel(
         self,
-        rids: List[str],
+        rids: list[str],
         caller: CallerScope,
         user_id: str,
         timeout_seconds: float,
         max_workers: int,
         credential_user_id: str = "",
-    ) -> List[ElementValidationResult]:
-        results: List[Optional[ElementValidationResult]] = [None] * len(rids)
+    ) -> list[ElementValidationResult]:
+        results: list[ElementValidationResult | None] = [None] * len(rids)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_index = {
                 executor.submit(
                     self._validate_resource_safe,
-                    rid, caller, user_id, timeout_seconds, credential_user_id,
+                    rid,
+                    caller,
+                    user_id,
+                    timeout_seconds,
+                    credential_user_id,
                 ): idx
                 for idx, rid in enumerate(rids)
             }
@@ -365,50 +409,97 @@ class BuiltinAwareResourceService:
     ) -> ElementValidationResult:
         try:
             return self.validate_resource(
-                rid=rid, caller=caller, user_id=user_id,
+                rid=rid,
+                caller=caller,
+                user_id=user_id,
                 timeout_seconds=timeout_seconds,
                 credential_user_id=credential_user_id,
             )
         except KeyError:
             return ElementValidationResult.create_error(
-                rid=rid, error=f"Resource not found: {rid}",
+                rid=rid,
+                error=f"Resource not found: {rid}",
             )
         except Exception:
             logger.exception("Unexpected error validating resource %s", rid)
             return ElementValidationResult.create_error(
-                rid=rid, error="Validation failed due to an internal error.",
+                rid=rid,
+                error="Validation failed due to an internal error.",
             )
+
+    def _inline_configurations(
+        self, category: str, element_type: str, config: dict, name: str | None, caller: CallerScope
+    ) -> list[ElementConfigMeta]:
+        self._inner._ensure_validation_service()
+        category_enum = ResourceCategory(category)
+        model_cls = self._inner.element_registry.get_schema(category_enum, element_type)
+        cfg_model = model_cls.model_validate(self._inner._fields.decrypt(config), by_name=True)
+        nested_refs = list(RefWalker.external_rids(cfg_model))
+        dep_rids = self._inner._dependency_resolver.resolve_all_with_deps(nested_refs)
+        ordered_configs = self._build_configs_from_rids(dep_rids, caller=caller)
+        ordered_configs.append(
+            ElementConfigMeta(
+                rid="inline",
+                category=category_enum,
+                type_key=element_type,
+                name=name or "inline",
+                config=cfg_model,
+                dependency_rids=nested_refs,
+            )
+        )
+        return ordered_configs
 
     def validate_config(
         self,
         category: str,
         element_type: str,
         config: dict,
-        name: Optional[str] = None,
+        name: str | None = None,
         timeout_seconds: float = 10.0,
+        *,
+        caller: CallerScope = CallerScope(),
+        user_id: str = "",
+        credential_user_id: str = "",
     ) -> ElementValidationResult:
-        self._inner._ensure_validation_service()
-        category_enum = ResourceCategory(category)
-        model_cls = self._inner.element_registry.get_schema(category_enum, element_type)
-        cfg_model = model_cls(**config)
-        nested_refs = list(RefWalker.external_rids(cfg_model))
-        dep_rids = self._inner._dependency_resolver.resolve_all_with_deps(nested_refs)
-        ordered_configs = self._build_configs_from_rids(dep_rids)
-        ordered_configs.append(ElementConfigMeta(
-            rid="inline",
-            category=category_enum,
-            type_key=element_type,
-            name=name or "inline",
-            config=cfg_model,
-            dependency_rids=nested_refs,
-        ))
-        return self._inner._validate_and_get(ordered_configs, "inline", timeout_seconds)
+        ordered_configs = self._inline_configurations(category, element_type, config, name, caller)
+        return self._inner._validate_and_get(
+            ordered_configs,
+            "inline",
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
+        )
+
+    async def validate_config_async(
+        self,
+        category: str,
+        element_type: str,
+        config: dict,
+        name: str | None = None,
+        timeout_seconds: float = 10.0,
+        *,
+        caller: CallerScope = CallerScope(),
+        user_id: str = "",
+        credential_user_id: str = "",
+    ) -> ElementValidationResult:
+        configurations = await await_owned(
+            asyncio.to_thread(
+                self._inline_configurations, category, element_type, config, name, caller
+            )
+        )
+        return await self._inner._validate_and_get_async(
+            configurations,
+            "inline",
+            timeout_seconds,
+            user_id=user_id,
+            credential_user_id=credential_user_id,
+        )
 
     def get_cards(
         self,
-        rids: List[str],
+        rids: list[str],
         caller: CallerScope = CallerScope(),
-    ) -> Dict[str, ElementCard]:
+    ) -> dict[str, ElementCard]:
         self._inner._ensure_card_service()
         for rid in rids:
             self.get_visible(rid, caller=caller)
@@ -429,12 +520,14 @@ class BuiltinAwareResourceService:
     # ── Overridden internal method ───────────────────────────────────────
 
     def _build_configs_from_rids(
-        self, rids: List[str], caller: CallerScope = CallerScope(),
-    ) -> List[ElementConfigMeta]:
+        self,
+        rids: list[str],
+        caller: CallerScope = CallerScope(),
+    ) -> list[ElementConfigMeta]:
         """Build ElementConfigMeta list, adding builtin validation-override
         checks for built-in resources.
         """
-        configs: List[ElementConfigMeta] = []
+        configs: list[ElementConfigMeta] = []
         for rid in rids:
             resource = self.get_visible(rid, caller=caller)
             config = self.resolve_resource(resource, caller=caller)
@@ -455,15 +548,17 @@ class BuiltinAwareResourceService:
                         f"set it in the resource's configuration before it can be validated."
                     )
 
-            configs.append(ElementConfigMeta(
-                rid=rid,
-                category=resource.category,
-                type_key=resource.type,
-                name=resource.name,
-                config=config,
-                dependency_rids=list(resource.nested_refs),
-                validation_override_error=override_error,
-            ))
+            configs.append(
+                ElementConfigMeta(
+                    rid=rid,
+                    category=resource.category,
+                    type_key=resource.type,
+                    name=resource.name,
+                    config=config,
+                    dependency_rids=list(resource.nested_refs),
+                    validation_override_error=override_error,
+                )
+            )
         return configs
 
     # ── Built-in overlay helpers ─────────────────────────────────────────
@@ -471,19 +566,17 @@ class BuiltinAwareResourceService:
     def _strip_and_merge_overlay(
         self,
         resource: Resource,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         identity: Identity,
-    ) -> Dict[str, Any]:
-        configurable_keys, sensitive_keys = self._inner._fields.scan_schema_hints(
+    ) -> dict[str, Any]:
+        configurable_keys, _ = self._inner._fields.scan_schema_hints(
             resource.category, resource.type
         )
-        secret_configurable_keys = configurable_keys & sensitive_keys
-        if secret_configurable_keys:
-            config = dict(config)
-            for key in secret_configurable_keys:
-                config.pop(key, None)
+        config = self._inner._fields.strip_unconfigured_secrets(
+            resource.category, resource.type, config
+        )
 
-        overlay = self._resolve_overlay(resource, identity, configurable_keys, sensitive_keys)
+        overlay = self._resolve_overlay(resource, identity, configurable_keys)
         if overlay:
             config = dict(config)
             config.update(overlay)
@@ -494,8 +587,7 @@ class BuiltinAwareResourceService:
         resource: Resource,
         identity: Identity,
         configurable_keys: set,
-        sensitive_keys: set,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         if not self._user_configs:
             return {}
 
@@ -510,18 +602,15 @@ class BuiltinAwareResourceService:
         if not user_config:
             return {}
 
-        model_cls = self._inner.element_registry.get_schema(
-            ResourceCategory(resource.category), resource.type
-        )
         overlay = {k: v for k, v in user_config.fields.items() if k in allowed_keys}
-        return self._inner._fields.decrypt_config_fields(overlay, sensitive_keys, model_cls)
+        return self._inner._fields.decrypt(overlay)
 
     def _builtin_validation_override_error(
         self,
         resource: Resource,
         config: BaseModel,
-        identity: Optional[Identity],
-    ) -> Optional[str]:
+        identity: Identity | None,
+    ) -> str | None:
         if identity is None:
             return None
         configurable_keys, sensitive_keys = self._inner._fields.scan_schema_hints(

@@ -4,62 +4,65 @@ A2AClient - Wrapper around official A2A SDK.
 Uses BaseHandler to convert SDK responses to A2AResult.
 """
 
-from typing import Optional, AsyncIterator, Dict
+from collections.abc import AsyncIterator
 from uuid import uuid4
 
 import httpx
-from pydantic import HttpUrl
-
-from a2a.client import A2ACardResolver, A2AClient as SDKA2AClient
+from a2a.client import A2ACardResolver
+from a2a.client import A2AClient as SDKA2AClient
 from a2a.types import (
     AgentCard,
+    CancelTaskRequest,
+    CancelTaskResponse,
+    CancelTaskSuccessResponse,
+    GetTaskRequest,
+    GetTaskResponse,
+    GetTaskSuccessResponse,
     Message,
+    MessageSendParams,
     SendMessageRequest,
     SendMessageResponse,
     SendMessageSuccessResponse,
     SendStreamingMessageRequest,
     SendStreamingMessageSuccessResponse,
-    MessageSendParams,
-    GetTaskRequest,
-    GetTaskResponse,
-    GetTaskSuccessResponse,
-    TaskQueryParams,
-    CancelTaskRequest,
-    CancelTaskResponse,
-    CancelTaskSuccessResponse,
     TaskIdParams,
+    TaskQueryParams,
 )
+from pydantic import HttpUrl
 
-from mas.elements.providers.a2a_client.result import A2AResult
+from mas.core.async_work import await_owned
 from mas.elements.providers.a2a_client.handlers import BaseHandler
+from mas.elements.providers.a2a_client.result import A2AResult
 
 
 class A2AClientError(Exception):
     """Base error for A2A client operations."""
+
     pass
 
 
 class A2AConnectionError(A2AClientError):
     """Connection-related errors."""
+
     pass
 
 
 class A2AClient:
     """
     A2A Client wrapper.
-    
+
     Uses BaseHandler to convert SDK responses to A2AResult.
     """
 
     def __init__(
-            self,
-            base_url: HttpUrl,
-            agent_card: Optional[AgentCard] = None,
-            headers: Optional[Dict[str, str]] = None,
+        self,
+        base_url: HttpUrl,
+        agent_card: AgentCard | None = None,
+        headers: dict[str, str] | None = None,
     ):
         """
         Initialize A2A client.
-        
+
         Args:
             base_url: A2A agent URL
             agent_card: Pre-fetched agent card (optional)
@@ -68,10 +71,10 @@ class A2AClient:
         self._base_url = str(base_url)
         self._agent_card = agent_card
         self._headers = headers or {}
-        self._httpx: Optional[httpx.AsyncClient] = None
-        self._sdk: Optional[SDKA2AClient] = None
+        self._httpx: httpx.AsyncClient | None = None
+        self._sdk: SDKA2AClient | None = None
 
-    async def __aenter__(self) -> "A2AClient":
+    async def __aenter__(self) -> A2AClient:
         """Connect to agent."""
         self._httpx = httpx.AsyncClient(
             headers=self._headers,
@@ -82,9 +85,8 @@ class A2AClient:
                 pool=10.0,
             ),
         )
-        await self._httpx.__aenter__()
-
         try:
+            await self._httpx.__aenter__()
             if not self._agent_card:
                 self._agent_card = await self._fetch_agent_card()
 
@@ -92,19 +94,20 @@ class A2AClient:
                 httpx_client=self._httpx,
                 agent_card=self._agent_card,
             )
-        except Exception as e:
-            await self._httpx.__aexit__(None, None, None)
-            self._httpx = None
-            raise A2AConnectionError(f"Failed to connect: {e}") from e
+        except BaseException as error:
+            await self.__aexit__(type(error), error, error.__traceback__)
+            if isinstance(error, Exception):
+                raise A2AConnectionError(f"Failed to connect: {error}") from error
+            raise
 
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Disconnect from agent."""
-        if self._httpx:
-            await self._httpx.__aexit__(exc_type, exc_val, exc_tb)
-        self._httpx = None
+        client, self._httpx = self._httpx, None
         self._sdk = None
+        if client is not None:
+            await await_owned(client.__aexit__(exc_type, exc_val, exc_tb))
 
     async def _fetch_agent_card(self) -> AgentCard:
         """Fetch agent card from server."""
@@ -136,10 +139,10 @@ class A2AClient:
     async def send(self, message: Message) -> A2AResult:
         """
         Send message and get response.
-        
+
         Args:
             message: SDK Message to send
-            
+
         Returns:
             A2AResult wrapping response
         """
@@ -169,10 +172,10 @@ class A2AClient:
     async def stream(self, message: Message) -> AsyncIterator[A2AResult]:
         """
         Stream message and yield responses.
-        
+
         Args:
             message: SDK Message to send
-            
+
         Yields:
             A2AResult for each streaming event
         """
@@ -191,7 +194,7 @@ class A2AClient:
         except Exception as e:
             yield A2AResult.from_error(message=f"Stream error: {e}")
 
-    def _handle_stream_chunk(self, chunk) -> Optional[A2AResult]:
+    def _handle_stream_chunk(self, chunk) -> A2AResult | None:
         """Handle streaming chunk."""
         if hasattr(chunk.root, "error") and chunk.root.error:
             return A2AResult.from_error(chunk.root.error)
@@ -204,10 +207,10 @@ class A2AClient:
     async def get_task(self, task_id: str) -> A2AResult:
         """
         Get task by ID.
-        
+
         Args:
             task_id: Task ID to fetch
-            
+
         Returns:
             A2AResult with task data
         """
@@ -231,10 +234,10 @@ class A2AClient:
     async def cancel_task(self, task_id: str) -> A2AResult:
         """
         Cancel a task.
-        
+
         Args:
             task_id: Task ID to cancel
-            
+
         Returns:
             A2AResult with final task state
         """

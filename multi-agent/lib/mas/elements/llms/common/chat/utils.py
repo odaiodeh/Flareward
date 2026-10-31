@@ -1,11 +1,10 @@
 from uuid import uuid4
-from mas.elements.llms.common.chat.message import ToolCall
+
+from mas.domain.messages import ToolCall
 
 
 def ensure_tool_call_id(data: dict) -> ToolCall:
     """Return a ToolCall with a guaranteed non-empty id."""
     return ToolCall(
-        name=data["name"],
-        args=data["args"],
-        tool_call_id=data.get("id") or f"tool-{uuid4()}"
+        name=data["name"], args=data["args"], tool_call_id=data.get("id") or f"tool-{uuid4()}"
     )

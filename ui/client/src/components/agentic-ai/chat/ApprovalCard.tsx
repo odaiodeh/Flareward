@@ -13,25 +13,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { ApprovalEntry, ApprovalDecision, ApprovalStatus, AutoRuleAction } from './types';
+import type { ApprovalEntry, ApprovalDecision, ApprovalStatus, AutoRuleAction, ApprovalDecisionHandler, AutoRuleHandler } from './types';
 
 // ─── Props ──────────────────────────────────────────────────────────────────
 
 interface ApprovalCardProps {
   approval: ApprovalEntry;
   sessionId: string;
-  onDecision: (
-    requestId: string,
-    decision: ApprovalDecision,
-    feedback?: string,
-    modifiedArgs?: Record<string, any>,
-  ) => Promise<void>;
-  onAutoRule?: (
-    requestId: string,
-    nodeUid: string | null,
-    toolName: string | null,
-    action: AutoRuleAction,
-  ) => Promise<void>;
+  onDecision: ApprovalDecisionHandler;
+  onAutoRule?: AutoRuleHandler;
 }
 
 // ─── Status rendering helpers ───────────────────────────────────────────────
@@ -124,14 +114,16 @@ export const ApprovalCard = memo(({ approval, sessionId, onDecision, onAutoRule 
     async (decision: ApprovalDecision, feedback?: string) => {
       setIsSubmitting(true);
       try {
-        await onDecision(approval.requestId, decision, feedback);
-      } finally {
-        setIsSubmitting(false);
+        await onDecision(approval, decision, feedback);
         setShowFeedback(null);
         setFeedbackText('');
+      } catch {
+        // The parent presents the failure; preserve entered feedback for retry.
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [approval.requestId, onDecision],
+    [approval, onDecision],
   );
 
   const handleFeedbackSubmit = useCallback(() => {
@@ -144,12 +136,14 @@ export const ApprovalCard = memo(({ approval, sessionId, onDecision, onAutoRule 
       if (!onAutoRule) return;
       setIsSubmitting(true);
       try {
-        await onAutoRule(approval.requestId, nodeUid, toolName, action);
+        await onAutoRule(approval, nodeUid, toolName, action);
+      } catch {
+        // The parent presents the failed rule/decision operation.
       } finally {
         setIsSubmitting(false);
       }
     },
-    [approval.requestId, onAutoRule],
+    [approval, onAutoRule],
   );
 
   if (approval.status !== 'pending') {

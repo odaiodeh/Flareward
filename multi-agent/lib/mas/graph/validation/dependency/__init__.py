@@ -1,1 +1,1 @@
-# Dependency validation module 
+# Dependency validation module

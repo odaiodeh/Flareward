@@ -10,6 +10,7 @@ points (run/dev.py, run/wsgi.py, inbound/temporal/__main__.py, …)
 create an AppContainer and pass it — or individual services from it —
 into the layers that need them.
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,87 +19,76 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from mas.scheduling.ports import ScheduleEngine
 
-from mas.catalog.element_registry import ElementRegistry
-from mas.catalog.service import CatalogService
-from mas.catalog.card_service import ElementCardService
-from mas.blueprints.service import BlueprintService
+from global_utils.identity_client import IdentityClient
+from global_utils.redis import RedisKVStore, TeamMembershipCache, build_redis_client
+from global_utils.utils.singleton import SingletonMeta
+from global_utils.utils.util import get_redis_url
+from bootstrap.actions import build_actions
+from outbound.mongo.action_settings import BlockingActionSettings
+from mas.elements.providers.rag_client.config import RagProviderConfig
+from outbound.actions.providers.rag.client import RagActionClient
+from mas.application.elements.catalog.card_service import ElementCardService
+from mas.application.elements.catalog.service import CatalogService
+from mas.blueprints.models.blueprint import BlueprintSpec
 from mas.blueprints.resolver import BlueprintResolver
-from mas.session.building import WorkflowSessionFactory
-from mas.session.management import UserSessionManager
-from mas.session.execution import SessionLifecycle, ForegroundSessionRunner, SessionInputProjector
-from mas.session.service import SessionService
-from mas.resources.registry import ResourcesRegistry
-from mas.resources.service import CoreResourceService
-from mas.resources.builtin_aware_service import BuiltinAwareResourceService
-from mas.resources.field_encryption import ResourceFieldEncryption
-from mas.graph.service import GraphService
-from mas.graph.validation.service import GraphValidationService
-from mas.actions.service import ActionsService
-from mas.sharing.cloner import ShareCloner
-from mas.sharing.service import ShareService
-from mas.statistics.service import StatisticsService
-from mas.validation.service import ElementValidationService
-from mas.templates.service import TemplateService
+from mas.blueprints.service import BlueprintService
 from mas.collaboration.service import CollaborationService
-from mas.resources.admin_edit_lock_service import AdminEditLockService
-
-# Workflow scheduling
-from mas.scheduling.service import WorkflowScheduleService
-from outbound.mongo.workflow_schedule_repository import MongoWorkflowScheduleRepository
+from mas.core.auth.discovery import AuthDetector
 
 # Auth layer
 from mas.core.auth.service import AuthService, AuthStrategyRegistry
-from mas.core.auth.discovery import AuthDetector
-from outbound.auth.oauth2_strategy import OAuth2Strategy
 from mas.core.auth.strategies.oauth2.detection import OAuth2DetectionStrategy
 from mas.core.auth.strategies.oauth2.state_manager import OAuthStateManager
-from outbound.auth.api_key_strategy import ApiKeyStrategy
-from outbound.mongo.client_config_repository import MongoServerConfigStore
-from mas.actions.auth.store_credential.action import StoreCredentialAction
-from mas.actions.auth.discovery.action import DiscoveryAction
-from mas.actions.auth.sign_out.action import SignOutAction
-from mas.actions.auth.list_servers.action import ListServersAction
-from mas.actions.providers.mcp.validate_connection.validate_connection import (
-    ValidateConnectionAction as McpValidateConnectionAction,
-)
-from mas.actions.providers.a2a.validate_connection.validate_connection import (
-    ValidateConnectionAction as A2AValidateConnectionAction,
-)
-from mas.actions.providers.mcp.get_tools_names.get_tools_names import GetToolsNamesAction
-from mas.actions.llms.openai.get_models.get_models import GetOpenAIModelsAction
-from mas.actions.llms.openai.get_reasoning_levels.get_reasoning_levels import GetOpenAIReasoningLevelsAction
-
-from config.app_config import AppConfig
+from mas.core.identity.ports import AdminConfigReaderPort, IdentityProvider
 from mas.core.platform_config import PlatformConfig
 from mas.core.tracing import TracingService
-from outbound.storage import LocalSessionStorageCleaner
+from mas.graph.service import GraphService
+from mas.graph.validation.service import GraphValidationService
+from mas.resources.admin_edit_lock_service import AdminEditLockService
+from mas.resources.builtin_aware_service import BuiltinAwareResourceService
+from mas.resources.builtin_service import BuiltinResourceService
+from mas.resources.field_encryption import ResourceFieldEncryption
+from mas.resources.registry import ResourcesRegistry
+from mas.resources.service import CoreResourceService
 
-from outbound.mongo import (
-    MongoBlueprintRepository,
-    MongoSessionRepository,
-    MongoResourceRepository,
-    MongoShareRepository,
-    MongoTemplateRepository,
-    MongoAdminConfigReader,
-)
-from outbound.redis import RedisCollaborationStore
-from outbound.mongo.builtin_user_config_repository import MongoBuiltinUserConfigRepository
+# Workflow scheduling
+from mas.scheduling.service import WorkflowScheduleService
+from mas.session.building.workflow_session_factory import WorkflowSessionFactory
+from mas.session.execution.foreground_runner import ForegroundSessionRunner
+from mas.session.execution.input_projector import SessionInputProjector
+from mas.session.execution.lifecycle import SessionLifecycle
+from mas.session.management.user_session_manager import UserSessionManager
+from mas.session.service import SessionService
+from mas.sharing.cloner import ShareCloner
+from mas.sharing.service import ShareService
+from mas.statistics.service import StatisticsService
+from mas.templates.service import TemplateService
+from mas.validation.service import ElementValidationService
+from outbound.auth.api_key_strategy import ApiKeyStrategy
+from outbound.auth.oauth2_strategy import OAuth2Strategy
+from outbound.crypto import FieldCipher
+from outbound.http.httpx_client import HttpxClient
+from outbound.mongo.admin_config_reader import MongoAdminConfigReader
+
+# Auth layer — adapters
+from outbound.mongo.auth_token_repository import MongoCredentialStore
+from outbound.mongo.blueprint_repository import MongoBlueprintRepository
 from outbound.mongo.builtin_resource_descriptor_repository import (
     MongoBuiltinResourceDescriptorRepository,
 )
-from mas.resources.builtin_service import BuiltinResourceService
-# Auth layer — adapters
-from outbound.mongo.auth_token_repository import MongoCredentialStore
+from outbound.mongo.builtin_user_config_repository import MongoBuiltinUserConfigRepository
+from outbound.mongo.client_config_repository import MongoServerConfigStore
+from outbound.mongo.resource_repository import MongoResourceRepository
+from outbound.mongo.session_repository import MongoSessionRepository
+from outbound.mongo.share_repository import MongoShareRepository
+from outbound.mongo.template_repository import MongoTemplateRepository
+from outbound.mongo.workflow_schedule_repository import MongoWorkflowScheduleRepository
+from outbound.redis import RedisCollaborationStore
 from outbound.redis.auth_pending_store import RedisFlowStateStore
-from outbound.http.httpx_client import HttpxClient
+from outbound.storage import LocalSessionStorageCleaner
 
-from mas.core.identity.ports import IdentityProvider, AdminConfigReaderPort
-from global_utils.identity_client import IdentityClient
-from global_utils.redis import RedisKVStore, TeamMembershipCache, build_redis_client
-from global_utils.utils.crypto import FieldCipher
-from global_utils.utils.singleton import SingletonMeta
-from global_utils.utils.util import get_redis_url
-
+from bootstrap.elements import installed_elements
+from config.app_config import AppConfig
 
 logger = logging.getLogger(__name__)
 
@@ -115,24 +105,17 @@ class AppContainer(metaclass=SingletonMeta):
         if getattr(self, "_initialized", False):
             return
 
-        self.element_registry = ElementRegistry()
-        self.element_registry.auto_discover()
+        self.element_registry = installed_elements()
 
-        self.actions_service = ActionsService()
-        self.actions_service.auto_discover_actions()
 
         self.catalog_service = CatalogService(self.element_registry)
 
         self.graph_service = GraphService(self.element_registry)
         self.graph_validation_service = GraphValidationService(self.element_registry)
 
-        self.validation_service = ElementValidationService(
-            element_registry=self.element_registry
-        )
+        self.validation_service = ElementValidationService(element_registry=self.element_registry)
 
-        self.card_service = ElementCardService(
-            element_registry=self.element_registry
-        )
+        self.card_service = ElementCardService(element_registry=self.element_registry)
 
         # ── Auth layer ────────────────────────────────────────────────
 
@@ -150,6 +133,7 @@ class AppContainer(metaclass=SingletonMeta):
         self._collab_store = None
         if redis_url:
             import redis as redis_lib
+
             redis_client = redis_lib.Redis.from_url(redis_url, socket_timeout=30)
             pending_store = RedisFlowStateStore(
                 redis_client=redis_client,
@@ -195,14 +179,15 @@ class AppContainer(metaclass=SingletonMeta):
             strategy_registry=strategy_registry,
             server_config_store=self.server_config_store,
             detector=detector,
-            encryption_key=cfg.credential_encryption_key,
+            cipher=FieldCipher(cfg.credential_encryption_key)
+            if cfg.credential_encryption_key
+            else None,
         )
 
         # ── Data repositories ────────────────────────────────────────
 
         self.blueprint_repo = MongoBlueprintRepository(
-            db_name=cfg.mongo_db,
-            coll_name=cfg.blueprint_coll
+            db_name=cfg.mongo_db, coll_name=cfg.blueprint_coll
         )
 
         self.resource_repo = MongoResourceRepository(
@@ -231,11 +216,13 @@ class AppContainer(metaclass=SingletonMeta):
             resources_coll_name=cfg.resources_coll,
         )
 
-        field_cipher = FieldCipher(cfg.credential_encryption_key) if cfg.credential_encryption_key else None
+        field_cipher = (
+            FieldCipher(cfg.credential_encryption_key) if cfg.credential_encryption_key else None
+        )
 
         resource_registry = ResourcesRegistry(
             repo=self.resource_repo,
-            bp_repo=self.blueprint_repo,
+            blueprint_usage=self.blueprint_repo,
             cipher=field_cipher,
         )
 
@@ -254,10 +241,14 @@ class AppContainer(metaclass=SingletonMeta):
             builtin_user_config_repo=self.builtin_user_config_repo,
         )
 
-        self.admin_edit_lock_service = AdminEditLockService(
-            store=self._collab_store,
-            edit_lock_ttl=cfg.collaboration_edit_lock_ttl_sec,
-        ) if self._collab_store else None
+        self.admin_edit_lock_service = (
+            AdminEditLockService(
+                store=self._collab_store,
+                edit_lock_ttl=cfg.collaboration_edit_lock_ttl_sec,
+            )
+            if self._collab_store
+            else None
+        )
 
         # 1. Always build the core service (pure, no built-in deps)
         core_resource_service = CoreResourceService(
@@ -280,6 +271,7 @@ class AppContainer(metaclass=SingletonMeta):
 
         self.blueprint_resolver = BlueprintResolver(
             resources_service=self.resources_service,
+            spec_schema=BlueprintSpec,
         )
 
         self.blueprint_service = BlueprintService(
@@ -290,35 +282,11 @@ class AppContainer(metaclass=SingletonMeta):
             auth_service=self.auth_service,
         )
 
-        # ── Auth actions ─────────────────────────────────────────────
-
-        self.actions_service.register_instance(StoreCredentialAction(
-            auth_service=self.auth_service,
-        ))
-        self.actions_service.register_instance(DiscoveryAction(
-            auth_service=self.auth_service,
-        ))
-        self.actions_service.register_instance(SignOutAction(
-            auth_service=self.auth_service,
-        ))
-        self.actions_service.register_instance(ListServersAction(
-            server_config_store=self.server_config_store,
-        ))
-        self.actions_service.register_instance(McpValidateConnectionAction(
-            auth_service=self.auth_service,
-        ))
-        self.actions_service.register_instance(A2AValidateConnectionAction(
-            auth_service=self.auth_service,
-        ))
-        self.actions_service.register_instance(GetToolsNamesAction(
-            auth_service=self.auth_service,
-        ))
-        self.actions_service.register_instance(GetOpenAIModelsAction(
-            admin_config_reader=self.admin_config_reader,
-        ))
-        self.actions_service.register_instance(GetOpenAIReasoningLevelsAction(
-            admin_config_reader=self.admin_config_reader,
-        ))
+        self.actions_service = build_actions(
+            auth=self.auth_service,
+            settings=BlockingActionSettings(self.admin_config_reader),
+            rag=RagActionClient(str(RagProviderConfig().base_url)),
+        )
 
         # ── Tracing (observability) ───────────────────────────────────
         self.tracing_service = self._create_tracing_service(cfg)
@@ -340,7 +308,7 @@ class AppContainer(metaclass=SingletonMeta):
             mongodb_port=cfg.mongodb_port,
             mongodb_ip=cfg.mongodb_ip,
             db_name=cfg.mongo_db,
-            collection_name=cfg.session_coll
+            collection_name=cfg.session_coll,
         )
         self.session_storage_cleaner = LocalSessionStorageCleaner(
             base_path=cfg.shared_storage,
@@ -359,6 +327,7 @@ class AppContainer(metaclass=SingletonMeta):
         self.channel_factory = self._create_channel_factory(cfg)
 
         from outbound.hitl import ChannelApprovalGateFactory
+
         self.overrides_store = self._create_overrides_store()
         self.gate_factory = ChannelApprovalGateFactory(
             overrides_store=self.overrides_store,
@@ -396,10 +365,7 @@ class AppContainer(metaclass=SingletonMeta):
 
         self.directory_provider = self._build_directory_provider(cfg, self.identity_client)
 
-        self.share_repo = MongoShareRepository(
-            db_name=cfg.mongo_db,
-            coll_name=cfg.shares_coll
-        )
+        self.share_repo = MongoShareRepository(db_name=cfg.mongo_db, coll_name=cfg.shares_coll)
         self.share_cloner = ShareCloner(
             resources_service=self.resources_service,
             blueprint_service=self.blueprint_service,
@@ -407,19 +373,17 @@ class AppContainer(metaclass=SingletonMeta):
             builtin_resource_service=self.builtin_resource_service,
         )
         self.share_service = ShareService(
-            share_repository=self.share_repo,
-            cloner=self.share_cloner
+            share_repository=self.share_repo, cloner=self.share_cloner
         )
 
         self.statistics_service = StatisticsService(
             blueprint_service=self.blueprint_service,
             session_service=self.session_service,
-            resources_service=self.resources_service
+            resources_service=self.resources_service,
         )
 
         self.template_repo = MongoTemplateRepository(
-            db_name=cfg.mongo_db,
-            coll_name=cfg.templates_coll
+            db_name=cfg.mongo_db, coll_name=cfg.templates_coll
         )
         self.template_service = TemplateService(
             repository=self.template_repo,
@@ -429,7 +393,10 @@ class AppContainer(metaclass=SingletonMeta):
         )
 
         self.collaboration_service = self._create_collaboration_service(
-            cfg, self.session_repo, self.identity_provider, self._collab_store,
+            cfg,
+            self.session_repo,
+            self.identity_provider,
+            self._collab_store,
         )
 
         # ── Workflow scheduling ─────────────────────────────────────────
@@ -451,9 +418,11 @@ class AppContainer(metaclass=SingletonMeta):
     def _create_tracing_service(cfg: AppConfig) -> TracingService:
         if not cfg.langfuse_enabled:
             from mas.core.tracing.noop import NoOpTracingService
+
             return NoOpTracingService()
         try:
             from outbound.langfuse.langfuse_tracing_service import LangfuseTracingService
+
             return LangfuseTracingService(
                 secret_key=cfg.langfuse_secret_key,
                 public_key=cfg.langfuse_public_key,
@@ -462,6 +431,7 @@ class AppContainer(metaclass=SingletonMeta):
         except ImportError:
             logger.warning("langfuse package not installed; tracing disabled")
             from mas.core.tracing.noop import NoOpTracingService
+
             return NoOpTracingService()
 
     @staticmethod
@@ -469,18 +439,23 @@ class AppContainer(metaclass=SingletonMeta):
         redis_url = get_redis_url()
         if redis_url:
             from outbound.hitl import RedisOverridesStore
+
             return RedisOverridesStore(redis_url=redis_url)
-        from mas.core.hitl.ports import OverridesStore
         from mas.core.hitl.models import ApprovalOverrides
+        from mas.core.hitl.ports import OverridesStore
 
         class InMemoryOverridesStore(OverridesStore):
             """Fallback for environments without Redis."""
+
             def __init__(self) -> None:
                 self._data: dict[str, ApprovalOverrides] = {}
+
             def load(self, session_id: str) -> ApprovalOverrides:
                 return self._data.get(session_id, ApprovalOverrides())
+
             def save(self, session_id: str, overrides: ApprovalOverrides) -> None:
                 self._data[session_id] = overrides
+
             def remove(self, session_id: str) -> None:
                 self._data.pop(session_id, None)
 
@@ -491,6 +466,7 @@ class AppContainer(metaclass=SingletonMeta):
         redis_url = get_redis_url()
         if redis_url:
             from outbound.channels import RedisChannelFactory
+
             return RedisChannelFactory(
                 redis_url=redis_url,
                 stream_ttl=cfg.redis_stream_ttl,
@@ -498,6 +474,7 @@ class AppContainer(metaclass=SingletonMeta):
                 batch_size=cfg.redis_stream_batch_size,
             )
         from outbound.channels import LocalChannelFactory
+
         return LocalChannelFactory()
 
     @staticmethod
@@ -521,6 +498,7 @@ class AppContainer(metaclass=SingletonMeta):
     def _create_background_engine(engine_name: str):
         if engine_name == "temporal":
             from outbound.temporal.session_engine import TemporalSessionEngine
+
             return TemporalSessionEngine()
         return None
 
@@ -528,8 +506,10 @@ class AppContainer(metaclass=SingletonMeta):
     def _create_schedule_adapter(engine_name: str) -> ScheduleEngine:
         if engine_name == "temporal":
             from outbound.temporal.schedule_adapter import TemporalScheduleAdapter
+
             return TemporalScheduleAdapter()
         from mas.scheduling.noop import NoOpScheduleEngine
+
         return NoOpScheduleEngine()
 
     @staticmethod
@@ -550,22 +530,23 @@ class AppContainer(metaclass=SingletonMeta):
 
         if mode == "pod":
             from outbound.identity.identity_pod_provider import IdentityPodProvider
+
             logger.info("Identity provider: pod (%s)", identity_client._base)
             return IdentityPodProvider(identity_client=identity_client)
 
         if mode == "dev":
             from outbound.identity.dev_provider import DevIdentityProvider
+
             logger.info("Identity provider: dev (permissive)")
             return DevIdentityProvider()
 
         if mode == "noop":
             from outbound.identity.noop_provider import NoOpIdentityProvider
+
             logger.info("Identity provider: noop (no teams)")
             return NoOpIdentityProvider()
 
-        raise ValueError(
-            f"Unknown identity_provider_mode: '{mode}'. Supported: pod, dev, noop"
-        )
+        raise ValueError(f"Unknown identity_provider_mode: '{mode}'. Supported: pod, dev, noop")
 
     @staticmethod
     def _build_directory_provider(cfg: AppConfig, identity_client: IdentityClient):
@@ -576,9 +557,7 @@ class AppContainer(metaclass=SingletonMeta):
         if provider_name == "sso":
             return AppContainer._build_directory_client(cfg, identity_client)
 
-        raise ValueError(
-            f"Unknown directory_provider: '{provider_name}'. Supported: sso"
-        )
+        raise ValueError(f"Unknown directory_provider: '{provider_name}'. Supported: sso")
 
     @staticmethod
     def _build_directory_client(cfg: AppConfig, identity_client: IdentityClient):

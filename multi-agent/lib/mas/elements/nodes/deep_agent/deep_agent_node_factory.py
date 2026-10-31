@@ -1,5 +1,6 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import DeepAgentNodeConfig
 from .deep_agent_node import DeepAgentNode
 from .identifiers import Identifier
@@ -25,10 +26,9 @@ class DeepAgentNodeFactory(BaseFactory[DeepAgentNodeConfig, DeepAgentNode]):
 
             return DeepAgentNode(
                 llm=deps.pop("llm"),
-                retriever=deps.pop("retriever"),
-                tools=deps.pop("tools"),
-                mcp_providers=deps.pop("providers"),
-                sandbox=deps.pop("sandbox", None),
+                retriever=deps.get("retriever"),
+                tools=deps.get("tools"),
+                mcp_providers=deps.get("providers"),
                 system_message=cfg.system_message,
                 cwd=cfg.cwd,
                 env_vars=cfg.env_vars,

@@ -1,28 +1,24 @@
-from mas.catalog import element_registry
-from outbound.mongo import MongoSessionRepository
-from mas.blueprints.loader.yaml_blueprint_loader import YAMLBlueprintLoader
-from mas.session.building import WorkflowSessionFactory
-from mas.session.management import UserSessionManager
-from mas.session.execution import SessionLifecycle, ForegroundSessionRunner
+from collections.abc import Iterator
+from typing import Any
+
+from inbound.blueprints.files import BlueprintFileLoader
+from mas.session.building.workflow_session_factory import WorkflowSessionFactory
+from mas.session.execution.foreground_runner import ForegroundSessionRunner
+from mas.session.execution.lifecycle import SessionLifecycle
+from mas.session.management.user_session_manager import UserSessionManager
 from outbound.channels import LocalChannelFactory
-from mas.blueprints.service import BlueprintService
-from outbound.mongo import MongoBlueprintRepository
-from mas.resources.service import CoreResourceService
-from mas.resources.registry import ResourcesRegistry
-from outbound.mongo import MongoResourceRepository
-from mas.blueprints.resolver import BlueprintResolver
-from bootstrap.container import AppContainer
-from typing import Iterator, Any, Dict, List
-from config.app_config import AppConfig
+from outbound.mongo.session_repository import MongoSessionRepository
+from rich.console import Console
+from rich.layout import Layout
 from rich.live import Live
 from rich.panel import Panel
-from rich.layout import Layout
-from rich.console import Console
+
+from bootstrap.elements import installed_elements
 
 console = Console()
 
 
-def make_layout(buffers: Dict[str, str], logs: List[str]) -> Layout:
+def make_layout(buffers: dict[str, str], logs: list[str]) -> Layout:
     layout = Layout()
 
     # Top pane for logs
@@ -42,11 +38,11 @@ def make_layout(buffers: Dict[str, str], logs: List[str]) -> Layout:
 
 
 def stream_with_rich(
-        stream: Iterator[Any],
-        initial_logs: List[str] = None,
+    stream: Iterator[Any],
+    initial_logs: list[str] = None,
 ):
     logs = initial_logs[:] if initial_logs else []
-    buffers: Dict[str, str] = {}
+    buffers: dict[str, str] = {}
 
     with Live(make_layout(buffers, logs), console=console, refresh_per_second=10) as live:
         for raw in stream:
@@ -69,11 +65,10 @@ def stream_with_rich(
 
 def setup_components():
     # auto‐discover all your node/tool/llm factories
-    element_registry.auto_discover()
+    element_registry = installed_elements()
     # factory that builds fresh WorkflowSession
     session_factory = WorkflowSessionFactory(
-        element_registry=element_registry,
-        engine_name="langgraph"
+        element_registry=element_registry, engine_name="langgraph"
     )
 
     # repository that stores / loads sessions from disk
@@ -91,13 +86,11 @@ def setup_components():
 def main_new_session():
     manager, executor = setup_components()
 
-    blueprint_loader = YAMLBlueprintLoader()
+    blueprint_loader = BlueprintFileLoader()
     spec = blueprint_loader.load("run/test_2_agents_slack_docs_merger.yml")
 
     session = manager.create_session(
-        user_id="alice",
-        blueprint_spec=spec,
-        metadata={"experiment": "test-v1"}
+        user_id="alice", blueprint_spec=spec, metadata={"experiment": "test-v1"}
     )
 
     run_id = session
@@ -108,9 +101,10 @@ def main_new_session():
 
     stream = executor.stream(
         session_or_id=session,
-        # inputs={"user_prompt": "what is the tm command and tell me from where do you get your info about it?"},
+        # inputs={"user_prompt": "what is the tm command and tell me from where do you get your info
+        # about it?"},
         inputs={"user_prompt": "how to install AIM on CNA?"},
-        stream_mode=["custom"]
+        stream_mode=["custom"],
     )
     stream_with_rich(stream)
     # for chunk in stream:
@@ -130,196 +124,190 @@ def main_resume_session(run_id: str):
     stream = executor.stream(
         session_or_id=run_id,
         inputs={"user_prompt": "what is the install command in AIM?"},
-        stream_mode=["custom"]
+        stream_mode=["custom"],
     )
     stream_with_rich(stream)
 
 
 def save_resources(app):
     from mas.core.identity import Identity
+
     alice = Identity.user("alice")
 
-    llm_rid = app.resources_service.create(identity=alice,
-                                           category="llms",
-                                           type="openai",
-                                           name="openai_llm",
-                                           config={
-                                               "type": "openai",
-                                               "model_name": "gemini-2.0-flash",
-                                               "api_key": "",
-                                               "base_url": "https://generativelanguage.googleapis.com/v1beta/openai"
-                                           }).rid
+    llm_rid = app.resources_service.create(
+        identity=alice,
+        category="llms",
+        type="openai",
+        name="openai_llm",
+        config={
+            "type": "openai",
+            "model_name": "gemini-2.0-flash",
+            "api_key": "",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        },
+    ).rid
 
-    mcp_rid = app.resources_service.create(identity=alice,
-                                           category="providers",
-                                           type="mcp_server",
-                                           name="My mcp server Node",
-                                           config={
-                                               "type": "mcp_server",
-                                               "mcp_url": "http://localhost:8004"
-                                           }).rid
+    mcp_rid = app.resources_service.create(
+        identity=alice,
+        category="providers",
+        type="mcp_server",
+        name="My mcp server Node",
+        config={"type": "mcp_server", "mcp_url": "http://localhost:8004"},
+    ).rid
 
-    tool_rid = app.resources_service.create(identity=alice,
-                                            category="tools",
-                                            type="mcp_proxy",
-                                            name="My mcp addition tool",
-                                            config={
-                                                "type": "mcp_proxy",
-                                                "tool_name": "addition",
-                                                "provider": f"$ref:{mcp_rid}"
-                                            }).rid
+    tool_rid = app.resources_service.create(
+        identity=alice,
+        category="tools",
+        type="mcp_proxy",
+        name="My mcp addition tool",
+        config={"type": "mcp_proxy", "tool_name": "addition", "provider": f"$ref:{mcp_rid}"},
+    ).rid
 
-    app.resources_service.create(identity=alice,
-                                 category="nodes",
-                                 type="custom_agent_node",
-                                 name="My Agent Node",
-                                 config={
-                                     "type": "custom_agent_node",
-                                     "llm": f"$ref:{llm_rid}",
-                                     "tools": [f"$ref:{tool_rid}"],
-                                     "system_message": "You are a smart assistant …"})
+    app.resources_service.create(
+        identity=alice,
+        category="nodes",
+        type="custom_agent_node",
+        name="My Agent Node",
+        config={
+            "type": "custom_agent_node",
+            "llm": f"$ref:{llm_rid}",
+            "tools": [f"$ref:{tool_rid}"],
+            "system_message": "You are a smart assistant …",
+        },
+    )
 
 
 def run_test_new_version(app, blueprint_id):
     from mas.core.identity import Identity
+
     run_id = app.session_service.create(identity=Identity.user("alice"), blueprint_id=blueprint_id)
     print(f"Created session with id: {run_id}")
-    print(app.session_service.run(session_id=run_id,
-                                  inputs={"user_prompt": "what can you tell me about Redhat?"},
-                                  scope="public"))
-
-
-from mas.graph.graph_plan import GraphPlan
-from dataclasses import dataclass, asdict
-import json
+    print(
+        app.session_service.run(
+            session_id=run_id,
+            inputs={"user_prompt": "what can you tell me about Redhat?"},
+            scope="public",
+        )
+    )
 
 
 def test_a2a_provider():
     """Test A2A provider by connecting to agent and sending a message."""
+    from mas.domain.messages import ChatMessage, Role
     from mas.elements.providers.a2a_client import A2AProvider
-    from mas.elements.llms.common.chat.message import ChatMessage, Role
     from pydantic import HttpUrl
-    
+
     print("=" * 80)
     print("Testing A2A Provider (Non-Streaming)")
     print("=" * 80)
-    
+
     # Create provider for the A2A agent
     agent_url = "http://10.46.254.131:8001"
     print(f"\n🔗 Connecting to A2A agent at: {agent_url}")
-    
+
     try:
-        provider = A2AProvider.create_sync(
-            base_url=HttpUrl(agent_url)
-        )
-        
+        provider = A2AProvider.create_sync(base_url=HttpUrl(agent_url))
+
         print(f"✅ Connected to agent: {provider.agent_card.name}")
         print(f"   Version: {provider.agent_card.version}")
-        
+
         skills = provider.get_available_skills()
         if skills:
             print(f"   Available skills: {skills}")
-        
+
         # Create message
-        user_message = ChatMessage(
-            role=Role.USER,
-            content="give me interesting facts."
-        )
-        
+        user_message = ChatMessage(role=Role.USER, content="give me interesting facts.")
+
         print(f"\n📤 Sending message: {user_message.content}")
         print("-" * 80)
-        
+
         # Send message and get response
         response, metadata = provider.send_message_sync(user_message)
-        
-        print(f"\n📥 Response:")
+
+        print("\n📥 Response:")
         print("-" * 80)
         print(response.content)
         print("-" * 80)
-        
-        print(f"\n📊 Metadata:")
+
+        print("\n📊 Metadata:")
         print(f"   Task ID: {metadata.get('task_id')}")
         print(f"   Status: {metadata.get('status')}")
-        
+
         print("\n" + "=" * 80)
         print("✅ Test completed successfully!")
         print("=" * 80)
-        
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
 
 
 def test_a2a_streaming():
     """Test A2A provider streaming by connecting to agent and streaming a response."""
+    from mas.domain.messages import ChatMessage, Role
     from mas.elements.providers.a2a_client import A2AProvider
-    from mas.elements.llms.common.chat.message import ChatMessage, Role
     from pydantic import HttpUrl
-    
+
     print("\n\n")
     print("=" * 80)
     print("Testing A2A Provider (Streaming)")
     print("=" * 80)
-    
+
     # Create provider for the A2A agent
     agent_url = "http://10.46.254.131:8001"
     print(f"\n🔗 Connecting to A2A agent at: {agent_url}")
-    
+
     try:
-        provider = A2AProvider.create_sync(
-            base_url=HttpUrl(agent_url)
-        )
-        
+        provider = A2AProvider.create_sync(base_url=HttpUrl(agent_url))
+
         print(f"✅ Connected to agent: {provider.agent_card.name}")
         print(f"   Version: {provider.agent_card.version}")
-        
+
         skills = provider.get_available_skills()
         if skills:
             print(f"   Available skills: {skills}")
-        
+
         # Create message
-        user_message = ChatMessage(
-            role=Role.USER,
-            content="give me interesting facts."
-        )
-        
+        user_message = ChatMessage(role=Role.USER, content="give me interesting facts.")
+
         print(f"\n📤 Streaming message: {user_message.content}")
         print("-" * 80)
         print("📥 Streaming response:\n")
-        
+
         # Stream message and print chunks as they arrive
         chunk_count = 0
         for chunk in provider.stream_message_sync(user_message):
             print(chunk.content, end="", flush=True)
             chunk_count += 1
-        
+
         print("\n" + "-" * 80)
-        print(f"\n📊 Statistics:")
+        print("\n📊 Statistics:")
         print(f"   Total chunks received: {chunk_count}")
-        
+
         print("\n" + "=" * 80)
         print("✅ Streaming test completed successfully!")
         print("=" * 80)
-        
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
 
 
 if __name__ == "__main__":
     # Test A2A Provider - Non-Streaming
     test_a2a_provider()
-    
+
     # Test A2A Provider - Streaming
     # test_a2a_streaming()
-    
+
     # Original main code (commented out)
     # config = AppConfig.get_instance()
     # app = AppContainer(config)
 
-    # blueprint_loader = YAMLBlueprintLoader()
     # # raw = blueprint_loader.load("run/branch_router_demo.yml")
     # # raw = blueprint_loader.load("run/boolean_router_demo.yml")
     # raw = blueprint_loader.load("run/blueprint_llm_agent.yml")

@@ -1,9 +1,9 @@
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
 from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
+
 from mas.core.dto import GroupedCount
-from mas.blueprints.models.blueprint import BlueprintExecutionStats
+from mas.core.resource_models import BlueprintExecutionStats
 from mas.session.domain.status import SessionStatus
 
 
@@ -16,14 +16,14 @@ class TimeSeriesPoint(BaseModel):
     The period is truncated to the start of the bucket
     (e.g., start of the hour, day, or month).
     """
+
     period: datetime = Field(
         ...,
-        description="Start of the time bucket (truncated to hour, day, or month depending on granularity)"
+        description=(
+            "Start of the time bucket (truncated to hour, day, or month depending on granularity)"
+        ),
     )
-    count: int = Field(
-        ...,
-        description="Number of items in this period"
-    )
+    count: int = Field(..., description="Number of items in this period")
 
 
 class SystemAnalyticsData(BaseModel):
@@ -44,31 +44,19 @@ class SystemAnalyticsData(BaseModel):
     Implementations should optimize for efficiency (e.g., batching
     multiple aggregations into a single database operation).
     """
-    user_status_counts: List[GroupedCount] = Field(
-        default_factory=list,
-        description="Sessions grouped by user_id and status"
-    )
-    user_blueprint_counts: List[GroupedCount] = Field(
-        default_factory=list,
-        description="Sessions grouped by user_id and blueprint_id (used for both user and blueprint views)"
-    )
-    blueprint_stats: List[BlueprintExecutionStats] = Field(
-        default_factory=list,
-        description="Per-blueprint aggregated execution metrics"
-    )
 
-
-@dataclass(frozen=True)
-class RuntimeElement:
-    """Complete runtime element: instance + spec + resource_spec."""
-    instance: Any
-    spec: Any
-    resource_spec: Any  # ResourceSpec with user-defined name, config, rid, type
-    
-    @property
-    def config(self) -> Any:
-        """Get config from resource_spec."""
-        return self.resource_spec.config if self.resource_spec else None
+    user_status_counts: list[GroupedCount] = Field(
+        default_factory=list, description="Sessions grouped by user_id and status"
+    )
+    user_blueprint_counts: list[GroupedCount] = Field(
+        default_factory=list,
+        description=(
+            "Sessions grouped by user_id and blueprint_id (used for both user and blueprint views)"
+        ),
+    )
+    blueprint_stats: list[BlueprintExecutionStats] = Field(
+        default_factory=list, description="Per-blueprint aggregated execution metrics"
+    )
 
 
 class SessionMeta(BaseModel):
@@ -84,27 +72,29 @@ class SessionMeta(BaseModel):
     when sent by the caller, but the ``session.meta`` endpoint additionally
     syncs them to the collaboration store (Redis) so real-time features work.
     """
+
     model_config = ConfigDict(extra="allow")
 
-    title: Optional[str] = None
-    tags: Dict[str, str] = Field(default_factory=dict)
-    source: Optional[str] = None
-    schedule_id: Optional[str] = None
-    prompt_text: Optional[str] = None
-    status_message: Optional[str] = None
+    title: str | None = None
+    tags: dict[str, str] = Field(default_factory=dict)
+    source: str | None = None
+    schedule_id: str | None = None
+    prompt_text: str | None = None
+    status_message: str | None = None
     hitl_enabled: bool = False
     # Live/presence fields — forwarded to the collaboration store when present.
-    participants: Optional[List[str]] = None  # user ids currently in the session
-    typing_users: Optional[List[str]] = None  # user ids currently typing
+    participants: list[str] | None = None  # user ids currently in the session
+    typing_users: list[str] | None = None  # user ids currently typing
 
 
 class SessionChat(BaseModel):
     """Lightweight projection of a session's chat-relevant graph state."""
-    messages: List = Field(default_factory=list)
+
+    messages: list = Field(default_factory=list)
     output: str = ""
-    status: Optional[str] = None
-    status_message: Optional[str] = None
-    blueprint_id: Optional[str] = None
+    status: str | None = None
+    status_message: str | None = None
+    blueprint_id: str | None = None
     blueprint_exists: bool = True
 
 
@@ -115,7 +105,8 @@ class ScheduleRunSummary(BaseModel):
     run is a session — projected from session documents by
     ``SessionService.get_runs_by_schedule()``.
     """
+
     session_id: str
     status: SessionStatus = SessionStatus.PENDING
-    started_at: Optional[str] = None  # ISO-8601
+    started_at: str | None = None  # ISO-8601
     metadata: SessionMeta = Field(default_factory=SessionMeta)

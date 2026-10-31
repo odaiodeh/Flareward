@@ -4,34 +4,32 @@ A2AConverter - Bidirectional conversion between A2A SDK types and ChatMessage.
 Handles content extraction from all Part types (Text, File, Data).
 """
 
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any
 from uuid import uuid4
-from enum import Enum
-
-from pydantic import BaseModel
 
 from a2a.types import (
+    DataPart,
+    FilePart,
+    FileWithBytes,
+    FileWithUri,
     Message,
     Part,
     TextPart,
-    FilePart,
-    DataPart,
-    FileWithBytes,
-    FileWithUri,
-    Artifact,
+)
+from a2a.types import (
     Role as A2ARole,
 )
-from a2a.utils import get_text_parts
+from pydantic import BaseModel
 
-from mas.elements.llms.common.chat.message import ChatMessage, Role
+from mas.domain.messages import ChatMessage, Role
 from mas.elements.providers.a2a_client.result import A2AResult, ResultKind
 
 
 class FileInfo(BaseModel):
     """File information extracted from FilePart."""
 
-    name: Optional[str] = None
-    mime_type: Optional[str] = None
+    name: str | None = None
+    mime_type: str | None = None
     is_inline: bool = False
     content: str = ""
 
@@ -42,9 +40,9 @@ class ConversionResult(BaseModel):
     """Result of converting A2AResult to ChatMessage."""
 
     message: ChatMessage
-    metadata: Dict[str, Any]
-    files: Tuple[FileInfo, ...] = ()
-    data: Tuple[Dict[str, Any], ...] = ()
+    metadata: dict[str, Any]
+    files: tuple[FileInfo, ...] = ()
+    data: tuple[dict[str, Any], ...] = ()
 
     model_config = {"arbitrary_types_allowed": True}
 
@@ -52,7 +50,7 @@ class ConversionResult(BaseModel):
 class A2AConverter:
     """
     Bidirectional converter between A2A SDK types and ChatMessage.
-    
+
     Outbound: ChatMessage → A2A Message
     Inbound: A2AResult → ChatMessage
     """
@@ -68,20 +66,20 @@ class A2AConverter:
     DEFAULT_PART_METADATA = {"type": "user_message"}
 
     def to_a2a_message(
-            self,
-            message: ChatMessage,
-            task_id: Optional[str] = None,
-            context_id: Optional[str] = None,
-            part_metadata: Optional[Dict[str, Any]] = None,
+        self,
+        message: ChatMessage,
+        task_id: str | None = None,
+        context_id: str | None = None,
+        part_metadata: dict[str, Any] | None = None,
     ) -> Message:
         """
         Convert ChatMessage to A2A Message.
-        
+
         Args:
             message: ChatMessage to convert
             task_id: Optional task ID for multi-turn
             context_id: Optional context ID for multi-turn
-            part_metadata: Metadata for the text part. 
+            part_metadata: Metadata for the text part.
                           Default: {"type": "user_message"}
                           Pass {} for no metadata.
         """
@@ -106,7 +104,7 @@ class A2AConverter:
     def to_chat_message(self, result: A2AResult) -> ConversionResult:
         """
         Convert A2AResult to ChatMessage with full metadata.
-        
+
         Errors are included in content so caller sees them in chat.
         """
         text, files, data = self._extract_content(result)
@@ -139,11 +137,11 @@ class A2AConverter:
             return f"Error ({result.error_code}): {error_msg}"
         return f"Error: {error_msg}"
 
-    def _extract_content(self, result: A2AResult) -> Tuple[str, List[FileInfo], List[Dict]]:
+    def _extract_content(self, result: A2AResult) -> tuple[str, list[FileInfo], list[dict]]:
         """Extract text, files, and data from result."""
-        texts: List[str] = []
-        files: List[FileInfo] = []
-        data: List[Dict] = []
+        texts: list[str] = []
+        files: list[FileInfo] = []
+        data: list[dict] = []
 
         if result.kind == ResultKind.TASK and result.task:
             for artifact in result.task.artifacts or []:
@@ -183,14 +181,14 @@ class A2AConverter:
 
         return "\n".join(texts), files, data
 
-    def _from_parts(self, parts: Optional[List[Part]]) -> Tuple[str, List[FileInfo], List[Dict]]:
+    def _from_parts(self, parts: list[Part] | None) -> tuple[str, list[FileInfo], list[dict]]:
         """Extract from list of Parts."""
         if not parts:
             return "", [], []
 
-        texts: List[str] = []
-        files: List[FileInfo] = []
-        data: List[Dict] = []
+        texts: list[str] = []
+        files: list[FileInfo] = []
+        data: list[dict] = []
 
         for part in parts:
             root = part.root if hasattr(part, "root") else part
@@ -236,11 +234,11 @@ class A2AConverter:
         return ""
 
     def _build_metadata(
-            self,
-            result: A2AResult,
-            files: List[FileInfo],
-            data: List[Dict],
-    ) -> Dict[str, Any]:
+        self,
+        result: A2AResult,
+        files: list[FileInfo],
+        data: list[dict],
+    ) -> dict[str, Any]:
         """Build metadata dictionary."""
         return {
             "task_id": result.task_id,

@@ -265,7 +265,7 @@ The configured default is **Background (Temporal)** — `engine_name=temporal`.
 | Method | Path | Summary |
 |--------|------|--------|
 | GET | `/actions/actions.list` | list available actions |
-| POST | `/actions/action.execute` | sync execution |
+| POST | `/actions/action.execute` | async typed action execution; retained Flask adapter uses its legacy bridge |
 | GET | `/statistics/stats.get` | user dashboard |
 | GET | `/statistics/stats.system.get` | admin analytics |
 | POST | `/credentials/exchange` | OAuth code exchange |
@@ -283,7 +283,7 @@ The configured default is **Background (Temporal)** — `engine_name=temporal`.
 | `ResourcesService` | CRUD with schema validation, dependency resolution, auth credential cleanup. Delete-guarded: cannot remove resources in use by blueprints. | — |
 | `TemplateService` | create, instantiate (preview), materialize (saves blueprint + resources). Placeholder substitution engine. Text search index for catalog browsing. | — |
 | `StatisticsService` | facade over BlueprintService, SessionService, ResourcesService. User scope + admin system-wide analytics. No own persistence. | — |
-| `ActionsService` | auto_discover, execute_action_sync. Registered: AuthenticateAction, ValidateConnectionAction, GetToolsNamesAction (MCP). Linked by (category, type). | — |
+| `ActionsService` | Explicit instance registrations, metadata filtering and async typed execution. Auth use cases and provider/model/RAG probes linked by (category, type). | — |
 
 ## File Path Patterns
 
@@ -371,7 +371,16 @@ Port: `CollaborationStore`. Service: `CollaborationService` — join/leave sessi
 
 **sharing — Cross-Identity Sharing**
 
-Port: `ShareRepository`. Service: `ShareService` — create/accept/decline invites, share_to_team. `ShareCloner` deep-copies with RID remapping. TTL auto-expiry via MongoDB index.
+Legacy port/service: `ShareRepository` / `ShareService` — create/accept/decline
+invites and team copy. `ShareCloner` deep-copies with RID remapping. Its TTL index
+does not expire ISO-string dates written by the old serializer; retention needs
+explicit migration while preserving accepted audit records.
+
+Native notification list/details/decline/cancel use
+`mas.application.sharing.notifications.ShareNotifications` and async Mongo/memory
+adapters. Shared invitation values live in `mas.domain.sharing`; selected team
+scope is authenticated and native pending decisions are conditional. Create/accept/
+team-copy remain under migration. See [sharing development](../../../../docs/program-platform-development.md#invitation-notifications).
 
 **templates — Blueprint Factories**
 
@@ -387,7 +396,13 @@ Port: `TemplateRepository`. Service: `TemplateService` — create, instantiate (
 
 **actions — Discoverable Operations**
 
-Port: `BaseAction`. Service: `ActionsService` — auto_discover, execute_action_sync. Registered: AuthenticateAction, ValidateConnectionAction, GetToolsNamesAction (MCP). Linked by (category, type).
+Contract: `mas.application.actions.contracts.BaseAction`. Service:
+`mas.application.actions.service.ActionsService` uses explicit instance
+registrations from `bootstrap.actions`, filtered metadata and async typed dispatch.
+Credential use cases stay in application ownership; concrete provider/model/RAG
+probes live in `adapters/outbound/actions`. Native authentication supplies the
+human credential identity independently of team ownership. See
+[action development](../../../../docs/program-platform-development.md#editor-action-discovery-and-execution).
 
 ### Port → Adapter Wiring
 
@@ -462,7 +477,7 @@ These are the base classes and ABCs that new code should extend or implement:
 | `CollaborationStore (ABC)` | `lib/mas/collaboration/ports.py` | Identity & Collaboration | `RedisCollaborationStore` |
 | `BaseElementSpec (ABC)` | `lib/mas/elements/common/base_element_spec.py` | Elements Plugin Layer | `element specs (nodes, llms, tools, providers, conditions, retrievers, auths)` |
 | `BaseFactory (ABC)` | `lib/mas/elements/common/base_factory.py` | Elements Plugin Layer | `element factories (nodes, llms, tools, providers, conditions, retrievers, auths)` |
-| `BaseNode` | `lib/mas/elements/nodes/common/base_node.py` | Elements Plugin Layer | `CustomAgentNode`, `OrchestratorNode`, `A2AAgentNode`, `ClaudeAgentNode`, `DeepAgentNode`, `UserQuestionNode`, `FinalAnswerNode`, `MergerNode`, `BranchChooserNode` |
+| `BaseNode` | `lib/mas/application/elements/node.py` | Elements Plugin Layer | `CustomAgentNode`, `OrchestratorNode`, `A2AAgentNode`, `ClaudeAgentNode`, `DeepAgentNode`, `UserQuestionNode`, `FinalAnswerNode`, `MergerNode`, `BranchChooserNode` |
 | `BaseTool (ABC)` | `lib/mas/elements/tools/common/base_tool.py` | Elements Plugin Layer | `McpProxyTool`, `WebFetchTool`, `SshExecTool`, `OcExecTool` |
 | `AgentStrategy (ABC)` | `lib/mas/elements/nodes/common/agent/strategies/` | Elements Plugin Layer | `AgentRunner` |
 
@@ -590,12 +605,13 @@ These are the base classes and ABCs that new code should extend or implement:
 | Class | File | Role |
 |-------|------|------|
 | `ShareService` | `lib/mas/sharing/service.py` | Create/accept/decline invites, share_to_team. Invite-based with deep resource/blueprint cloning. |
+| `ShareNotifications` | `lib/mas/application/sharing/notifications.py` | Native async notification queries, typed workspace authorization and atomic decline/cancel |
 | `ShareCloner` | `lib/mas/sharing/cloner.py` | Deep-copies resource graphs + blueprints into target identity with RID remapping |
 | `TemplateService` | `lib/mas/templates/service.py` | CRUD + instantiate (preview) + materialize (saves blueprint + resources in one step) |
 | `TemplateInstantiator` | `lib/mas/templates/instantiation/instantiator.py` | Placeholder substitution engine: fills template draft with user inputs |
 | `ResourceMaterializer` | `lib/mas/templates/instantiation/resource_materializer.py` | Creates actual resources from template placeholder values during materialize |
 | `StatisticsService` | `lib/mas/statistics/service.py` | Facade: user stats + admin system analytics. No own persistence. |
-| `ActionsService` | `lib/mas/actions/service.py` | Auto-discover + execute action plugins (auth, MCP validate, tool discovery) |
+| `ActionsService` | `lib/mas/application/actions/service.py` | Instance-owned catalog and async typed action dispatch; injected by `bootstrap.actions` |
 
 - `ShareService` calls: `ShareCloner`, `ShareRepository`, `IdentityProvider`
 - `ShareService` called by: `HTTP: /shares/`
@@ -646,7 +662,7 @@ These are the base classes and ABCs that new code should extend or implement:
 |-------|------|------|
 | `BaseElementSpec (ABC)` | `lib/mas/elements/common/base_element_spec.py` | Declares category, type_key, config schema, factory_cls, reads/writes channels, validator_cls, card_builder_cls |
 | `BaseFactory (ABC)` | `lib/mas/elements/common/base_factory.py` | accepts(cfg)/create(cfg, **deps) contract for all element plugins |
-| `BaseNode` | `lib/mas/elements/nodes/common/base_node.py` | Wraps GraphState in permission-scoped StateView, calls run(). Channels via MRO. |
+| `BaseNode` | `lib/mas/application/elements/node.py` | Wraps GraphState in permission-scoped StateView, calls run(). Channels via MRO. |
 | `BaseTool (ABC)` | `lib/mas/elements/tools/common/base_tool.py` | Base for tool integrations (mcp_proxy, ssh_exec, web_fetch, oc_exec) |
 | `BaseLLM` | `lib/mas/elements/llms/common/base_llm.py` | Base for LLM integrations (openai, google_genai, mock) |
 | `BaseRetriever` | `lib/mas/elements/retrievers/common/base_retriever.py` | Base for retriever integrations (docs_rag, slack) |

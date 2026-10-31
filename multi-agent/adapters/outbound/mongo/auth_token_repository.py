@@ -11,14 +11,14 @@ using Fernet symmetric encryption when an encryption key is provided.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
-
-from pymongo import MongoClient, ASCENDING
+from datetime import UTC, datetime
 
 from mas.core.auth.credentials.models import StoredCredential, TokenStatus
 from mas.core.auth.credentials.ports import CredentialStore
-from global_utils.utils.crypto import FieldCipher
+from pymongo import ASCENDING, MongoClient
+from pymongo.collection import Collection
+
+from outbound.crypto import FieldCipher
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,6 @@ _ENCRYPTED_FIELDS = ("access_token", "refresh_token")
 
 
 class MongoCredentialStore(CredentialStore):
-
     def __init__(
         self,
         mongodb_ip: str = "127.0.0.1",
@@ -34,12 +33,24 @@ class MongoCredentialStore(CredentialStore):
         db_name: str = "unifai",
         coll_name: str = "credentials",
         encryption_key: str = "",
-    ):
-        client = MongoClient(f"mongodb://{mongodb_ip}:{mongodb_port}/")
-        db = client[db_name]
-        self._coll = db[coll_name]
-        self._cipher = FieldCipher(encryption_key) if encryption_key else None
-        self._ensure_indexes()
+        *,
+        collection: Collection | None = None,
+    ) -> None:
+        self._client = None
+        if collection is None:
+            self._client = MongoClient(f"mongodb://{mongodb_ip}:{mongodb_port}/")
+            collection = self._client[db_name][coll_name]
+        self._coll = collection
+        try:
+            self._cipher = FieldCipher(encryption_key) if encryption_key else None
+            self._ensure_indexes()
+        except Exception:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        if self._client is not None:
+            self._client.close()
 
     def _ensure_indexes(self) -> None:
         self._coll.create_index(
@@ -53,7 +64,7 @@ class MongoCredentialStore(CredentialStore):
     def upsert(self, credential: StoredCredential) -> None:
         doc = credential.model_dump()
         doc["server_identifier"] = credential.server_identifier.rstrip("/")
-        doc["updated_at"] = datetime.now(timezone.utc)
+        doc["updated_at"] = datetime.now(UTC)
         if self._cipher:
             for field in _ENCRYPTED_FIELDS:
                 if doc.get(field):
@@ -65,8 +76,11 @@ class MongoCredentialStore(CredentialStore):
         )
 
     def find_by_server(
-        self, user_id: str, server_identifier: str, scheme_type: str = "",
-    ) -> Optional[StoredCredential]:
+        self,
+        user_id: str,
+        server_identifier: str,
+        scheme_type: str = "",
+    ) -> StoredCredential | None:
         normalized = server_identifier.rstrip("/")
         query = {
             "user_id": user_id,
@@ -86,7 +100,7 @@ class MongoCredentialStore(CredentialStore):
         normalized = server_identifier.rstrip("/")
         self._coll.update_one(
             {"user_id": user_id, "server_identifier": normalized},
-            {"$set": {"status": status, "updated_at": datetime.now(timezone.utc)}},
+            {"$set": {"status": status, "updated_at": datetime.now(UTC)}},
         )
 
     # ------------------------------------------------------------------

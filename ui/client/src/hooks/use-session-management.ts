@@ -3,33 +3,20 @@
  */
 
 import { useState, useCallback } from 'react';
-import axios from '@/http/axiosAgentConfig';
-import { ChatSession, SessionStateData, ChatMessage } from '@/types/session';
+import { fetchSessionChatById } from '@/api/sessions';
+import { ChatSession, ChatMessage } from '@/types/session';
 import { getPreviewText } from '@/utils/sessionHelpers';
-
-/**
- * Fetch session chat data (messages and output) for a specific session
- */
-export const fetchSessionState = async (sessionId: string): Promise<SessionStateData | null> => {
-  try {
-    const response = await axios.get(`/sessions/session.chat.get?sessionId=${sessionId}`);
-    return response.data;
-  } catch (err) {
-    console.error('Error fetching session state:', err);
-    return null;
-  }
-};
 
 /**
  * Fetch session chat data including messages and status
  */
-export const fetchSessionChat = async (sessionId: string): Promise<{ messages: ChatMessage[]; status?: string; statusMessage?: string } | null> => {
+export const fetchSessionChat = async (sessionId: string, teamId?: string): Promise<{ messages: ChatMessage[]; status?: string; statusMessage?: string } | null> => {
   try {
-    const response = await axios.get(`/sessions/session.chat.get?sessionId=${sessionId}`);
+    const data = await fetchSessionChatById(sessionId, teamId);
     return {
-      messages: response.data?.messages ?? [],
-      status: response.data?.status,
-      statusMessage: response.data?.status_message ?? undefined,
+      messages: data.messages,
+      status: data.status,
+      statusMessage: data.status_message ?? undefined,
     };
   } catch (err) {
     console.error('Error fetching session chat:', err);
@@ -48,13 +35,13 @@ export const fetchSessionMessages = async (sessionId: string): Promise<ChatMessa
 /**
  * Hook for managing session selection and message loading
  */
-export const useSessionManagement = () => {
+export const useSessionManagement = (teamId?: string) => {
   const [currentMessages, setCurrentMessages] = useState<ChatMessage[]>([]);
 
   const loadSessionMessages = useCallback(
     async (session: ChatSession): Promise<ChatSession | null> => {
       // Always fetch fresh data from the backend to ensure we have the latest state
-      const chat = await fetchSessionChat(session.id);
+      const chat = await fetchSessionChat(session.id, teamId);
       if (chat && chat.messages.length > 0) {
         setCurrentMessages(chat.messages);
 
@@ -77,7 +64,7 @@ export const useSessionManagement = () => {
 
       return null;
     },
-    []
+    [teamId]
   );
 
   const clearMessages = useCallback(() => {

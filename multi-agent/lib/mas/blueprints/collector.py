@@ -7,13 +7,11 @@ This is a general-purpose utility for extracting element metadata
 from a BlueprintSpec. Used by validation, card building, and other services.
 """
 
-from typing import List
-
-from mas.blueprints.models.blueprint import BlueprintSpec
+from mas.blueprints.contracts import ResolvedBlueprint
+from mas.core.element_meta import ElementConfigMeta
 from mas.core.enums import ResourceCategory
 from mas.core.ref import RefWalker
 from mas.core.ref.models import Ref
-from mas.core.element_meta import ElementConfigMeta
 
 
 class BlueprintConfigCollector:
@@ -30,7 +28,7 @@ class BlueprintConfigCollector:
     - BlueprintService.get_blueprint_cards()
     """
 
-    def collect(self, spec: BlueprintSpec) -> List[ElementConfigMeta]:
+    def collect(self, spec: ResolvedBlueprint) -> list[ElementConfigMeta]:
         """
         Collect all configs from a resolved blueprint.
 
@@ -40,7 +38,7 @@ class BlueprintConfigCollector:
         Returns:
             List of ElementConfigMeta for all elements in the blueprint
         """
-        result: List[ElementConfigMeta] = []
+        result: list[ElementConfigMeta] = []
 
         for category in ResourceCategory:
             elements = getattr(spec, category.value, [])
@@ -49,14 +47,16 @@ class BlueprintConfigCollector:
 
                 dep_rids = list(RefWalker.all_rids(element.config))
 
-                result.append(ElementConfigMeta(
-                    rid=rid,
-                    category=category,
-                    type_key=element.type,
-                    name=element.name,
-                    config=element.config,
-                    dependency_rids=dep_rids,
-                ))
+                result.append(
+                    ElementConfigMeta(
+                        rid=rid,
+                        category=category,
+                        type_key=element.type,
+                        name=element.name,
+                        config=element.config,
+                        dependency_rids=dep_rids,
+                    )
+                )
 
         return result
 

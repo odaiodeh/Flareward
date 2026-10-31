@@ -1,8 +1,9 @@
-from mas.elements.common.base_factory import BaseFactory
-from mas.elements.common.exceptions import PluginConfigurationError
+from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.elements.factory import BaseFactory
+
 from .config import MergerLLMNodeConfig
-from .llm_merger import LLMMergerNode
 from .identifiers import Identifier
+from .llm_merger import LLMMergerNode
 
 
 class LLMMergerNodeFactory(BaseFactory[MergerLLMNodeConfig, LLMMergerNode]):
@@ -20,6 +21,5 @@ class LLMMergerNodeFactory(BaseFactory[MergerLLMNodeConfig, LLMMergerNode]):
             )
         except Exception as exc:
             raise PluginConfigurationError(
-                f"LLMMergerNodeFactory.create failed: {exc}",
-                cfg.dict()
+                f"LLMMergerNodeFactory.create failed: {exc}", cfg.dict()
             ) from exc

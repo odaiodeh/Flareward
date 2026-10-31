@@ -1,0 +1,145 @@
+diff --git a/src/runengine/programs/graph/builder.py b/src/runengine/programs/graph/builder.py
+index e6d9f1b..adf9883 100644
+--- a/src/runengine/programs/graph/builder.py
++++ b/src/runengine/programs/graph/builder.py
+@@ -108,6 +108,8 @@ class GraphBuilder:
+         *,
+         input_mapping: Callable[..., Any] | None = None,
+         output_mapping: Callable[..., Any] | None = None,
++        input_arguments: GraphCallArguments | None = None,
++        output_arguments: GraphCallArguments | None = None,
+         environment_imports: dict[EnvironmentName, EnvironmentName] | None = None,
+         interrupt: bool = False,
+         retry_policy: RetryPolicy | None = None,
+@@ -131,6 +133,8 @@ class GraphBuilder:
+             output_mapping=FunctionRef.from_callable(output_mapping)
+             if output_mapping is not None
+             else None,
++            input_arguments=input_arguments or GraphCallArguments(),
++            output_arguments=output_arguments or GraphCallArguments(),
+             environment_imports=environment_imports or {},
+         )
+         self._nodes[uid] = NodeDef(
+@@ -209,13 +213,16 @@ class GraphBuilder:
+             if not inspect.iscoroutinefunction(function):
+                 raise TypeError(f"Program node '{uid}' requires an async coordination program")
+             bind_arguments(function, object(), program.request.input)
+-            for mapping in (program.input_mapping, program.output_mapping):
++            for mapping, arguments in (
++                (program.input_mapping, program.input_arguments),
++                (program.output_mapping, program.output_arguments),
++            ):
+                 if mapping is not None:
+                     mapping.validate_portable()
+                     function = mapping.resolve()
+                     if inspect.iscoroutinefunction(function):
+                         raise TypeError("Program node mappings must be synchronous decision code")
+-                    bind_arguments(function, object(), None)
++                    bind_arguments(function, object(), None, *arguments.args, **arguments.kwargs)
+         for uid, reference in self._function_refs.items():
+             reference.validate_portable()
+             arguments = self._arguments.get(uid, GraphCallArguments())
+diff --git a/src/runengine/programs/graph/models/program.py b/src/runengine/programs/graph/models/program.py
+index ab35a09..3983460 100644
+--- a/src/runengine/programs/graph/models/program.py
++++ b/src/runengine/programs/graph/models/program.py
+@@ -1,10 +1,20 @@
+ """Portable composition of a generic program at one graph node."""
+ 
+-from pydantic import BaseModel, ConfigDict, Field
++from typing import Any, Self
++
++from pydantic import (
++    BaseModel,
++    ConfigDict,
++    Field,
++    SerializerFunctionWrapHandler,
++    model_serializer,
++    model_validator,
++)
+ 
+ from runengine.coordination.models import RunRequest
+ from runengine.coordination.targets import EnvironmentName
+ from runengine.core.refs import FunctionRef
++from runengine.programs.graph.models.execution import GraphCallArguments
+ 
+ 
+ class ProgramNode(BaseModel):
+@@ -14,4 +24,25 @@ class ProgramNode(BaseModel):
+     request: RunRequest
+     input_mapping: FunctionRef | None = None
+     output_mapping: FunctionRef | None = None
++    input_arguments: GraphCallArguments = Field(default_factory=GraphCallArguments)
++    output_arguments: GraphCallArguments = Field(default_factory=GraphCallArguments)
+     environment_imports: dict[EnvironmentName, EnvironmentName] = Field(default_factory=dict)
++
++    @model_validator(mode="after")
++    def validate_mapping_arguments(self) -> Self:
++        for mapping, arguments in (
++            (self.input_mapping, self.input_arguments),
++            (self.output_mapping, self.output_arguments),
++        ):
++            if mapping is None and (arguments.args or arguments.kwargs):
++                raise ValueError("Mapping arguments require a mapping function")
++        return self
++
++    @model_serializer(mode="wrap")
++    def serialize(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
++        payload: dict[str, Any] = handler(self)
++        for name in ("input_arguments", "output_arguments"):
++            arguments = getattr(self, name)
++            if not arguments.args and not arguments.kwargs:
++                payload.pop(name, None)
++        return payload
+diff --git a/src/runengine/programs/graph/program_node.py b/src/runengine/programs/graph/program_node.py
+index 61798bc..64f7af9 100644
+--- a/src/runengine/programs/graph/program_node.py
++++ b/src/runengine/programs/graph/program_node.py
+@@ -13,17 +13,17 @@ from runengine.core.refs import FunctionRef
+ from runengine.core.serialization import snapshot
+ from runengine.invocation.models import InvocationOutcome
+ from runengine.programs.graph.models.enums import NodeContractCode
+-from runengine.programs.graph.models.execution import NodeExecutionOutcome
++from runengine.programs.graph.models.execution import GraphCallArguments, NodeExecutionOutcome
+ from runengine.programs.graph.models.program import ProgramNode
+ from runengine.programs.graph.models.state import GraphState
+ from runengine.programs.graph.node_invocation import normalize_node_output
+ 
+ 
+-def _map(reference: FunctionRef, *arguments: object) -> Any:
++def _map(reference: FunctionRef, configuration: GraphCallArguments, *arguments: object) -> Any:
+     function = reference.resolve()
+     if inspect.iscoroutinefunction(function):
+         raise TypeError("Program node mappings must be synchronous decision code")
+-    result = function(*arguments)
++    result = function(*arguments, *configuration.args, **configuration.kwargs)
+     if inspect.isawaitable(result):
+         if inspect.iscoroutine(result):
+             result.close()
+@@ -45,7 +45,11 @@ class ProgramNodeExecution:
+         try:
+             data = snapshot(node.request.input)
+             if node.input_mapping is not None:
+-                data = snapshot(_map(node.input_mapping, state.model_copy(deep=True), data))
++                data = snapshot(
++                    _map(
++                        node.input_mapping, node.input_arguments, state.model_copy(deep=True), data
++                    )
++                )
+             request = node.request.model_copy(update={"input": data}, deep=True)
+             identity = json.dumps([uid, step, attempt], ensure_ascii=False).encode()
+             key = "graph-node-" + hashlib.sha256(identity).hexdigest()
+@@ -70,7 +74,12 @@ class ProgramNodeExecution:
+             return NodeExecutionOutcome(failure=InvocationOutcome.from_exception(error).failure)
+         try:
+             if node.output_mapping is not None:
+-                result = _map(node.output_mapping, state.model_copy(deep=True), snapshot(value))
++                result = _map(
++                    node.output_mapping,
++                    node.output_arguments,
++                    state.model_copy(deep=True),
++                    snapshot(value),
++                )
+             else:
+                 serialized = snapshot(value)
+                 if not isinstance(serialized, dict):

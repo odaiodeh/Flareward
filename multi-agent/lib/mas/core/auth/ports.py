@@ -10,15 +10,16 @@ Auth-layer ports — abstract contracts that define the hexagonal boundary.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from mas.core.enums import ChallengeType
-from .credentials.models import StoredCredential, TokenSet, RecoveryResult
 
+from .credentials.models import RecoveryResult, StoredCredential, TokenSet
 
 # ── Strategy port ─────────────────────────────────────────────────────
+
 
 class AuthStrategy(ABC):
     """Unified contract for any authentication scheme.
@@ -33,7 +34,7 @@ class AuthStrategy(ABC):
     # ── Runtime (using credentials) ──────────────────────────────────
 
     @abstractmethod
-    def build_headers(self, credential: StoredCredential) -> Dict[str, str]:
+    def build_headers(self, credential: StoredCredential) -> dict[str, str]:
         """Return HTTP headers for an authenticated request."""
         ...
 
@@ -41,7 +42,7 @@ class AuthStrategy(ABC):
     async def attempt_recovery(
         self,
         credential: StoredCredential,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> RecoveryResult:
         """Credential was rejected — try to self-heal (e.g. token refresh)."""
         ...
@@ -53,7 +54,7 @@ class AuthStrategy(ABC):
         self,
         user_id: str,
         server_identifier: str,
-        config: Dict[str, Any],
+        config: dict[str, Any],
     ) -> AuthChallenge:
         """Start the credential-acquisition flow.
 
@@ -65,8 +66,8 @@ class AuthStrategy(ABC):
     @abstractmethod
     async def complete(
         self,
-        raw_callback_data: Dict[str, Any],
-    ) -> "CompletionResult":
+        raw_callback_data: dict[str, Any],
+    ) -> CompletionResult:
         """Finish the credential-acquisition flow.
 
         The strategy owns state validation, pending-store consumption,
@@ -78,16 +79,19 @@ class AuthStrategy(ABC):
 
 # ── CompletionResult ─────────────────────────────────────────────────
 
+
 class CompletionResult(BaseModel):
     """What a strategy returns after completing the auth flow."""
+
     token_set: TokenSet
     user_id: str
     server_identifier: str
     scheme_type: str
-    scopes: List[str] = Field(default_factory=list)
+    scopes: list[str] = Field(default_factory=list)
 
 
 # ── AuthChallenge — scheme-agnostic onboarding responses ─────────────
+
 
 class AuthChallenge(BaseModel):
     """What the auth layer sends to the UI when credentials must be acquired.
@@ -97,21 +101,22 @@ class AuthChallenge(BaseModel):
       - ``"collect"``  → render input form (API key, basic auth)
       - ``"device"``   → show device code + verification URI (future)
     """
+
     model_config = {"frozen": True}
 
     challenge_type: str
     flow_id: str = ""
-    url: Optional[str] = None
-    fields: List[Dict[str, Any]] = Field(default_factory=list)
-    device_code: Optional[str] = None
-    verification_uri: Optional[str] = None
-    scopes: List[str] = Field(default_factory=list)
+    url: str | None = None
+    fields: list[dict[str, Any]] = Field(default_factory=list)
+    device_code: str | None = None
+    verification_uri: str | None = None
+    scopes: list[str] = Field(default_factory=list)
     server_identifier: str = ""
-    extra: Dict[str, Any] = Field(default_factory=dict)
+    extra: dict[str, Any] = Field(default_factory=dict)
 
-    def to_response(self) -> Dict[str, Any]:
+    def to_response(self) -> dict[str, Any]:
         """Serialize for the action's HTTP response."""
-        resp: Dict[str, Any] = {
+        resp: dict[str, Any] = {
             "challenge_type": self.challenge_type,
             "flow_id": self.flow_id,
         }
@@ -136,7 +141,7 @@ class AuthChallenge(BaseModel):
         cls,
         url: str,
         flow_id: str = "",
-        scopes: Optional[List[str]] = None,
+        scopes: list[str] | None = None,
         server_identifier: str = "",
     ) -> AuthChallenge:
         return cls(
@@ -150,7 +155,7 @@ class AuthChallenge(BaseModel):
     @classmethod
     def collect(
         cls,
-        fields: List[Dict[str, Any]],
+        fields: list[dict[str, Any]],
         flow_id: str = "",
         server_identifier: str = "",
     ) -> AuthChallenge:
@@ -164,16 +169,16 @@ class AuthChallenge(BaseModel):
 
 # ── HTTP I/O port ────────────────────────────────────────────────────
 
-class HttpClient(ABC):
 
+class HttpClient(ABC):
     @abstractmethod
     async def post(
         self,
         url: str,
         *,
-        data: Optional[Dict[str, Any]] = None,
-        json: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, str]] = None,
+        data: dict[str, Any] | None = None,
+        json: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
         timeout: float = 10.0,
     ) -> HttpResponse: ...
 
@@ -182,7 +187,7 @@ class HttpClient(ABC):
         self,
         url: str,
         *,
-        headers: Optional[Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         timeout: float = 10.0,
     ) -> HttpResponse: ...
 
@@ -195,8 +200,8 @@ class HttpResponse:
     def __init__(
         self,
         status_code: int,
-        body: Dict[str, Any],
-        headers: Optional[Dict[str, str]] = None,
+        body: dict[str, Any],
+        headers: dict[str, str] | None = None,
     ):
         self.status_code = status_code
         self.body = body

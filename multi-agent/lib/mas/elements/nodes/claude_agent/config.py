@@ -2,15 +2,16 @@
 Claude Agent Node Configuration
 """
 
-from typing import Optional, Literal, List, Dict
+from typing import Any, Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
-from mas.core.field_hints import ActionHint, HiddenHint, HintType, CardHint, CardContext
+from mas.application.elements.node_config import NodeBaseConfig, retired_sandbox_configuration
+from mas.core.field_hints import ActionHint, CardContext, CardHint, HiddenHint, HintType
 from mas.core.hitl.models import HITLMode
-from .identifiers import Identifier, EffortLevel
-from mas.elements.nodes.common.base_config import NodeBaseConfig
-from mas.core.ref.models import RetrieverRef, ProviderRef, SandboxRef, ToolRef
+from mas.core.ref.models import ProviderRef, RetrieverRef, ToolRef
+
+from .identifiers import EffortLevel, Identifier
 
 
 class ClaudeAgentNodeConfig(NodeBaseConfig):
@@ -22,6 +23,7 @@ class ClaudeAgentNodeConfig(NodeBaseConfig):
     managed by HITL (``hitl_mode``) instead of the SDK's built-in
     permission system.
     """
+
     type: Literal[Identifier.TYPE] = Identifier.TYPE
 
     # --- Authentication (Vertex AI) ---
@@ -36,35 +38,36 @@ class ClaudeAgentNodeConfig(NodeBaseConfig):
                 "vertex_project_id": "vertex_project_id",
                 "vertex_region": "vertex_region",
                 "model": "model",
-            }
-        ).to_hints()
+            },
+        ).to_hints(),
     )
 
     vertex_region: str = Field(
         default="us-east5",
-        description="GCP region for Vertex AI (e.g., 'us-east5', 'europe-west1')"
+        description="GCP region for Vertex AI (e.g., 'us-east5', 'europe-west1')",
     )
 
     # --- Model Configuration ---
 
     model: str = Field(
         default="claude-sonnet-4-6",
-        description="Claude model to use (e.g., claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5)",
+        description=(
+            "Claude model to use (e.g., claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5)"
+        ),
         json_schema_extra=CardHint(contexts=[CardContext.BUILTIN, CardContext.CUSTOM]).to_hints(),
     )
 
     # --- Agent Behavior ---
 
     system_prompt: str = Field(
-        default="",
-        description="Custom system prompt for the Claude agent session"
+        default="", description="Custom system prompt for the Claude agent session"
     )
 
-    max_turns: Optional[int] = Field(
+    max_turns: int | None = Field(
         default=200,
-        description="Maximum agentic turns (tool-use round trips). Prevents runaway execution."
+        description="Maximum agentic turns (tool-use round trips). Prevents runaway execution.",
     )
-      
+
     hitl_mode: HITLMode = Field(
         default=HITLMode.SKIP,
         description="HITL approval mode: ask (always), skip (never), dynamic (runtime flag)",
@@ -73,81 +76,81 @@ class ClaudeAgentNodeConfig(NodeBaseConfig):
     effort: EffortLevel = Field(
         default=EffortLevel.MEDIUM,
         description="Controls how much effort Claude puts into reasoning. "
-                    "'low' — minimal thinking, fastest. "
-                    "'medium' — balanced cost/quality. "
-                    "'high' — deep reasoning. "
-                    "'xhigh' — extended reasoning (Opus 4.7+ only)."
+        "'low' — minimal thinking, fastest. "
+        "'medium' — balanced cost/quality. "
+        "'high' — deep reasoning. "
+        "'xhigh' — extended reasoning (Opus 4.7+ only).",
     )
 
     permission_mode: str = Field(
         default="bypassPermissions",
         description="Permission mode: 'bypassPermissions' (fully autonomous), "
-                    "'acceptEdits' (auto-accept edits), 'plan' (read-only)"
+        "'acceptEdits' (auto-accept edits), 'plan' (read-only)",
     )
 
-    allowed_tools: List[str] = Field(
+    allowed_tools: list[str] = Field(
         default_factory=lambda: [
-            "Read", "Write", "Edit", "Bash",
-            "Glob", "Grep", "WebSearch", "WebFetch",
+            "Read",
+            "Write",
+            "Edit",
+            "Bash",
+            "Glob",
+            "Grep",
+            "WebSearch",
+            "WebFetch",
         ],
-        description="Tools to auto-approve without permission checks"
+        description="Tools to auto-approve without permission checks",
     )
 
-    disallowed_tools: List[str] = Field(
-        default_factory=list,
-        description="Tools to explicitly deny"
+    disallowed_tools: list[str] = Field(
+        default_factory=list, description="Tools to explicitly deny"
     )
 
     # --- Skills ---
 
-    skills_repos: Dict[str, str] = Field(
+    skills_repos: dict[str, str] = Field(
         default_factory=dict,
         description="Skill sources — each key is the skill path within the repo and "
-                    "the value is the git repo URL "
-                    '(e.g., {"skills/docx": "https://github.com/org/repo"})'
+        "the value is the git repo URL "
+        '(e.g., {"skills/docx": "https://github.com/org/repo"})',
     )
 
     # --- Advanced ---
 
-    cwd: Optional[str] = Field(
+    cwd: str | None = Field(
         default=None,
         description="Working directory for the Claude agent session (defaults to temp directory)",
-        json_schema_extra=HiddenHint(
-            reason="Advanced: override working directory"
-        ).to_hints()
+        json_schema_extra=HiddenHint(reason="Advanced: override working directory").to_hints(),
     )
 
-    env_vars: Dict[str, str] = Field(
+    env_vars: dict[str, str] = Field(
         default_factory=dict,
         description="Additional environment variables to pass to the SDK session",
-        json_schema_extra=HiddenHint(
-            reason="Advanced: custom environment variables"
-        ).to_hints()
+        json_schema_extra=HiddenHint(reason="Advanced: custom environment variables").to_hints(),
     )
 
     # --- Integration ---
 
-    tools: Optional[List[ToolRef]] = Field(
+    tools: list[ToolRef] | None = Field(
         default_factory=list,
         description="List of tool keys",
         json_schema_extra=CardHint(contexts=[CardContext.BUILTIN, CardContext.CUSTOM]).to_hints(),
     )
 
-    providers: Optional[List[ProviderRef]] = Field(
+    providers: list[ProviderRef] | None = Field(
         default_factory=list,
         description="List of MCP Provider Refs",
         title="MCP Servers",
         json_schema_extra=CardHint(contexts=[CardContext.BUILTIN, CardContext.CUSTOM]).to_hints(),
     )
 
-    retriever: Optional[RetrieverRef] = Field(
+    retriever: RetrieverRef | None = Field(
         None,
         description="Retriever for context augmentation (optional)",
         json_schema_extra=CardHint(contexts=[CardContext.BUILTIN, CardContext.CUSTOM]).to_hints(),
     )
 
-    sandbox: Optional[SandboxRef] = Field(
-        None,
-        description="Sandbox execution environment (optional)",
-        json_schema_extra=CardHint(contexts=[CardContext.BUILTIN, CardContext.CUSTOM]).to_hints(),
-    )
+    @model_validator(mode="before")
+    @classmethod
+    def reject_retired_sandbox(cls, value: Any) -> Any:
+        return retired_sandbox_configuration(value)

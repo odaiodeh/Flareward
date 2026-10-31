@@ -1,6 +1,7 @@
-from ..common.base_condition import BaseCondition
-from ..common.models import ConditionOutputSchema, BranchType, SymbolicBranchDef
 import logging
+
+from mas.application.elements.condition import BaseCondition
+from mas.domain.conditions import ConditionOutputSchema, boolean_condition_schema
 from mas.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ class RouterBooleanCondition(BaseCondition):
     Router boolean condition that returns a configured boolean value.
     Returns True or False based on configuration for symbolic branching.
     """
-    
+
     # Declare what channels this condition reads (none in this case)
     READS = set()
 
@@ -34,19 +35,6 @@ class RouterBooleanCondition(BaseCondition):
         """
         RouterBooleanCondition returns boolean values (True/False) for symbolic branching.
         """
-        return ConditionOutputSchema(
-            branch_type=BranchType.SYMBOLIC,
-            symbolic_branches=[
-                SymbolicBranchDef(
-                    name=True,
-                    display_name="True",
-                    description="Condition returns true"
-                ),
-                SymbolicBranchDef(
-                    name=False,
-                    display_name="False",
-                    description="Condition returns false"
-                )
-            ],
-            description="Boolean router condition for true/false symbolic branching"
+        return boolean_condition_schema(
+            "Boolean router condition for true/false symbolic branching"
         )

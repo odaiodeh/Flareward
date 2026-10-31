@@ -4,7 +4,7 @@ Card builder for CustomAgentNode.
 Composes skills from dependencies (tools, providers).
 """
 
-from mas.elements.common.card.default import DefaultCardBuilder
+from mas.application.elements.cards.default import DefaultCardBuilder
 
 
 class CustomAgentCardBuilder(DefaultCardBuilder):
@@ -18,4 +18,5 @@ class CustomAgentCardBuilder(DefaultCardBuilder):
     Capabilities come from:
     - Retrievers referenced in config
     """
+
     pass

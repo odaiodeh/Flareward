@@ -151,7 +151,7 @@ A2AProvider (public API: send_task, get_card)
 ```python
 # <name>_factory.py
 from typing import Any
-from mas.elements.common.base_factory import BaseFactory
+from mas.application.elements.factory import BaseFactory
 from mas.elements.providers.<name>.config import <Name>ProviderConfig
 from mas.elements.providers.<name>.<name>_provider import <Name>Provider
 from mas.elements.providers.<name>.identifiers import Identifier
@@ -184,7 +184,7 @@ If the provider requires async initialization, add `create_async()`:
 
 ```python
 # spec/spec.py
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
 from mas.elements.providers.<name>.identifiers import Identifier, META
 from mas.elements.providers.<name>.config import <Name>ProviderConfig

@@ -1,9 +1,10 @@
-from mas.elements.common.base_element_spec import BaseElementSpec
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
+
 from ..config import MockAgentNodeConfig
-from ..mock_agent_node_factory import MockAgentNodeFactory
+from ..identifiers import META, Identifier
 from ..mock_agent import MockAgentNode
-from ..identifiers import Identifier, META
+from ..mock_agent_node_factory import MockAgentNodeFactory
 
 
 class MockAgentNodeElementSpec(BaseElementSpec):

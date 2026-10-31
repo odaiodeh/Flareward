@@ -17,12 +17,13 @@ Key format differences handled here:
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
-from ..common.chat.message import ChatMessage, Role, ToolCall
+from mas.domain.messages import ChatMessage, Role, ToolCall
+from mas.domain.tools import ToolDefinition
+
 from ..common.name_sanitizer import map_name
-from ...tools.common.tool_definition import ToolDefinition
 
 
 class ResponsesAdapter:
@@ -34,50 +35,58 @@ class ResponsesAdapter:
 
     @staticmethod
     def to_input(
-        messages: List[ChatMessage],
-        fwd_names: Optional[Dict[str, str]] = None,
-    ) -> List[Dict[str, Any]]:
+        messages: list[ChatMessage],
+        fwd_names: dict[str, str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Convert domain messages to Responses API ``input`` items.
 
         If *fwd_names* is provided, tool-call names in assistant messages
         are sanitized for the provider.
         """
-        items: List[Dict[str, Any]] = []
+        items: list[dict[str, Any]] = []
         for m in messages:
             if m.role in (Role.SYSTEM, Role.USER):
-                items.append({
-                    "type": "message",
-                    "role": "user" if m.role == Role.USER else "developer",
-                    "content": m.content,
-                })
+                items.append(
+                    {
+                        "type": "message",
+                        "role": "user" if m.role == Role.USER else "developer",
+                        "content": m.content,
+                    }
+                )
             elif m.role == Role.ASSISTANT:
                 if m.content:
-                    items.append({
-                        "type": "message",
-                        "role": "assistant",
-                        "content": m.content,
-                    })
+                    items.append(
+                        {
+                            "type": "message",
+                            "role": "assistant",
+                            "content": m.content,
+                        }
+                    )
                 if m.tool_calls:
                     for tc in m.tool_calls:
                         name = map_name(tc.name, fwd_names) if fwd_names else tc.name
-                        items.append({
-                            "type": "function_call",
-                            "name": name,
-                            "arguments": json.dumps(tc.args),
-                            "call_id": tc.tool_call_id,
-                        })
+                        items.append(
+                            {
+                                "type": "function_call",
+                                "name": name,
+                                "arguments": json.dumps(tc.args),
+                                "call_id": tc.tool_call_id,
+                            }
+                        )
             elif m.role == Role.TOOL:
-                items.append({
-                    "type": "function_call_output",
-                    "call_id": m.tool_call_id or "",
-                    "output": m.content,
-                })
+                items.append(
+                    {
+                        "type": "function_call_output",
+                        "call_id": m.tool_call_id or "",
+                        "output": m.content,
+                    }
+                )
         return items
 
     @staticmethod
     def tools_to_responses(
-        tools: Optional[List[ToolDefinition]],
-    ) -> Optional[List[Dict[str, Any]]]:
+        tools: list[ToolDefinition] | None,
+    ) -> list[dict[str, Any]] | None:
         """Convert tool definitions to Responses API format."""
         if not tools:
             return None
@@ -103,8 +112,8 @@ class ResponsesAdapter:
         Iterates over ``response.output`` items, collecting text from
         ``message`` items and tool calls from ``function_call`` items.
         """
-        text_parts: List[str] = []
-        tool_calls: List[ToolCall] = []
+        text_parts: list[str] = []
+        tool_calls: list[ToolCall] = []
 
         for item in response.output:
             if item.type == "message":

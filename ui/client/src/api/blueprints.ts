@@ -1,5 +1,27 @@
 import axios from '@/http/axiosAgentConfig';
 import { BlueprintValidationResult, BlueprintValidationRequest } from '@/types/validation';
+import type { YamlFlowState } from '@/types/graph';
+
+export interface GraphPlacementPlan {
+  default_profile: string;
+  environments: Record<string, string>;
+  invocations: Array<{
+    step_uid: string;
+    category: 'nodes' | 'conditions';
+    profile: string;
+    environment: string | null;
+    binding_scope: 'invocation' | 'run';
+  }>;
+}
+
+export async function previewBlueprintPlacement(
+  spec: YamlFlowState, teamId?: string, signal?: AbortSignal,
+): Promise<GraphPlacementPlan> {
+  const { data } = await axios.post<GraphPlacementPlan>('/blueprints/draft/placement', { spec }, {
+    params: teamId ? { teamId } : undefined, signal,
+  });
+  return data;
+}
 
 // ────────────────────────────────────────────────────────────────────────────────
 // Types
@@ -7,6 +29,7 @@ import { BlueprintValidationResult, BlueprintValidationRequest } from '@/types/v
 
 export interface WorkflowBlueprint {
   blueprint_id: string;
+  version?: number;
   user_id?: string;
   spec_dict: any;
   name?: string;
@@ -38,6 +61,7 @@ export interface BlueprintSummary {
 
 export interface BlueprintInfoResponse {
   blueprint_id: string;
+  version?: number;
   user_id: string;
   spec_dict: {
     name: string;
@@ -60,6 +84,7 @@ export interface DeleteBlueprintResponse {
 export interface SaveBlueprintResponse {
   status: string;
   blueprint_id: string;
+  version?: number;
 }
 
 // ────────────────────────────────────────────────────────────────────────────────
@@ -135,9 +160,9 @@ export async function fetchResolvedBlueprint(
 /**
  * Get blueprint information including metadata
  */
-export async function getBlueprintInfo(blueprintId: string): Promise<BlueprintInfoResponse> {
+export async function getBlueprintInfo(blueprintId: string, teamId?: string): Promise<BlueprintInfoResponse> {
   const { data } = await axios.get<BlueprintInfoResponse>('/blueprints/blueprint.info.get', {
-    params: { blueprintId },
+    params: { blueprintId, teamId },
   });
   return data;
 }
@@ -145,9 +170,9 @@ export async function getBlueprintInfo(blueprintId: string): Promise<BlueprintIn
 /**
  * Delete a blueprint by ID
  */
-export async function deleteBlueprint(blueprintId: string): Promise<DeleteBlueprintResponse> {
+export async function deleteBlueprint(blueprintId: string, teamId?: string): Promise<DeleteBlueprintResponse> {
   const { data } = await axios.delete<DeleteBlueprintResponse>('/blueprints/remove.blueprint', {
-    params: { blueprintId },
+    params: { blueprintId, teamId },
   });
   return data;
 }
@@ -172,9 +197,11 @@ export async function updateBlueprint(
   blueprintId: string,
   blueprintRaw: string,
   teamId?: string,
+  expectedVersion?: number,
 ): Promise<SaveBlueprintResponse> {
   const body: Record<string, any> = { blueprintId, blueprintRaw };
   if (teamId) body.teamId = teamId;
+  if (expectedVersion !== undefined) body.expected_version = expectedVersion;
   const { data } = await axios.put<SaveBlueprintResponse>('/blueprints/blueprint.update', body);
   return data;
 }
@@ -189,12 +216,12 @@ export async function updateBlueprint(
 export async function setBlueprintMetadata(
   blueprintId: string,
   metadata: { usageScope?: "public" | "private"; [key: string]: any },
-  userId: string
+  teamId?: string,
 ): Promise<SetMetadataResponse> {
   const { data } = await axios.put<SetMetadataResponse>('/blueprints/blueprint.metadata.set', {
     blueprintId,
     metadata,
-    userId,
+    ...(teamId ? { teamId } : {}),
   });
   return data;
 }

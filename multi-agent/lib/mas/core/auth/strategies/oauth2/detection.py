@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from mas.core.auth.discovery.detector import DetectionStrategy
@@ -20,13 +20,12 @@ logger = logging.getLogger(__name__)
 
 
 class OAuth2DetectionStrategy(DetectionStrategy):
-
     async def detect(
         self,
         url: str,
-        response_headers: Dict[str, str],
+        response_headers: dict[str, str],
         http_client: HttpClient,
-    ) -> Optional[DetectionResult]:
+    ) -> DetectionResult | None:
         prm = await self._fetch_protected_resource_metadata(url, response_headers, http_client)
         if prm is None:
             return None
@@ -51,7 +50,11 @@ class OAuth2DetectionStrategy(DetectionStrategy):
                 "scopes_supported": as_meta.get("scopes_supported", []),
                 "resource_uri": prm.get("resource"),
                 "issuer": issuer,
-                **({"registration_endpoint": registration_endpoint} if registration_endpoint else {}),
+                **(
+                    {"registration_endpoint": registration_endpoint}
+                    if registration_endpoint
+                    else {}
+                ),
             },
             needs_client_registration=registration_endpoint is None,
             scopes_supported=as_meta.get("scopes_supported", []),
@@ -69,9 +72,9 @@ class OAuth2DetectionStrategy(DetectionStrategy):
     @staticmethod
     async def _fetch_protected_resource_metadata(
         url: str,
-        response_headers: Dict[str, str],
+        response_headers: dict[str, str],
         http_client: HttpClient,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         rm_url = OAuth2DetectionStrategy._extract_resource_metadata_url(response_headers)
         if rm_url:
             try:
@@ -105,7 +108,7 @@ class OAuth2DetectionStrategy(DetectionStrategy):
     async def _fetch_as_metadata(
         issuer: str,
         http_client: HttpClient,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         issuer = issuer.rstrip("/")
         parsed = urlparse(issuer)
         origin = f"{parsed.scheme}://{parsed.netloc}"
@@ -130,7 +133,7 @@ class OAuth2DetectionStrategy(DetectionStrategy):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _extract_resource_metadata_url(headers: Dict[str, str]) -> Optional[str]:
+    def _extract_resource_metadata_url(headers: dict[str, str]) -> str | None:
         www_auth = headers.get("www-authenticate", headers.get("WWW-Authenticate", ""))
         if not www_auth:
             return None

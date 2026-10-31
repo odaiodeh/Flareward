@@ -1,10 +1,10 @@
-from enum import Enum
 from dataclasses import dataclass
-from typing import List
+from enum import StrEnum
 
 
-class Identifier(str, Enum):
+class Identifier(StrEnum):
     """Machine-readable key for the Router Direct condition."""
+
     TYPE = "router_direct"
 
 
@@ -12,7 +12,7 @@ class Identifier(str, Enum):
 class Meta:
     name: str
     description: str
-    tags: List[str]
+    tags: list[str]
 
 
 META = Meta(

@@ -9,9 +9,9 @@ Used by:
 - Any service that needs to process element configs
 """
 
-from typing import List, Any, Optional
+from typing import Any
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from mas.core.enums import ResourceCategory
 
@@ -21,19 +21,20 @@ class ElementConfigMeta(BaseModel):
     Universal metadata about an element configuration.
 
     This is a plain data object that any module can create from its own
-    data structures (BlueprintSpec, ResourceDoc, SessionRegistry, etc.)
+    data structures (BlueprintSpec, ResourceDoc, ElementInstances, etc.)
 
     Used as input for:
     - ElementCardService.build_all_cards()
     - ElementValidationService.validate_ordered()
     """
+
     rid: str
     category: ResourceCategory
     type_key: str
     name: str
     config: Any
-    dependency_rids: List[str] = Field(default_factory=list)
-    validation_override_error: Optional[str] = Field(
+    dependency_rids: list[str] = Field(default_factory=list)
+    validation_override_error: str | None = Field(
         default=None,
         description=(
             "When set, ElementValidationService.validate() skips the "

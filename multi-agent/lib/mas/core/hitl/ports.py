@@ -9,8 +9,9 @@ Uses the Template Method pattern: the base class owns timeout handling
 so that every adapter inherits consistent behaviour.  Subclasses only
 implement ``_send_and_wait``.
 """
+
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from mas.core.hitl.models import (
     ApprovalOverrides,
@@ -22,7 +23,7 @@ from mas.core.hitl.models import (
 
 
 class ApprovalGate(ABC):
-    """Port: sends a request to a human and blocks until a decision arrives.
+    """Port: sends a request to a human and awaits a decision.
 
     Timeout logic lives in the base class (template method) so that
     all adapters share the same behaviour controlled by ``HITLConfig``.
@@ -32,22 +33,22 @@ class ApprovalGate(ABC):
         self._config = config
 
     @abstractmethod
-    def _send_and_wait(
+    async def _send_and_wait(
         self,
         request: ApprovalRequest,
         timeout: float,
     ) -> ApprovalResponse | None:
-        """Adapter hook — emit the request and block until a response arrives.
+        """Adapter hook — emit the request and await a response.
 
         Return ``None`` when *timeout* seconds elapse without a response.
         Implementations must not raise on timeout — they return ``None``.
         """
         ...
 
-    def request_approval(self, request: ApprovalRequest) -> ApprovalResponse:
+    async def request_approval(self, request: ApprovalRequest) -> ApprovalResponse:
         """Template method — delegates to ``_send_and_wait`` then applies
         the timeout policy from ``HITLConfig`` if no response arrives."""
-        response = self._send_and_wait(
+        response = await self._send_and_wait(
             request,
             timeout=self._config.timeout_seconds,
         )
@@ -77,7 +78,7 @@ class ApprovalGateFactory(ABC):
         channel: Any,
         session_metadata: Any,
         run_id: str,
-    ) -> tuple[Optional[ApprovalGate], Optional[ToolApprovalPolicy]]:
+    ) -> tuple[ApprovalGate | None, ToolApprovalPolicy | None]:
         """Build a gate + policy pair for one execution run.
 
         Args:

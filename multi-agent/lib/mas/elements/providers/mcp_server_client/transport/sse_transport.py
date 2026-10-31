@@ -5,7 +5,8 @@ Uses the ``mcp.client.sse.sse_client`` to open a unidirectional SSE
 stream to the MCP server.
 """
 
-from typing import Any, Tuple
+from contextlib import AbstractAsyncContextManager
+from typing import Any
 
 from mcp.client.sse import sse_client
 
@@ -25,13 +26,5 @@ class SseTransportManager(BaseTransportManager):
     def transport_type(self) -> McpTransportType:
         return McpTransportType.SSE
 
-    @property
-    def _transport_label(self) -> str:
-        return "SSE"
-
-    def _create_transport_context(self) -> Any:
+    def _create_transport_context(self) -> AbstractAsyncContextManager[tuple[Any, Any]]:
         return sse_client(url=self.endpoint, headers=self.headers)
-
-    async def _enter_transport_context(self, ctx: Any) -> Tuple:
-        read_stream, write_stream = await ctx.__aenter__()
-        return read_stream, write_stream

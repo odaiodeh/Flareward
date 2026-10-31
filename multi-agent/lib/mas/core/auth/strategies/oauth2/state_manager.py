@@ -11,8 +11,7 @@ import hashlib
 import hmac
 import json
 import time
-from typing import Any, Dict
-
+from typing import Any
 
 _DEFAULT_TTL = 600  # 10 minutes
 
@@ -26,13 +25,13 @@ class OAuthStateManager:
         self._secret = secret.encode()
         self._ttl = ttl_seconds
 
-    def create_state(self, payload: Dict[str, Any]) -> str:
+    def create_state(self, payload: dict[str, Any]) -> str:
         payload_with_ts = {**payload, "_ts": int(time.time())}
         raw = json.dumps(payload_with_ts, sort_keys=True, separators=(",", ":"))
         sig = hmac.new(self._secret, raw.encode(), hashlib.sha256).hexdigest()
         return f"{raw}.{sig}"
 
-    def validate_state(self, state: str) -> Dict[str, Any]:
+    def validate_state(self, state: str) -> dict[str, Any]:
         if "." not in state:
             raise ValueError("Malformed state — no signature separator")
 
