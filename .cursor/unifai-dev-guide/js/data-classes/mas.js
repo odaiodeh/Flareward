@@ -19,7 +19,7 @@ SERVICE_CLASSES.mas = {
     {
       name: 'Blueprints',
       classes: [
-        { name: 'BlueprintService', file: 'lib/mas/blueprints/service.py', role: 'CRUD + validation orchestration for blueprints', calls: ['BlueprintRepository', 'BlueprintResolver', 'ElementValidationService', 'AuthService'], calledBy: ['HTTP: /blueprints/', 'UserSessionManager', 'TemplateService', 'ShareService', 'ShareCloner', 'StatisticsService'] },
+        { name: 'BlueprintService', file: 'lib/mas/blueprints/service.py', role: 'CRUD + validation orchestration for blueprints', calls: ['BlueprintRepository', 'BlueprintResolver', 'ElementValidationService', 'AuthService'], calledBy: ['HTTP: /blueprints/', 'UserSessionManager', 'TemplateService', 'ShareService', 'ShareCloner'] },
         { name: 'BlueprintResolver', file: 'lib/mas/blueprints/resolver.py', role: 'Resolves $ref: resource references into full configs', calls: ['ResourcesRegistry', 'ElementRegistry'], calledBy: ['BlueprintService', 'WorkflowSessionFactory'] },
         { name: 'BlueprintRepository (ABC)', file: 'lib/mas/blueprints/repository/repository.py', role: 'Port for blueprint persistence (identity-scoped)', calls: [], calledBy: ['MongoBlueprintRepository'] },
       ]
@@ -46,7 +46,7 @@ SERVICE_CLASSES.mas = {
     {
       name: 'Session Management',
       classes: [
-        { name: 'SessionService', file: 'lib/mas/session/service.py', role: 'Application boundary: create/submit (default)/run (fallback)/cancel/list/stats', calls: ['UserSessionManager', 'BackgroundSessionEngine', 'ForegroundSessionRunner', 'SessionInputProjector'], calledBy: ['HTTP: /sessions/', 'SessionWorkflow', 'StatisticsService'] },
+        { name: 'SessionService', file: 'lib/mas/session/service.py', role: 'Application boundary: create/submit (default)/run (fallback)/cancel/list/stats', calls: ['UserSessionManager', 'BackgroundSessionEngine', 'ForegroundSessionRunner', 'SessionInputProjector'], calledBy: ['HTTP: /sessions/', 'SessionWorkflow'] },
         { name: 'UserSessionManager', file: 'lib/mas/session/management/user_session_manager.py', role: 'Creates sessions, loads SessionRecord, uses factory + blueprint', calls: ['WorkflowSessionFactory', 'BlueprintService', 'SessionRepository'], calledBy: ['SessionService'] },
         { name: 'WorkflowSessionFactory', file: 'lib/mas/session/building/workflow_session_factory.py', role: 'Builds WorkflowSession, RTGraphPlan, or bare SessionRegistry', calls: ['SessionElementBuilder', 'GraphBuilderFactory', 'PlanBuilder'], calledBy: ['UserSessionManager', 'NodeExecutor'] },
         { name: 'SessionElementBuilder', file: 'lib/mas/session/building/element_builder.py', role: 'Topologically sorts CategoryBuilders, instantiates runtime elements from BlueprintSpec', calls: ['CategoryBuilder', 'ElementRegistry'], calledBy: ['WorkflowSessionFactory'] },
@@ -69,7 +69,7 @@ SERVICE_CLASSES.mas = {
     {
       name: 'Resources & Auth',
       classes: [
-        { name: 'ResourcesService', file: 'lib/mas/resources/service.py', role: 'CRUD + validation + auth-aware resource operations', calls: ['ResourcesRegistry', 'ElementValidationService', 'AuthService', 'ElementCardService'], calledBy: ['HTTP: /resources/', 'ShareService', 'TemplateService', 'ShareCloner', 'ResourceMaterializer', 'StatisticsService'] },
+        { name: 'ResourcesService', file: 'lib/mas/resources/service.py', role: 'CRUD + validation + auth-aware resource operations', calls: ['ResourcesRegistry', 'ElementValidationService', 'AuthService', 'ElementCardService'], calledBy: ['HTTP: /resources/', 'ShareService', 'TemplateService', 'ShareCloner', 'ResourceMaterializer'] },
         { name: 'ResourcesRegistry', file: 'lib/mas/resources/registry.py', role: 'Low-level CRUD + delete guards (checks blueprint/resource usage)', calls: ['ResourceRepository', 'BlueprintRepository'], calledBy: ['BlueprintResolver', 'ResourcesService'] },
         { name: 'AuthService', file: 'lib/mas/core/auth/service.py', role: 'Strategy-based auth (OAuth2, API key) with credential storage, token refresh, bind/bind_lazy', calls: ['AuthStrategyRegistry', 'CredentialStore', 'ServerConfigStore', 'AuthDetector'], calledBy: ['ResourcesService', 'BlueprintService', 'ProviderBuilder'] },
         { name: 'OAuth2Strategy', file: 'adapters/outbound/auth/oauth2_strategy.py', role: 'Full OAuth2/PKCE/DCR flow: initiate, complete, refresh, recovery', calls: ['HttpxAuthClient', 'FlowStateStore', 'OAuthStateManager'], calledBy: ['AuthStrategyRegistry'] },
@@ -96,7 +96,7 @@ SERVICE_CLASSES.mas = {
         { name: 'TemplateService', file: 'lib/mas/templates/service.py', role: 'CRUD + instantiate (preview) + materialize (saves blueprint + resources in one step)', calls: ['TemplateRepository', 'TemplateInstantiator', 'ResourceMaterializer', 'BlueprintService', 'ElementRegistry'], calledBy: ['HTTP: /templates/'] },
         { name: 'TemplateInstantiator', file: 'lib/mas/templates/instantiation/instantiator.py', role: 'Placeholder substitution engine: fills template draft with user inputs', calls: ['PlaceholderAnalyzer'], calledBy: ['TemplateService'] },
         { name: 'ResourceMaterializer', file: 'lib/mas/templates/instantiation/resource_materializer.py', role: 'Creates actual resources from template placeholder values during materialize', calls: ['ResourcesService'], calledBy: ['TemplateService'] },
-        { name: 'StatisticsService', file: 'lib/mas/statistics/service.py', role: 'Facade: user stats + admin system analytics. No own persistence.', calls: ['BlueprintService', 'SessionService', 'ResourcesService'], calledBy: ['HTTP: /statistics/'] },
+        { name: 'ReportingService', file: 'lib/mas/application/reporting/service.py', role: 'Application authorization, UTC time scope, pinned revision labels and operational completion through ReportingReader.', calls: ['ReportingReader', 'AdministratorPolicy', 'ProgramRepository'], calledBy: ['HTTP: /reporting/'] },
         { name: 'ActionsService', file: 'lib/mas/actions/service.py', role: 'Auto-discover + execute action plugins (auth, MCP validate, tool discovery)', calls: ['BaseAction', 'ElementRegistry'], calledBy: ['HTTP: /actions/'] },
       ]
     },

@@ -10,7 +10,7 @@ from kubernetes import client, config
 from mas.core.async_work import await_owned
 from runengine.invocation.config import K8sRunnerConfig, SecretMount
 
-from support.deployment_backend import DeploymentBackend, NetworkEndpoint
+from support.deployment_backend import DeploymentBackend, NetworkEndpoint, ReceiverEvidence
 
 
 @asynccontextmanager
@@ -33,6 +33,42 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
             ),
         )
         created = True
+        await asyncio.to_thread(
+            core.create_namespaced_service_account,
+            namespace,
+            client.V1ServiceAccount(
+                metadata=client.V1ObjectMeta(name="receiver"),
+                automount_service_account_token=False,
+            ),
+        )
+
+        async def inspect_receiver() -> ReceiverEvidence:
+            async with asyncio.timeout(45):
+                while True:
+                    pods = await asyncio.to_thread(core.list_namespaced_pod, namespace)
+                    for pod in pods.items:
+                        statuses = pod.status.container_statuses or []
+                        if not statuses or not statuses[0].image_id:
+                            continue
+                        container = pod.spec.containers[0]
+                        return ReceiverEvidence(
+                            namespace=namespace,
+                            pod=pod.metadata.name,
+                            image=container.image,
+                            image_id=statuses[0].image_id,
+                            non_root=bool(container.security_context.run_as_non_root),
+                            host_access=bool(
+                                pod.spec.host_network
+                                or pod.spec.host_pid
+                                or pod.spec.host_ipc
+                                or any(v.host_path for v in pod.spec.volumes or [])
+                            ),
+                            mounted_secrets=any(
+                                v.secret or v.projected for v in pod.spec.volumes or []
+                            ),
+                            environment_names=frozenset(v.name for v in container.env or []),
+                        )
+                    await asyncio.sleep(0.05)
 
         async def assert_clean() -> None:
             async with asyncio.timeout(30):
@@ -46,11 +82,12 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
         target = K8sRunnerConfig(
             image=image,
             namespace=namespace,
+            service_account="receiver",
             kubeconfig_path=kubeconfig,
             kubeconfig_context=context,
             timeout=90,
             labels={"unifai-e2e-owner": namespace},
-            env={"UNIFAI_INTERACTIONS": "disabled"},
+            env={"UNIFAI_INTERACTIONS": "disabled", "UNIFAI_TEST_NAMESPACE": namespace},
         )
 
         @asynccontextmanager
@@ -83,6 +120,7 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
             assert_clean,
             configured,
             namespace,
+            inspect_receiver,
         )
     finally:
         try:

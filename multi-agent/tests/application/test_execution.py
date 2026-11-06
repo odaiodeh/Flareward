@@ -1,29 +1,34 @@
 """Application lifecycle contracts use a strict gateway port double, without an SDK."""
 
+import asyncio
 import json
 from unittest.mock import create_autospec
 
 import pytest
-from mas.core.execution_context import ExecutionContext
-from mas.core.identity import Identity
-from mas.execution.models import (
-    ExecutionFailure,
-    ExecutionPhase,
-    ExecutionRecord,
-    FailureKind,
-    PreparedExecution,
-    StartExecution,
-    SubmissionState,
-)
-from mas.execution.ports import (
+from mas.application.access.admission import WorkflowAccessIssuer, WorkflowAccessService
+from mas.application.access.credentials import WorkflowCredentialUnavailable
+from mas.application.execution.models import PreparedExecution, StartExecution
+from mas.application.execution.ports import (
     ExecutionCancellation,
     ExecutionLocationUnavailable,
     ExecutionMissing,
     ProgramExecutionGateway,
     SubmissionUnconfirmed,
 )
-from mas.execution.service import ExecutionService
-from mas.programs.models import ApplicationDefinition
+from mas.application.execution.service import ExecutionService
+from mas.core.identity import Identity
+from mas.domain.execution.access import WorkflowAccess
+from mas.domain.execution.budgets import WorkLimits
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import (
+    ExecutionFailure,
+    ExecutionPhase,
+    ExecutionRecord,
+    FailureKind,
+    SubmissionState,
+)
+from mas.domain.execution_preferences import ExecutionProfileCatalog
+from mas.domain.programs.models import ApplicationDefinition
 from outbound.memory.execution_repository import MemoryExecutionRepository
 from support.scenarios import publish
 
@@ -67,6 +72,196 @@ async def execution_case(application):
     )
 
 
+@pytest.fixture
+def workflow_execution_case(application, execution_case):
+    _, gateway, request, records = execution_case
+    issuer = create_autospec(WorkflowAccessIssuer, instance=True)
+    issuer.purpose = "review@1"
+    service = ExecutionService(
+        application.programs,
+        records,
+        gateway,
+        workflow_access=WorkflowAccessService((issuer,)),
+    )
+    request = request.model_copy(
+        update={
+            "workflow_access": (
+                WorkflowAccess(
+                    purpose="review@1",
+                    scope={"policies": ["release@1"], "actions": ["open", "read"]},
+                ),
+            )
+        }
+    )
+    return service, gateway, request, records, issuer
+
+
+async def test_portable_credential_user_is_not_workflow_approval(
+    application, workflow_execution_case
+):
+    service, gateway, request, records, issuer = workflow_execution_case
+    with pytest.raises(PermissionError, match="human approval"):
+        await service.start(request, application.owner, credential_user_id=application.owner.id)
+    gateway.prepare.assert_not_awaited()
+    issuer.provision_workflow_access.assert_not_awaited()
+    with pytest.raises(KeyError):
+        await records.get(request.execution_id)
+
+
+async def test_provisioning_retry_reuses_frozen_approval_before_native_dispatch(
+    application, workflow_execution_case
+):
+    service, gateway, request, records, issuer = workflow_execution_case
+    issuer.provision_workflow_access.side_effect = [WorkflowCredentialUnavailable(), None]
+    first = await service.start(request, application.owner, approved_by=application.owner)
+    assert first.submission == SubmissionState.UNCONFIRMED
+    assert first.workflow_access_approval.approved_by.owns(application.owner)
+    gateway.start.assert_not_awaited()
+    gateway.status.side_effect = ExecutionMissing("Not dispatched")
+    second = await service.start(request, application.owner)
+    assert second.submission == SubmissionState.ACCEPTED
+    assert second.workflow_access_approval == first.workflow_access_approval
+    calls = issuer.provision_workflow_access.await_args_list
+    assert len(calls) == 2 and calls[0] == calls[1]
+    gateway.prepare.assert_awaited_once()
+    gateway.start.assert_awaited_once()
+    assert (
+        await records.get(request.execution_id)
+    ).workflow_access_approval == first.workflow_access_approval
+
+
+async def test_existing_root_cannot_widen_its_workflow_access(application, workflow_execution_case):
+    service, _, request, _, issuer = workflow_execution_case
+    await service.start(request, application.owner, approved_by=application.owner)
+    widened = request.workflow_access[0].model_copy(
+        update={
+            "scope": {"policies": ["release@1", "other@1"], "actions": ["open", "read", "close"]}
+        }
+    )
+    with pytest.raises(PermissionError, match="approval does not match"):
+        await service.start(
+            request.model_copy(update={"workflow_access": (widened,)}),
+            application.owner,
+            approved_by=application.owner,
+        )
+    issuer.provision_workflow_access.assert_awaited_once()
+
+
+async def test_approval_cannot_move_to_another_invocation(application, workflow_execution_case):
+    service, gateway, request, _, issuer = workflow_execution_case
+    approval = service.approve_workflow_access(request, application.owner, application.owner)
+    with pytest.raises(PermissionError, match="approval does not match"):
+        await service.start(
+            request.model_copy(update={"execution_id": "foreign-root"}),
+            application.owner,
+            workflow_access_approval=approval,
+        )
+    gateway.prepare.assert_not_awaited()
+    issuer.provision_workflow_access.assert_not_awaited()
+
+
+async def test_cancellation_during_provisioning_does_not_dispatch(
+    application, workflow_execution_case
+):
+    service, gateway, request, records, issuer = workflow_execution_case
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def provision(*args, **kwargs):
+        entered.set()
+        await release.wait()
+
+    issuer.provision_workflow_access.side_effect = provision
+    task = asyncio.create_task(
+        service.start(request, application.owner, approved_by=application.owner)
+    )
+    try:
+        async with asyncio.timeout(5):
+            await entered.wait()
+            await records.request_cancellation(request.execution_id)
+            release.set()
+            result = await task
+        assert result.phase == ExecutionPhase.CANCELLED and result.cancel_requested
+        gateway.start.assert_not_awaited()
+    finally:
+        release.set()
+        await task
+
+
+@pytest.mark.parametrize("values", [(True, 1), (1, 1.0)])
+@pytest.mark.parametrize("concurrent", [False, True])
+async def test_root_identity_preserves_json_types(application, execution_case, values, concurrent):
+    service, gateway, original, records = execution_case
+    requests = tuple(
+        original.model_copy(update={"inputs": {"name": {"nested": [value]}}}) for value in values
+    )
+    if concurrent:
+        prepare = gateway.prepare.side_effect
+        barrier = asyncio.Barrier(2)
+
+        async def simultaneous_prepare(*args):
+            await barrier.wait()
+            return await prepare(*args)
+
+        gateway.prepare.side_effect = simultaneous_prepare
+        outcomes = await asyncio.gather(
+            *(service.start(request, application.owner) for request in requests),
+            return_exceptions=True,
+        )
+        assert sum(isinstance(value, ExecutionRecord) for value in outcomes) == 1
+        assert sum(isinstance(value, ValueError) for value in outcomes) == 1
+    else:
+        await service.start(requests[0], application.owner)
+        with pytest.raises(ValueError, match="different request"):
+            await service.start(requests[1], application.owner)
+    saved = await records.get(original.execution_id)
+    assert saved.submission == SubmissionState.ACCEPTED
+    gateway.start.assert_awaited_once()
+    retried = await service.start(
+        original.model_copy(update={"inputs": saved.inputs}), application.owner
+    )
+    assert retried.execution_id == saved.execution_id
+
+
+async def test_root_retry_accepts_reordered_json_object_keys(application, execution_case):
+    service, gateway, request, _ = execution_case
+    original = request.model_copy(update={"inputs": {"name": "value", "other": True}})
+    await service.start(original, application.owner)
+    repeated = original.model_copy(update={"inputs": {"other": True, "name": "value"}})
+    assert (await service.start(repeated, application.owner)).submission == SubmissionState.ACCEPTED
+    gateway.start.assert_awaited_once()
+
+
+async def test_root_retry_preserves_original_admitted_limits_and_profiles(
+    application, execution_case
+):
+    service, gateway, request, records = execution_case
+    original = WorkLimits(max_dispatches=5)
+    profiles = ExecutionProfileCatalog(profiles=("original",), default_profile="original")
+    gateway.prepare.side_effect = None
+    gateway.prepare.return_value = PreparedExecution(
+        format="test/1",
+        location=gateway.location,
+        payload_json='{"original":true}',
+        work_limits=original,
+        admitted_profiles=profiles,
+    )
+    started = await service.start(request, application.owner)
+    assert started.work_limits == original
+    assert started.admitted_profiles == profiles
+    gateway.prepare.return_value = PreparedExecution(
+        format="test/1",
+        location=gateway.location,
+        payload_json='{"new":true}',
+        work_limits=WorkLimits(max_dispatches=1),
+        admitted_profiles=ExecutionProfileCatalog(profiles=("changed",), default_profile="changed"),
+    )
+    retried = await service.start(request, application.owner)
+    assert retried.work_limits == original
+    assert retried.admitted_profiles == profiles
+    assert (await records.get_prepared(request.execution_id)).work_limits == original
+    gateway.prepare.assert_awaited_once()
+
+
 async def test_ambiguous_start_reconnects_through_port_without_repreparing(
     application, execution_case
 ):
@@ -96,9 +291,23 @@ async def test_cancellation_before_submission_prevents_any_gateway_start(
     await service.prevent_start(request, application.owner, context)
     record = await service.start(request, application.owner)
     assert record.phase == ExecutionPhase.CANCELLED
+    revision = await application.programs.revision(request.program, application.owner)
+    assert record.content_digest == revision.content_digest
     gateway.prepare.assert_not_awaited()
     gateway.start.assert_not_awaited()
     gateway.cancel.assert_not_awaited()
+
+
+async def test_mutated_nonfinite_input_is_refused_before_snapshot_or_gateway_use(
+    application, execution_case
+):
+    service, gateway, request, records = execution_case
+    assert isinstance(request.inputs, dict)
+    request.inputs["bad"] = float("nan")
+    with pytest.raises(ValueError):
+        await service.start(request, application.owner)
+    gateway.prepare.assert_not_awaited()
+    gateway.start.assert_not_awaited()
 
 
 async def test_engine_cancellation_is_attempted_if_application_wait_cleanup_fails(

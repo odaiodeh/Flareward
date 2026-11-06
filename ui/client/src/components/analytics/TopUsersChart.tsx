@@ -8,7 +8,7 @@ interface TopUsersChartProps {
     name: string;
     fullName: string;
     runs: number;
-    blueprints: number;
+    programs: number;
     completed: number;
     failed: number;
   }>;
@@ -18,7 +18,7 @@ interface TopUsersChartProps {
 export function TopUsersChart({ topUsersData, colors }: TopUsersChartProps) {
   return (
     <AnalyticCard
-      title="Top Active Users"
+      title="Top Owners by Recorded Executions"
       icon={<FaUsers style={{ color: colors.info }} />}
     >
       <ResponsiveContainer width="100%" height={300}>
@@ -36,7 +36,7 @@ export function TopUsersChart({ topUsersData, colors }: TopUsersChartProps) {
           <Tooltip 
             contentStyle={CHART_TOOLTIP_CONTENT_STYLE}
             labelStyle={CHART_TOOLTIP_LABEL_STYLE}
-            formatter={(value, name) => [value, name === 'runs' ? 'Total Runs' : 'Blueprints']}
+            formatter={(value, name) => [value, name === 'runs' ? 'Total Runs' : 'Programs']}
           />
           <Bar dataKey="runs" fill={colors.primary} radius={[4, 4, 0, 0]} />
         </BarChart>

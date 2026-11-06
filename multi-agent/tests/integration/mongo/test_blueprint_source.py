@@ -5,58 +5,20 @@ import json
 
 import pytest
 from mas.core.identity import Identity
+from mas.domain.programs.models import PathBinding
 from mas.graph.state.graph_state import GraphState
-from mas.programs.models import PathBinding
 from mas.resources.builtin_models import (
-    BuiltinResourceDescriptor,
-    BuiltinUserConfig,
     identity_to_key,
 )
-from mas.resources.models import Resource
 from outbound.crypto import FieldCipher
 from outbound.mongo.configuration_secrets import MongoConfigurationSecrets
 from support.blueprint_http import library_api
 from support.blueprints import external_blueprint
+from support.library_resources import seed_private_agent_resources
 
 
 async def seed_library(database, owner, cipher):
-    agent = Resource(
-        rid="library-agent",
-        identity=owner,
-        category="nodes",
-        type="mock_agent_node",
-        name="Existing agent",
-        cfg_dict={"type": "mock_agent_node", "llm": "$ref:library-model"},
-        nested_refs=["library-model"],
-    )
-    model = Resource(
-        rid="library-model",
-        identity=Identity.user("admin"),
-        category="llms",
-        type="mock",
-        name="Existing model",
-        cfg_dict={
-            "type": "mock",
-            "base_url": "http://unused.invalid",
-            "api_key": cipher.encrypt("admin-private-default"),
-        },
-    )
-    for resource in (agent, model):
-        await database.resources.insert_one(
-            {"_id": resource.rid, **resource.model_dump(mode="json")}
-        )
-    descriptor = BuiltinResourceDescriptor(rid=model.rid, visibility="public")
-    await database.builtin_resource_descriptors.insert_one(
-        {"_id": model.rid, **descriptor.model_dump(mode="json")}
-    )
-    overlay = BuiltinUserConfig(
-        resource_id=model.rid,
-        identity_key=identity_to_key(owner),
-        fields={"api_key": cipher.encrypt("caller-private-value")},
-    )
-    await database.builtin_user_configs.insert_one(
-        {"_id": overlay.config_id, **overlay.model_dump(mode="json")}
-    )
+    agent, _ = await seed_private_agent_resources(database, owner, cipher)
     # Stored legacy metadata is tolerated on reads; new authoring remains strict.
     draft = {**external_blueprint().model_dump(mode="json"), "retired_setting": "legacy"}
     await database.blueprints.insert_one(
@@ -90,13 +52,13 @@ async def test_stored_blueprint_overlay_is_snapshotted_and_executes_in_native_se
         )
         model = next(
             resource
-            for resource in imported.json()["implementation"]["resources"]
+            for resource in imported.json()["definition"]["implementation"]["resources"]
             if resource["key"]["rid"] == "library-model"
         )
         store = MongoConfigurationSecrets(mongo_database, cipher)
         value = await store.get(owner, model["config"]["api_key"])
         assert value.get_secret_value() == "caller-private-value"
-        revision = await http.post("/api/programs/imported/revisions")
+        revision = await http.post("/api/programs/imported/revisions", json={"expected_version": 1})
         assert revision.status_code == 201, revision.text
         # Edits to library resources/overlays do not rewrite an existing revision.
         await mongo_database.builtin_user_configs.update_one(

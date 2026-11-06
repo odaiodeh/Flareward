@@ -1,0 +1,25 @@
+{
+  "scope": "Focused design/feature checkpoint files, not a complete dependency or image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/plugins/mas_plugins/engineering/coding.py": "ed2e8b17a970612ccd90b94e868bee5f1e56c8744b322dc888ee33a2fc9fb9ea",
+    "multi-agent/plugins/mas_plugins/engineering/design.py": "72ea70d7c7a4ff55c20001aefc26eeee2f2c40d27c1f1582d1702ca9e5b1a7b3",
+    "multi-agent/plugins/mas_plugins/engineering/feature.py": "04114dfb97d7a78aecafc6f612ad9a20e9b6527a985cfba2e3047b4eb0629c09",
+    "multi-agent/plugins/mas_plugins/engineering/program.py": "d60e15bac9a978b3ce2378c692243bd556ad36cffd44373a33d70961bdfab334",
+    "multi-agent/tests/application/test_coding_feature.py": "34faf49ed59a005282edb578314bf922c8f1dd0391f416f82dc094c39845b2da",
+    "multi-agent/tests/application/test_coding_file_candidate.py": "2a3a7ca3a51cad625df32e2f2cf7cf94e2c14d54e0cb907ba64e62cf4d022a13",
+    "multi-agent/tests/application/test_engineering_program.py": "2f66452476dad0e404447a5d51fb657c6b265acb14ad90e9535fa935077bddb4",
+    "multi-agent/tests/application/test_feature_design.py": "463aec6df426503a70a1a93525c007fde7838a37ad7843bee888e0f75474a9c5",
+    "multi-agent/tests/integration/verification/test_coding_feature.py": "85e104ce9403f12e043d42e915f8ba61cad50a7779b597c41a1256461ad58b17",
+    "multi-agent/tests/integration/verification/test_engineering_workflow.py": "75f6d3c3f25ef9f7a6ef2344fc5894840b7a58e442fbfa7092df58dad6171281",
+    "multi-agent/tests/integration/verification/test_feature_design.py": "1b46159b789a5b7abfaf1ca5165fe10114ac35f3279374f090b1ad6179bea520",
+    "multi-agent/tests/support/design_runtime.py": "1b188db71ad2351a70d1beb9e0c13efbc5d617876b73c61f3860c1bfb9e246cd",
+    "multi-agent/tests/support/engineering_api.py": "a8f6182b9f0dded3ebb0b40f0b3efaf8f6fd2ebf2fb7ba20b860d2d2dce625c7",
+    "multi-agent/tests/support/engineering_programs.py": "bdeac9f90b92348a51d55a121ea20f26ddd3c964d5d205b2261a6d86f573849d",
+    "multi-agent/tests/support/engineering_runtime.py": "d782caebd1c09e1ebdbabe091d0c5af61a9fddd38c9121914142b9619add07e7",
+    "multi-agent/tests/support/feature_design.py": "9058b0eb4cc2ee5db588ff7ffe20be1960cd9fb91ba100a4d9bfe1efaff7562a",
+    "multi-agent/tests/support/managed_access.py": "cd3d8a06fc126734888f3649079159a570f01f758b6dfb28666ea83c0eee58d7",
+    "multi-agent/tests/support/review_api.py": "b5af170d9acb041d69d6036a00d3a7b45914434bc52bd7c266fdffe3a47569d7"
+  },
+  "aggregate_sha256": "8cfef7c628fb815460dde4de5413ea19782131b574cda0787410cd2992f6197e"
+}

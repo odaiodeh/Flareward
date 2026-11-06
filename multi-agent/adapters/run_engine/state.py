@@ -1,17 +1,13 @@
 """Typed engine state reuses the domain fields and their reducer annotations."""
 
-from typing import Annotated
-
-from mas.graph.state.graph_state import GraphState
-from pydantic import Field, JsonValue
+from mas.application.programs.state import ProgramState
+from pydantic import ConfigDict
 from runengine.programs.graph.models.state import GraphState as RuntimeGraphState
 
-__runengine_contract__ = "unifai-graph-state-v1"
+__runengine_contract__ = "unifai-graph-state-v3"
 
 
-def merge_values(old: dict[str, JsonValue], new: dict[str, JsonValue]) -> dict[str, JsonValue]:
-    return {**old, **new}
+class ProgramGraphState(ProgramState, RuntimeGraphState):
+    """Bind application channels to the native graph state protocol."""
 
-
-class ProgramGraphState(GraphState, RuntimeGraphState):
-    values: Annotated[dict[str, JsonValue], merge_values] = Field(default_factory=dict)
+    model_config = ConfigDict(**ProgramState.model_config)

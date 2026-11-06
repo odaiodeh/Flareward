@@ -2,7 +2,7 @@
 A2A Agent Node Specification
 """
 
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..a2a_agent_node import A2AAgentNode
@@ -13,7 +13,7 @@ from ..identifiers import META, Identifier
 from ..validator import A2AAgentNodeValidator
 
 
-class A2AAgentNodeElementSpec(BaseElementSpec):
+class A2AAgentNodeElementSpec(GraphElementSpec):
     """Element specification for A2A Agent Node."""
 
     category = ResourceCategory.NODE

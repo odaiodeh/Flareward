@@ -1,16 +1,16 @@
 import logging
 from typing import ClassVar
 
-from mas.application.capabilities.iem_capable import IEMCapableMixin
 from mas.application.elements.node import BaseNode
 from mas.domain.workloads import AgentResult
+from mas.graph.capabilities.messaging import GraphMessagingMixin
 from mas.graph.state.graph_state import Channel
 from mas.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 
 
-class FinalAnswerNode(IEMCapableMixin, BaseNode):
+class FinalAnswerNode(GraphMessagingMixin, BaseNode):
     """
     Enhanced final node that collects task results and creates final output.
 
@@ -32,7 +32,7 @@ class FinalAnswerNode(IEMCapableMixin, BaseNode):
     async def run(self, state: StateView) -> StateView:
         """Process all incoming TaskPackets and create final answer."""
         # Process all incoming task packets
-        await self.process_packets(state)
+        await self.process_packets()
 
         # Create final answer if we have collected results
         if self._collected_results:

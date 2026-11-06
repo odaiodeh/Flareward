@@ -3,7 +3,8 @@
 import asyncio
 
 import pytest
-from mas.execution.models import ExecutionPhase, StartExecution
+from mas.application.execution.models import StartExecution
+from mas.domain.execution.models import ExecutionPhase
 from support.condition_scenarios import routing_graph
 from support.scenarios import publish
 from support.temporal import replay, worker_process

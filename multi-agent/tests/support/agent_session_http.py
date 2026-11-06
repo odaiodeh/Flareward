@@ -3,9 +3,9 @@
 from functools import partial
 
 import httpx
-from mas.execution.models import ExecutionRecord
+from mas.domain.execution.models import ExecutionRecord
+from mas.domain.programs.models import PathBinding
 from mas.graph.state.graph_state import GraphState
-from mas.programs.models import PathBinding
 from mas.session.domain.session_record import SessionRecord
 
 from support.agent_session import AgentRole, session_blueprint
@@ -87,11 +87,13 @@ async def publish_agent_session(http, agents, *, resource_count, chat=False):
     assert imported.status_code == 200, imported.text
     agents = [
         resource
-        for resource in imported.json()["implementation"]["resources"]
+        for resource in imported.json()["definition"]["implementation"]["resources"]
         if resource["type_key"] == "custom_agent_node"
     ]
     assert len(agents) == 2 and len({agent["config"]["llm"] for agent in agents}) == 1
-    published = await http.post("/api/programs/agent-session/revisions")
+    published = await http.post(
+        "/api/programs/agent-session/revisions", json={"expected_version": 1}
+    )
     assert published.status_code == 201, published.text
     bindings = {
         name: PathBinding(path=(name,)).model_dump(mode="json") for name in GraphState.model_fields
@@ -106,7 +108,7 @@ async def publish_agent_session(http, agents, *, resource_count, chat=False):
         },
     )
     assert session.status_code == 201, session.text
-    return session.json()["run_id"], imported.json()
+    return session.json()["run_id"], imported.json()["definition"]
 
 
 async def execute_agent_turn(

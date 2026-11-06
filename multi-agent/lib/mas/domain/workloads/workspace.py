@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from mas.domain.messages import ChatMessage
 from mas.domain.workloads.context import WorkspaceContext
-from mas.domain.workloads.models import AgentResult, ArtifactRef
+from mas.domain.workloads.models import AgentResult, WorkspaceArtifact
 
 
 class Workspace(BaseModel):
@@ -62,7 +62,7 @@ class Workspace(BaseModel):
         metadata: dict[str, Any] = None,
     ) -> Workspace:
         """Add an artifact reference to the workspace."""
-        artifact_ref = ArtifactRef(
+        artifact_ref = WorkspaceArtifact(
             name=name,
             type=artifact_type,
             location=location,
@@ -217,7 +217,7 @@ class Workspace(BaseModel):
             if hasattr(result, "agent_id") and result.agent_id == agent_id
         ]
 
-    def get_artifact_by_type(self, artifact_type: str) -> list[ArtifactRef]:
+    def get_artifact_by_type(self, artifact_type: str) -> list[WorkspaceArtifact]:
         """Get all artifacts of a specific type."""
         return [
             artifact

@@ -4,22 +4,22 @@ import asyncio
 from unittest.mock import create_autospec
 
 import pytest
-from mas.core.execution_context import ExecutionContext
+from mas.application.execution.models import StartExecution
+from mas.application.execution.ports import ExecutionError
+from mas.application.execution.service import ExecutionService
+from mas.application.programs.service import ProgramService
 from mas.core.hitl.models import ApprovalDecision, ApprovalOverrides, ToolAccessMode
 from mas.core.identity import Identity
-from mas.execution.models import (
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import (
     ExecutionFailure,
     ExecutionPhase,
     ExecutionRecord,
     FailureKind,
-    StartExecution,
 )
-from mas.execution.ports import ExecutionError
-from mas.execution.service import ExecutionService
+from mas.domain.programs.models import ProgramRef
 from mas.interactions.ports import ApprovalRulesPublisher
 from mas.interactions.rules import ApprovalRuleAction, ApprovalRuleChange
-from mas.programs.models import ProgramRef
-from mas.programs.service import ProgramService
 from mas.session.domain.session_record import SessionRecord
 from mas.session.domain.status import SessionStatus
 from mas.session.execution.program_sessions import ProgramSessionService

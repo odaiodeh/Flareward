@@ -1,41 +1,48 @@
-"""The real node spec participates in the existing catalog and protected configuration path."""
+"""The real coding operation uses the shared catalog, factory and protected configuration."""
 
 import pytest
+from mas.application.coding.operation import CodingOperation
 from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.elements.construction.secrets import ConfigurationSecrets
-from mas.application.elements.node import BaseNode
-from mas.core.element_deps import ElementBuildContext
+from mas.application.elements.operation import BaseOperation
 from mas.core.enums import ResourceCategory
-from mas.core.execution_context import ExecutionContextHolder
 from mas.core.identity import Identity
 from mas.core.secrets import is_secret_reference
-from mas.elements.nodes.codex_agent.codex_agent_node import CodexAgentNode
-from mas.elements.nodes.codex_agent.config import CodexAgentNodeConfig
-from mas.elements.nodes.codex_agent.identifiers import Identifier
-from mas.elements.nodes.codex_agent.spec.spec import CodexAgentNodeElementSpec
+from mas_plugins.coding.codex.config import CodexConfig
+from mas_plugins.coding.codex.identifiers import TYPE_KEY
+from mas_plugins.coding.codex.specification import CodexSpec
 from pydantic import SecretStr
 from support.secrets import MemorySecretStore
 
+from bootstrap.elements import installed_elements
 
-async def test_catalog_configuration_and_factory_preserve_the_node_contract():
+
+async def test_catalog_configuration_and_factory_use_the_operation_contract():
     registry = ElementRegistry()
-    registry.register_spec_class(CodexAgentNodeElementSpec)
-    specification = registry.get_spec(ResourceCategory.NODE, Identifier.TYPE)
-    configuration = CodexAgentNodeConfig(model="explicit-test", api_key=SecretStr("private-test"))
+    registry.register_spec_class(CodexSpec)
+    specification = registry.get_spec(ResourceCategory.OPERATION, TYPE_KEY)
+    configuration = CodexConfig(model="explicit-test", api_key=SecretStr("private-test"))
     secrets = ConfigurationSecrets(registry, MemorySecretStore())
     owner = Identity.user("owner")
     protected = await secrets.protect(configuration, owner)
     assert "private-test" not in str(protected)
     assert is_secret_reference(protected["api_key"])
-    resolved = await secrets.resolve(CodexAgentNodeConfig.model_validate(protected), owner)
+    resolved = await secrets.resolve(CodexConfig.model_validate(protected), owner)
     assert resolved["api_key"] == "private-test"
     with pytest.raises(PermissionError):
-        await secrets.resolve(
-            CodexAgentNodeConfig.model_validate(protected), Identity.user("other")
-        )
+        await secrets.resolve(CodexConfig.model_validate(protected), Identity.user("other"))
     factory = specification.factory_cls()
-    assert factory.accepts(configuration, Identifier.TYPE)
-    node = factory.create(
-        configuration, deps=ElementBuildContext(execution_ctx=ExecutionContextHolder())
+    assert factory.accepts(configuration, TYPE_KEY)
+    operation = factory.create(configuration)
+    assert isinstance(operation, CodingOperation) and isinstance(operation, BaseOperation)
+
+
+def test_explicit_coding_module_uses_normal_plugin_registration():
+    registry = installed_elements(
+        ("mas_plugins.coding.codex.specification", "mas_plugins.artifacts.specification")
     )
-    assert isinstance(node, CodexAgentNode) and isinstance(node, BaseNode)
+    assert registry.get_spec(ResourceCategory.OPERATION, TYPE_KEY) is CodexSpec
+    assert (
+        registry.get_spec(ResourceCategory.PROVIDER, "artifact_workspace").type_key
+        == "artifact_workspace"
+    )

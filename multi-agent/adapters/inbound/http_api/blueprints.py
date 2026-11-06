@@ -3,9 +3,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from mas.application.programs.authoring import ProgramDraft
+from mas.application.programs.blueprints import BlueprintProgramService
 from mas.core.identity import Identity
-from mas.programs.blueprints import BlueprintProgramService
-from mas.programs.models import ProgramDefinition
 from pydantic import BaseModel, ConfigDict, Field
 
 from inbound.http_api.dependencies import authenticated, get_blueprints
@@ -19,13 +19,13 @@ class BlueprintImport(BaseModel):
     execution_profile: str | None = Field(default=None, min_length=1)
 
 
-@router.put("/{program_id}/blueprint", response_model=ProgramDefinition)
+@router.put("/{program_id}/blueprint", response_model=ProgramDraft)
 async def import_blueprint(
     program_id: str,
     request: BlueprintImport,
     caller: Annotated[Identity, Depends(authenticated)],
     service: Annotated[BlueprintProgramService, Depends(get_blueprints)],
-) -> ProgramDefinition:
+) -> ProgramDraft:
     return await service.save(
         request.blueprint_id, program_id, caller, execution_profile=request.execution_profile
     )

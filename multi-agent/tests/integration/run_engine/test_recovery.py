@@ -1,11 +1,13 @@
 """Lost acknowledgments recover the exact stored request through a real Local host."""
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from mas.execution.models import ExecutionPhase, StartExecution, SubmissionState
-from mas.execution.service import ExecutionService
-from mas.programs.models import ApplicationDefinition
+from mas.application.execution.models import StartExecution
+from mas.application.execution.service import ExecutionService
+from mas.domain.execution.models import ExecutionPhase, SubmissionState
+from mas.domain.programs.models import ApplicationDefinition
 from outbound.run_engine.gateway import RunEngineGateway
 from runengine.coordination.errors import RunContractError, RunSubmissionError
 from runengine.coordination.ports import RunHost
@@ -43,6 +45,32 @@ class ReplyLossHost(RunHost):
     async def get_handle(self, run_id):
         if self.collision:
             pytest.fail("A refused collision must never grant ownership")
+        return await self.host.get_handle(run_id)
+
+    async def shutdown(self):
+        await self.host.shutdown()
+
+
+class AdmissionBarrierHost(RunHost):
+    """Hold the original admission before the native host sees it, not after acceptance."""
+
+    def __init__(self, host):
+        self.host = host
+        self.entered, self.release = asyncio.Event(), asyncio.Event()
+        self.requests = []
+
+    @property
+    def capabilities(self):
+        return self.host.capabilities
+
+    async def start(self, request):
+        self.requests.append(request.model_dump_json())
+        if len(self.requests) == 1:
+            self.entered.set()
+            await self.release.wait()
+        return await self.host.start(request)
+
+    async def get_handle(self, run_id):
         return await self.host.get_handle(run_id)
 
     async def shutdown(self):
@@ -133,6 +161,80 @@ async def test_first_start_collision_is_refused_without_adopting_foreign_executi
     ).phase == ExecutionPhase.FAILED
 
 
+async def test_another_service_cannot_redeliver_a_live_first_admission(platform):
+    host = AdmissionBarrierHost(platform.host)
+    gateway = RunEngineGateway(host, platform.compiler)
+    first = ExecutionService(platform.programs, platform.records, gateway)
+    observer = ExecutionService(platform.programs, platform.records, gateway)
+    task = asyncio.create_task(first.start(await request(platform), platform.owner))
+    try:
+        await asyncio.wait_for(host.entered.wait(), 5)
+        await observer.reconcile_pending()
+        assert len(host.requests) == 1
+        host.release.set()
+        started = await task
+        assert started.submission == SubmissionState.ACCEPTED
+        assert (
+            await observer.result(started.execution_id, platform.owner)
+        ).phase == ExecutionPhase.COMPLETED
+    finally:
+        host.release.set()
+        await task
+
+
+async def test_expired_admission_fences_the_original_owners_late_collision(platform):
+    host = AdmissionBarrierHost(platform.host)
+    gateway = RunEngineGateway(host, platform.compiler)
+    now = datetime.now(UTC)
+    first = ExecutionService(platform.programs, platform.records, gateway, clock=lambda: now)
+    recovered = ExecutionService(
+        platform.programs, platform.records, gateway, clock=lambda: now + timedelta(seconds=40)
+    )
+    task = asyncio.create_task(first.start(await request(platform), platform.owner))
+    try:
+        await asyncio.wait_for(host.entered.wait(), 5)
+        await recovered.refresh("public-id", platform.owner)
+        assert len(host.requests) == 2 and host.requests[0] == host.requests[1]
+        host.release.set()
+        started = await task
+        assert started.submission == SubmissionState.ACCEPTED
+        assert (
+            await recovered.result(started.execution_id, platform.owner)
+        ).phase == ExecutionPhase.COMPLETED
+    finally:
+        host.release.set()
+        await task
+
+
+async def test_cancellation_before_native_acceptance_survives_the_original_submission(platform):
+    host = AdmissionBarrierHost(platform.host)
+    gateway = RunEngineGateway(host, platform.compiler)
+    service = ExecutionService(platform.programs, platform.records, gateway)
+    observer = ExecutionService(platform.programs, platform.records, gateway)
+    waiting = await publish(
+        platform,
+        "cancel-before-native",
+        ApplicationDefinition(implementation="waiting", version="1"),
+    )
+    task = asyncio.create_task(
+        service.start(
+            StartExecution(program=waiting.reference, execution_id="cancel-pending"), platform.owner
+        )
+    )
+    try:
+        await asyncio.wait_for(host.entered.wait(), 5)
+        await observer.cancel("cancel-pending", platform.owner)
+        assert (await observer.get("cancel-pending", platform.owner)).cancel_requested
+        host.release.set()
+        await task
+        current = await observer.refresh("cancel-pending", platform.owner)
+        assert current.phase == ExecutionPhase.CANCELLED and current.cancel_requested
+        assert len(host.requests) == 1
+    finally:
+        host.release.set()
+        await task
+
+
 async def test_reconciliation_persists_results_without_an_http_result_reader(platform):
     submission = await request(platform)
     record = await platform.executions.start(submission, platform.owner)
@@ -198,3 +300,20 @@ async def test_reconciliation_advances_past_waiting_and_broken_records(platform,
                 break
             await asyncio.sleep(0.01)
     assert current.result == {"answer": "hello last"}
+
+
+async def test_submission_deadline_releases_claim_and_recovers_the_identical_snapshot(platform):
+    host = AdmissionBarrierHost(platform.host)
+    gateway = RunEngineGateway(host, platform.compiler)
+    service = ExecutionService(
+        platform.programs, platform.records, gateway, submission_timeout_seconds=0.05
+    )
+    submission = await request(platform)
+    pending = await service.start(submission, platform.owner)
+    assert host.entered.is_set() and pending.submission == SubmissionState.UNCONFIRMED
+    assert await platform.records.submission_claim(pending.execution_id) is None
+    await service.start(submission, platform.owner)
+    assert (
+        await service.result(pending.execution_id, platform.owner)
+    ).phase == ExecutionPhase.COMPLETED
+    assert len(host.requests) == 2 and host.requests[0] == host.requests[1]

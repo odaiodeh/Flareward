@@ -1,0 +1,1 @@
+"""Codex CLI operation plugin."""

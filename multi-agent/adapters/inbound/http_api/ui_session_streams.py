@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from mas.core.hitl.models import ApprovalDecision
 from mas.core.identity import Identity
-from mas.execution.models import TERMINAL_PHASES, ExecutionPhase
+from mas.domain.execution.models import TERMINAL_PHASES, ExecutionPhase
 from mas.interactions.models import ApprovalRulesUpdate, ApprovalSubmission, StreamCursorExpired
 from mas.interactions.rules import ApprovalRuleChange
 from mas.interactions.service import InteractionService

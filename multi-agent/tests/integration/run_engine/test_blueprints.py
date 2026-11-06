@@ -1,24 +1,24 @@
-"""Existing blueprint schemas, resolver, factories, and sessions use the new engine."""
+"""Catalog-generated blueprint contracts, factories and sessions use Run Engine."""
 
 from unittest.mock import create_autospec
 
 import pytest
 from mas.application.elements.catalog.element_registry import ElementRegistry
-from mas.application.elements.construction.resolver import ElementBundleResolver
 from mas.application.elements.construction.secrets import ConfigurationSecrets
-from mas.blueprints.models.blueprint import BlueprintDraft, BlueprintSpec
+from mas.application.execution.service import ExecutionService
+from mas.application.programs.blueprints import BlueprintProgramImporter
+from mas.application.programs.registry import ApplicationRegistry
+from mas.application.programs.service import ProgramService
 from mas.blueprints.resolver import BlueprintResolver
+from mas.blueprints.schema import blueprint_schemas
 from mas.core.caller_scope import CallerScope
-from mas.core.execution_context import ExecutionContext
-from mas.core.execution_preferences import ResourceExecutionDefaults
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution_preferences import ExecutionSelection, ResourceExecutionDefaults
+from mas.domain.programs.models import PathBinding
+from mas.elements.conditions.router_boolean.spec.spec import RouterBooleanConditionElementSpec
 from mas.elements.llms.mock.spec.spec import MockLLMElementSpec
 from mas.elements.nodes.mock_agent.spec.spec import MockAgentNodeElementSpec
-from mas.execution.service import ExecutionService
 from mas.graph.state.graph_state import GraphState
-from mas.programs.blueprints import BlueprintProgramImporter
-from mas.programs.models import ExecutionSelection, PathBinding
-from mas.programs.registry import ApplicationRegistry
-from mas.programs.service import ProgramService
 from mas.resources.models import Resource
 from mas.resources.ports import ResourceReader
 from mas.session.domain.status import SessionStatus
@@ -38,6 +38,16 @@ from runengine.coordination.targets import EnvironmentTarget
 from runengine.invocation.config import K8sRunnerConfig, ProcessRunnerConfig, ThreadRunnerConfig
 from runengine.programs.graph.inputs import GraphProgramInput
 from support.scenarios import run
+
+BLUEPRINT_ELEMENTS = ElementRegistry()
+for specification in (
+    MockAgentNodeElementSpec,
+    MockLLMElementSpec,
+    RouterBooleanConditionElementSpec,
+):
+    BLUEPRINT_ELEMENTS.register_spec_class(specification)
+BLUEPRINT_SCHEMAS = blueprint_schemas(BLUEPRINT_ELEMENTS)
+BlueprintDraft, BlueprintSpec = BLUEPRINT_SCHEMAS.draft, BLUEPRINT_SCHEMAS.resolved
 
 
 class NoExternalResources:
@@ -89,7 +99,7 @@ async def test_existing_blueprint_runs_with_factories_and_session_state(platform
     programs = ProgramService(
         MemoryProgramRepository(),
         applications,
-        ElementBundleResolver(elements),
+        elements,
         ConfigurationSecrets(elements, None),
     )
     definition = BlueprintProgramImporter(elements).convert(
@@ -98,7 +108,11 @@ async def test_existing_blueprint_runs_with_factories_and_session_state(platform
         owner=platform.owner,
     )
     await programs.save(definition, platform.owner)
-    revision = await programs.publish(definition.program_id, platform.owner)
+    revision = await programs.publish(
+        definition.program_id,
+        platform.owner,
+        expected_version=(await programs.draft(definition.program_id, platform.owner)).version,
+    )
     compiler = ProgramCompiler(
         programs, elements, applications, {"thread": ThreadRunnerConfig()}, "thread"
     )
@@ -182,7 +196,11 @@ async def test_imported_resource_preference_obeys_step_program_and_platform_prec
         )
         definition = definition.model_copy(update={"implementation": graph})
     await platform.programs.save(definition, platform.owner)
-    revision = await platform.programs.publish("placed", platform.owner)
+    revision = await platform.programs.publish(
+        "placed",
+        platform.owner,
+        expected_version=(await platform.programs.draft("placed", platform.owner)).version,
+    )
     compiled = await platform.compiler.compile(
         revision, platform.owner, ExecutionContext(identity=platform.owner)
     )
@@ -223,7 +241,11 @@ async def test_reused_resource_has_independent_step_placement_without_mutation(
     ]
     assert blueprint.nodes[0].execution.profile == "thread"
     await platform.programs.save(definition, platform.owner)
-    revision = await platform.programs.publish("reused", platform.owner)
+    revision = await platform.programs.publish(
+        "reused",
+        platform.owner,
+        expected_version=(await platform.programs.draft("reused", platform.owner)).version,
+    )
     result = await run(platform, revision, GraphState(user_prompt="Placed").model_dump(mode="json"))
     assert result.result["nodes_output"] == {
         first.uid: "Mock echo: Placed",
@@ -242,7 +264,11 @@ async def test_blueprint_named_environment_preserves_ownership_and_validates_bac
         blueprint, program_id="environment", owner=platform.owner
     )
     await platform.programs.save(definition, platform.owner)
-    revision = await platform.programs.publish("environment", platform.owner)
+    revision = await platform.programs.publish(
+        "environment",
+        platform.owner,
+        expected_version=(await platform.programs.draft("environment", platform.owner)).version,
+    )
     target = (
         K8sRunnerConfig(image="fixture-receiver:immutable") if supported else ProcessRunnerConfig()
     )
@@ -275,15 +301,51 @@ async def test_unapproved_resource_preference_fails_before_dispatch(platform, bl
     blueprint.nodes[0].execution = ResourceExecutionDefaults(profile="unapproved")
     definition = blueprint_importer.convert(blueprint, program_id="denied", owner=platform.owner)
     await platform.programs.save(definition, platform.owner)
-    revision = await platform.programs.publish("denied", platform.owner)
+    revision = await platform.programs.publish(
+        "denied",
+        platform.owner,
+        expected_version=(await platform.programs.draft("denied", platform.owner)).version,
+    )
     with pytest.raises(ValueError, match="not approved: unapproved"):
         await platform.compiler.compile(
             revision, platform.owner, ExecutionContext(identity=platform.owner)
         )
 
 
+def test_blueprint_import_refuses_unmapped_conditional_dependencies(
+    blueprint_importer, application
+):
+    draft = BlueprintDraft.model_validate(
+        {
+            **resolved_blueprint().model_dump(),
+            "conditions": [
+                {
+                    "rid": "route",
+                    "name": "Route",
+                    "type": "router_boolean",
+                    "config": {"type": "router_boolean", "boolean_value": True},
+                }
+            ],
+            "plan": [
+                {
+                    "uid": "respond",
+                    "node": "agent",
+                    "exit_condition": "route",
+                    "branches": {"true": "finish", "false": "finish"},
+                },
+                {"uid": "other", "node": "agent", "after": "respond"},
+                {"uid": "finish", "node": "agent", "after": ["respond", "other"]},
+            ],
+        }
+    )
+    resolved = BlueprintResolver(NoExternalResources(), spec_schema=BlueprintSpec).resolve(draft)
+    with pytest.raises(ValueError, match="declared branch target"):
+        blueprint_importer.convert(resolved, program_id="unmapped", owner=application.owner)
+
+
+@pytest.mark.parametrize("after_branch", [True, False])
 async def test_inline_condition_preference_is_imported_and_runs_in_a_process(
-    platform, blueprint_importer
+    platform, blueprint_importer, after_branch
 ):
     draft = BlueprintDraft.model_validate(
         {
@@ -304,15 +366,20 @@ async def test_inline_condition_preference_is_imported_and_runs_in_a_process(
                     "exit_condition": "route",
                     "branches": {"true": "finish", "false": "finish"},
                 },
-                {"uid": "finish", "node": "agent", "after": "respond"},
+                {"uid": "finish", "node": "agent", "after": "respond" if after_branch else None},
             ],
         }
     )
     resolved = BlueprintResolver(NoExternalResources(), spec_schema=BlueprintSpec).resolve(draft)
     definition = blueprint_importer.convert(resolved, program_id="condition", owner=platform.owner)
     assert definition.implementation.conditions[0].execution.profile == "process"
+    assert not definition.implementation.edges.get("respond")
     await platform.programs.save(definition, platform.owner)
-    revision = await platform.programs.publish("condition", platform.owner)
+    revision = await platform.programs.publish(
+        "condition",
+        platform.owner,
+        expected_version=(await platform.programs.draft("condition", platform.owner)).version,
+    )
     compiled = await platform.compiler.compile(
         revision, platform.owner, ExecutionContext(identity=platform.owner)
     )

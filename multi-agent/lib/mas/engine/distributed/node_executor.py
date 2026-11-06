@@ -14,12 +14,13 @@ Celery, …) gets session-level traces for free — adapters stay thin.
 """
 from typing import Any, Dict, Optional
 
+from mas.application.execution.context import ExecutionContextHolder
+from mas.application.programs.graph_elements import SupportsStepContext
 from mas.blueprints.models.blueprint import BlueprintSpec
-from mas.core.contracts import SupportsStepContext
 from mas.core.enums import ResourceCategory
-from mas.core.execution_context import ExecutionContext, ExecutionContextHolder
 from mas.core.runtime_binder import NodeRuntimeBinder, NodeRuntimeBindings
 from mas.core.tracing import TracingService
+from mas.domain.execution.context import ExecutionContext
 from mas.graph.models.step_context import StepContext
 from mas.graph.state.graph_state import GraphState
 from mas.session.building.workflow_session_factory import WorkflowSessionFactory

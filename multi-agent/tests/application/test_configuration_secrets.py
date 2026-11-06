@@ -8,19 +8,19 @@ from unittest.mock import create_autospec
 import pytest
 from mas.application.elements.construction.resolver import ElementBundleResolver
 from mas.application.elements.construction.secrets import ConfigurationSecrets
+from mas.application.programs.blueprints import (
+    BlueprintProgramImporter,
+    BlueprintProgramService,
+    BlueprintSource,
+)
+from mas.application.programs.service import ProgramContractError
 from mas.core.auth.credentials.ports import TokenCipher
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
 from mas.core.resource_models import ResourceSpec, StepDef
 from mas.core.secrets import is_secret_reference, protected_configuration, sensitive_fields
 from mas.domain.element_bundles import BundleEntry, ElementBundle
-from mas.programs.blueprints import (
-    BlueprintProgramImporter,
-    BlueprintProgramService,
-    BlueprintSource,
-)
-from mas.programs.models import ApplicationDefinition, ProgramDefinition
-from mas.programs.service import ProgramContractError
+from mas.domain.programs.models import ApplicationDefinition, ProgramDefinition
 from mas.resources.field_encryption import ResourceFieldEncryption
 from pydantic import BaseModel, Field, SecretStr
 from support.application import make_application
@@ -153,9 +153,15 @@ async def test_application_publication_protects_nested_element_bundles():
         ),
     )
     saved = await application.programs.save(definition, application.owner)
-    published = await application.programs.publish(definition.program_id, application.owner)
+    published = await application.programs.publish(
+        definition.program_id,
+        application.owner,
+        expected_version=(
+            await application.programs.draft(definition.program_id, application.owner)
+        ).version,
+    )
     assert "private-value" not in saved.model_dump_json() + published.model_dump_json()
-    portable = InvokeConfig.model_validate(saved.implementation.config).bundle
+    portable = InvokeConfig.model_validate(saved.definition.implementation.config).bundle
     assert portable.content_digest != bundle.content_digest
     assert (
         ElementBundleResolver(application.elements).resolve(
@@ -226,6 +232,7 @@ async def test_blueprint_import_protects_actual_secretstr_value_instead_of_its_m
         retrievers=[],
         conditions=[],
         sandboxes=[],
+        operations=[],
     )
     service = BlueprintProgramService(
         source, BlueprintProgramImporter(application.elements), application.programs
@@ -233,7 +240,9 @@ async def test_blueprint_import_protects_actual_secretstr_value_instead_of_its_m
     imported = await service.save("source-blueprint", "imported", application.owner)
     source.resolve.assert_awaited_once_with("source-blueprint", application.owner)
     tool = next(
-        resource for resource in imported.implementation.resources if resource.key.rid == "private"
+        resource
+        for resource in imported.definition.implementation.resources
+        if resource.key.rid == "private"
     )
     assert "private-value" not in imported.model_dump_json()
     assert (

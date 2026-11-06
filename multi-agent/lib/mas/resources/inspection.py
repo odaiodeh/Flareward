@@ -1,18 +1,46 @@
-"""Async authoring inspection contracts independent of storage, HTTP, and execution SDKs."""
+"""Owned inspection ports and explicit configuration views, independent of probe SDKs."""
 
+from dataclasses import dataclass
+from enum import StrEnum
 from typing import Protocol
 
 from pydantic import JsonValue
 
 from mas.application.elements.validation import ElementValidationResult
+from mas.core.caller_scope import CallerScope
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
 from mas.domain.element_card import ElementCard
+from mas.resources.authoring import ResourceRecord
 
 
-class ResourceInspection(Protocol):
+class InspectionMode(StrEnum):
+    OWNER = "owner"
+    CURATED_BASE = "curated_base"
+
+
+@dataclass(frozen=True)
+class InspectionContext:
+    owner: Identity
+    credential_user_id: str = ""
+    mode: InspectionMode = InspectionMode.OWNER
+
+    @property
+    def scope(self) -> CallerScope:
+        # Curated-base inspection must not substitute a caller's private overlay.
+        return CallerScope(
+            identity=self.owner if self.mode == InspectionMode.OWNER else None,
+            is_admin=self.mode == InspectionMode.CURATED_BASE,
+        )
+
+
+class InspectionResourceReader(Protocol):
+    async def get(self, rid: str) -> ResourceRecord: ...
+
+
+class ResourceProbe(Protocol):
     async def validate(
-        self, rids: list[str], caller: Identity, *, credential_user_id: str, timeout_seconds: float
+        self, rids: list[str], context: InspectionContext, *, timeout_seconds: float
     ) -> list[ElementValidationResult]: ...
 
     async def validate_config(
@@ -20,11 +48,12 @@ class ResourceInspection(Protocol):
         category: ResourceCategory,
         type_key: str,
         config: dict[str, JsonValue],
-        caller: Identity,
+        context: InspectionContext,
         *,
         name: str | None,
-        credential_user_id: str,
         timeout_seconds: float,
     ) -> ElementValidationResult: ...
 
-    async def cards(self, rids: list[str], caller: Identity) -> dict[str, ElementCard]: ...
+    async def cards(
+        self, rids: list[str], context: InspectionContext
+    ) -> dict[str, ElementCard]: ...

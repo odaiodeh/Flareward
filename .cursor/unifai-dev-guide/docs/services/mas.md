@@ -266,8 +266,8 @@ The configured default is **Background (Temporal)** — `engine_name=temporal`.
 |--------|------|--------|
 | GET | `/actions/actions.list` | list available actions |
 | POST | `/actions/action.execute` | async typed action execution; retained Flask adapter uses its legacy bridge |
-| GET | `/statistics/stats.get` | user dashboard |
-| GET | `/statistics/stats.system.get` | admin analytics |
+| GET | `/reporting/overview` | user dashboard |
+| GET | `/reporting/system` | admin analytics |
 | POST | `/credentials/exchange` | OAuth code exchange |
 | GET | `/credentials/status` | credential health |
 | POST | `/credentials/client-config.save` | OAuth client config |
@@ -282,7 +282,7 @@ The configured default is **Background (Temporal)** — `engine_name=temporal`.
 |------|------|--------|
 | `ResourcesService` | CRUD with schema validation, dependency resolution, auth credential cleanup. Delete-guarded: cannot remove resources in use by blueprints. | — |
 | `TemplateService` | create, instantiate (preview), materialize (saves blueprint + resources). Placeholder substitution engine. Text search index for catalog browsing. | — |
-| `StatisticsService` | facade over BlueprintService, SessionService, ResourcesService. User scope + admin system-wide analytics. No own persistence. | — |
+| `ReportingService` | native async reporting over ReportingReader and AdministratorPolicy; selected-owner overview and human-admin root-execution analytics. Stored projections are not verified acceptance. | — |
 | `ActionsService` | Explicit instance registrations, metadata filtering and async typed execution. Auth use cases and provider/model/RAG probes linked by (category, type). | — |
 
 ## File Path Patterns
@@ -392,7 +392,7 @@ Port: `TemplateRepository`. Service: `TemplateService` — create, instantiate (
 
 **statistics — Dashboard Aggregation**
 
-`StatisticsService` — facade over BlueprintService, SessionService, ResourcesService. User scope + admin system-wide analytics. No own persistence.
+`ReportingService` — native async reporting over ReportingReader and AdministratorPolicy; selected-owner overview and human-admin root-execution analytics. Stored projections are not verified acceptance.
 
 **actions — Discoverable Operations**
 
@@ -511,7 +511,7 @@ These are the base classes and ABCs that new code should extend or implement:
 | `BlueprintRepository (ABC)` | `lib/mas/blueprints/repository/repository.py` | Port for blueprint persistence (identity-scoped) |
 
 - `BlueprintService` calls: `BlueprintRepository`, `BlueprintResolver`, `ElementValidationService`, `AuthService`
-- `BlueprintService` called by: `HTTP: /blueprints/`, `UserSessionManager`, `TemplateService`, `ShareService`, `ShareCloner`, `StatisticsService`
+- `BlueprintService` called by: `HTTP: /blueprints/`, `UserSessionManager`, `TemplateService`, `ShareService`, `ShareCloner`
 
 ### Graph Planning & Validation
 
@@ -548,7 +548,7 @@ These are the base classes and ABCs that new code should extend or implement:
 | `SessionLifecycle` | `lib/mas/session/execution/lifecycle.py` | Persisted status transitions (PENDING→QUEUED→RUNNING→COMPLETED/FAILED/CANCELLED) |
 
 - `SessionService` calls: `UserSessionManager`, `BackgroundSessionEngine`, `ForegroundSessionRunner`, `SessionInputProjector`
-- `SessionService` called by: `HTTP: /sessions/`, `SessionWorkflow`, `StatisticsService`
+- `SessionService` called by: `HTTP: /sessions/`, `SessionWorkflow`
 - `UserSessionManager` calls: `WorkflowSessionFactory`, `BlueprintService`, `SessionRepository`
 - `UserSessionManager` called by: `SessionService`
 - `WorkflowSessionFactory` calls: `SessionElementBuilder`, `GraphBuilderFactory`, `PlanBuilder`
@@ -578,7 +578,7 @@ These are the base classes and ABCs that new code should extend or implement:
 | `ElementValidationService` | `lib/mas/validation/service.py` | Validates element configs (connectivity, credentials, deps) via per-spec validators |
 
 - `ResourcesService` calls: `ResourcesRegistry`, `ElementValidationService`, `AuthService`, `ElementCardService`
-- `ResourcesService` called by: `HTTP: /resources/`, `ShareService`, `TemplateService`, `ShareCloner`, `ResourceMaterializer`, `StatisticsService`
+- `ResourcesService` called by: `HTTP: /resources/`, `ShareService`, `TemplateService`, `ShareCloner`, `ResourceMaterializer`
 - `AuthService` calls: `AuthStrategyRegistry`, `CredentialStore`, `ServerConfigStore`, `AuthDetector`
 - `AuthService` called by: `ResourcesService`, `BlueprintService`, `ProviderBuilder`
 - `OAuth2Strategy` calls: `HttpxAuthClient`, `FlowStateStore`, `OAuthStateManager`
@@ -610,15 +610,15 @@ These are the base classes and ABCs that new code should extend or implement:
 | `TemplateService` | `lib/mas/templates/service.py` | CRUD + instantiate (preview) + materialize (saves blueprint + resources in one step) |
 | `TemplateInstantiator` | `lib/mas/templates/instantiation/instantiator.py` | Placeholder substitution engine: fills template draft with user inputs |
 | `ResourceMaterializer` | `lib/mas/templates/instantiation/resource_materializer.py` | Creates actual resources from template placeholder values during materialize |
-| `StatisticsService` | `lib/mas/statistics/service.py` | Facade: user stats + admin system analytics. No own persistence. |
+| `ReportingService` | `lib/mas/application/reporting/service.py` | Application authorization, UTC time scope, pinned revision labels and operational completion through ReportingReader. |
 | `ActionsService` | `lib/mas/application/actions/service.py` | Instance-owned catalog and async typed action dispatch; injected by `bootstrap.actions` |
 
 - `ShareService` calls: `ShareCloner`, `ShareRepository`, `IdentityProvider`
 - `ShareService` called by: `HTTP: /shares/`
 - `TemplateService` calls: `TemplateRepository`, `TemplateInstantiator`, `ResourceMaterializer`, `BlueprintService`, `ElementRegistry`
 - `TemplateService` called by: `HTTP: /templates/`
-- `StatisticsService` calls: `BlueprintService`, `SessionService`, `ResourcesService`
-- `StatisticsService` called by: `HTTP: /statistics/`
+- `ReportingService` calls: `ReportingReader`, `AdministratorPolicy`, `ProgramRepository`
+- `ReportingService` called by: `HTTP: /reporting/`
 
 ### Inbound Adapters — Temporal
 

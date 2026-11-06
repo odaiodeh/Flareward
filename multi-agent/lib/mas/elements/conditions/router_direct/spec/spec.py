@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..config import RouterDirectConditionConfig
@@ -9,7 +9,7 @@ from ..router import RouterDirectCondition
 from ..router_condition_factory import RouterDirectConditionFactory
 
 
-class RouterDirectConditionElementSpec(BaseElementSpec):
+class RouterDirectConditionElementSpec(GraphElementSpec):
     """Element specification for Router Direct Condition."""
 
     category: ClassVar[ResourceCategory] = ResourceCategory.CONDITION

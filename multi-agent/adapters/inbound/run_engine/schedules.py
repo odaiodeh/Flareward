@@ -1,7 +1,7 @@
 """One recurring tick executes its program inside the generic engine's owning run."""
 
-from mas.core.execution_context import ExecutionContext
-from mas.execution.models import PreparedExecution
+from mas.application.execution.models import PreparedExecution
+from mas.domain.execution.context import ExecutionContext
 from mas.scheduling.admission import scheduled_execution_id
 from pydantic import JsonValue
 from run_engine.models import ProgramPayload
@@ -14,7 +14,7 @@ from runengine.invocation.models import InvocationRequest
 
 from inbound.run_engine.programs import execute_program
 
-__runengine_contract__ = "unifai-scheduled-program-v1"
+__runengine_contract__ = "unifai-scheduled-program-v2"
 
 
 async def execute_scheduled_program(
@@ -50,12 +50,15 @@ async def execute_scheduled_program(
         format=template.format,
         payload_json=actual_request.model_dump_json(),
         location=template.location,
+        work_limits=template.work_limits,
+        admitted_profiles=template.admitted_profiles,
+        placement=template.placement,
     )
     admitted = await operations.invoke(
         InvocationRequest(
             function=action.admission,
             kwargs={
-                "definition": action.registration.definition.model_dump(mode="json"),
+                "registration": action.registration.model_dump(mode="json"),
                 "context": context.model_dump(mode="json"),
                 "prepared": prepared.model_dump(mode="json"),
             },

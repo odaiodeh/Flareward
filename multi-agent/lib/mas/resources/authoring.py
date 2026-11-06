@@ -1,24 +1,29 @@
 """Native resource editing keeps application policy separate from storage and element factories."""
 
 import asyncio
+import hashlib
+import json
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from pydantic import BaseModel, Field, JsonValue, ValidationError
 
 from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.application.elements.construction.snapshots import SourcedResource
 from mas.core.async_work import await_owned
 from mas.core.caller_scope import CallerScope
 from mas.core.enums import ResourceCategory, ResourceOwnership, ResourceVisibility
-from mas.core.execution_preferences import ResourceExecutionDefaults
 from mas.core.identity import Identity
-from mas.core.ref import RefWalker
+from mas.core.secrets import authored_configuration
+from mas.domain.element_bundles import ResourceDefinition, ResourceKey, ResourceSourceRef
+from mas.domain.execution_preferences import ResourceExecutionDefaults
 from mas.resources.access import require_custom_write, require_visible
 from mas.resources.builtin_models import (
     BuiltinResourceDescriptor,
     BuiltinUserConfig,
     identity_to_key,
 )
+from mas.resources.configuration import ResourceConfiguration
 from mas.resources.errors import ResourceConflictError, ResourceInUseError
 from mas.resources.field_encryption import ResourceFieldEncryption
 from mas.resources.models import Resource
@@ -27,12 +32,14 @@ from mas.resources.models import Resource
 class ResourceRecord(BaseModel):
     resource: Resource
     descriptor: BuiltinResourceDescriptor | None = None
+    storage_revision: int = Field(default=0, ge=0)
 
 
 class ResourceView(Resource):
     ownership: ResourceOwnership
     visibility: ResourceVisibility | None = None
     user_configured: bool = False
+    source: ResourceSourceRef | None = None
 
 
 class ResourcePage(BaseModel):
@@ -78,8 +85,9 @@ class ResourceAuthoringService:
     ) -> None:
         self._repository, self._elements, self._fields = repository, elements, fields
         self._overlays = overlays
+        self._configuration = ResourceConfiguration(elements, fields)
 
-    def schema(self, category: ResourceCategory, type_key: str) -> dict:
+    def schema(self, category: ResourceCategory, type_key: str) -> dict[str, Any]:
         return self._elements.get_schema_json(category, type_key)
 
     async def create(
@@ -92,7 +100,7 @@ class ResourceAuthoringService:
         config: dict[str, JsonValue],
         execution: ResourceExecutionDefaults | None = None,
     ) -> ResourceView:
-        encrypted, references = await self._prepare(category, type_key, config)
+        encrypted, references = await self._configuration.prepare(category, type_key, config)
         resource = Resource(
             identity=caller,
             category=category,
@@ -113,7 +121,48 @@ class ResourceAuthoringService:
             if entry.descriptor is not None and self._overlays is not None
             else None
         )
-        return await await_owned(asyncio.to_thread(self._view, entry, overlay))
+        return await await_owned(asyncio.to_thread(self._view, entry, overlay, caller))
+
+    async def resolve_source(self, key: ResourceKey, caller: Identity) -> SourcedResource:
+        entry = await self._repository.get(key.rid)
+        require_visible(entry.resource, entry.descriptor, CallerScope(identity=caller))
+        resource = entry.resource
+        if resource.category != key.category:
+            raise KeyError(key.rid)
+        overlay = (
+            await self._overlays.get(key.rid, identity_to_key(caller))
+            if entry.descriptor is not None and self._overlays is not None
+            else None
+        )
+
+        def resolve() -> SourcedResource:
+            reference = self._source_reference(entry, overlay, caller)
+            if reference is None:
+                raise ValueError("Saved-resource implementation is unavailable")
+            config = self._fields.decrypt(resource.cfg_dict)
+            if entry.descriptor is not None:
+                config = self._fields.strip_unconfigured_secrets(
+                    resource.category, resource.type, config
+                )
+                if overlay is not None:
+                    config.update(self._fields.decrypt(self._allowed_fields(entry, overlay.fields)))
+            specification = self._elements.get_spec(resource.category, resource.type)
+            try:
+                configuration = specification.config_schema.model_validate(config, by_name=True)
+            except ValidationError:
+                raise ValueError("Invalid saved-resource configuration") from None
+            return SourcedResource(
+                reference,
+                ResourceDefinition(
+                    key=key,
+                    type_key=resource.type,
+                    name=resource.name,
+                    config=authored_configuration(configuration),
+                    implementation_version=specification.version,
+                ),
+            )
+
+        return await await_owned(asyncio.to_thread(resolve))
 
     async def list(
         self,
@@ -142,7 +191,9 @@ class ResourceAuthoringService:
         )
         views = await await_owned(
             asyncio.to_thread(
-                lambda: [self._view(entry, overlays.get(entry.resource.rid)) for entry in entries]
+                lambda: [
+                    self._view(entry, overlays.get(entry.resource.rid), caller) for entry in entries
+                ]
             )
         )
         return ResourcePage(
@@ -163,7 +214,9 @@ class ResourceAuthoringService:
         execution: ResourceExecutionDefaults | None = None,
     ) -> ResourceView:
         previous = await self._writable(rid, caller, expected_version)
-        encrypted, references = await self._prepare(previous.category, previous.type, config)
+        encrypted, references = await self._configuration.prepare(
+            previous.category, previous.type, config
+        )
         updated = Resource.model_validate(
             {
                 **dict(previous),
@@ -205,6 +258,12 @@ class ResourceAuthoringService:
             )
         return overlay
 
+    async def configuration_schema(self, rid: str, caller: Identity) -> dict[str, Any]:
+        entry = await self._public_builtin(rid, caller)
+        return self._configuration.schema(
+            entry.resource.category, entry.resource.type, configurable_only=True
+        )
+
     async def configure(
         self,
         rid: str,
@@ -224,7 +283,7 @@ class ResourceAuthoringService:
         if not filtered or filtered.keys() != config.keys():
             raise ValueError("Provide only caller-configurable fields")
 
-        def prepare() -> dict:
+        def prepare() -> dict[str, JsonValue]:
             base = self._fields.strip_unconfigured_secrets(
                 entry.resource.category,
                 entry.resource.type,
@@ -281,7 +340,9 @@ class ResourceAuthoringService:
             raise ValueError("Built-in configuration is not enabled")
         return self._overlays
 
-    def _allowed_fields(self, entry: ResourceRecord, config: dict) -> dict:
+    def _allowed_fields(
+        self, entry: ResourceRecord, config: dict[str, JsonValue]
+    ) -> dict[str, JsonValue]:
         configurable, _ = self._fields.scan_schema_hints(
             entry.resource.category, entry.resource.type
         )
@@ -290,23 +351,11 @@ class ResourceAuthoringService:
         )
         return {name: value for name, value in config.items() if name in allowed}
 
-    async def _prepare(
-        self, category: ResourceCategory, type_key: str, config: dict[str, JsonValue]
-    ) -> tuple[dict, list[str]]:
-        schema = self._elements.get_schema(category, type_key)
-
-        def normalize() -> tuple[dict, list[str]]:
-            try:
-                model = schema.model_validate(self._fields.decrypt(config), by_name=True)
-            except ValidationError:
-                raise ValueError(f"Invalid configuration for {type_key}") from None
-            references = sorted(set(RefWalker.external_rids(model)))
-            return self._fields.encrypt_model(model), references
-
-        return await await_owned(asyncio.to_thread(normalize))
-
     def _view(
-        self, entry: ResourceRecord, overlay: BuiltinUserConfig | None = None
+        self,
+        entry: ResourceRecord,
+        overlay: BuiltinUserConfig | None = None,
+        caller: Identity | None = None,
     ) -> ResourceView:
         data = entry.resource.model_dump(mode="python")
         if entry.descriptor is not None:
@@ -323,4 +372,28 @@ class ResourceAuthoringService:
             visibility=entry.descriptor.visibility if entry.descriptor is not None else None,
             user_configured=overlay is not None
             and bool(self._allowed_fields(entry, overlay.fields)),
+            source=self._source_reference(entry, overlay, caller or entry.resource.identity),
+        )
+
+    def _source_reference(
+        self, entry: ResourceRecord, overlay: BuiltinUserConfig | None, caller: Identity
+    ) -> ResourceSourceRef | None:
+        resource = entry.resource
+        try:
+            specification = self._elements.get_spec(resource.category, resource.type)
+        except KeyError:
+            return None
+        tokens = [
+            identity_to_key(caller),
+            resource.category.value,
+            resource.rid,
+            resource.version,
+            specification.version,
+            entry.descriptor.model_dump(mode="json") if entry.descriptor else None,
+            [overlay.version, overlay.updated.isoformat()] if overlay else None,
+        ]
+        encoded = json.dumps(tokens, sort_keys=True, separators=(",", ":")).encode()
+        return ResourceSourceRef(
+            key=ResourceKey(category=resource.category, rid=resource.rid),
+            revision=hashlib.sha256(encoded).hexdigest(),
         )

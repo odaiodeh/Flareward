@@ -10,6 +10,9 @@ import AgenticChats from "@/pages/AgenticChats";
 
 import AgenticTemplates from "@/pages/AgenticTemplates";
 import ScheduledWorkflows from "@/pages/ScheduledWorkflows";
+import HumanReviews from "@/pages/HumanReviews";
+import Programs from "@/pages/Programs";
+import Execution from "@/pages/Execution";
 import GetToKnow from "@/pages/GetToKnow";
 import Analytics from "@/pages/Analytics";
 import NotFound from "@/pages/not-found";
@@ -41,12 +44,16 @@ function AppRoutes() {
   const [isAgenticChatsSession] = useRoute("/agentic-chats/:sessionId");
   const [isTemplates] = useRoute("/templates");
   const [isScheduledWorkflows] = useRoute("/scheduled-workflows");
+  const [isReviews] = useRoute("/reviews");
+  const [isReview] = useRoute("/reviews/:reviewId");
+  const [isPrograms] = useRoute("/programs");
+  const [isExecution] = useRoute("/executions/:executionId");
   const [isRagOverview] = useRoute("/rag-overview");
   const [isSlack] = useRoute("/slack");
   const [isDocuments] = useRoute("/documents");
   const [isSlackAddSource] = useRoute("/slack/add-source");
 
-  const isAgenticRoute = isAgenticOverview || isAgenticAI || isInventory || isAgenticChats || isAgenticChatsSession || isTemplates || isScheduledWorkflows;
+  const isAgenticRoute = isAgenticOverview || isAgenticAI || isInventory || isAgenticChats || isAgenticChatsSession || isTemplates || isScheduledWorkflows || isReviews || isReview || isPrograms || isExecution;
   const isTeamBlockedRagRoute =
     viewMode === "team" &&
     (isRagOverview || isSlack || isDocuments || isSlackAddSource);
@@ -70,6 +77,10 @@ function AppRoutes() {
             <Route path="/agentic-chats/:sessionId" component={AgenticChats} />
             <Route path="/agentic-chats" component={AgenticChats} />
             <Route path="/scheduled-workflows" component={ScheduledWorkflows} />
+            <Route path="/reviews/:reviewId" component={HumanReviews} />
+            <Route path="/reviews" component={HumanReviews} />
+            <Route path="/programs" component={Programs} />
+            <Route path="/executions/:executionId" component={Execution} />
             <Route path="/templates" component={AgenticTemplates} />
           </Switch>
         </AgenticAIProvider>

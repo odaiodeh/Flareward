@@ -3,6 +3,232 @@
 Tests follow the application's dependency direction and use small, explicit
 compositions rather than a shared test superclass.
 
+Use focused checks while implementing and reserve expensive Docker/Temporal/
+Kubernetes/OpenShell/full E2E gates for planned milestones. Batch related changes
+and do not repeat green heavy gates without a relevant reason. The user's
+[verification cadence](../../docs/plan.md#verification-cadence)
+governs selection; the suite examples below are not a per-edit checklist.
+
+Generic element cold-import checks also initialize catalog/construction without
+loading `mas.graph`. Graph channel declarations specialize `GraphElementSpec`;
+`application/test_graph_element_contracts.py` checks separation, metadata validity
+and dependency-versus-workflow semantics. Adapter payload tests distinguish an
+operation key from graph context. The shared typed-operation fixture deliberately
+has a coincidentally named `set_context` method which must never receive graph
+injection. Actual graph/code thread/process cases exercise that boundary.
+
+Program/domain boundary checks cold-import definitions and pure bindings without
+loading application services, plugins or SDKs. Retired import paths must remain
+unavailable. Program services/ports/registrations live under `mas.application.programs`;
+shared values come directly from domain owners. Image verification also checks
+the installed canonical imports and absent old namespaces before remote execution.
+Execution values cold-import from `mas.domain.execution` without loading application
+delivery models or mutable runtime holders. `domain/test_execution_context.py`
+checks explicit identity, rejected unknown fields/live objects, and separation of
+team ownership from the acting credential user. Submission/services/ports and
+receiver-local holders live in `mas.application.execution`.
+
+Core composition shares installed pure child programs/definitions in
+`support/composition.py`. `application/test_composition.py` controls child lifetimes
+through owned ports to check bounds, ordering, failure/cancellation, strict loop
+predicates, branch admission and deadlines. `integration/run_engine/test_composition.py`
+executes pinned graph/code/operation children on actual Local thread/process
+receivers. `integration/temporal/test_composition.py` replays descendant histories,
+executes nested Map/Repeat and restarts a worker during Wait. The production
+TypeScript program clients run through `integration/ui/test_editor_client.py
+--ui-clients`; the actual App browser fixture is `support/program_browser.py`.
+Shared signed-session server settings live in `support/native_settings.py`, separate
+from business policy fixtures. These are initial composer/core-program cases, not
+full visual-editor, Map worker-loss or remote environment evidence.
+
+The draft/publication boundary uses `domain/test_program_publication.py` and
+`application/test_draft_validation.py`: incomplete topology can persist, executable
+revisions remain complete, typed configuration/secrets stay protected and readiness
+is fenced by observed version. `support/program_store_contracts.py` checks both
+memory and Mongo. `support/program_authoring.py` shares public HTTP assertions
+between ASGI-memory and actual TCP/Mongo/thread/process cases, including execution
+of a pinned older revision after later incomplete edits. The TypeScript program
+suite checks the production validation client. Readiness is not placement admission
+or native engine-plan validation; broader execution tests remain necessary.
+
+Saved-resource capture shares `support/resource_snapshots.py` for application-owned
+source doubles and `support/library_resources.py` for native resource creation.
+Application tests cover authorized closure, source races, explicit shared adoption
+and protected-reference reuse. Native Mongo/HTTP cases execute frozen operation
+and agent snapshots on thread/process receivers, including caller-only built-in
+overlays. `support/construction_values.py` supplies deep-chain data for iterative
+bundle integrity/resolution and depth admission, including the all-selected-roots
+bypass regression. These bounds do not establish execution-tree budgets.
+
+Human Review scenarios share `support/reviews.py` for application-port doubles,
+`support/review_programs.py` for ordinary bundles/program calls and
+`support/review_api.py` for real signed-cookie users and private workflow access.
+`application/test_reviews.py` and `test_review_program.py` cover immutable decisions,
+schema admission, lifecycle, lost acknowledgements, untrusted wakeups and bounded
+waiting. `integration/reviews/test_workflow.py` exercises graph/code callers on
+thread/process receivers plus native expiry/cancellation/supersession and scope
+denial. `integration/temporal/test_reviews.py` stops the worker during an observed
+native timer, accepts a human decision while it is stopped, restarts both API and
+worker, and replays root/child histories. Its finalizer cleans only accepted native
+identities from that test's unique Mongo database after worker contexts exit.
+`integration/ui/test_editor_client.py --ui-clients` executes production reviewer
+TypeScript exports. `support/review_browser.py` renders the actual App and executes
+a real workflow with an assigned reviewer; see the Human Review diagnostic skill.
+These cases do not prove retained remote environment behavior or a complete visual
+program editor.
+
+Automatic manual/canonical Session admission shares `support/managed_access.py`,
+which starts the actual API without pre-issued grants or test-written token files.
+`integration/http/test_workflow_admission.py` exercises both purposes on thread/
+process receivers, frozen human approval, invalid scopes and terminal collection.
+The production TypeScript manual/Session clients run through the `workflow_access`
+cases in `integration/ui/test_editor_client.py --ui-clients`. The older review/
+verification API fixtures deliberately pre-issue access for purpose-specific
+scenarios; they do not prove automatic admission. Recurring consent shares
+`support/workflow_consents.py` for memory/Mongo contracts; application cases check
+expiry, revocation, superseded definitions, lost acknowledgement and original actor
+binding. `deployment/test_scheduled_workflow_access.py` uses actual Temporal
+thread/process receivers, worker restart during review, replay, managed cleanup
+and a denied direct native tick after revocation. Production schedule clients use
+the `schedule_consent` case in the UI client suite. Multi-purpose partial admission
+uses actual stores in `integration/mongo/test_workflow_admission.py`; the fault is
+at the issuer port, not a substitute persistence/execution implementation.
+`deployment/test_managed_workflow_recovery.py` runs two roots with both purposes,
+duplicate concurrent requests and an API restart while the worker remains live.
+Its shared application-only graph/scopes live in `support/managed_workflow.py`.
+The borrowed listening socket belongs to the test and outlives both API processes;
+normal `api_process` calls continue owning their own sockets. Independent root
+cleanup and thread/process replay are checked. Remaining recovery combinations,
+provider-specific ingress and isolated remote acceptance remain open.
+
+Generic event starts use the shared Memory/Mongo source contract in
+`support/event_sources.py`. `application/test_program_events.py` exercises source
+authority and canonical deduplication. `run_engine/test_execution_templates.py`
+proves actual frozen graph binding, pinned revision and private policy/parser refusal.
+`http/test_program_events.py` covers typed operations plus nested Human Review with
+both automatically provisioned purposes on thread/process receivers.
+`deployment/test_program_events.py` adds source/occurrence recovery after API and
+worker replacement, native history privacy/replay and cleanup. The production
+TypeScript clients use the `program_event` UI-client case. These tests do not prove
+live Jira signatures, event-to-wait routing, source-key rotation or traffic limits.
+
+Root admission recovery uses `support/execution_claims.py` for the same ownership/
+expiry/stale-token/cancellation-intent assertions against Memory and Mongo storage.
+`integration/run_engine/test_recovery.py` holds original submission before native
+acceptance, observes it from another service, forces lease takeover and a late old
+reply, and covers bounded I/O plus cancellation before acceptance. The existing
+foreign-collision test must continue to refuse ownership. Deployed agent-session
+tests exercise real Temporal, API restart and native replay. See the execution-
+admission diagnostic skill for the boundary between delivery claims and engine
+worker/environment lifetimes.
+
+Typed-operation scenarios live in `support/operations.py`: the registered
+specification/factory and transitive dependencies run through production builders.
+`application/test_operations.py` checks typed contracts, safe errors, ownership,
+and cancellation. `integration/run_engine/test_operations.py` exercises graph and
+custom-program calls on real thread/process receivers; `integration/http` checks
+catalog-to-publication-to-execution, and `integration/temporal/test_operations.py`
+uses a separate worker and native replay. The fresh platform does not preserve
+older serialized revisions. Test current contracts and remove legacy-only cases
+when their corresponding implementation is replaced.
+Production coding scenarios in `integration/coding` use the installed
+`mas_plugins.coding.codex` factory/adapter through graph and code programs. The
+shared protocol executable in `support/coding_cli.py` makes real subprocesses
+without model calls; cases prove overlapping isolated calls, private-home cleanup,
+workspace containment, failures, timeout and cancellation. Application coding
+policy has separate port-double tests. The removed Codex node is not retained as
+an alias.
+
+`adapters/run_engine/test_program_placement.py` checks approved selections and
+bundle-specific specification dispatch. `integration/deployment/test_remote_programs.py`
+adds real custom-program operation placement and parent/child environment borrowing
+across both hosts/backends. Its receiver proofs and cleanup checks do not certify
+paid Codex behavior. The opt-in paid scenario is converted to saved operation
+resources and explicit shared workspaces. Use [current status](../../docs/status.md)
+and selected [evidence](../../docs/evidence/README.md) for current-image acceptance;
+no suite here establishes a complete visual typed editor.
+
+Optional Git capability scenarios share `support/repositories.py` and real local
+repositories. `application/test_repository_operations.py` checks typed contracts
+and workspace policy through an application port; `integration/repositories/`
+checks full commit resolution, branch movement, annotated tags, SHA-256 checkouts,
+owner/namespace/path denial, existing-work protection, inherited Git configuration,
+private failures, bounded output, timeout and cancellation. The program scenario
+executes graph -> code child -> operation on thread/process receivers using the
+existing dependency builder. `integration/catalog/test_git_plugin.py` installs the
+optional module through production discovery and exposes its schemas without
+constructing a repository. These tests do not certify private HTTPS authentication,
+remote images, source retention or trusted verification/acceptance. Git remains
+optional; other operation results do not adopt its source-reference model.
+
+Verification scenarios share `support/verification.py` (application-owned port
+double, controlled clock and policy data). `application/test_verification.py` and
+`domain/test_verification.py` check exact JSON identity, immutable checks/receipts,
+idempotency, owner/issuer boundaries, expiry, cancellation and concurrent updates.
+`integration/mongo/test_verifications.py` exercises the actual async Mongo adapter.
+`integration/http/test_verifications.py` checks separate HTTP roles and reconstruction.
+`integration/redis/test_verifications.py` uses signed sessions, a separately started
+native API, actual Mongo/Redis, exact Git materialization and an independently
+executed content check; accepted/rejected receipts survive API restart and retries.
+The executable check is a deterministic CI fixture, not a production CI runner.
+`application/test_verification_access.py` and `test_verification_program.py` cover
+bounded workflow authority, native-runtime timer use and borrower cancellation.
+Shared definitions in `support/verification_programs.py` and owned native transport
+in `support/verification_api.py` support both local and durable scenarios.
+`integration/verification/test_workflow.py` executes request/inspect/cancel with
+graph -> reusable code waiting on thread/process runners, including failed-service
+classification. `integration/temporal/test_verification.py` stops/restarts a real
+worker during an observed timer and replays both root/child histories. Explicit
+operator-only worker environment bindings supply endpoint/private directory paths,
+not raw capabilities. `integration/http/test_verification_access.py` verifies
+independent root/policy/action authority. Push updates, report provenance,
+automatic credential lifecycle and UI acceptance/review remain open.
+No paid model calls are required for these cases.
+
+Trusted CI checks share `support/check_runs.py` application-port doubles and
+`support/github_checks.py`'s explicit GitHub wire fixture. Application tests cover
+concurrent dispatch, lost acknowledgements, immutable evidence, authority, deadlines
+and cancellation without retrying an uncertain effect. `integration/verification/`
+checks the production GitHub adapter, actual Mongo/native API reconstruction,
+wrong provenance and bounded ambiguous searches. `test_check_workflow.py` executes
+graph -> registered request/submit -> reusable waiting code child through real
+thread/process receivers and a separate signed-cookie native API. `test_check_restart.py`
+stops/restarts the API between dispatch and reconciliation, using a durable protocol
+peer owned by `support/check_api.py`. That peer is not a live GitHub runner. These
+tests do not prove external GitHub execution, CI-specific Temporal
+recovery, remote images or the complete software delivery/review workflow. Never
+turn missing provider matches into permission for another dispatch POST.
+
+`application/test_verification_reports.py` checks required-report policy, reference
+ownership, immutable provenance and deadline admission through application ports.
+`integration/verification/test_check_reports.py` combines the real GitHub adapter
+and filesystem artifact store to verify streamed bytes, deny wrong/expired/ambiguous
+manifests, close sources on failure, prevent redirect credential leakage and recover
+committed reports after acknowledgement loss/provider expiry. Report-enabled native
+restart cases retain downloadable bytes after provider deletion; graph/code cases
+use the same published workflow on thread/process receivers with and without
+required reports. Human run-attachment intervention has stale/idempotency/authority
+tests and is distinct from the still-pending Human Review business program.
+
+Artifact foundation scenarios reuse `support/artifacts.py`. Application tests
+use the artifact storage port; `adapters/test_artifact_filesystem.py` uses real
+private files, atomic concurrent publication, cancellation and corruption.
+`integration/http/test_artifacts.py` restarts an actual native API against the
+same durable directory, checks owner denial, admission, conflict handling and
+stream cleanup for ASGI 2.3/2.4. These cases prove the initial API/storage component;
+worker-scoped transfer now has explicit capabilities and registered operations.
+`integration/coding/test_artifact_handoff.py` uses actual graph/code programs,
+thread/process receivers, workspace deletion and API restart; it makes no model
+calls. `application/test_artifact_access.py` checks expiry and bounded grants,
+`integration/http/test_artifact_access.py` checks roles/scopes/revocation, and
+`integration/redis/test_artifact_access.py` uses actual signed cookies and the
+native API. `integration/coding/test_workspace_files.py` checks pinned-path access,
+atomic/idempotent writes, special-file denial, cancellation and error ownership.
+Remote destroyed-environment handoff and workflow-integrated trusted checks remain
+separate acceptance work. Keep this focused gate at feature milestones;
+repeat broad regression/remote matrices when the affected execution boundaries
+change or at completion, rather than after each edit.
+
 - `domain/` checks portable values and pure invariants: independent JSON tool
   schemas, typed workspace artifacts/results/variables after persistence, and
   retry budgets without application services.

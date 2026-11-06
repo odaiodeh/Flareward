@@ -1,4 +1,4 @@
-# Default values for unifai-multiagent-celery.
+# Defaults for the native UnifAI Program platform.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 global:
@@ -14,16 +14,11 @@ replicaCount: 1
 globalConfigMapName: shared-config
 globalSecretName: shared-secret
 env:
-  # MONGODB_IP: mongodb
-  #MONGO_URI: mongodb  # currently using that var but  we need to change to fit the rag vars to try to merge files.
-  # MONGODB_PORT: "27017"
-  # RABBITMQ_IP: rabbitmq
-  # RABBITMQ_PORT: "5672"
-  BACKEND_ENV: "production" #options - production development
-  ROLE: "flask" #options - flask celery debug
-  SESSION_COOKIE_SAMESITE: "None"
-  SESSION_COOKIE_SECURE: true
-  SESSION_COOKIE_HTTPONLY: true
+  # Override service addresses and use the same host/namespace/queue on API and worker.
+  UNIFAI_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"unifai-programs-v2"}'
+  UNIFAI_MONGO_URI: "mongodb://mongodb:27017"
+  UNIFAI_AUTHENTICATION: "session"
+  UNIFAI_HTTP_WORKERS: "1"
 
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/

@@ -95,12 +95,14 @@ async def test_builtin_http_configuration_is_owner_scoped_versioned_and_snapshot
             assert imported.status_code == 200, imported.text
             model = next(
                 resource
-                for resource in imported.json()["implementation"]["resources"]
+                for resource in imported.json()["definition"]["implementation"]["resources"]
                 if resource["key"]["rid"] == rid
             )
             reference = model["config"]["api_key"]
             assert (await store.get(owner, reference)).get_secret_value() == token
-            assert (await http.post(f"/api/programs/{program}/revisions")).status_code == 201
+            assert (
+                await http.post(f"/api/programs/{program}/revisions", json={"expected_version": 1})
+            ).status_code == 201
             assert (await http.delete(path + "?expected_version=0")).status_code == 409
             assert (await http.delete(path + "?expected_version=1")).status_code == 204
             cleared = (await http.get(path)).json()

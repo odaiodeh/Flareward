@@ -10,7 +10,7 @@ from mas.blueprints.contracts import BlueprintSummary as BlueprintSummary
 from mas.blueprints.models.prompt_shortcuts import PromptShortcuts
 from mas.core.resource_models import BlueprintExecutionStats as BlueprintExecutionStats
 from mas.core.resource_models import BlueprintResource, ResourceSpec, StepDef
-from mas.core.resource_models import StepMeta as StepMeta
+from mas.domain.metadata import StepMeta
 from mas.elements.conditions.types import ConditionSpec
 from mas.elements.llms.types import LLMsSpec
 from mas.elements.nodes.types import NodeSpec

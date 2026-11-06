@@ -1,4 +1,4 @@
-ARG SANDBOX_IMAGE=unifai-sandbox:platform-20261029
+ARG SANDBOX_IMAGE=unifai-sandbox:program-boundaries-20261103
 FROM ${SANDBOX_IMAGE}
 USER root
 ARG CODEX_VERSION=0.166.0

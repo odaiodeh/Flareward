@@ -2,10 +2,10 @@
 
 from collections.abc import AsyncIterator
 
+from mas.application.execution.service import ExecutionService
 from mas.core.hitl.models import ApprovalOverrides
 from mas.core.identity import Identity
-from mas.execution.models import TERMINAL_PHASES
-from mas.execution.service import ExecutionService
+from mas.domain.execution.models import TERMINAL_PHASES
 from mas.interactions.models import (
     ApprovalRulesUpdate,
     ApprovalSubmission,

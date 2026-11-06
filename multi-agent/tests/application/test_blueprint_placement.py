@@ -4,6 +4,8 @@ from types import SimpleNamespace
 from unittest.mock import create_autospec
 
 import pytest
+from mas.application.execution.placement import GraphPlacementPreviewer
+from mas.application.programs.blueprints import BlueprintProgramImporter
 from mas.blueprints.authoring import BlueprintAuthoringService
 from mas.blueprints.contracts import (
     BlueprintDocument,
@@ -11,9 +13,8 @@ from mas.blueprints.contracts import (
     BlueprintResolutionSource,
 )
 from mas.blueprints.placement import BlueprintPlacementService
-from mas.execution.placement import GraphPlacementPlan, GraphPlacementPreviewer
-from mas.programs.blueprints import BlueprintProgramImporter
-from mas.programs.models import ProgramDefinition
+from mas.domain.execution.placement import GraphPlacementPlan
+from mas.domain.programs.models import ProgramDefinition
 from support.scenarios import echo_graph
 
 

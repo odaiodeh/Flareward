@@ -10,10 +10,10 @@ from uuid import uuid4
 import pytest
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
-from mas.programs.models import (
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ApplicationDefinition,
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramDefinition,

@@ -14,6 +14,17 @@ from pydantic import BaseModel, SecretStr
 from pydantic_core import to_jsonable_python
 
 
+def _settings_value(value: object) -> object:
+    """Unwrap only the explicitly supplied test settings, including nested credentials."""
+    if isinstance(value, SecretStr):
+        return value.get_secret_value()
+    if isinstance(value, dict):
+        return {key: _settings_value(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set | frozenset):
+        return [_settings_value(item) for item in value]
+    return value
+
+
 def settings_environment(settings: BaseModel) -> dict[str, str]:
     environment = {key: value for key, value in os.environ.items() if not key.startswith("UNIFAI_")}
     for name, value in settings.model_dump(mode="python").items():
@@ -24,7 +35,7 @@ def settings_environment(settings: BaseModel) -> dict[str, str]:
         elif isinstance(value, str | PurePath):
             encoded = str(value)
         else:
-            normalized = to_jsonable_python(value)
+            normalized = to_jsonable_python(_settings_value(value))
             encoded = normalized if isinstance(normalized, str) else json.dumps(normalized)
         environment["UNIFAI_" + name.upper()] = encoded
     environment["PYTHONPATH"] = os.pathsep.join(sys.path)

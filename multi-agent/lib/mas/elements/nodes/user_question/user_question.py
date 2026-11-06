@@ -8,19 +8,19 @@ Uses clean task-based architecture with agentic threading.
 import logging
 from typing import ClassVar
 
-from mas.application.capabilities.iem_capable import IEMCapableMixin
-from mas.application.capabilities.workload_capable import WorkloadCapableMixin
 from mas.application.elements.node import BaseNode
 from mas.domain.messages import ChatMessage, Role
 from mas.domain.workloads import Task
 from mas.domain.workloads.thread import ThreadStatus
+from mas.graph.capabilities.messaging import GraphMessagingMixin
+from mas.graph.capabilities.workloads import GraphWorkloadMixin
 from mas.graph.state.graph_state import Channel
 from mas.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 
 
-class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
+class UserQuestionNode(GraphWorkloadMixin, GraphMessagingMixin, BaseNode):
     """
     Workflow initiator that processes user input.
 
@@ -129,7 +129,7 @@ class UserQuestionNode(WorkloadCapableMixin, IEMCapableMixin, BaseNode):
             )
 
         # Copy current conversation to workspace using new SOLID API
-        self.copy_graphstate_messages_to_workspace(thread.thread_id)
+        self.copy_messages_to_workspace(thread.thread_id)
 
         # Add workflow context to workspace
         self.workspaces.add_fact(thread.thread_id, f"User query: {user_query}")

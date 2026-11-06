@@ -1,0 +1,46 @@
+{
+  "scope": "Strict candidate-profile attempted acceptance and current-source images; not a passing remote or full build manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/config/execution_policies.py": "28e7c5d8a48f1603d03df5ad9075d1a724b66d6207cd3b73fdef7828d39a822f",
+    "multi-agent/config/policies/openshell-restricted.json": "7236cd1d32d9c579808d54805f9094cf879763000d59e9127c55b8ec237c26a9",
+    "multi-agent/plugins/mas_plugins/testing/contracts.py": "7da2a0c09f9b3abd4c8da0461f98a3d84b0af3f5813523c2b43f35c017b174dd",
+    "multi-agent/plugins/mas_plugins/testing/program.py": "20e42adaedb29c553aacb44582d01bff57c43e63d870948cda88e49e7801b35a",
+    "multi-agent/plugins/mas_plugins/testing/python_functions.py": "451b7b74c029e8bbbce562ad475c90b3946bd07871926be6965788fc5bd0dd23",
+    "multi-agent/tests/infra/Dockerfile.codex": "9d8b8cf43f4433b1456ba379f8e601d2b25c1323fff72b50a7c0d77a3dd1206b",
+    "multi-agent/tests/infra/Dockerfile.receiver": "02003e1ca425f7ac164b59732ccc4d785bfdac2bb83449b5a441b784e5fa146b",
+    "multi-agent/tests/infra/compose.yaml": "d5f7dd66038b5ca0bf6a6127d68323b82a8a2b667041aad3d6664cca6f618239",
+    "multi-agent/tests/infra/gateway.toml": "4f9e5ff40fd7c7cd62abd3cee205fb9cdda430d11d314f8d27c4b0529c6b8bdf",
+    "multi-agent/tests/infra/prepare.py": "6f25b190645bff5b424230b83d5be673c5eaacdec0606c5c47c8e3f86d0456ef",
+    "multi-agent/tests/infra/verify_images.py": "b7d73915bbdea045e280f0d0692bc7cffa7d3d7b1d24531f6ded0e273a3e5fe6",
+    "multi-agent/tests/integration/deployment/test_candidate_policies.py": "2dd9d3c075230757e34372488f73a7ae45a3295d8a52b65484187a927bcc68e7",
+    "multi-agent/tests/support/http_probe.py": "84d28e0cb620647ff25e615baecb0694b30eb69139e39c1864da95df04898f43",
+    "multi-agent/tests/support/openshell_deployment.py": "e9c5914d00f73b60e34e5269fb921fd4d67a2d81b077ee9328c5a37c4e660b73",
+    "multi-agent/tests/support/program_check_api.py": "625c3393f9ed07ab9c355c2bfc053556bf3afe8c1ce19362cec014e1d9106d1e"
+  },
+  "aggregate_encoding": "SHA-256 of compact sorted-key UTF-8 JSON files map",
+  "aggregate_sha256": "8a187bd1d70c1f24c91c2fe778e713d674570ff3ab858aa0285fa8b8d218b28c",
+  "companion_git_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "observed_result": {
+    "strict_policy": "not accepted on this host",
+    "kernel_capability_error": "Landlock unavailable in hard_requirement mode: not implemented (kernel lacks CONFIG_SECURITY_LANDLOCK)",
+    "initial_failed_cases": 3,
+    "targeted_failed_cases": 1,
+    "final_collection_cases": 3,
+    "final_diagnostic_only_test_refinement_not_executed_on_unsupported_host": true
+  },
+  "images": [
+    {
+      "tag": "unifai-sandbox:python-boundary-20261105",
+      "identity": "sha256:18971c0b7c03b49814c816dcc43ae6bcb34eb7bfd860bc6204aed6dead53f67e",
+      "matched_python_files": 1391
+    },
+    {
+      "tag": "unifai-codex:python-boundary-20261105",
+      "identity": "sha256:0687fa2e39ee2ec765f417efa2124bb7072983db5d1eac0604efcef908c745b0",
+      "matched_python_files": 1391,
+      "codex_cli": "0.166.0",
+      "bubblewrap_version_output": "bubblewrap built for Codex"
+    }
+  ]
+}

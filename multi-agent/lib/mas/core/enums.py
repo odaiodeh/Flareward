@@ -9,12 +9,13 @@ class ResourceCategory(str, Enum):
     CONDITION = "conditions"
     PROVIDER = "providers"
     NODE = "nodes"
+    OPERATION = "operations"
     SANDBOX = "sandboxes"  # Retained for reading retired element records, not execution placement.
     
     @classmethod
     def plan_categories(cls) -> frozenset:
         """Categories that appear in the final blueprint (plan-referenced)."""
-        return frozenset({cls.NODE, cls.CONDITION})
+        return frozenset({cls.NODE, cls.CONDITION, cls.OPERATION})
 
     def is_plan_category(self) -> bool:
         """Check if this category is plan-referenced."""

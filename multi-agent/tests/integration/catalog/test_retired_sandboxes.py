@@ -5,7 +5,7 @@ from mas.application.elements.catalog.service import CatalogService
 from mas.blueprints.models.blueprint import BlueprintDraft
 from mas.blueprints.schema import blueprint_schemas
 from mas.core.enums import ResourceCategory
-from mas.core.execution_context import ExecutionContext
+from mas.domain.execution.context import ExecutionContext
 from mas.elements.nodes.claude_agent.config import ClaudeAgentNodeConfig
 from mas.elements.nodes.deep_agent.config import DeepAgentNodeConfig
 from outbound.run_engine.compiler import ProgramCompiler

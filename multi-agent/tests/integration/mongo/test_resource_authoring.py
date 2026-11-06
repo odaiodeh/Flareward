@@ -158,11 +158,17 @@ async def test_resource_usage_guards_and_published_snapshot_outlive_authoring_de
             json={"blueprint_id": blueprint_id, "execution_profile": "thread"},
         )
         assert imported.status_code == 200, imported.text
-        assert imported.json()["implementation"]["steps"][0]["execution"]["profile"] == "process"
-        assert all(
-            "execution" not in entry for entry in imported.json()["implementation"]["resources"]
+        assert (
+            imported.json()["definition"]["implementation"]["steps"][0]["execution"]["profile"]
+            == "process"
         )
-        assert (await http.post("/api/programs/snapshot/revisions")).status_code == 201
+        assert all(
+            "execution" not in entry
+            for entry in imported.json()["definition"]["implementation"]["resources"]
+        )
+        assert (
+            await http.post("/api/programs/snapshot/revisions", json={"expected_version": 1})
+        ).status_code == 201
         edited = await http.put(
             "/api/resources/" + node["rid"],
             json={"config": node["cfg_dict"], "execution": {"profile": "thread"}},

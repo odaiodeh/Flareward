@@ -1,5 +1,5 @@
 from mas.application.elements.instances import ElementInstances
-from mas.core.execution_context import ExecutionContextHolder
+from mas.application.execution.context import ExecutionContextHolder
 from mas.engine.domain.base_builder import BaseGraphBuilder
 from mas.engine.domain.base_executor import BaseGraphExecutor
 from mas.graph.rt_graph_plan import RTGraphPlan

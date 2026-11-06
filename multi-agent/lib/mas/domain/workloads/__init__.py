@@ -3,7 +3,6 @@
 from .context import WorkspaceContext
 from .models import (
     AgentResult,
-    ArtifactRef,
     DelegationExchange,
     LocalExecution,
     ToolArguments,
@@ -14,6 +13,7 @@ from .models import (
     WorkItemStatusCounts,
     WorkPlan,
     WorkPlanStatus,
+    WorkspaceArtifact,
 )
 from .task import Task
 from .thread import Thread, ThreadStatus
@@ -21,7 +21,7 @@ from .workspace import Workspace
 
 __all__ = [
     "AgentResult",
-    "ArtifactRef",
+    "WorkspaceArtifact",
     "DelegationExchange",
     "LocalExecution",
     "ToolArguments",

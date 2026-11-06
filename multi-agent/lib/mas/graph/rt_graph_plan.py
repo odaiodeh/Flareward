@@ -10,7 +10,7 @@ from typing import Any
 from mas.application.elements.catalog.card_service import ElementCardService
 from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.elements.instances import ElementInstances
-from mas.core.contracts import SupportsStepContext
+from mas.application.programs.graph_elements import SupportsStepContext
 from mas.core.enums import ResourceCategory
 from mas.domain.element_card import ElementCard
 from mas.session.collector import SessionConfigCollector

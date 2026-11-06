@@ -4,10 +4,14 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
+from typing import Any
 
+from mas.application.access.administrators import AdministratorAccess
 from mas.application.elements.catalog.card_service import ElementCardService
 from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.elements.construction.secrets import ConfigurationSecrets
+from mas.application.resources.builtins import BuiltinRepository
+from mas.application.resources.inspection import ResourceInspectionService
 from mas.blueprints.authoring import BlueprintAuthoringService
 from mas.blueprints.contracts import BlueprintResolutionSource
 from mas.blueprints.inspection import BlueprintInspectionService
@@ -20,8 +24,8 @@ from mas.graph.analysis import BlueprintGraphAnalysisService
 from mas.graph.validation.service import GraphValidationService
 from mas.resources.authoring import ResourceAuthoringService
 from mas.resources.builtin_aware_service import BuiltinAwareResourceService
+from mas.resources.configuration import ResourceConfiguration
 from mas.resources.field_encryption import ResourceFieldEncryption
-from mas.resources.inspection import ResourceInspection
 from mas.resources.registry import ResourcesRegistry
 from mas.resources.service import CoreResourceService
 from mas.validation.service import ElementValidationService
@@ -29,13 +33,14 @@ from outbound.crypto import FieldCipher
 from outbound.mongo.blueprint_authoring_repository import MongoBlueprintAuthoringRepository
 from outbound.mongo.blueprint_resolution import StoredBlueprintResolution
 from outbound.mongo.blueprint_usage import MongoBlueprintUsage
+from outbound.mongo.builtin_administration import MongoBuiltinAdministration
 from outbound.mongo.builtin_configuration_repository import MongoBuiltinConfigurationRepository
 from outbound.mongo.builtin_resource_descriptor_repository import (
     MongoBuiltinResourceDescriptorRepository,
 )
 from outbound.mongo.builtin_user_config_repository import MongoBuiltinUserConfigRepository
 from outbound.mongo.resource_authoring_repository import MongoResourceAuthoringRepository
-from outbound.mongo.resource_inspection import StoredResourceInspection
+from outbound.mongo.resource_inspection import StoredResourceProbe
 from outbound.mongo.resource_repository import MongoResourceRepository
 from pymongo import MongoClient
 from pymongo.asynchronous.database import AsyncDatabase
@@ -50,19 +55,22 @@ class LibraryServices:
     source: BlueprintImportSource
     authoring: BlueprintAuthoringService
     resources: ResourceAuthoringService
-    inspection: ResourceInspection
+    inspection: ResourceInspectionService
     blueprint_inspection: BlueprintInspectionService
     graph_analysis: BlueprintGraphAnalysisService
     blueprint_queries: BlueprintQueryService
     resolution: BlueprintResolutionSource
+    builtin_repository: BuiltinRepository
+    resource_configuration: ResourceConfiguration
 
 
 @asynccontextmanager
 async def compose_library(
     settings: PlatformSettings,
     elements: ElementRegistry,
-    database: AsyncDatabase,
+    database: AsyncDatabase[dict[str, Any]],
     configuration: ConfigurationSecrets,
+    administrators: AdministratorAccess,
 ) -> AsyncIterator[LibraryServices]:
     async with AsyncExitStack() as owned:
         auth = (
@@ -70,7 +78,7 @@ async def compose_library(
             if settings.credentials != CredentialBackend.DISABLED
             else None
         )
-        client: MongoClient | None = None
+        client: MongoClient[dict[str, Any]] | None = None
 
         def initialize() -> tuple[ResourceFieldEncryption, BuiltinAwareResourceService]:
             nonlocal client
@@ -133,7 +141,9 @@ async def compose_library(
                 BlueprintImportSource(authoring, resolution),
                 authoring,
                 ResourceAuthoringService(resource_repository, elements, fields, overlay_repository),
-                StoredResourceInspection(resource_service),
+                ResourceInspectionService(
+                    StoredResourceProbe(resource_service), administrators, resource_repository
+                ),
                 BlueprintInspectionService(
                     authoring,
                     resolution,
@@ -146,6 +156,14 @@ async def compose_library(
                 ),
                 BlueprintQueryService(authoring, resolution),
                 resolution,
+                MongoBuiltinAdministration(
+                    database,
+                    resources=settings.resources_collection,
+                    descriptors=settings.builtin_descriptors_collection,
+                    blueprints=settings.blueprints_collection,
+                    overlays=settings.builtin_user_configs_collection,
+                ),
+                ResourceConfiguration(elements, fields),
             )
         finally:
             if client is not None:

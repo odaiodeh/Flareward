@@ -2,20 +2,17 @@
 
 import pytest
 from mas.core.enums import ResourceCategory
-from mas.core.execution_context import ExecutionContext
 from mas.domain.element_bundles import ResourceKey
-from mas.execution.models import ExecutionPhase, FailureKind
-from mas.programs.models import (
-    ConditionalRoute,
-    ExecutionSelection,
-    GraphDefinition,
-    ProgramDefinition,
-)
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import ExecutionPhase, FailureKind
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import ConditionalRoute, GraphDefinition, ProgramDefinition
 from run_engine.models import ProgramPayload
 from runengine import UnknownLabelPolicy
 from runengine.coordination.models import RunRequest
 from runengine.programs.graph.inputs import GraphProgramInput
 from support.condition_scenarios import routing_graph
+from support.invalid_graph import UnscopedConditionSpec
 from support.scenarios import echo_graph, publish, resource, run
 
 
@@ -47,6 +44,26 @@ def conditional_graph(selection: ExecutionSelection | None = None) -> GraphDefin
     )
 
 
+async def test_condition_requires_graph_contract_before_publication(platform, application):
+    application.elements.register_spec_class(UnscopedConditionSpec)
+    graph = conditional_graph()
+    graph = graph.model_copy(
+        update={
+            "resources": tuple(
+                entry.model_copy(update={"type_key": UnscopedConditionSpec.type_key})
+                if entry.key.category == ResourceCategory.CONDITION
+                else entry
+                for entry in graph.resources
+            )
+        }
+    )
+    with pytest.raises(ValueError, match="graph specification"):
+        await publish(platform, "unscoped-condition", graph)
+    assert not (await platform.programs.revisions("unscoped-condition", platform.owner)).revisions
+    with pytest.raises(KeyError):
+        await platform.records.get("not-submitted")
+
+
 @pytest.mark.parametrize("profile", ["thread", "process"])
 async def test_condition_inherits_program_placement_and_runs_in_selected_backend(platform, profile):
     definition = ProgramDefinition(
@@ -57,7 +74,11 @@ async def test_condition_inherits_program_placement_and_runs_in_selected_backend
         execution_profile=profile,
     )
     await platform.programs.save(definition, platform.owner)
-    revision = await platform.programs.publish("routing", platform.owner)
+    revision = await platform.programs.publish(
+        "routing",
+        platform.owner,
+        expected_version=(await platform.programs.draft("routing", platform.owner)).version,
+    )
     compiled = await platform.compiler.compile(
         revision,
         platform.owner,
@@ -81,7 +102,13 @@ async def test_condition_cannot_select_an_undeclared_environment(platform):
         implementation=conditional_graph(ExecutionSelection(environment="missing")),
     )
     await platform.programs.save(definition, platform.owner)
-    revision = await platform.programs.publish(definition.program_id, platform.owner)
+    revision = await platform.programs.publish(
+        definition.program_id,
+        platform.owner,
+        expected_version=(
+            await platform.programs.draft(definition.program_id, platform.owner)
+        ).version,
+    )
     with pytest.raises(ValueError, match="Undeclared environment: missing"):
         await platform.compiler.compile(
             revision, platform.owner, ExecutionContext(identity=platform.owner)
@@ -168,17 +195,24 @@ async def test_invalid_numeric_data_cannot_silently_choose_false(
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
+@pytest.mark.parametrize(
+    "type_key,config,branches",
+    [
+        ("router_boolean", {"boolean_value": True}, {"false": "no"}),
+        ("router_direct", {}, {"yes": "yes", "no": "no"}),
+    ],
+)
 async def test_undeclared_outcome_fails_instead_of_ending_successfully(
-    platform, condition_elements, profile
+    platform, condition_elements, profile, type_key, config, branches
 ):
     revision = await publish(
         platform,
         "unknown-outcome",
         routing_graph(
-            "router_boolean",
-            {"boolean_value": True},
+            type_key,
+            config,
             profile=profile,
-            branches={"false": "no"},
+            branches=branches,
         ),
     )
     result = await run(platform, revision, {})

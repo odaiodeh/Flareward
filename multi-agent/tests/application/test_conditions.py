@@ -19,13 +19,15 @@ def test_portable_conditions_support_symbolic_direct_and_explicit_terminal_outco
     value, expected
 ):
     assert (
-        normalize_condition_result(value, {"true": "yes", "false": "no", "left": "a", "right": "b"})
+        normalize_condition_result(
+            value, {"true": "yes", "false": "no", "left": "a", "right": "b", "END": "finish"}
+        )
         == expected
     )
 
 
 @pytest.mark.parametrize(
-    "value", [None, 1, {"route": "left"}, [True], ["left", 3], "private-value"]
+    "value", [None, 1, {"route": "left"}, [True], ["left", 3], "private-value", "END"]
 )
 def test_invalid_or_unknown_condition_outcomes_fail_without_echoing_data(value):
     with pytest.raises(ConditionResultError) as error:

@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.field_hints import HiddenHint
 
@@ -10,7 +10,7 @@ from ..final_answer_node_factory import FinalAnswerNodeFactory
 from ..identifiers import META, Identifier
 
 
-class FinalAnswerNodeElementSpec(BaseElementSpec):
+class FinalAnswerNodeElementSpec(GraphElementSpec):
     """Element specification for Final Answer Node."""
 
     category: ClassVar[ResourceCategory] = ResourceCategory.NODE

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Check, AlertTriangle, LoaderCircle } from 'lucide-react';
+import { Check, AlertTriangle, LoaderCircle, CircleHelp } from 'lucide-react';
 import SimpleTooltip from '@/components/shared/SimpleTooltip';
 import { ValidationStatus } from '@/contexts/AgenticAIContext';
 
 interface ValidationStatusBadgeProps {
-  status: ValidationStatus;
+  status: ValidationStatus | 'unavailable';
   onClick?: () => void;
 }
 
@@ -14,6 +14,16 @@ interface ValidationStatusBadgeProps {
  * elements whose validity is worth surfacing, e.g. built-in MCP servers).
  */
 export const ValidationStatusBadge: React.FC<ValidationStatusBadgeProps> = ({ status, onClick }) => {
+  if (status === 'unavailable') {
+    return (
+      <SimpleTooltip content={<p>Inspection unavailable. Click to retry.</p>}>
+        <button type="button" aria-label="Inspection unavailable. Retry" onClick={onClick}
+          className="flex items-center justify-center w-8 h-8 text-gray-400">
+          <CircleHelp className="h-4 w-4" />
+        </button>
+      </SimpleTooltip>
+    );
+  }
   if (status === 'loading') {
     return (
       <SimpleTooltip content={<p>Validating resource...</p>}>

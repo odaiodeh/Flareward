@@ -44,6 +44,9 @@ def buildDockerImage(String component) {
     // Default assumptions: Dockerfile at component root, repo-root as build context
     String dockerfile = "Dockerfile"
     String context = "."
+    String engineContext = component == "multi-agent"
+        ? '--ignorefile multi-agent/Dockerfile.dockerignore --build-context "run_engine=${RUN_ENGINE_SOURCE:?Set RUN_ENGINE_SOURCE to the approved Run Engine checkout}"'
+        : ""
 
     // Special-case UI: Dockerfile lives under deployment/, context is repo root
     // to allow access to README.md which is imported by the frontend build
@@ -61,7 +64,7 @@ def buildDockerImage(String component) {
     sh "echo '>>> Build START: ${componentLower}' && date"
     def status = sh(script: """#!/bin/bash
         set -o pipefail
-        podman build -t ${componentLower}:${VERSION} -t ${componentLower}:latest -f ${component}/${dockerfile} ${context} 2>&1 | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), \$0; fflush() }' > ${logFile}""",
+        podman build ${engineContext} -t ${componentLower}:${VERSION} -t ${componentLower}:latest -f ${component}/${dockerfile} ${context} 2>&1 | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), \$0; fflush() }' > ${logFile}""",
         returnStatus: true)
     sh "echo '>>> Build END: ${componentLower}' && date"
 

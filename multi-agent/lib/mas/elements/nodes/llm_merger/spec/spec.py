@@ -1,4 +1,4 @@
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..config import MergerLLMNodeConfig
@@ -8,7 +8,7 @@ from ..llm_merger_node_factory import LLMMergerNodeFactory
 from ..validator import LLMMergerNodeValidator
 
 
-class LLMMergerNodeElementSpec(BaseElementSpec):
+class LLMMergerNodeElementSpec(GraphElementSpec):
     """Element specification for LLM Merger Node."""
 
     category = ResourceCategory.NODE

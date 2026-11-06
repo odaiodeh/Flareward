@@ -5,6 +5,7 @@ import inspect
 import logging
 import os
 import sys
+from collections.abc import Iterable
 from importlib.resources import files
 from pathlib import Path
 
@@ -29,6 +30,10 @@ class SpecDiscoverer:
     def discover(self) -> list[type[BaseElementSpec]]:
         """Find concrete specs defined by successfully imported catalog packages."""
         return self._collect_specs(self._import_filesystem_packages())
+
+    def discover_modules(self, modules: Iterable[str]) -> list[type[BaseElementSpec]]:
+        """Compose an explicit built-in module allowlist with the same optional-dependency rules."""
+        return self._collect_specs({name for name in modules if self._safe_import(name)})
 
     def _import_filesystem_packages(self) -> set[str]:
         if not self._root.exists():
@@ -56,6 +61,7 @@ class SpecDiscoverer:
                 if (
                     isinstance(specification, type)
                     and issubclass(specification, BaseElementSpec)
+                    and not specification.is_abstract
                     and not inspect.isabstract(specification)
                     and any(
                         specification.__module__ == module
@@ -76,7 +82,16 @@ class SpecDiscoverer:
         try:
             importlib.import_module(module_name)
         except ModuleNotFoundError as error:
-            if error.name is None or error.name.split(".")[0] == module_name.split(".")[0]:
+            internal = {
+                "mas",
+                "mas_plugins",
+                "inbound",
+                "outbound",
+                "bootstrap",
+                "config",
+                module_name.split(".")[0],
+            }
+            if error.name is None or error.name.split(".")[0] in internal:
                 raise
             logger.warning(
                 "Element adapter unavailable: %s: %s",

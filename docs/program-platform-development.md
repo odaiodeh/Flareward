@@ -1,7 +1,20 @@
 # Program platform development
 
-This describes the implemented foundation. The full migration is still in progress;
-see [the completion ledger](execution-platform-migration.md).
+This describes the implemented foundation. The full migration is still in progress.
+Start/resume with [current status](status.md) and [the active plan](plan.md), then
+search headings and read the relevant guide sections. Detailed verification lives
+in [focused evidence records](evidence/README.md); archives are opt-in reference.
+Do not load this entire guide or historical records into routine working context.
+The [target architecture](architecture/README.md) defines the agreed destination,
+including typed operations, composable graph/code programs, UI contracts, plugin
+boundaries, and engine-backed human review. Proposed capabilities there must not
+be read as already implemented behavior here.
+
+Fresh-platform decision (2026-11-01): old code, stored formats, workers, import
+aliases, and dual APIs are not compatibility requirements. Convert useful behavior
+to the target and remove superseded implementations, tests, dependencies, and
+misleading guidance. Earlier old-worker retention and migration/drain requirements
+are superseded. Safe cancellation and cleanup of current owned work still apply.
 
 ## Environment
 
@@ -20,16 +33,1652 @@ native execution-generation identity, ACTIVE graph joins and strict unknown-labe
 are required. Verify the source commit: package version `0.2.0` alone is insufficient.
 The OpenShell extension requires SDK 0.0.104 or newer.
 
-UnifAI explicitly selects public `JoinPolicy.ACTIVE` and `UnknownLabelPolicy.ERROR`.
+UnifAI defaults to active-path joins; a graph may explicitly select all-predecessor
+joins. The compiler lowers its application-owned `join_policy` to the engine's
+public policy. `UnknownLabelPolicy.ERROR` remains mandatory.
 Earlier serialized plans without these policies retain ALL/IGNORE behavior.
 Strict routing validates the entire result and fails with `UNKNOWN_CONDITION_LABEL`
 before scheduling successors. Safe diagnostics do not remove return values from
-native invocation histories; keep private values outside routing output. The unreleased local ACTIVE prototype uses
-an incompatible payload/checkpoint layout: rebuild unsubmitted graphs and finish
-submitted prototype executions on their original compatible workers. Do not remove
-old workers until drain is verified. Rebuild matched coordinator/receiver images
+native invocation histories; keep private values outside routing output. Older UnifAI prototype payloads and histories are outside the fresh-platform
+contract. Rebuild matched coordinator/receiver images
 before remote deployment; historical remote test results do not validate new SDK
 source. See [integration status and recovery notes](../integrations/README.md).
+
+## Typed operations: first implemented slice
+
+An operation is registered in the existing element catalog with category
+`operations`, a configuration schema/factory, and Pydantic `input_schema` and
+`result_schema` model classes. Its instance implements `BaseOperation.execute`.
+`OperationInvoker` validates requests and portable results with safe contract
+diagnostics. Implementations receive `OperationContext`, not graph state or an
+engine SDK handle.
+
+Generic `BaseElementSpec`, operation contracts, catalog and construction can be
+imported/initialized without loading graph state. State-based nodes/conditions
+specialize `GraphElementSpec` in `mas.application.programs.graph_elements`; channel
+reads/writes and step/state protocols belong there, not to every element. Existing
+node/condition adapters still use graph state intentionally. Abstract specification
+bases are excluded from discovery/installation; concrete declarations are validated.
+
+Portable invocation payloads have an explicit `key`. Typed operations carry no
+graph step context and never receive automatic `set_context` graph injection.
+Graph calls require explicit step context matching their key. The graph adapter
+owns input/output mappings; backend Programs no longer fabricate graph context
+for typed operations. Receiver contract is `unifai-elements-v3`, with prepared
+format `runengine/request-v10`; earlier prototype snapshots are not migrated.
+
+The existing `ElementBundleResolver` and `ElementBundleBuilder` construct its
+transitive dependencies and release the owned scope. There is no separate
+operation registry or scheduler. Native catalog details now expose operation input
+and output JSON Schemas without constructing a provider client.
+
+Graph programs use `OperationStep(kind="operation")` with an operation ResourceKey,
+an input projection, named output bindings, execution selection, and retry policy. The engine
+adapter projects graph values into the operation request and maps its result back
+to declared channels. The operation itself never receives ProgramGraphState.
+OperationStep identifies the explicit typed invocation contract. Remaining
+node-state integrations are conversion/removal targets, not compatibility promises.
+
+Custom programs use the same `ProgramRuntime.invoke_element(bundle, inputs,
+key=..., execution=...)` port and receive the operation's structured JSON result.
+Its optional application-owned `ExecutionSelection` selects an approved profile
+or a declared named environment. Existing node-style invocation still
+receives/returns application graph state and remains a conversion target.
+
+Both graph and custom program definitions declare owned environments. Custom
+programs declare `child_environment_imports` separately from behavioral config;
+the compiler validates parent names and freezes these bindings into child
+requests. Runtime code cannot widen them. Children borrow the engine's environment
+grant; they do not acquire ownership or delete the parent's receiver. Concrete
+runner settings stay in adapter payloads, outside the application runtime port.
+The coordinator freezes installed approved profile choices at preparation time.
+Tenant-specific policy admission remains unfinished.
+
+Adapter payloads retain a category/type-to-installed-specification catalog.
+Dispatch selects only the invoked bundle's exact transitive closure; it never
+imports unrelated vendor plugins at a remote receiver. This is the same
+selection path for graph and custom-program calls. A receiver still needs all
+implementations actually used by its bundle installed.
+
+Tests cover actual thread/process invocation, HTTP catalog/publication/execution,
+separate Temporal workers, and native replay using a registered deterministic
+operation with transitive dependencies. These checks do not establish a complete visual typed-port editor or the Human
+Review program. The newer coding and managed-blob components are described below;
+remote artifact transfer is a separate acceptance milestone. See the active migration queue.
+
+## Core composition programs
+
+The core registry installs `map@1`, `repeat@1`, `choose@1` and `wait@1` by default.
+They are ordinary registered application programs; the program kinds remain graph
+and application. Static ordering, dependencies and parallel graph regions keep
+using `GraphDefinition` and Run Engine graph execution. There is no second
+scheduler, custom replay store or integration-specific compiler branch.
+
+`bootstrap.programs.installed_applications` composes the core registrations with
+explicit extension modules into one `ApplicationRegistry`. Workers preload the
+same core module before executing/replaying histories. Extensions still register
+installed async functions and Pydantic configuration through
+`ApplicationRegistration`. A configuration can implement the narrow
+`ChildContracts.child_contracts()` interface, declaring child aliases, request
+projections/scopes and consumed result mappings. Publication and compilation check
+those contracts without knowing the particular Program implementation. Incomplete
+bindings may still be saved as drafts.
+
+| Program | Inputs/configuration | Result and control semantics |
+| --- | --- | --- |
+| `map@1` | Input `items` and optional `context`; declared child alias `body`, `concurrency` 1–128, `max_items` 1–10,000 and optional child input bindings | Starts at most the declared concurrency, preserves input order, returns each index/actual child execution ID/value. All items must succeed; a failure cancels outstanding owned calls and drains transient coordination tasks. Empty input returns no items. Oversized input fails before dispatch. |
+| `repeat@1` | Input `state` and optional `context`; declared body, `max_iterations` 1–10,000, optional input bindings, result `state`/`until` bindings | Each iteration gets `{state, iteration, context}`. Recorded child results supply the next state and a strict boolean predicate. Returns `satisfied` or `limit_reached`, iteration count, last state/result and child execution ID. Reaching the bound never means accepted work. |
+| `choose@1` | Declared label → child-alias map, selector binding and optional child input bindings | Starts exactly the selected declared child. Unknown/non-string selections fail before admission; diagnostics omit the returned value. Returns the selected branch, actual child execution ID and result. No implicit default/fan-out. |
+| `wait@1` | Execution-scoped channel and finite timeout | Calls the runtime's native receive/deadline. Returns `received` with its JSON value or `timed_out`. This is generic event coordination; business approval uses the separately authorized/persisted Human Review program. |
+
+Map's default body input is `{item, index, context}`; Repeat's is
+`{state, iteration, context}`. An optional `inputs` projection builds named fields
+or selects one complete `PathBinding`/`LiteralBinding` value, as graphs do. Omission passes the scope;
+an explicit empty mapping passes `{}`. Each body is a pinned Program reference or
+an owned inline graph/backend body, so it can contain operations, review,
+verification or further composition.
+Occurrence keys are stable `item-N` and `iteration-N` within their parent run.
+Child identity, isolation, timers, replay and environments remain Run Engine's
+responsibility. Parent/child environment imports still use the published bindings.
+
+The coordinator performs no direct database, provider, HTTP, filesystem or wall-clock
+I/O. Pure result projections can compute branches; model/provider decisions must
+come from recorded invoked results. Native execution completion and these control
+results do not replace trusted verification/ADLC acceptance.
+
+### Owned inline Program bodies
+
+`ProgramBody` contains implementation, input/output schemas and an optional
+execution-profile default. `ProgramDefinition` adds the named library identity and
+owner. Graph `ProgramCallStep.program` and backend `children[alias]` accept either
+an immutable `ProgramRef` or a `ProgramBody`. A full independent definition cannot
+silently become an inline body. There is no separate inline library, publication
+or owner, and no synthetic Program IDs.
+
+Save protects configurations/resources recursively using the normal construction
+and secret services. Publication validates the whole owned tree and authorized
+pinned dependency closure. Incomplete nested topology remains draft-only. An edit
+anywhere in the owned body changes the enclosing revision digest; old publications
+remain unchanged. A new revision may call an older revision of the same Program
+because revision identity, rather than the unversioned Program ID, defines cycles.
+
+Saved-resource selection commands optionally carry `body_path`, a sequence of
+graph call UIDs/backend child aliases (empty means root). Source capture resolves
+that owned graph scope using the existing authorized transitive snapshot resolver.
+Paths never traverse published references. Invalid/non-graph scopes reject the
+save. Resource keys are local to each graph's construction scope.
+
+Compilation lowers both kinds of target through the same compiler, runtime ports
+and native child execution path. An inline body inherits the enclosing resolved
+profile unless it declares its own default. A published call retains its own
+default. Neither target gains parent environments through containment: environment
+imports remain explicit and borrowing preserves parent ownership.
+
+Observed records expose enclosing `program`, immutable `content_digest` and stable
+`body_path`, alongside actual execution/parent/root identities. Map items and
+Repeat iterations share a body address but have different native executions. A
+published call resets the source address to its own revision and empty path.
+Source fields participate in persisted request identity; output/status changes do
+not. Root submissions invoke published references, not arbitrary body paths.
+
+Private prepared requests carry selected-scope contracts, mappings/configuration,
+compiled child requests and source addresses instead of copying the entire source
+revision into every child payload. Installed entrypoint contract is
+`unifai-program-v5`; prepared format is `runengine/request-v10`. There is no old
+prototype-payload migration. Rebuild matched images at the next remote milestone.
+
+Local thread/process and production TypeScript→FastAPI→Mongo checks prove this
+backend slice. The interim UI preserves/labels owned targets and can explicitly
+replace them with published references; it does not yet author or expand inline
+controls. Current-source Temporal/remote/recovery and visual builder proof remain
+open. Schema-aware incomplete configuration is described below; deeper static
+binding compatibility and the remaining platform target are still unfinished.
+
+### Program discovery, saved library and authoring
+
+**Target UI clarification (2026-11-03):** the standalone Programs editor/run panel
+is an interim integration surface. Its useful capabilities must converge with the
+existing blueprint builder, resource configuration and session views. The target is
+one authoring workspace and a shared execution workbench with structured invocation,
+optional conversation and authoritative live nested-execution visualization. It
+preserves capabilities while allowing substantial visual/interaction improvements.
+See [the agreed UI direction](architecture/README.md#unified-ui-and-live-execution-experience).
+The descriptions below record current behavior, not completion of that target.
+
+Program invocation now loads the selected immutable revision's input schema and uses
+the shared schema fields, with JSON editing available. Draft edits do not change that
+contract or the selected implementation configuration. Unparsed JSON blocks submission
+and view switching. Uncertain starts preserve identity/input; a definite 422 permits
+correction while retaining the execution ID, so existing admission conflict checks
+still prevent a different request from replacing accepted work.
+
+Accepted starts open `/executions/:id`, the shared owner-scoped execution workbench.
+It shows observed phase/submission, actual immediate child links, root/parent/session
+relationships, cancellation, inputs/results and owner-visible reviews. Observation
+failure remains explicit alongside any last observed data. Inbox and execution views
+reuse `ReviewDetail` and the same schema fields as configuration/invocation; the old
+embedded runner and scalar-only review renderer were removed. Session stream hooks
+retain the exact observed session/execution reference and link to this route.
+Invocation now offers owner-filtered, issuer-described workflow permissions. Selection
+is explicit; editing permission scopes resets the approval checkbox. Accepted starts
+freeze the requested scopes with the invocation. The workbench shows that recorded
+approval without credential material. Shared artifact inspection is described below.
+Child lists are not yet transport-paginated; operation/attempt history, live flow,
+complete Session browser proof and broader authoring/workbench convergence remain
+unfinished. Local unconfirmed submission intents do not yet survive a browser reload.
+
+Authenticated `GET /api/catalog/programs` returns installed key/version, display
+metadata, configuration JSON Schema and optional input/result schema metadata.
+It exposes neither executable functions nor backend configuration/credentials.
+`ProgramService.implementations()` owns this view; the HTTP router is thin.
+
+The actual App's **Programs** workspace at `/programs` lists saved programs in one
+owner-scoped, paginated library. Users create, reopen, edit, save and publish through
+the same contracts. An installed implementation supplies schema-driven primitive/
+enum controls, local schema references and explicit JSON editors for complex values.
+Program dependencies are selected by saved name and explicit published revision,
+with interface inspection and paginated older revisions. No separate graph/code
+library or manual revision-ID verification is required.
+
+The same editor has a canonical graph projection: add saved operation/node blocks
+or pinned program-call blocks, connect execution ordering, choose entry/exit, edit
+data bindings and persist positions separately from executable definitions. Resource
+selection is paginated and sends only source references; the server resolves and
+protects the dependency closure. Selected blocks expose input/output contracts,
+profile/environment selections, and explicit adoption of current saved configuration.
+New blocks capture the resource's saved profile preference into caller-owned step
+placement. Selected blocks can author conditional routes from saved condition
+resources, map symbolic labels or explicit labels to destinations, and independently
+select condition placement. Sources without a conditional route use ordinary
+connections; routed sources use their branch targets. Publication rejects mixed
+source modes, and the canvas guides users to labeled routes. Branch
+labels sharing a destination retain separate identities when edited/deleted.
+Advanced bindings/imports remain JSON rather than visual ports. Graph join policy
+is configurable and persists with the published definition.
+
+Block removal deletes incident ordering/conditional connections without inventing
+replacement flow. Removing the entry or exit requires an explicit replacement
+before saving. Removed roots no longer retain pending source selections; existing
+frozen construction snapshots are preserved rather than pruning dependencies from
+browser display data. Selection-scoped panels own their component lifetime so
+switches and repeated edits cannot accumulate stale resource controls.
+
+Invalid JSON remains editable and blocks form submission. Switching programs or
+reloading requires explicit discard of unsaved edits. Mutable drafts load afresh on
+explicit open/reload rather than replacing edits on window focus. Query caches and
+request lifetimes are scoped by owner and authenticated human. Publication retries
+retain the observed source version. Unknown run delivery retains the same execution
+identity/input; authoritative snapshot polling observes completion and cancellation.
+Submission acceptance is displayed separately from execution completion.
+
+This is not the completed nested workflow editor. Inline Flow/Choose/Repeat/Map/Wait
+authoring, visual typed connections, placement
+preview, pinned-definition expansion and occurrence/attempt inspection remain open.
+The older blueprint builder also remains; merge its useful capabilities and retire
+the replaced path before claiming one final authoring experience. Current graphs
+can call the published registered programs, which can call pinned graph bodies.
+
+### Unfinished drafts and publication validation
+
+The canonical `ProgramDefinition` can retain unfinished graph topology, unbound
+declared Program dependencies and missing required configuration fields. It remains
+authoring data, not an executable revision. Block/route identities stay unique;
+supplied configuration shapes, field constraints and applicable field validators
+are checked. Saving still authorizes ownership, checks the observed draft version,
+and protects private resource and registered-Program configuration, including owned
+bodies. No runtime model is fabricated from incomplete data.
+
+`ConfigurationDraft` is an internal schema-bearing authoring tree. Complete values
+use normal Pydantic validation; missing model fields retain their original field
+metadata for protection. Nested object models, aliases/alias paths, discriminated
+or unambiguous unions, lists, tuples and mappings with typed values retain declared secret
+metadata. Supplied secrets use the existing owner-scoped store and opaque
+references; repeat saves verify ownership and reuse those references. An ambiguous
+nonempty variant is refused instead of guessing which fields are private. Empty
+unselected variants can remain drafts. Unsupported incomplete shapes fail closed;
+this is not an arbitrary-Python partial-validation mechanism. Semantic checks
+that require complete model values still run before publication/execution.
+
+Embedded bundles/resources follow the installed resource schemas as well. A
+structurally valid bundle is not evidence that its embedded resources are complete.
+Draft save protects supplied credentials and recomputes structural digests;
+publication/compilation require canonical, complete construction through the normal
+resolver. All authored graph resources are validated once as a snapshot, including
+unused entries. Alias-normalized canonical field names survive factory revalidation.
+
+`POST /api/programs/{id}/validation` takes `{expected_version}` and returns
+`{version, valid, issues}` for that exact saved draft. Each issue has a stable
+`code`, safe `message`, source `path` and `severity`. Current codes are
+`INVALID_TOPOLOGY`, `INVALID_CONFIGURATION`, `INVALID_CONSTRUCTION`,
+`INVALID_PROGRAM_REFERENCE` and `INVALID_BINDING`. Validation reads and checks; it does not persist
+defaults, publish a revision, allocate compute or invoke providers. Stale source
+versions return 409; ordinary owner authorization still applies before validation.
+
+Publication uses the same application checks and independently rechecks them;
+a prior successful validation response is not publication authority. The
+`ProgramRevision` model also enforces executable structural completeness, so
+repository writes, restored payloads and compiler reparsing cannot turn an
+unfinished graph into executable work. Existing source-idempotent publication
+and pinned older revisions remain valid after later incomplete draft edits.
+Placement preview explicitly requires complete topology.
+
+`valid` means the current publication rules passed. Execution still performs
+profile/environment admission, concrete input validation and engine plan checks;
+the report is not a claim of effective placement or successful execution.
+Configuration must satisfy complete installed schemas and embedded construction
+contracts before publication. The interim UI still has entry/exit and some form
+requirements; production clients exercise the new backend contract, while full
+unfinished-form/builder integration remains part of UI convergence.
+
+### Binding admission and interface schemas
+
+Publication and frozen-revision preparation share application-owned graph contract
+checks. `ProgramContracts` composes installed catalog interfaces, authorized owned/
+pinned child definitions and `BindingProjection`; it does not construct capabilities
+or schedule work. `ProgramService` receives the installed element registry and owns
+its stateless construction/contract validators. Pinned revisions are memoized only
+within one validation request, retaining immutable identity and caller authorization.
+
+Drafts may retain missing/invalid bindings. Readiness/publication reject missing
+declared invocation inputs, closed destination fields that do not exist, invalid
+fully literal model requests, literal values violating a known JSON destination
+contract and paths impossible in declared input/result interfaces. Diagnostics use
+`INVALID_BINDING` with the authored path and safe messages. Graph input mappings
+are checked against the public input schema; operation and Program result mappings
+use declared result interfaces. Owned and pinned calls follow the same rules.
+Canonical names, simple aliases and alias-path roots remain accepted for installed
+model inputs. Index segments are nonnegative integers; booleans and fractional/
+negative indices are malformed authoring values.
+
+These checks are conservative, not a proof that every runtime path/value exists.
+Open interfaces, dynamic graph state, optional values and unsupported static schema
+combinations retain concrete runtime checks. Scoped resources with nested `$id`
+remain fully validated for concrete values; static projection intentionally stays
+unknown instead of resolving them under the wrong scope. Recursive analysis is
+bounded and avoids repeatedly expanding shared references. Whole literal model
+requests use actual Pydantic validation; partial requests do not pretend to execute
+model semantics with unknown values. Catalog result schemas describe serialized
+canonical output, including computed output fields.
+
+Interface documents use JSON Schema Draft 2020-12. References must resolve within
+the bundled schema document, including bundled resource IDs/anchors; validation
+and execution do not retrieve schema URLs. Reference-looking values inside enum/
+default/example data remain data. Runtime Program validation uses a non-retrieving
+registry and returns safe contract errors. This follows the library's
+[registry-based reference handling](https://python-jsonschema.readthedocs.io/en/stable/referencing/).
+
+The compiler rechecks restored revision contracts before native preparation.
+Concrete malformed root inputs are rejected before creating an execution record;
+bad values arriving dynamically still fail at the ordinary operation boundary.
+Production client checks cover invalid draft readiness, refused publication,
+correction, publication and actual execution through the same API.
+
+Graph-local input/result checks and explicit graph join policies are described below.
+Existing writable-channel contracts and writer policies are described below.
+Remaining foundation work includes richer compatibility, cyclic/complex-flow
+availability and lifecycle/retention limits. Current checks do not establish
+those broader capabilities.
+
+### Declared backend child-call contracts
+
+Backend configuration models may implement application-owned `ChildContracts`.
+Each alias maps to a `ChildContract`: optional input projection and local scope
+schema, consumed output bindings and optional model for those projected results.
+`inputs=None` passes the scope unchanged; an explicit empty mapping passes `{}`.
+An absent scope schema means the implementation's normalized input interface,
+falling back to published input when no installed input model is declared.
+Declarations are installed application metadata, not another saved workflow format.
+
+The shared `ProgramContracts` validator now handles graph calls and declared backend
+calls. It checks required aliases, owned/pinned child interfaces, required model
+fields and aliases, known scope/result paths and literal values. Pass-through checks
+reject required fields that cannot exist and guaranteed fields that the destination
+forbids. Unknown/open/optional structures retain concrete runtime validation; this is
+not general JSON Schema subtyping or static analysis of arbitrary Python behavior.
+Diagnostics identify the authored child alias with `INVALID_BINDING`. Readiness,
+publication and restored-revision preparation use the same path.
+
+Map and Repeat use named scope models both to construct runtime requests and to
+describe admission contracts. Map's scope is `{item, index, context}`; Repeat's is
+`{state, iteration, context}`. Repeat declares its consumed state/boolean mappings.
+Choose checks every configured branch against its request projection or pass-through
+input interface. These controls need no implementation-key branches in the validator.
+Custom backend coordinators can use the same optional interface. Implementations
+remain responsible for honoring their declarations and validating dynamic values;
+Run Engine remains responsible for actual child scheduling and lifecycle.
+
+Application, actual Local child execution and production TypeScript-client tests
+cover refusal/correction, aliases, owned/pinned calls, consumed output paths and
+normalized custom-coordinator input. Temporal/replay and current remote images
+remain milestone checks; this evidence does not establish remote cleanup or full
+graph-state compatibility.
+
+### Installed backend Program invocation
+
+`ApplicationRegistration` is the installed backend specification: versioned identity,
+configuration model, async entrypoint, optional input/result models and catalog metadata.
+It rejects malformed registrations. `ApplicationInvoker` owns configuration and
+declared input/output model enforcement in the application layer; implementations
+do not repeat this boundary plumbing. Use cohesive coordinator classes for related
+orchestration behavior behind the registered entrypoint. Add a factory only when
+construction needs actual dependency assembly, not to mirror element filenames.
+
+Published input schemas validate submitted input. The installed input model then
+validates and normalizes the JSON passed to the implementation, including aliases,
+defaults and custom validators. Result models validate and normalize returned JSON;
+published output schemas validate that normalized result. Catalog output schemas
+use serialization mode and canonical names, including computed fields. Model and
+schema failures produce safe contract diagnostics without invocation values.
+Program boundaries reject non-JSON data and nonfinite numbers rather than silently
+turning them into null. A result model does not change the entrypoint's JSON return
+contract: implementations returning Pydantic objects must serialize them first.
+
+Prepared adapter requests carry installed function/model references together in
+`ApplicationCall`, not live registries or application instances. The inbound adapter
+resolves them and delegates to the application invoker. Run Engine still owns
+scheduling, recorded effects and replay. Configuration/input/result validators,
+serializers and default factories must be pure and deterministic; effectful work
+belongs behind runtime ports. This is a programming contract, not a sandbox for
+arbitrary nondeterministic Python.
+
+Execution records retain submitted input intent; implementations receive normalized
+input. A separate observed normalized-input snapshot is still outstanding. RootModel
+arrays work for standalone, backend and graph calls through the same invocation path.
+Focused Local and production client evidence does not prove current-source Temporal
+replay, remote dispatch or environment cleanup. Rebuild matched images and run those
+gates at the planned execution milestone.
+
+### Whole-value projections and graph data scopes
+
+`Projection` is either named `Bindings` or a single `PathBinding`/`LiteralBinding`.
+Operation/Program call inputs, graph return values and Map/Repeat/Choose child
+inputs use it. Empty `{}` builds an empty object; `{"kind":"path","path":[]}`
+selects the complete source value. A literal may be any portable finite JSON value,
+including an array, scalar or null. Projection returns detached JSON containers;
+missing paths and nonportable values have safe contract diagnostics.
+
+Typed operations accept JSON through `ProgramRuntime.invoke_element` and normalize
+through their installed Pydantic input/result models, including RootModel arrays
+and scalars. They still use ordinary specifications, factories, builders and owned
+construction. There is no array-specific runner or fake graph context.
+
+Every graph invocation has two platform-owned data scopes:
+
+- `input`: the original invocation JSON, initialized independently of legacy named
+  state mappings. It may be an array, object, scalar or null.
+- `results`: latest completed typed-operation/Program results keyed by authored step
+  UID. Distinct parallel calls merge their separate keys. A repeated graph occurrence
+  replaces that UID's current result; this is not attempt/occurrence history. Legacy
+  state-based nodes do not copy their entire state into this result index.
+
+For example, a root array can reach an operation with
+`inputs={"kind":"path","path":["input"]}`. A graph returns its array result with
+`outputs={"kind":"path","path":["results","work"]}`. A later call can build named
+inputs by selecting fields from earlier results. An empty call output mapping writes
+no legacy state channels but still retains the actual result in its indexed scope.
+
+Graph initialization and per-call output mappings remain named channel updates.
+Publication rejects writes to `input`/`results`; receiving adapters and native resume
+updates preserve their platform ownership. State-based nodes cannot replace those
+scopes through their normal return contract. These are cooperative dataflow rules,
+not a security sandbox against arbitrary installed Python.
+
+Whole-value literal requests/results use the same publication checks as named
+mappings. Dynamic values still validate at invocation. Richer schema compatibility,
+cyclic/complex-flow availability, arbitrary per-graph state schemas, indexed-result retention/
+payload limits and authoritative occurrence inspection remain unfinished.
+Current graph-state contract is `unifai-graph-state-v3`. Matched images and Temporal/
+remote/replay evidence remain queued for the execution milestone.
+
+### Graph-local interfaces and join policies
+
+Application `GraphDataScope` resolves `input` and `results.<uid>` using each original
+schema document. It does not copy child `$defs`/references into an unrelated graph
+schema. Installed result interfaces and public output schemas both constrain result
+paths. Unknown/nonindexed producers, unreachable producers, self-result reads and
+reads without a producer-to-consumer ordering path reject readiness/publication.
+Whole graph state and the result index are objects; the root invocation value is
+selected through `input`. Named legacy state channels remain dynamically checked.
+
+`InterfaceContract` now lives in `mas.application.programs.interfaces`; graph scope
+navigation lives in `graph_data`, while `ProgramContracts` composes call/catalog/
+publication checks. Current callers import those owners directly. The shared
+projection validator rejects provably disjoint public JSON types, preserving
+integer/number overlap and deferring uncertain unions, nullable values, scopes and
+unsupported structure to concrete validation. Installed Pydantic coercion is not
+incorrectly treated as strict JSON-schema assignability. This is conservative
+overlap checking, not general schema subtyping.
+
+`GraphDefinition.join_policy` uses an application-owned enum: `active` (default)
+waits for the selected active paths; `all` requires static predecessors. It is
+saved/published immutably and compiled through the public native graph policy.
+Nested graph bodies can choose different policies without per-node engine options
+or another scheduler. The current engine does not expose per-node race/first-result
+joins through this contract. All-predecessor routing can leave a successor unexecuted
+when a required predecessor was not selected; selecting a policy does not prove
+exit reachability or accepted work.
+
+Reachability follows the engine's routing precedence: a source's conditional route
+selects its successors instead of also following that source's ordinary edges.
+Use an explicit fork before conditional work for an always-active parallel branch.
+Canonical graphs may save mixed source modes as drafts, but cannot publish them.
+The canvas blocks adding ordinary edges to a routed source and requires removing
+ordinary outgoing connections before adding routing. It does not silently delete
+or reinterpret edges. Blueprint import recognizes `after` links to declared branch
+targets as branch metadata; unmapped outgoing conditional dependencies reject
+conversion. Valid branch-only Blueprints and redundant branch metadata use the
+same canonical graph representation.
+
+Application `GraphFlow` owns bounded static reachability/activation analysis. For
+acyclic active-path graphs, result reads must have an ordering path and the consumer
+must not activate on a route that skips its producer. A consumer inside the producer's
+branch is valid; reading that producer after a conditional convergence is refused
+when another branch can activate the consumer alone. Ordinary parallel predecessors
+remain valid. Analysis uses declared routing, including empty/multiple selections;
+it does not evaluate a condition or inspect plugin-specific configuration to choose
+an outcome. Scheduling, selected decisions and recorded effects remain native.
+
+Activation expressions retain at most 256 minimal routing terms per node; a flow
+caches at most 64 reachability sets. Cyclic graphs and expressions exceeding the
+activation bound defer the unresolved guarantee to runtime. Structural/source/schema
+checks still apply. Under all-predecessor joins an ancestor must finish before a
+consumer can run, but an unselected predecessor can prevent the exit from running.
+Native tests confirm missing cyclic values and unreachable required results fail
+as contract errors rather than becoming accepted work. General cyclic first-
+iteration availability and arbitrary per-graph mutable state schemas remain open.
+
+Every condition label requires a declared destination. `END` is an ordinary label,
+including the direct router's no-recipient outcome; there is no generic terminal
+exception. Explicit empty selections retain their native no-successor semantics.
+
+Focused application/native/client checks cover refusal/correction, scoped references,
+type overlap, repeated use of the same published Program and both native join-policy
+plans. They do not establish Temporal/replay or current-image remote acceptance.
+
+### Writable channels and writer policies
+
+Application `ProgramState` owns graph invocation/result scopes, existing writable
+channel schemas, portable updates and safe validation errors. It extends the shared
+UnifAI `GraphState`; the thin Run Engine state adapter combines it with native
+state/reducer integration. Generic operations continue to receive typed JSON and
+operation context, never graph state.
+
+Publication checks graph initialization and call output mappings against writable
+channel schemas. Installed node/condition specifications must refer to known
+channels. Conditions return routing outcomes and cannot declare state writes.
+`input` and `results` remain platform-owned. Receiving adapters validate actual
+returned node changes against declared writes and validate concrete channel values.
+Unknown, read-only, undeclared and ill-typed updates fail with safe contract errors
+without echoing supplied values.
+
+`GraphWritePolicy.ORDERED` is the default: overlapping declared channel writers
+require a proven ordering in the acyclic topology. `REDUCE` explicitly selects
+existing declared channel reducers, including stable overwrite for some channels;
+it does not guarantee commutativity or make arbitrary concurrent mutations safe.
+The policy is graph-wide, independently configurable in nested graphs. Cyclic
+ordering is not statically proven. Blueprint conversion explicitly preserves its
+existing reducer behavior. Ordinary typed dataflow should use indexed results
+instead of competing writes to shared channels.
+
+This is validation of existing channels, not a new state DSL or scheduler.
+Per-channel overrides, arbitrary graph-local variable schemas, authoritative
+occurrence history and current-image remote/replay validation remain open.
+
+### Saved resource selection and frozen construction
+
+Native resource reads/listing include `source: {key, revision}` when the element's
+implementation is installed. This is an owner-scoped optimistic revision marker,
+including configuration/implementation version, built-in publication metadata and
+caller overlay generation. It does not retrieve historical library documents.
+Published program revisions provide immutable execution snapshots.
+
+`SaveProgramDraft.resource_selections` accepts entries shaped as
+`{source: {key: {category, rid}, revision}, adoption: "reject" | "replace"}`.
+The default adoption policy is `reject`. `SavedResourceResolver` depends on the
+application-owned `ResourceSnapshotSource` port; `ResourceAuthoringService` supplies
+authorized native async reads and existing visibility/overlay/encryption policy.
+Typed references discover the transitive closure. The shared bundle resolver checks
+cycles, construction contracts and implementation versions. A second authorized
+read checks source revisions before protection/persistence. Selection is bounded
+to 1,000 resources and depth 64; these are construction bounds, not run-tree budgets.
+
+Save protects private fields through `ConfigurationSecrets`, then stores ordinary
+`ResourceDefinition` snapshots in the program. Source markers are save commands,
+not execution payloads. Browser display/redacted configuration is never copied into
+those snapshots. Workers continue to use existing bundles, factories, category
+builders and the ordinary operation/node invocation pipeline.
+
+Edits without new selections keep frozen configuration. Selecting changed content
+that collides with an existing resource/dependency returns 409 unless the caller
+explicitly chooses `replace`; replacement affects all uses of that key in the draft.
+Equivalent normalized content reuses existing protected references rather than
+creating duplicate credential records. Older published revisions stay unchanged.
+Root source changes invalidate a pending selection; dependency revisions are captured
+at save and checked for changes during collection. Missing/hidden dependencies are
+404, an unavailable library is 503, and neither case persists a partial draft.
+
+Placement remains separate: source selection resolves construction data; clients
+author step execution selections independently. The UI captures saved defaults for
+new blocks and preserves explicit overrides. Configuration adoption does not silently
+rewrite existing step placement. Binding saved resources into registered-program
+configuration fields remains open; the resolver itself is independent of graphs.
+
+Target clarification: evolve the existing blueprint builder into one program
+workspace, incorporating the useful behavior from this interim screen. Element
+resources and published programs remain distinct reusable library types. Present
+Map/Repeat/Choose/Wait as controls inside the builder, independently of their
+registered-program lowering. Definition expansion shows a pinned program's graph
+and interfaces; execution drill-down shows its actual child runs, invocations,
+items, iterations and attempts. Editing a reusable definition creates a new draft/
+revision, with explicit caller adoption. Registered Python programs expose public
+contracts and observed calls without requiring an editable graph representation.
+See [the target authoring model](architecture/README.md#unified-program-builder-and-reusable-libraries).
+
+## Optional Git source operations
+
+The platform does not require Git or artifact publication. Ordinary operation
+schemas define their own inputs/results, including plain data, immutable source
+references, reports or other integration-specific values. `GitRevision` is a small
+ADLC value (`repository`, full immutable `commit`), separate from `BlobArtifactRef`.
+Generic program/runtime/compiler contracts do not import it.
+
+Enable the installed optional plugin on the API/coordinator using
+`UNIFAI_ELEMENT_MODULES='["mas_plugins.git.specification"]'`. Install the same
+package and Git CLI on receivers that execute these operations. Operator settings
+bind logical repository IDs to transport locations and explicitly admitted owners:
+
+```sh
+export UNIFAI_GIT_REPOSITORIES='{"product":{"location":"/srv/repositories/product","owners":[{"type":"user","id":"developer"}]}}'
+export UNIFAI_WORKSPACE_ROOT=/srv/unifai-workspaces
+export UNIFAI_GIT_TIMEOUT_SECONDS=120
+```
+
+Locations currently support an absolute local repository path or credential-free
+HTTPS. Local paths must exist on the selected receiver. This slice does not
+implement private Git credentials, SSH, submodules, LFS filters or remote image
+installation. Repository bindings and locations stay outside authored definitions
+and portable execution results. Owner admission distinguishes user/team identities
+and fails closed for absent bindings or owners; it is not a general tenant policy
+or protection against hostile code sharing the receiver's OS identity.
+
+Use these normal resource/specification contracts:
+
+| Resource type | Configuration | Input | Result |
+| --- | --- | --- | --- |
+| `providers/git_repository` | Logical `repository` ID | — | Constructed source capability |
+| `operations/resolve_git_revision` | `source: ProviderRef` | `reference` (default `HEAD`) | `GitRevision` |
+| `operations/checkout_git_revision` | `source: ProviderRef`, workspace name/mode | `revision: GitRevision` | `GitWorkspace` (initial revision and relative workspace) |
+
+Resolution accepts `HEAD`, a full `refs/heads/...` or `refs/tags/...` name, or a
+complete lowercase object ID. It fetches and peels annotated tags to a commit,
+recording a 40-character SHA-1 or 64-character SHA-256 identity. SHA-256 repositories
+set `object_format: "sha256"` in the operator binding. Moving branches must be
+resolved before handing candidates to later stages. Detached checkout fetches that
+exact commit; it never substitutes a newer branch head. Both operations use the
+existing dependency builder and operation invoker from graph or code programs.
+
+Checkouts stage privately on the workspace filesystem and publish through pinned,
+execution-scoped parent handles. An existing destination is a conflict, including
+an existing pristine checkout: a retry does not erase uncommitted work. Uncertain
+publication reconciliation is still required before claiming idempotent checkout.
+The returned revision describes the initial checkout, not its contents after an
+agent edits it. Changes must become a new immutable candidate before verification.
+
+The adapter uses owned, bounded, native async Git subprocesses, disables inherited
+Git configuration/templates/hooks/credential helpers, denies unrelated transport
+protocols and submodule recursion, discards raw diagnostics, and cleans staging on
+ordinary failure, timeout and cancellation. Hard-crash staging collection and
+repository size quotas remain acceptance work. A commit reference is durable only
+while the repository retains and serves the object; managed retention or protected
+publication refs must precede a durability claim. No merge/push/deploy operation or
+trusted verification receipt is implied by a successful checkout.
+
+## Verification plans and trusted evidence admission
+
+Enable `UNIFAI_VERIFICATION_ENABLED=true` with `UNIFAI_STORAGE=mongo`. Verification
+uses the existing application database and native async Mongo connection; memory
+storage is rejected for this feature. `program_verifications` stores bounded
+whole-plan records with majority-acknowledged writes and revision-checked updates.
+There is no additional database, scheduler or operation registry.
+
+`UNIFAI_VERIFICATION_POLICIES` maps versioned policy IDs to admitted owners, a
+`subject_kind`, required check IDs/allowed verifier IDs, and a deadline (60 seconds
+to 30 days). For example, the JSON value of a single policy can be:
+
+```json
+{
+  "owners": [{"type": "user", "id": "developer"}],
+  "subject_kind": "build-image@1",
+  "requirements": [{"check": "tests@1", "verifiers": ["ci"]}],
+  "timeout_seconds": 3600
+}
+```
+
+`UNIFAI_VERIFICATION_AUTHORITIES` maps verifier IDs to `credential_sha256` (the
+lowercase SHA-256 digest of a separately provisioned high-entropy bearer credential)
+and explicit owner identities. The verifier retains the credential; the API
+configuration stores its digest. Distinct verifier identities require distinct
+credential hashes. Policies must refer to configured verifiers. These are evidence
+issuers, with no general user-session or workflow authority. Keep the raw verifier
+credential in its trusted CI integration, outside agent/workflow configuration and
+history; use HTTPS for nonlocal evidence submission. Native tests use loopback HTTP.
+
+| API | Authority | Behavior |
+| --- | --- | --- |
+| `POST /api/verifications` | Native session or scoped workflow capability | Admit a stable `key`, policy ID and exact subject; freeze required checks/deadline |
+| `GET /api/verifications/{plan_id}` | Owning native session or scoped read capability | Authoritative state, receipts, revision and derived outcome |
+| `POST /api/verifications/{plan_id}/cancel` | Owning native session or scoped cancel capability | Cancel an incomplete plan and fence new evidence |
+| `POST /api/verification-evidence` | Verifier bearer plus `X-Verification-Authority` | Admit one immutable receipt for an allowed check and owner |
+
+The opt-in `VerificationSubject(kind, identity)` belongs to evidence correlation;
+ordinary operation outputs retain their own schemas. It does not impose Git,
+managed artifacts or a universal reference registry. Its bounded JSON identity
+has a canonical fingerprint including the versioned kind. Object-key ordering
+does not change identity; booleans, integers and floats remain distinct. A checker
+must validate and interpret its own candidate schema. This mechanism identifies
+the subject attested to; it does not itself prove the referenced resource exists.
+
+A plan ID is stable for an owner/type/root/key. Repeating the same intent recovers its
+persisted state. Changing its candidate or policy is a conflict. Required checks
+are frozen at admission, so retries and inspection do not silently adopt a changed
+operator policy. Each receipt includes its check, authenticated verifier, exact
+subject fingerprint, external check-run ID, verdict and server admission time.
+The request repeats the subject; mismatches are rejected before receipt lookup.
+
+Acceptance requires every frozen check to have a passed receipt. Failed checks
+produce `rejected`; check infrastructure errors produce `error`. Incomplete plans
+without those failures become `expired` at their deadline. Cancellation yields
+`cancelled`. The deadline limits admission of new evidence; an already accepted
+plan remains accepted afterward. Quality freshness/revocation policies are separate
+future work. Identical receipt retries remain acknowledged after expiry/cancellation;
+conflicting verdicts, different run IDs and replacement issuers cannot overwrite a
+receipt. Rerunning a failed check uses a new verification-plan intent.
+
+The application owns admission, matching, cancellation and acceptance. Mongo owns
+atomic persistence; HTTP owns credentials/transport. There are no verification
+branches in the compiler/runtime or changes to Run Engine. Native restart tests
+use separate API processes, actual signed cookies/Redis, actual Mongo, and an
+independent executable source-content check against an exact Git checkout. Both
+passing/failing results persist, while ordinary sessions cannot attest and verifier
+credentials cannot become user sessions. This proves the evidence-ingress contract,
+not a production CI executor or complete implementation/testing/review workflow.
+
+Workflow capabilities and reusable wait Programs are described below. GitHub
+dispatch/reconciliation and operator-pinned verifier Programs provide check runners.
+Required report provenance and basic owner-authorized UI inspection are implemented;
+complete software verification, remote and broader UI acceptance remain open.
+The control plane/database
+and admitted verifier are trusted. This credential boundary does not establish
+isolation from malicious code sharing their OS identity or database authority.
+
+### Operator-pinned verifier Programs
+
+`UNIFAI_PROGRAM_CHECKS` registers a check runner backed by an ordinary published
+Program. The private operator binding contains `policy`, `program_owner`, immutable
+`program` reference, exact `content_digest` and `max_result_bytes` (default 65,536).
+Program and GitHub runner names cannot collide. Internal verifier identities cannot
+also accept external evidence credentials. Every policy/check/subject-kind binding
+is validated at deployment; Program checks require durable artifact storage.
+
+`ProgramCheckRunner` depends on narrow application execution/revision ports. It
+uses the existing ProgramService/ExecutionService implementations, never an engine
+SDK, separate scheduler or sandbox manager. The selected verifier's own definition
+controls placement, dependencies and composition. A graph or backend Program can
+implement the same check contract. Installation of a Program alone grants no
+attestation authority: the operator must pin that exact revision and digest.
+
+The verifier receives `CheckProgramInput` (`intent_id`, `plan_id`, `check`, `subject`,
+optional `artifact`). Metadata-only requests omit the optional field.
+It returns `CheckProgramResult` (`subject_fingerprint`, `verdict`, optional JSON
+`details`). The runner validates the execution owner, reference, digest, actual
+input and exact candidate fingerprint before admitting a verdict. Operational
+completion alone is insufficient. Failed/cancelled verifier executions report an
+error with safe phase metadata, not raw failure diagnostics. Malformed, oversized,
+unknown or foreign observations cannot attest. Reports are bounded JSON, hashed and
+collected through the existing immutable report/artifact pipeline.
+
+The execution ID is stable for the admitted check intent. Lost submission
+acknowledgements are reconciled by that ID; a missing execution never authorizes
+another submission. Reports reconstruct from persisted execution results rather
+than process-local provider state. Changing the operator binding cannot reinterpret
+an older admitted check. API reconstruction after completed thread/process checks
+has [native proof](evidence/2026-11-05-program-checks.md).
+
+Verifier jobs are independent executions under the configured verifier owner,
+similar to external CI jobs; they do not counterfeit Engineering child ancestry or
+inherit its workflow credentials. Candidate owners receive admitted evidence/reports,
+not access to another owner's full execution. Input provenance is not authority to
+read candidate content: checker-specific adapters need separately scoped access
+or the bounded input transport described below.
+
+This bridge does not itself execute untrusted code or certify a verifier's logic.
+Operators must select trusted, bounded checker Programs and appropriate isolation,
+input transfer and private bindings. Cross-root capacity accounting, in-flight Temporal recovery and current-image Kubernetes/
+OpenShell acceptance remain required. Native cases cover JSON values and controlled
+Python source; they are not live-agent or isolated software-verification acceptance.
+
+### Verifier-job retirement and cancellation
+
+Owned check registrations explicitly provide a `CheckJobControl` port. Their
+persisted `job_state` progresses `active` → `retiring` → `closed`; unmanaged/borrowed
+providers have null state and are excluded from this controller. This is job
+ownership metadata, separate from the last provider observation and check verdict.
+
+`CheckJobMaintenance` joins the existing application reconciliation loop. It pages
+indexed current-state records, limits each pass to five seconds, advances past
+unavailable items and retries across reconstruction. Plan cancellation/expiry,
+recorded evidence, or an authoritatively closed owning root initiate retirement.
+A pending plan belonging to a closed root is cancelled through VerificationService.
+Unknown root authority is not permission to cancel. New indexes/projections are
+validated against stored data; old prototype rows need replacement/migration rather
+than an implicit compatibility reader.
+
+Retirement intent commits before a provider cancellation call. An unclaimed ready
+intent can close atomically and fence dispatch. In-flight/uncertain jobs stay
+retiring until the exact admitted verifier execution is observed terminal. Missing
+jobs, changed bindings and unavailable observations remain pending; cancellation
+acknowledgement alone does not close them. Late acknowledgements cannot restart
+retired work or attest new evidence. Exact receipts committed before a lost check
+acknowledgement are recovered, including while other plan requirements are pending.
+Existing receipts remain immutable.
+
+Program checks use normal ExecutionService cancellation under their configured
+verifier owner. They never kill a different owner's process from the API or adopt
+another job. The current SDK's thread/process pools drain an already running
+invocation: cancellation does not promptly interrupt its separate event loop.
+Finite operation bounds therefore remain necessary. Native tests prove eventual
+terminal cancellation, actual child reaping and directory collection after bounded
+draining; they do not prove immediate preemption. The [engine capability request](../integrations/run-engine-invocation-cancellation-request.md)
+records the inspected behavior and requested cooperative cancellation contract.
+
+See [the lifecycle checkpoint](evidence/2026-11-05-check-lifecycle.md) for exact scope.
+The [Kubernetes checkpoint](evidence/2026-11-05-checker-placement.md) adds current-image
+bounded remote cleanup. Full remote/recovery coverage, unavailable binding restoration
+and cross-root capacity/fairness remain final-acceptance work.
+
+### Python function checks and bounded candidate transport
+
+For a small blob candidate, an operator Program-check binding can set
+`input_artifact_max_bytes` (1–1,048,576). This is permitted only for a canonical
+`blob-artifact@1` subject. The runner validates its policy/owner, reads through the
+existing ArtifactService as the candidate owner, bounds the stream and supplies an
+`InlineArtifact`: the exact reference plus base64 content verified by length and
+SHA-256. Corrupt, oversized, noncanonical or unavailable input never starts a checker.
+This optional transport puts bounded source data in the verifier execution's stored
+inputs/history. It is not suitable for large repositories; ordinary reference-based
+check Programs remain available. It grants the receiver no artifact credential.
+
+Install `mas_plugins.testing.specification` in the normal element catalog to expose
+`operations/python_function_evaluate`. Its resource specifies a function name and
+a 0.1–300-second timeout (default 10). Normal specs/factories/builders construct it.
+Its input is the exact inline artifact plus 1–32 argument sets. It returns bounded
+actual values or a typed evaluation failure, never a verification verdict.
+
+Install `mas_plugins.testing.program` in the application registry for the backend
+`python_function_check@1` Program. Configuration contains the captured evaluator
+bundle, expected cases and an explicit execution selection. The coordinator keeps
+expected answers, validates the exact candidate fingerprint and invokes only that
+evaluator bundle with source/arguments through `ProgramRuntime.invoke_element`.
+Check-plan metadata, verification capabilities and expected answers are not evaluator inputs.
+Comparison stays outside the candidate receiver when placed on an isolated profile.
+The former combined check operation was removed without compatibility aliases.
+The full controlled Engineering native/browser journey also uses this production
+checker through `program@1`, with a separately owned pinned verifier. Candidate
+owners inspect admitted reports, not the verifier's private execution. The old
+transient Python-check API peer was removed; see the
+[integration checkpoint](evidence/2026-11-06-engineering-program-checks.md).
+
+Case data and evaluator results are bounded to 64 KiB. The comparator checks result
+schema, count and JSON types; `true` cannot satisfy expected `1`. A candidate-returned
+verdict or extra fields cannot attest success. Exceptions, malformed/excessive output
+and deadlines become explicit errors without raw subprocess diagnostics. Runtime
+cancellation and infrastructure failures retain their normal execution semantics.
+This uses the public Program model, with no compiler branch or sandbox manager.
+
+The child gets a minimal environment, its own process group and a temporary working
+directory, with no artifact token. stdout and stderr are independently bounded to
+64 KiB. Acquisition, cancellation, process-group termination/reaping and directory
+collection are owned by the adapter and drained before cancellation propagates.
+Python `-I -S` isolates imports/configuration, not operating-system access.
+The evaluator retains only receiver-local proxy/certificate transport settings in
+addition to its minimal PATH. OpenShell's allowed traffic needs those injected
+settings; stripping them makes direct child networking unreachable. Coding and
+evaluation adapters share the outer `mas_plugins.subprocesses.network_environment`
+helper. Provider keys, workflow settings and `RUNENGINE_PARAMS` are excluded from
+the evaluator child environment. Policy still belongs to the execution profile.
+
+Factory execution defaults to disabled. Only receiver/operator settings may enable
+`UNIFAI_PYTHON_CHECK_EXECUTION_ENABLED=true`; optional
+`UNIFAI_PYTHON_CHECK_DIRECTORY` must be absolute. Authored resource configuration
+cannot enable it or select a shell command. Enable only on an appropriately isolated
+profile for live/untrusted source. The flag declares operator authorization; it does
+not prove physical isolation. A same-UID subprocess on a trusted host is not a
+hostile-code sandbox. Installed test cases are also only the verification specified,
+not a proof of arbitrary software correctness or protection against malicious code.
+
+The [Python-check checkpoint](evidence/2026-11-05-python-checks.md) uses deliberately
+controlled source in native thread/process tests. It proves independent comparison,
+input/report ownership, bounded subprocess behavior and completed-state API restart.
+The [Kubernetes checkpoint](evidence/2026-11-05-checker-placement.md) additionally
+proves current-image passing/failing checks, bounded cancellation, retained placement
+and physical Job/pod cleanup. Receivers use a token-free service account; descriptive
+namespace context no longer depends on mounting a service-account token. The SDK
+adapter observes actual namespace/image and host/secret mount settings independently.
+That checkpoint predates the separated comparator described above. Minimal child
+environment alone cannot prevent same-UID access to receiver parent process data;
+the evaluation receiver must therefore contain no expected answers or verification
+authority. Actual profile isolation and network restrictions remain required.
+The [separated-checker checkpoint](evidence/2026-11-05-checker-boundary.md) proves
+the current protocol through a real receiver-parent environment recovery attempt,
+with candidate evaluation disabled on the trusted API host.
+Prompt interruption and full live Engineering/browser acceptance remain open.
+The later [normal OpenShell checkpoint](evidence/2026-11-06-normal-openshell.md)
+proves real candidate allow/deny/offline behavior and a separate live two-Codex smoke.
+Full live Engineering/verifier/browser integration remains unfinished. Strict
+Landlock filesystem enforcement is an optional profile/test guarantee, not required
+for normal OpenShell execution.
+
+### Workflow capabilities and reusable waiting
+
+Native sessions manage `/api/verification-access`: POST issues a credential once,
+GET lists public metadata with pagination, and DELETE `/{grant_id}` revokes it.
+GET `/self` requires the workflow bearer and returns only its grant metadata.
+Issuance records the owner and acting human separately, including team-owned grants.
+Mongo persists a credential hash, expiry, revocation and explicit scope: one root
+execution ID, permitted policy IDs and `create`/`read`/`cancel`/`run_check` actions. There is no
+evidence-submission action. Invalid bearer credentials never fall back to a cookie.
+
+Review and verification workflow grants additionally require execution-bound
+authority, described below. A valid hash, future expiry and `revoked=false` do
+not by themselves establish that a workflow credential is currently usable.
+
+`VerificationActor` carries this authority into the application service. Creating
+a plan derives its root from the grant, and read/cancel checks enforce the same
+root, policy, action and owner. Owning a different plan under the same user is not
+enough to access it with a scoped grant. Native owners retain their authorized
+inspection/control. A shared opaque-credential helper supplies nonce/hash mechanics
+for artifact and verification capabilities; their scopes and policies stay separate.
+
+Install `mas_plugins.verification.specification` through `UNIFAI_ELEMENT_MODULES`
+and `mas.application.verification.program` through `UNIFAI_APPLICATION_MODULES`
+(append them to other required modules). Receivers need the same installed code.
+The plugin registers these normal resources through existing specifications,
+factories, provider references and the shared operation invoker:
+
+| Type | Input | Result |
+| --- | --- | --- |
+| `providers/verification_service` | Protected credential reference or operator binding | Root-scoped service connection |
+| `operations/request_verification` | `subject`, `policy` | `VerificationView` |
+| `operations/inspect_verification` | `plan_id` | `VerificationView` |
+| `operations/cancel_verification` | `plan_id` | `VerificationView` |
+| `operations/start_verification_check` | `plan_id`, `runner` | `CheckRun` |
+| `operations/refresh_verification_check` | `intent_id` | `CheckRun` |
+
+The request operation derives an intent key from execution/call identity. Retries
+recover the same plan; a repair needs a new logical occurrence. The HTTP adapter
+validates owner/root/policy and returned plan/candidate identity, uses bounded
+responses/deadlines, closes each owned client, and preserves safe retryable
+infrastructure failures. Protected preparation redacts messages/codes while keeping
+failure category and retryability. Artifact storage failures now use that same
+application-owned failure contract instead of losing their transport classification.
+
+Configure `UNIFAI_VERIFICATION_ENDPOINT` as an HTTPS origin. For operator-bound
+credentials, set an absolute `UNIFAI_VERIFICATION_ACCESS_DIRECTORY`. Provision a
+private regular file named by `verification_credential_key(owner, root_execution_id)`
+with the capability for that owner/root. This permits concurrent roots using the
+same published resource without replacing one global token. Symlink/nonregular or
+nonprivate credential files are rejected. The alternative `access_token: SecretStr`
+uses the existing protected configuration/secret-reference path. Credentials are
+not program inputs, operation results or prepared engine payloads. Tests explicitly
+enable loopback HTTP with `UNIFAI_VERIFICATION_ALLOW_INSECURE=true`.
+
+The registered `await_verification@1` code program takes `plan_id`. Its configuration
+contains an inspection operation bundle, placement selection, polling interval and
+positive poll bound. Graph or code programs can call it as an ordinary child. Each
+inspection is a short operation; between inspections it calls `ProgramRuntime.sleep`,
+which Run Engine implements with its native timer. Control follows recorded
+inspection results on replay. There is no additional scheduler or waiting invocation
+worker. Waiting ends with an explicit result: `reason=resolved` plus the business
+outcome, or `reason=poll_limit` plus the still-pending verification. Neither program
+completion nor poll exhaustion means accepted work. A later waiter can use the same
+plan ID. Cancelling a waiter does not cancel the borrowed plan; an authorized caller
+uses the explicit cancel operation when appropriate.
+
+### Trusted external checks and uncertain dispatch
+
+`CheckRunService` coordinates a verification plan with an operator-admitted check
+runner. The domain owns dispatch status and observations; the application owns
+authorization, one intent per plan/check, immutable configuration admission, and
+evidence submission. `MongoCheckRunRepository` reuses the native application
+database. `mas_plugins.ci.github` implements the external provider contract.
+Run Engine still owns all scheduling and durable waiting.
+
+The workflow APIs are:
+
+- `POST /api/verification-checks` with `plan_id` and an admitted `runner` ID.
+- `GET /api/verification-checks/{intent_id}` reads the authorized persisted view
+  without contacting the provider; scoped readers need only plan-read authority.
+- `POST /api/verification-checks/{intent_id}/refresh` to reconcile provider state
+  and commit trusted evidence after completion.
+
+Native owners or a root/policy-bound workflow grant need authority to inspect the
+plan; workflow grants additionally require `run_check` for both operations.
+Creating or reading plans alone does not authorize spending CI resources. The
+operator binding further restricts owner, verification policy, check and subject
+kind. The public operation does not accept a verdict, provider token, executable
+command, workflow URL or arbitrary dispatch parameters.
+
+Set `UNIFAI_VERIFICATION_ENABLED=true` and supply `UNIFAI_GITHUB_CHECKS` privately on
+the **API server only**. Its map keys are versioned runner IDs. Each binding has:
+
+| Field | Meaning |
+| --- | --- |
+| `policy.owners` | Explicit permitted owner identities |
+| `policy.policies` | Permitted verification-policy IDs |
+| `policy.check` | The one check this runner can satisfy |
+| `policy.verifier` | Its internal trusted verifier identity |
+| `policy.subject_kind` | `git-revision@1` for this adapter |
+| `repository` | GitHub `owner/repository` hosting the trusted workflow |
+| `source_repository` | Logical repository identity accepted from `GitRevision` |
+| `workflow_id` | Numeric workflow ID |
+| `workflow_ref` | Operator-controlled branch/tag used for dispatch |
+| `workflow_commit` | Exact expected workflow run `head_sha` |
+| `token` | Operator-only GitHub token, represented as `SecretStr` |
+| `timeout_seconds` | Request and whole-reconciliation deadline, default 20 seconds |
+| `reconciliation_pages` | Bounded search, default/max ten pages of 100 runs |
+| `report_names` | Exact required GitHub artifact names, default empty, maximum 16 |
+| `report_max_bytes` | Per-report archive bound, default 16 MiB, maximum 64 MiB |
+| `archive_hosts` | Explicit HTTPS download-host names or `*.suffix` patterns |
+
+The verifier must appear in the corresponding verification policy. It must not
+also appear in `UNIFAI_VERIFICATION_AUTHORITIES`: the internally admitted runner,
+rather than an external evidence bearer, owns this authority. Settings reject
+conflicting roles, missing policies and incompatible checks. Credential rotation
+preserves the configuration digest; changing the admitted workflow/policy binding
+requires restoring that binding to reconcile an existing run.
+
+Configure the trusted workflow to accept four string inputs: `unifai_intent`,
+`unifai_plan`, `unifai_check`, and `candidate_commit`. Its run name must be:
+
+```yaml
+run-name: unifai-${{ inputs.unifai_intent }}-${{ inputs.candidate_commit }}
+```
+
+The workflow must materialize the exact full candidate commit from its fixed,
+operator-approved source repository and run its admitted checks. It must report
+success only if those checks actually pass. A matching run name binds the candidate
+input to the observed run; the platform still trusts the operator-controlled
+workflow's implementation. A successful unrelated or agent-controlled workflow is
+not evidence. Protect the workflow/ref and its execution authority accordingly.
+
+The adapter uses GitHub's [workflow dispatch endpoint](https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28)
+with `return_run_details=true` under API version `2022-11-28`. Record a returned
+run ID before inspecting it. Subsequent observations validate repository, workflow
+ID, workflow commit, event, exact intent/candidate title, and attempt number one.
+The [workflow run API](https://docs.github.com/en/rest/actions/workflow-runs?apiVersion=2022-11-28)
+supports lookup and bounded reconciliation. `success` becomes passed; `failure`
+becomes failed; other completed conclusions become error. Reruns are distinct
+work and cannot overwrite the original occurrence's evidence. Evidence records
+the namespaced provider run/attempt ID and the plan's exact subject fingerprint.
+
+Persist `uncertain` **before** submitting. Only the successful revision claimant
+may issue the POST. A timeout, cancellation, invalid acknowledgement, API-process
+death, or lost database acknowledgement never authorizes another POST. Recovery
+searches for the exact intent/candidate title; absence, multiple matches, provenance
+mismatch or a truncated search remains unresolved. A known refusal is `rejected`.
+This prevents automatic duplicate submission, but cannot guarantee delivery when
+the process dies between reserving and sending. Automatic compensation and proof
+that a permanently absent dispatch was never sent remain future work. Do not label
+this exactly-once external execution.
+
+Native human owners can use `POST /api/verification-checks/{intent_id}/resolve`
+with an idempotency `key`, `expected_revision`, an existing provider `external_id`
+and a reason. This attaches a provider-confirmed run to the current uncertain
+intent. It records the actual human, reason, provider ID and timestamp; concurrent
+identical retries acknowledge that resolution, while stale/conflicting decisions
+fail. The provider must independently confirm the exact original workflow and
+candidate. This action cannot supply a verdict, force acceptance or issue another
+dispatch. Scoped workflow capabilities cannot call it, including with a human
+cookie supplied alongside the bearer. This is CI intervention, distinct from the
+separate reusable Human Review business program.
+
+### Durable check reports and provenance
+
+`CheckRequirement.requires_reports=true` freezes a requirement for nonempty durable
+report evidence in the verification plan. It is optional: ordinary operation
+results and other checks need no blob wrapper. Server admission rejects a bound
+runner that cannot provide the required reports. Report-enabled bindings require
+`UNIFAI_ARTIFACT_DIRECTORY`; the existing artifact service owns publication,
+integrity, owner access and content streaming. No second blob store is introduced.
+
+`GitHubCheckReports` selects the configured names from the already validated,
+completed workflow run. Missing, duplicate, expired, oversized or mismatched
+artifacts cannot satisfy the check. It verifies run identity and workflow commit,
+then freezes a `CheckReportSource` manifest with provider object ID, name, media
+type, byte count and digest before downloading. A repeated refresh uses that frozen
+manifest rather than silently choosing a replacement provider object.
+
+The [GitHub artifact API](https://docs.github.com/en/rest/actions/artifacts?apiVersion=2022-11-28)
+provides artifact identity/digest metadata and a short-lived archive redirect. The
+transport accepts only HTTPS locations matching the explicitly configured
+`archive_hosts`, with no URL user information, fragments or alternate ports. It
+sends a fresh credential-free request to that host, forwarding neither API tokens,
+cookies nor inherited client authorization, and follows no further redirects.
+Actual streamed bytes must match the admitted size and SHA-256 before the existing
+artifact repository commits them. Archives remain opaque bytes; this path does
+not extract files or execute content. Signed download URLs are not stored in
+programs, check records or evidence.
+
+`CheckReportCollector` publishes under stable owner/intent/source identities in
+the `verification-reports` namespace. If publication commits but the check-record
+acknowledgement is lost, retry recovers those bytes without reopening a now-expired
+provider archive. Partial transfers close their source and release staging on
+failure/cancellation. The completed report set must match the admitted manifest.
+
+Only then can the check record its evidence. The immutable receipt carries the
+exact subject fingerprint, namespaced provider run/attempt, admitted configuration
+digest and `CheckReport` references to verified local bytes. Evidence admission
+checks report ownership/reference identity and rechecks the deadline after report
+authorization I/O. Duplicate receipts remain acknowledgements; changing report
+provenance or configuration under that receipt conflicts. Artifact read authority
+is separate from verification-plan authority: a workflow verification capability
+does not itself grant report downloads.
+
+These guarantees establish byte identity and trusted-run association. They still
+trust the admitted workflow's implementation of the actual check, and do not prove
+that arbitrary report contents are correct. Report absence/invalid provenance
+fails refresh; infrastructure retries follow the caller's execution policy rather
+than being silently treated as a passed check. Live provider validation, external
+job cancellation, report retention policy and review/report UI remain open.
+
+The registered `await_check_run@1` program takes `intent_id`. It reuses the bounded
+inspection configuration with a `refresh_verification_check` operation bundle.
+Each refresh is short; waits use native runtime timers. `resolved` means refusal
+or completed **recorded evidence**, while `poll_limit` may retain uncertainty.
+An individual passed check does not imply the entire verification plan is accepted.
+Cancelling the waiter/plan does not cancel an external GitHub job; cancellation
+policy and a reconciled provider-cancellation operation remain open.
+
+Deterministic tests cover concurrent submission, acknowledgement loss, provenance
+denial, API restart, exact-subject evidence and graph/code composition through real
+thread/process receivers, native HTTP processes, Mongo and Redis. The GitHub peer
+is an explicitly identified protocol fixture; these results do not establish live
+GitHub execution, remote receiver parity or a complete
+ADLC acceptance workflow. No GitHub credential is placed in a program, invocation
+bundle, workflow capability or execution result.
+
+Native tests cover graph -> request -> reusable code waiter on thread/process
+runners, accepted and cancelled plans, scope/role denial, and safe retryable service
+failures. Separate-worker Temporal scenarios observe a real timer, stop the worker,
+admit evidence while it is absent, restart it, and replay root/child histories.
+Workflow capabilities remain outside those histories. These are local receiver
+proofs; matched Kubernetes/OpenShell verification placement remains open.
+
+Capability issuance/provisioning/rotation is currently explicit. Opt-in bounded
+renewal and authentication-time root-lifetime enforcement are implemented below.
+Automatic run-admission binding, private-file collection, per-call delegation
+and stale-attempt fencing remain required production work. Bounded upkeep now
+persists terminal/expired grant retirement, including fixed-expiry grants.
+Default directory binding shares one admitted capability within a root; it does
+not establish per-node least privilege or hostile-process isolation. Bound grant
+lifetimes to the intended waiting duration and rotate bindings through a trusted
+operator/controller; reusable waits do not renew their own authority.
+
+## Durable artifacts: implemented API/storage foundation
+
+Configure an absolute `UNIFAI_ARTIFACT_DIRECTORY` on the API server, outside worker
+or sandbox filesystems. `UNIFAI_ARTIFACT_MAX_BYTES` bounds each publication (default
+64 MiB). The filesystem implementation targets durable POSIX storage. Application
+policy depends on the `ArtifactRepository` port; domain/application code imports
+no filesystem or HTTP integration.
+
+Authenticated `POST /api/artifacts` streams the body and takes a JSON-encoded
+`PublishArtifact` in the `X-Artifact-Metadata` header: stable `key`, logical `name`,
+`sha256`, `size_bytes`, optional `namespace` (default `default`), `media_type`
+and input blob references. The
+server derives ownership from authentication. `GET /api/artifacts/{artifact_id}`
+inspects metadata; `/content` streams bytes. Unicode header metadata must use ASCII
+JSON escapes. Retrying the same owner/namespace/key/content returns its prior publication;
+changing content or metadata under that identity conflicts. Foreign reads are 404.
+
+A domain `BlobArtifactRef` contains identity/hash/size, never a worker-local path or
+credential. Workload-local path metadata is `WorkspaceArtifact`; it has no durable
+storage guarantee. Atomic staging publishes only complete, verified content and
+metadata. Consumers must complete verification before accepting streamed downloads.
+The API/storage component survives API restart. Native user sessions issue scoped
+transfer credentials with `POST /api/artifact-access`; read/list/revoke management
+uses user authentication. The credential is returned once with no-store caching;
+persistence stores its hash. Bearer credentials authenticate only artifact transfer
+and `/api/artifact-access/self`, never ordinary platform routes or grant management.
+Grants constrain owner, read/publication actions, explicit namespaces or blob IDs,
+per-transfer bytes and expiry. Revocation persists across API restart; existing
+admitted streams finish under their admitted limits. These manually issued grants
+are separate from the managed root-bound workflow capability below.
+
+Normal streaming transfer uses `providers/artifact_store`,
+`operations/publish_artifact`, and `operations/materialize_artifact`. Factories,
+provider dependency references, async preparation and receiver cleanup are shared
+with other elements. Configure receiver-only `UNIFAI_ARTIFACT_ENDPOINT` as the
+platform server origin and use a protected `access_token` resource field or a
+private absolute `UNIFAI_ARTIFACT_ACCESS_FILE` binding. Manual file bindings must be
+regular, private, owned by the receiver OS user, and at most 4096 bytes; symlinks
+are refused. HTTPS is required by default;
+`UNIFAI_ARTIFACT_ALLOW_INSECURE=true` is an explicit local-test option. URLs and
+credential-file paths stay outside behavioral resource configuration. The provider
+checks that its credential belongs to the invocation owner and does not follow
+redirects. Its HTTP client closes with the constructed element scope.
+
+For managed workflow transfer, enable `UNIFAI_ARTIFACT_WORKFLOW_ENABLED=true`
+with artifact storage, Mongo, recoverable issuance/encryption and the existing
+private workflow credential directory. Use the same purpose settings on scheduled
+admission workers. Request `artifact@1` in normal `workflow_access`, for example
+`scope={"actions":["read","publish"],"namespaces":["project"]}` with a bounded TTL
+and optional renewal horizon. The submission derives the root and freezes human
+approval. The scope supports explicit blob IDs and a per-transfer `max_bytes`,
+which cannot exceed the operator's `UNIFAI_ARTIFACT_MAX_BYTES`.
+
+The shared reservation/delivery/retirement path provisions private material;
+Mongo purpose records retain hashes and use atomic renewal plus API/database-clock
+expiry fences. Authentication requires an active owned root and rechecks the grant
+after root observation. Terminal/expired/revoked authority retires private material
+through the existing cleanup outbox. Reduced operator byte limits revoke broader
+grants. Retrying uncertain issuance preserves the original scope and credential.
+
+With a managed source installed, the normal artifact factory resolves only
+`artifact@1` for its owner/root and verifies the returned grant before transferring.
+Unavailable managed material never falls back to an operator token file. Explicit
+protected resource credentials remain a separate operator-configured authority.
+The HTTP client disables environment proxy discovery and redirects. Artifact grant
+management uses the same human-principal guard as review/verification: a bearer
+cannot obtain human authority even alongside a valid human session.
+
+This is trusted Local delivery. Isolated Kubernetes/OpenShell delivery, credential
+rotation, full recovery combinations and atomic fencing of already admitted effects
+remain separate acceptance work. An active stream is not revoked transactionally.
+
+Workspace file access uses the receiver's `UNIFAI_WORKSPACE_ROOT`, default
+`/tmp/unifai-workspaces`. A shared domain layout gives coding and transfer the
+same isolated/shared binding semantics. Transfer pins directory handles, rejects
+symlink escapes and special-file sources, and scopes paths to the root execution.
+Materialization verifies bytes in private staging, creates an atomic destination,
+retains identical retry results, and refuses to overwrite different content.
+Downloads enforce authorization and scoped byte admission before response headers,
+and use attachment/no-store/nosniff/restrictive CSP headers for untrusted content.
+
+The deterministic local proof runs the production coding plugin, publishes its
+file from a graph, deletes the complete source workspace, restarts the API, and
+restores through a separate code program on thread/process runners. It makes no
+model calls. The newer [coding repair checkpoint](evidence/2026-11-05-coding-repair.md)
+adds workflow-integrated executable fixture checks and restored repair inputs.
+The [production-checker integration](evidence/2026-11-06-engineering-program-checks.md)
+extends that journey through the actual App. Full live Engineering, Kubernetes/
+OpenShell handoff, retention policy and hard-crash staging recovery remain open.
+Credentials in a receiver-private file are not isolated from arbitrary hostile
+code running as that same OS user. Tenant/profile admission and a stronger transfer
+boundary remain production-hardening work; see the [scoped file-I/O investigation](../integrations/run-engine-environment-file-io-request.md).
+
+### Commits and other output references
+
+The managed-blob component is optional. An operation may return ordinary typed
+data, a Git repository/commit reference, an image digest or any other validated
+result model. For committed source, use a pinned repository revision and bind test,
+review and deployment evidence to it; do not require a second snapshot upload by
+default. `BlobArtifactRef` specifically describes managed bytes, including
+uncommitted patches and reports. Optional Git resolution/checkout and the native
+verification-plan/evidence APIs are implemented above. Workflow check orchestration,
+source publication/retention and remote candidate handoff remain in the active queue.
+
+## Execution-bound workflow authority
+
+Review and verification access services require the application
+`ExecutionGrantAuthority` port. Production composition supplies
+`ExecutionGrantAccess` over the existing `ExecutionService`; there is no optional
+permissive production fallback. Authentication checks the actual owned root and
+native liveness without submitting/recovering work or expanding its child tree.
+Missing, foreign, child-scoped, cancelled or terminal roots cannot authenticate
+workflow grants. Unknown/unavailable native authority fails closed with a safe
+503 rather than accepting cached authority or falling back to a human cookie.
+Descendants may use a grant bound to their actual root; a child execution ID
+cannot be substituted for that root identity.
+
+Humans may pre-provision an admitted policy/root grant before the root exists,
+but that credential cannot operate until the actual root is active. Issuance for
+an existing closed/cancelled/foreign root is refused. Native completion is checked
+even before a submission acknowledgement settles or a stored running projection
+is refreshed. Requested cancellation also denies authority immediately through
+the execution service. Existing human inspection/decision authority remains
+separate. Manually issued retained artifact access has its own lifetime; managed
+`artifact@1` capabilities are root-bound as described above.
+
+After completion, use the authenticated human session to inspect retained review/
+verification results. Workflow credentials cannot be kept alive for reporting.
+Grant metadata retains its issuance and revocation audit; effective
+authority additionally depends on the root. Do not reuse execution identities or
+interpret unexpired metadata alone as proof of liveness.
+
+Verification E2E workflows now publish/start through the same native API that
+issues their grants. Their root and child records are durable Mongo records,
+not an unrelated test-local coordinator. Receiver endpoint/directory bindings
+remain private. The Temporal scenario now pins that API to the worker's actual
+host configuration; restart/replay verification remains at the planned milestone.
+
+This is an authorization-time liveness check, not an atomic stale-attempt fence
+on every external effect. A request admitted before termination still needs the
+appropriate resource-specific fencing/idempotency rules. Automatic provisioning,
+rotation, managed secret delivery and secret-file retirement remain open;
+this change does not replace those requirements or introduce a new scheduler.
+
+## Bounded workflow credential renewal
+
+Human issuance of review/verification access accepts optional
+`renewable_for_seconds`: an absolute renewal horizon measured from issuance,
+not an extension added on each maintenance pass. It must cover the initial
+`ttl_seconds` and cannot exceed 30 days. Omitting it retains fixed expiry.
+The returned grant carries safe `renewal` metadata (`ttl_seconds` and
+`renewable_until`); the opaque credential is returned through human issuance.
+Opt-in keyed retries below recover the original credential after response loss.
+
+The existing API reconciler invokes the narrow `CredentialMaintenance` port.
+Each purpose service visits bounded indexed pages of unrevoked grants, rechecks
+current policy and actual root authority, and renews during the final third of
+the lease. Renewal
+changes only expiry, capped by the original horizon. Token hash, owner, scope,
+human issuer and issuance audit remain unchanged. A pending root cannot renew;
+known closed roots or withdrawn policy revoke grants even before renewal is due.
+Unknown native
+authority preserves the original expiry without extending authority. Expired
+credentials never resurrect, including after a slow authority lookup or an API
+restart. Authentication independently requires the actual live root.
+
+Mongo compares the original stored document/expiry and revocation state before
+updating. Its server-clock expiry fence prevents an API process with a stale
+clock from renewing an already-expired grant. Concurrent renewal has one winner;
+a renewal cannot overwrite explicit revocation. The storage helper owns this
+atomic mechanism, while purpose services own authorization. Reconciliation starts
+after service composition and drains before its clients close. Configure upkeep
+cadence and page capacity for the requested lease lengths; an outage or a backlog
+can allow a lease to expire, and does not authorize recovery of the old token.
+
+The native Human Review test keeps the original credential usable beyond its
+initial expiry while waiting, then verifies refusal after the root completes.
+The wait retains no element invocation. This is same-token bounded renewal,
+not token rotation, automatic admission provisioning or private remote delivery.
+Secret-file collection and current-image Temporal/Kubernetes/OpenShell renewal
+evidence remain separate milestones. Recoverable human issuance/private material
+retirement and pre-provisioning API restart are described below; running-root
+API/worker restart renewal is not established by that proof.
+Owner-bound retained artifact access is unaffected.
+
+### Persisted terminal and expiry retirement
+
+Review/verification upkeep includes fixed-expiry grants. A pre-provisioned root
+that is not yet present stays pending; known terminal/cancelled/foreign or invalid
+roots revoke their grants on the next bounded visit. Current policy withdrawal
+also revokes grants whose issuance requires that policy. Verification read/cancel-
+only access retains its separately scoped authority over frozen plans; it does
+not admit creation or check dispatch. Authentication checks actual root liveness, so
+metadata reconciliation is not required to deny a terminated root's bearer.
+Unknown native authority preserves an otherwise-valid grant's original expiry.
+
+Expired grants retire without a native lookup. Expiry retirement compares the
+observed expiry and uses Mongo's clock as well as application time. A stale
+snapshot cannot revoke a concurrently renewed lease, and an API clock running
+ahead cannot retire a lease that Mongo still considers valid. Terminal/policy
+revocation is irreversible regardless of renewal races. Stored grant issuance,
+scope and credential hash remain available for audit; retirement never deletes
+these records or reissues a token.
+
+`MongoCredentialLifecycle` owns the shared bounded unrevoked-record index and
+expiry CAS mechanisms. Purpose services own authorization and their independent
+scan cursors. Revoked grants leave the scan, avoiding repeated native lookups.
+Persisted retirement is eventual under upkeep capacity/outages; this is not an
+atomic fence for external effects already admitted before termination. Operator-
+owned credential files are still not collected automatically, and automatic
+admission provisioning, managed private delivery and rotation remain unfinished.
+
+## Recoverable human workflow credential issuance
+
+`UNIFAI_RECOVERABLE_CREDENTIAL_ISSUANCE=true` enables encrypted issuance reservations
+for review/verification services. It requires Mongo, at least one enabled purpose
+service and a valid existing `UNIFAI_CREDENTIAL_ENCRYPTION_KEY` Fernet key. Key
+format is checked before client allocation. The private store is distinct from
+immutable reusable configuration secrets and is maintained while this feature is
+enabled; disabling it also stops its material-retirement reconciler.
+
+Send `Idempotency-Key` (1–128 characters) to the existing human
+`POST /api/review-access` or `POST /api/verification-access` endpoint. The same
+authorized owner/purpose/key, request and human issuer recover the original grant
+and token, including after an API response loss/restart. Changing the root, scope,
+TTL/horizon or human approval conflicts (409) when otherwise admitted. Current
+authorization is rechecked; revoked/expired/closed issuance cannot rejuvenate.
+Supplying a key without configured private storage fails unavailable (503).
+Ordinary explicit issuance without a key keeps its fresh-grant/hash-only behavior.
+Successful human responses use `Cache-Control: no-store`.
+
+A shared HTTP `HumanPrincipal` guard rejects any supplied bearer on human-only
+grant management and reviewer endpoints, even alongside a valid human cookie.
+The real API test exposed verification issuance accepting that combination;
+issuance/list/revoke now share the guard. Team ownership and the acting human
+remain distinct. Workflow bearer authentication never obtains human authority.
+
+Purpose services own authorization and typed scopes. Shared domain `WorkflowGrant`
+owns their common issuance/lease invariants. `CredentialIssuance` reserves immutable
+original metadata plus encrypted material before purpose-grant registration.
+Mongo insert-if-absent recovers partial/uncertain registration without overwriting
+renewal/revocation. Scope, issuer, original time, TTL and horizon remain fixed;
+an authorized retry observes current renewal state with the same credential.
+Private material never enters Program definitions, prepared requests or profiles.
+The new material store refuses plaintext cipher passthrough and invalid ciphertext.
+
+The existing API upkeep performs bounded material retirement after observed grant
+revocation, known root closure or a database-clock-fenced maximum lifetime.
+Unknown native authority cannot extend authority or discard otherwise-valid
+material. Retirement removes ciphertext and retains original audit metadata;
+purpose grant records retain their hash/scope/issuance audit. This is logical
+material retirement, with no second scheduler or environment manager.
+
+Actual Mongo and signed-cookie TCP API tests cover concurrent retries, same-key
+conflicts, API restart before root admission, native waiting/cancellation and
+material retirement. They do not prove a running Local root survives API restart.
+Credential rotation remains unfinished. Generic event starts and unattended
+scheduled access use private consent described below; portable credential-user
+tags cannot supply that proof.
+See [current progress](status.md).
+
+### Admitted workflow capabilities
+
+Manual `POST /api/executions` and canonical Session
+`POST /api/sessions/{session_id}/executions` accept optional `workflow_access`.
+Each requirement names an installed versioned purpose, its typed purpose scope
+and bounded lease/horizon. For example:
+
+```json
+{
+  "purpose": "review@1",
+  "scope": {"policies": ["release@1"], "actions": ["open", "read", "close"]},
+  "ttl_seconds": 60,
+  "renewable_for_seconds": 180
+}
+```
+
+Root identity comes from the actual invocation, never the scope object. The
+configured review/verification services validate their own schemas, actions and
+current owner policy. Unknown purposes, invalid scopes and duplicate purposes
+fail before private material is created. Managed admission requires recoverable
+issuance and the [managed private binding](#managed-private-workflow-delivery);
+missing configuration is 503.
+
+Both HTTP paths require authenticated human authority for requested capabilities
+and reject bearer-plus-cookie elevation. Application calls pass the human
+explicitly; `credential_user_id` and context tags are not approval. A secret-free
+`WorkflowAccessApproval` freezes owner, root, acting human, approval time, requested
+scopes and a digest of the full invocation request. Session staging persists that
+approval with its pending turn, before the existing reconciler can submit it.
+
+`ExecutionService` depends on the narrow `WorkflowAccessAdmission` port. The
+submission claim owner provisions approved purposes before native dispatch,
+through the existing keyed purpose services, encrypted store and receiver source.
+Recovery uses the persisted approval and stable issuance keys, not a newly derived
+human identity or approval timestamp. A changed request cannot adopt that approval;
+revoked/expired grants cannot revive. All purposes are reauthorized before any
+material is created. Partial/uncertain provisioning stays recoverable under the
+existing submission lifecycle. Cancellation during provisioning prevents dispatch.
+
+Credential root authority observes application records/native status through
+read-only ports, without depending on submission or recursively projecting child
+runs. The general execution liveness method remains necessary for review's exact
+child checks. No new scheduler, execution registry or environment owner is created.
+
+Authenticated human `GET /api/catalog/workflow-access` returns installed issuer
+descriptors filtered by the selected owner, with `Cache-Control: private, no-store`.
+The application access registry asks each issuer for its own request schema; adding
+an issuer does not require catalog conditionals. Root identity is omitted from
+authoring scopes and supplied by actual admission. Review/check policy choices are
+owner-filtered, artifact byte bounds reflect deployment limits, and no catalog read
+authorizes or provisions a grant. Actual admission revalidates current policy.
+
+Production TypeScript clients `startProgram` and `startProgramSessionTurn` support
+the same declarations and expose the frozen approval. They receive no workflow
+token. Manual Program invocation renders these issuer schemas through shared fields,
+selects nothing implicitly, and requires explicit approval for the selected scopes.
+Uncertain retries retain the frozen permissions and inputs. Full Session permission
+authoring remains part of UI convergence. Scheduled access uses bounded, revocable source consent
+below. [Generic event starts](#authenticated-event-driven-program-starts) now use
+the same admission/provisioning path. Provider-specific ingress, rotation and
+isolated remote delivery remain outstanding. Portable tags never supply consent.
+
+### Multi-purpose admission and recovery
+
+All requested purposes belong to the same root submission claim. Provisioning
+can commit a grant before another purpose becomes unavailable, or lose an
+acknowledgment after both grants commit. Neither permits native dispatch until
+all purposes are confirmed. A replacement application service uses the persisted
+approval, prepared settings and keyed reservations; it does not recreate human
+consent, replace material or start another native identity. Current purpose policy
+is checked again before recovery. Partial material remains subject to the normal
+bounded retirement lifecycle.
+
+Cancellation is checked before provisioning and again before dispatch. If a
+purpose refuses because cancellation closed its root during issuance, the root
+finishes cancelled rather than misclassifying cancellation as a policy failure.
+An unrelated refusal retains its failure classification. This is submission
+admission control, not an atomic fence for external effects already in flight.
+Idempotency compares canonical JSON input encodings, preserving distinctions
+between booleans, integers and floats while ignoring object-key order.
+
+Real Mongo cases cover competing submissions, partial issuance, lost grant
+acknowledgment, reconstructed services, policy withdrawal and cancellation before/
+during recovery. A focused Temporal journey runs two concurrent roots with both
+review and verification, restarts the API while the worker remains live, then
+cancels one root and approves the other. Original human approval, native identity,
+private-material isolation, independent cleanup and replay are checked. This is
+trusted thread/process delivery, not remote sandbox or full ADLC acceptance. See
+[the scoped recovery evidence](evidence/2026-11-05-admission-recovery.md).
+
+### Managed private workflow delivery
+
+Set `UNIFAI_WORKFLOW_CREDENTIAL_DIRECTORY` to an absolute private directory to
+deliver keyed, human-approved review/verification grants to trusted local/shared
+filesystem receivers. On the API this requires recoverable issuance and its vault
+key. Receivers need the directory binding, not the vault key. This is a private
+runtime setting; credentials and directory bindings are not added to Program
+definitions or prepared invocation data.
+
+Application-owned `CredentialDelivery` and `WorkflowCredentialSource` ports keep
+issuance/retirement separate from receiver resolution. Bootstrap wires the file
+adapter into the normal element build context. Existing review and verification
+factories use that source; their HTTP gateways still validate actual root/grant
+authority. A configured source failure cannot fall back to operator token files.
+Source unavailability becomes a private, retryable infrastructure failure at the
+gateway/receiver boundary rather than an ordinary application failure.
+Explicit operator-owned bindings remain a distinct supported mode and are not
+collected by managed cleanup.
+
+Managed slots bind owner type/ID, root, purpose, original approval and destination.
+Directories/files require current-user ownership and private permissions; bounded
+reads refuse symlinks and nonregular files. Concurrent writers cannot replace
+different material. More than one active grant for a root/purpose fails closed
+instead of selecting the latest or combining permissions. Keep per-root entries
+below the adapter's 512-entry scan bound, including token-free fences.
+
+Ciphertext retirement atomically marks a durable Mongo `cleanup_pending` outbox.
+The existing reconciler removes managed files and acknowledges cleanup separately.
+Failures or lost acknowledgements retry after controller reconstruction, even
+when ciphertext is already gone. An unconfigured destination stays pending.
+Token-free slot markers remain to reject delayed delivery after retirement;
+issuance audit is retained. This is logical collection, not backup/media erasure.
+
+Native graph/backend Human Review and verification tests exercise thread/process
+receivers without test-written token files. Mongo tests reconstruct the cleanup
+controller after an actual file-collection failure. Those original tests restart
+before native root admission. The newer multi-purpose recovery and generic event
+tests add scoped running-root/API and worker-restart/replay proof; scheduled
+consent has its own focused worker proof. None proves rotation or remote delivery. Do not
+expose the all-root directory or vault key to an untrusted sandbox. Kubernetes/
+OpenShell require separately scoped receiver delivery and matched-image proof.
+
+## Owner-scoped execution profiles
+
+`PlatformSettings.profile_access` (`UNIFAI_PROFILE_ACCESS`) configures which
+installed profiles each user/team owner can select. Application
+`ExecutionProfileAccess`, behind the `ProfileAccess` port, resolves one detached
+safe catalog for discovery, placement previews and compilation. Unconfigured
+policy retains the deployment catalog. A configured policy denies unmatched
+owners unless it supplies an explicit default grant. An owner rule with no grant
+explicitly denies that owner, even when a default exists. User/team identity types
+are distinct; mutable display names do not affect ownership. Duplicate rules and
+grants referencing uninstalled profiles fail startup.
+
+For example, the following value permits one team and denies unmatched owners:
+
+```json
+{
+  "owners": [{
+    "owner": {"type": "team", "id": "engineering"},
+    "grant": {"profiles": ["coding-sandbox"], "default_profile": "coding-sandbox"}
+  }]
+}
+```
+
+Profile names/capabilities come from installed deployment metadata; the policy
+does not define SDK targets, images, secret settings or environment lifetimes.
+Compilation checks workflow defaults, node/operation/condition selections, named
+environment definitions and recursively owned/pinned Program scopes under the
+execution owner. Static forbidden selections fail before execution records/native
+dispatch. Backend Program payloads receive only the permitted target set; runtime
+selection outside it fails with the application `PlacementRefused` contract error
+(`placement_refused`) before invocation. Explicit child environment imports remain
+required. This is the permitted capability ceiling, not a claim that every
+included profile was used by the implementation.
+
+`GET /api/catalog/execution-profiles` uses the authenticated request owner. The
+resource form, workflow placement editor and interim Programs page share a query
+that passes team scope and keys its cache by acting user plus owner type/id. The
+server still authorizes every new preparation; client cache contents confer no
+authority. Draft configuration may retain a choice that a later policy disallows.
+
+Prepared snapshots and execution records expose `admitted_profiles`: safe allowed
+names, default and retained-environment capabilities. Its identity is frozen with
+the request, and actual child records use their own admitted default. Scheduled
+template-to-tick admission now preserves both these profiles and work limits.
+Cancellation before admission has no admitted catalog. These values describe
+admitted authority, not observed placement for individual occurrences.
+
+Changing deployment policy governs new preparations; it does not rewrite running
+or published execution snapshots. Immediate grant revocation, tenant capacity/
+fairness, credential lifecycle, stale-attempt fencing and remote/replay acceptance
+remain open. Cooperative profile filtering does not sandbox arbitrary installed
+Python or establish identity-provider membership on its own.
+
+## Root-wide work admission
+
+`PlatformSettings.work_limits` enables a durable allowance shared by a root and
+all its descendants. It requires Mongo storage; no process-local fallback silently
+weakens distributed enforcement. It is currently opt-in deployment policy, not
+an authored Program configuration or a client-selected budget. For example:
+
+```sh
+export UNIFAI_WORK_LIMITS='{"max_dispatches":1000,"max_children":100,"max_depth":8}'
+```
+
+The compiler freezes the limits and installed admission reference into every
+prepared Program scope. Prepared metadata and public execution records expose the
+same limits, included in immutable request digests. Existing submissions retain
+their admitted limits. Graph and backend Programs share `BudgetedOperations`,
+which reserves work before delegating native invocation/child creation. It does
+not schedule, retry, replay or manage environments. Root initialization and
+reservations use recorded native invocations on the control-plane thread runner;
+they do not allocate the selected sandbox or borrow a run environment.
+
+Application `WorkBudgetRepository` is the atomic port. Domain `WorkLimits`,
+`WorkBudget`, `WorkReservation` and `WorkUsage` own portable policy and invariants;
+`MongoWorkBudgets` implements single-document atomic conditional admission.
+Independent workers share counters. Duplicate reservations with the same identity
+and fingerprint spend once; changed work, owner or policy conflicts. A root cannot
+be implicitly recreated by a child when its ledger is missing. Depth starts at
+zero for the root. The next child is checked before its native creation.
+
+Dispatch allowance counts requested native invocations through the Program port,
+including graph framework invocations. It does not count admission itself or the
+published cancellation callback. Children count across the entire tree, rather
+than independently per parent. Stable per-execution dispatch ordinals and native
+child keys identify reservations; fingerprints bind their request and placement.
+An admitted but refused/uncertain downstream call keeps its allowance: no refund
+can safely assume the effect never happened. Exhaustion returns a contract failure
+with `WORK_LIMIT_EXCEEDED`; unavailable storage fails closed as infrastructure.
+
+Both counters are capped at 10,000 and depth at 128 to bound the retained root
+document. Ledger lifetime currently follows retained application data; there is
+no automatic active-ledger expiry. Do not delete an active root's reservations.
+Admission clients are explicitly scoped per invocation; connection pooling/load
+behavior has not been established. These cooperative contracts do not confine
+malicious installed Python or replace tenant authorization.
+
+This slice does not provide physical concurrency/provider-cost/token budgets,
+physical delivery-attempt accounting, tenant fairness, stale-attempt fencing,
+revocation, or admitted dynamic plans. Native per-run limits remain distinct.
+Thread/process and production-client checks cover the new path; Temporal replay,
+worker restart and current-image Kubernetes/OpenShell acceptance remain queued.
 
 ## Current architecture
 
@@ -77,9 +1726,9 @@ The application packages import no engine or HTTP adapters. New execution paths
 are async; synchronous legacy element calls and SDK construction run off-loop
 under explicit ownership. Cancellation drains owned work before resource cleanup.
 There is no request-side async bridge or nested event loop in this path.
-Native async element calls are awaited directly. Elements can return UnifAI's
-GraphState; the receiver adapts it to the engine state contract and retains
-program-specific channels outside that result.
+Native async element calls are awaited directly. State-based elements can return
+UnifAI's GraphState; application ProgramState validates their declared changes,
+and the receiver binds these channels to the native engine state contract.
 
 ### Execution sequence and ownership
 
@@ -126,11 +1775,11 @@ UnifAI's application behavior to Run Engine:
          |                    |-- construct ------>|                    |
          |                    |                    | dependencies first |
          |                    |                    | factories/builders |
-         |                    |                    | invoke coding node |
+         |                    |                    | typed coding call  |
          |                    |                    |-- coding port ---->|
          |                    |                    |                    | run CLI
          |                    |                    |<-- typed result ---|
-         |                    |<-- state update ---|                    |
+         |                    |<-- typed result ---|                    |
          |<-- engine state ---| release resources  |                    |
          | merge state        |                    |                    |
          | next graph step    |                    |                    |
@@ -158,7 +1807,7 @@ remaining legacy module has completed the migration.
 
 Execution metadata is separate from an element's `config`. The saved resource
 shape is `execution: {profile: "approved-name"}` alongside its configuration.
-Only nodes and conditions accept that preference; a dependent LLM or tool is
+Nodes, conditions and operations accept that preference; a dependent LLM or tool is
 constructed inside the invoking node's environment.
 
 | Location | Stored meaning | Current authoring support |
@@ -329,6 +1978,92 @@ scope compensates for nested SDK generators that do not close the response on
 early exit; it keeps response lifetime inside the adapter and preserves borrowed
 client ownership. See [the provider stream diagnostics](../.cursor/skills/debug-provider-streams/SKILL.md).
 
+## Native reporting
+
+`GET /api/reporting/overview` reports the selected authenticated owner's library
+counts and last-observed active sessions. User and team IDs are distinct scopes.
+Blueprint drafts, Program drafts, sessions and root executions remain distinct.
+`GET /api/reporting/system` requires the acting human to satisfy application
+`AdministratorPolicy`; selecting a team or supplying `userId` never grants authority.
+Both endpoints reject bearer credentials, including bearer-plus-human-cookie requests.
+
+The Mongo administrator directory reads `admin_users.value.admin_usernames` in
+the configured admin database/collection on every authorization. Bootstrap
+`UNIFAI_ADMIN_ALLOWED_USERS` applies only when that policy document is absent;
+an empty persisted list explicitly denies everyone. Directory failure is unavailable,
+never permission to fall back to bootstrap users. Reporting itself requires native
+durable application storage; a memory-only deployment returns 503.
+
+`ReportingService` owns time scope, authorization, pinned revision labels and
+operational completion calculations. `ReportingReader` is its narrow query port;
+the Mongo adapter aggregates without returning input, result or credential payloads.
+Parallel query/label tasks are drained on failure and cancellation before the
+request returns or its resource scope closes.
+System metrics count root execution records, including submitting/unknown records,
+not conversation sessions or every nested child. Time filters use request start
+times and UTC; terminal completion is completed / (completed + failed + cancelled).
+No terminal records means an unavailable percentage, not a zero success claim.
+Average duration uses completed records with valid finish timestamps.
+
+Owner detail uses `owner_offset` and `owner_limit` (1–100); top owners (8), pinned
+Program revisions (10) and latest daily activity (366 UTC days) are bounded. A
+truncated timeline has an explicit flag; totals still cover the selected period.
+Names come from immutable executed revisions, not current drafts. These are stored,
+eventually consistent observations, not refreshed engine state, verified acceptance,
+an atomic multi-query snapshot or a capacity-tested analytics warehouse.
+
+The existing dashboard/analytics clients now use these contracts. The old
+`mas.statistics` service, Flask statistics routes and duplicate activity table are
+retired. This slice does not complete the remaining admin/sharing/template migration.
+
+## Curated resource administration
+
+The existing Repository Management screen now uses native
+`/api/administration/resources` routes for curated resource listing, protected
+editing, creation, publication, dependency previews, deletion and editor leases.
+List pages are limited to 100; the production client explicitly traverses them.
+Resource execution defaults survive create/edit/detail state independently of
+behavioral configuration; final dispatch still uses normal profile admission.
+The normal resource service owns public reads, configuration schemas and personal/
+team overlays. There is no second construction pipeline: both custom and curated
+saves use `ResourceConfiguration`, installed element schemas and field protection.
+
+Enable `UNIFAI_LIBRARY` and `UNIFAI_EDIT_LOCKS` with durable Mongo and Redis. Curated
+mutations require transaction-capable Mongo (replica set/sharded deployment).
+Standalone storage returns unavailable, never partial-write fallback. Administrator
+authority uses the same application `AdministratorAccess` policy and persisted
+directory as reporting; the directory adapter is `outbound.mongo.administrators`.
+Human authority remains separate from selected workspace ownership. Bearers,
+including bearer-plus-session requests, cannot manage the curated library.
+
+`BuiltinAdministration` owns authorization, loaded-version checks, construction
+dependency policy and intended changes through `BuiltinRepository`. The Mongo
+adapter owns snapshot transactions and atomic resource/descriptor/overlay writes.
+Publication validates a bounded acyclic dependency closure before mutation:
+missing references, unsupported categories and inconsistent stored references fail.
+Dependencies are published together, and public dependents prevent demotion.
+Admin responses carry protected configuration; public projections remove reusable
+ciphertext as well as plaintext. Caller-configurable secrets retain isolated overlays.
+
+Mutations require the resource version loaded by the editor. Cooperating admins
+also use Redis leases; unavailable or lost leases are not reported as acquisition.
+Leases are cooperative UI coordination, not an atomic Redis/Mongo lock. The
+transaction validates and writes the complete observed dependency set, including
+already-public dependencies. `ResourceRecord.storage_revision` captures the internal
+Mongo fence, so a dependency check prepared before a competing publication/demotion
+cannot later commit a stale decision. It is distinct from authored resource version
+and is absent from public views. A cancelled/uncertain commit requires reloading
+actual state rather than blindly resubmitting an unversioned mutation.
+
+The old `BuiltinResourceService`, Flask built-in endpoints and their update DTO are
+removed. Sharing's retained cloner receives only its descriptor reader; it does not
+construct or depend on the replaced administration service. The field-alias and
+secret regression now exercises native overlays. Full AppContainer/old-resource
+resolution retirement still depends on the remaining sharing/template migration.
+Admin draft-provider probes, remaining credential administration, catalog-wide
+concurrent authoring/deletion guarantees, transaction failover/capacity and actual
+browser acceptance remain unfinished. See the focused evidence and diagnostic skill.
+
 ## Editor action discovery and execution
 
 The native API supports authenticated `GET /api/actions/actions.list` and
@@ -419,6 +2154,29 @@ tool execution, approvals, node capabilities and workload services live in
 `mas.application.ports`. These packages have enforced inward imports and cold-import
 tests that reject plugins, SDK clients and global infrastructure configuration.
 
+Reusable agent strategies, workload services and shared capabilities now cold-import
+without graph state. `WorkloadStorage` is an application-owned synchronous state
+port; thread/workspace services receive it explicitly and do not construct concrete
+storage. `mas.graph.workloads.GraphWorkloadStorage` supplies the graph-backed
+implementation. Generic delegation policy filters caller-supplied candidate mappings;
+the orchestrator plugin alone interprets finalizer topology.
+
+Graph node integration is explicit in `mas.graph.capabilities`: `GraphWorkloadMixin`
+binds workload services and streaming hooks; `GraphMessagingMixin` binds portable
+IEM contracts to `mas.graph.messaging.GraphInterMessenger`. The old application
+capability namespaces, core messenger factories/utilities, unused memory factory
+and workload compatibility methods are removed. Packet/task values remain portable;
+workload task threads are not engine child runs. Core interfaces import no graph.
+`Channel` is an explicit typed enum for the base graph schema; custom Program state
+continues to use validated string names.
+
+Sending copies packets and checks the invocation's sender/adjacent destination,
+including after middleware. Only the addressed recipient acknowledges a packet;
+routing tests destination acknowledgment and expiry. Read results are detached,
+and updates use declared channel writes. This is cooperative graph-local transport,
+not an untrusted-code security boundary or a durable message broker. Program-level
+waits/messages continue through `ProgramRuntime` and native Run Engine coordination.
+
 Specifications, factories, validation/card contracts, catalog services, category
 builders and owned construction now live in `mas.application.elements`. Portable
 bundle values live in `mas.domain.element_bundles`. `ElementInstances` indexes
@@ -462,11 +2220,32 @@ Current dependency direction (arrows show imports, not execution order):
 +----------------------------------------------------------------------+
 ```
 
-Further consolidation remains: program/session/resource services retain their
-existing `mas.programs`, `mas.execution`, `mas.session`, `mas.resources` and related
-paths. Concrete plugins and their schemas/factories remain in `mas.elements` for now.
-Further plugin thinning and physical plugin relocation are the next structural slice;
-this extraction does not claim that the whole package migration is finished.
+Program definitions, revisions, composition values and pure binding projection now
+live in `mas.domain.programs`. SDK-free placement values live in
+`mas.domain.execution_preferences`; shared step metadata and frozen boundary values
+live in `mas.domain.metadata` and `mas.domain.models`. Authoring, publication,
+registration, repository/runtime ports, graph-context preparation and the existing
+blueprint importer live in `mas.application.programs`. The former `mas.programs`
+package and `mas.core.execution_preferences` module are removed without forwarding
+aliases. Domain imports do not initialize application services, plugins or SDKs;
+the cold-import and retired-namespace architecture checks enforce that boundary.
+The authoring DTOs reuse the shared strict frozen model rather than defining a
+second identical base class. Serialized definition/revision shapes are unchanged.
+
+Execution context, lifecycle records, request identity and safe placement values
+now live in `mas.domain.execution`. Submission requests, prepared snapshots,
+delivery claims, execution services/ports and the mutable receiver-local context
+holder live in `mas.application.execution`. Portable context never imports its
+mutable holder. The old execution package and core context module are removed
+without aliases. Context requires explicit identity, rejects unknown fields, and
+accepts JSON-only tags; missing identity no longer invents an `unknown` owner.
+Prepared adapter snapshots stay application-owned rather than becoming domain data.
+
+Further consolidation remains: session/resource services retain their existing
+`mas.session`, `mas.resources` and related paths.
+Concrete plugins and their schemas/factories remain in `mas.elements` for now.
+Further application ownership and plugin thinning/relocation remain required;
+Program consolidation does not complete the whole package migration.
 The intended complete layout remains:
 
 | Target area | Responsibility |
@@ -507,24 +2286,11 @@ duplicate phase definition, obsolete work-plan service/retry wrapper, unused thr
 utility and old standalone workload examples. Active phase/workload behavior remains
 in its canonical implementation. No new agent orchestration framework was added.
 
-Extract shared domain/application code first, then thin plugin adapters. Audit
-duplicates and unused legacy helpers during that move. Check published revisions,
-prepared execution snapshots, installed function/spec references, and compatibility
-requirements before changing module paths. Retain compatibility only where an
-actual public/persisted contract requires it, with a drain/removal condition.
-Update bootstrap/package discovery and imports together. Extend architecture and
-cold-import checks so the directory names correspond to enforced boundaries; run
-saved-resource/blueprint/session E2E and replay as behavioral regression. Remote
-images require rebuilding after installed-module moves. No unrelated service
-reorganization is included.
-
-The shared Python import paths changed in this development migration; repository
-callers use the new owners directly. Registered element type keys, specification
-module paths and installed engine entrypoints remain unchanged in this slice.
-Published resource configuration keeps its existing JSON shape. This does not
-promise replay compatibility for arbitrary old Python references: keep older
-workers on their compatible release until their executions drain. Do not add
-forwarding aliases solely to preserve the old folder layout.
+Extract shared domain/application code first, then thin plugin adapters. Update
+current callers and installed references, remove duplicates and superseded code,
+and rebuild matched receivers. The fresh platform does not keep older workers,
+serialized formats, or forwarding aliases. Test current-source replay and actual
+remote delivery after module changes.
 
 ## Adding an element
 
@@ -580,6 +2346,14 @@ model calls. Remote MCP-agent placement still requires separate verification.
 
 ## Adding an application program
 
+This section describes the registered backend implementation mechanism, not a
+separate public program category. The [target authoring model](architecture/README.md#installed-implementations-and-configured-programs)
+uses one Programs library and lifecycle for visual compositions and configured
+registered implementations. Registry descriptors supply configuration/input/output
+schemas, and the Programs workspace now configures registered implementations,
+saves/reopens drafts and publishes reusable revisions. Full builder convergence
+and nested authoring remain open as described above.
+
 Define an installed async function accepting `(runtime, inputs, configuration)`.
 `runtime` implements the application-owned `ProgramRuntime` protocol. Register the
 function, its configuration schema, and its stable implementation key/version using
@@ -587,8 +2361,17 @@ function, its configuration schema, and its stable implementation key/version us
 
 Create an `ApplicationDefinition` referring to that registration, save it through
 `ProgramService`, and publish a revision. A graph calls it with `ProgramCallStep`.
-Declare child program revisions explicitly; the runtime starts those prepared
+Declare child targets (pinned revisions or owned bodies) explicitly; the runtime starts those prepared
 children through Run Engine instead of importing repositories in coordination code.
+
+`ApplicationRegistration` is the installed backend specification: identity,
+configuration/input/output models, metadata and execution entrypoint. It follows
+the same extension discipline as Element specifications without inheriting graph
+metadata or an Element factory hierarchy. Use cohesive coordinator classes for
+related behavior and injected collaborators; keep the installed entrypoint thin.
+A dedicated factory is appropriate when coordinator construction/lifetime needs
+one, not as a mandatory wrapper around an already registered callable. Dependency
+wiring belongs in the composition root, not the registry or portable definition.
 
 Declare `__runengine_contract__` in installed implementation modules and version it
 when coordination behavior becomes incompatible with existing histories. Version
@@ -636,9 +2419,21 @@ typed FastAPI dependencies.
 Native routes cover programs, revisions, executions, results, cancellation,
 messages, execution events, child records, sessions, approvals, and stream replay.
 Saving a program validates and normalizes its configuration, including schema
-defaults. The save response is the normalized definition. Callers should retain
-that response when editing an existing definition, including opaque credential
-references, rather than reconstructing private values from display masks.
+defaults. `PUT /api/programs/{id}` accepts `{definition, expected_version,
+presentation?}` and returns `{definition, version, presentation}`. Version zero
+creates a draft; updates must use the loaded version. Stale writes return 409.
+Omitting presentation preserves it; supplied presentation replaces it. Callers
+retain the returned definition, including opaque credential references, rather
+than reconstructing private values from display masks.
+
+`GET /api/programs` provides owner/type-scoped keyset pagination with `after` and
+`limit`. `GET /api/programs/{id}` reads a draft. Published revisions have separate
+identities: `POST /api/programs/{id}/revisions` requires `{expected_version}` and
+publishes that observed draft snapshot. Retrying an already published source
+returns the same revision even after a later draft edit. Unpublished stale sources
+conflict. `GET /api/programs/{id}/revisions` pages newest-first with `before`/`limit`;
+revision numbers may have gaps after competing Mongo publications. Layout metadata
+is not executable definition data and is excluded from published revisions.
 Session creation pins a program revision.
 Each turn has its own execution identity; retrying the active turn identity does
 not append the prompt twice. Concurrent turns return a conflict. Input bindings
@@ -674,9 +2469,11 @@ existing authenticated `teamId` query parameter. The service resolves the stored
 draft, resource visibility, encrypted configuration, and caller overlays through
 the existing BlueprintService, BlueprintResolver, and resource services. Legacy
 retired draft fields are tolerated on reads. Normal program save then protects
-the resolved configuration and returns the normalized definition. Publish it
-through `POST /api/programs/{program_id}/revisions`; later edits or reimports alter
-the draft while earlier published revisions keep their original configuration.
+the resolved configuration and returns the versioned draft envelope. Publish it
+through `POST /api/programs/{program_id}/revisions` with that draft's
+`expected_version`. This import endpoint creates a program draft; replacing an
+existing draft uses the canonical version-fenced program save contract. Earlier
+published revisions keep their original configuration.
 
 Use the existing credential encryption key to read encrypted library values.
 If resolution produces private inline credentials, also enable configuration
@@ -796,7 +2593,7 @@ produce one winner and HTTP 409 for stale requests. A cleared overlay keeps an e
 record and increments its version, so an old editor cannot overwrite a newly
 configured value after a reset. Built-in reads and overlays separate user and team
 identities even when their textual IDs match. An identity named `admin` has no
-special authority. Administrative lifecycle operations remain on the migration ledger.
+special authority. Administrative lifecycle operations remain in [the active plan](plan.md#remaining-milestone-order).
 
 Library resources and overlays retain the existing encrypted string format rather
 than owner-scoped program secret references: a shared built-in must resolve under
@@ -1061,6 +2858,51 @@ state bindings, and result reconciliation remain in use. Publishing a replacemen
 program revision does not rewrite the calendar snapshot. Explicit program calls
 still create children; session/calendar bookkeeping creates no graph child.
 
+### Recurring workflow access consent
+
+An optional schedule `workflow_access` contains `requirements` (the same purpose/
+scope/lease declarations as manual invocation) and an aware `expires_at` deadline.
+Consent must expire within 30 days of human approval. Creating or replacing that
+configuration requires a human principal; bearer-plus-cookie elevation is rejected.
+The private Mongo record binds owner, original human/time, exact definition/version,
+pinned prepared digest and scopes. Native registration carries an opaque
+`authorization_id`. No workflow credential is issued while configuring a calendar.
+
+At actual tick admission, the trusted worker reads the currently applied native
+registration and resolves live private consent, including Mongo-clock expiry and
+revocation. A mismatched definition/prepared digest/reference is refused before
+credential creation. Unused consent metadata from a failed/superseded update cannot
+authorize another registration. Original consent metadata survives uncertain
+calendar responses and idempotent retries. Request identity distinguishes JSON
+booleans, integers and floats; Python equality alone is insufficient.
+
+The API and trusted admission worker share `WorkflowAccessSettings` and
+`WorkflowAccessComponents`: matched purpose policies, recoverable issuance,
+vault key and private binding. Ordinary element receivers require their source
+binding, not the vault key. Operator configuration stays outside portable payloads.
+Read-only native observation borrows the SDK RPC facade without owning executors,
+workers or environments. The accepted root uses the common application provisioning
+port; its `workflow_access_approval.consent_id` identifies the original approval.
+Business/session admission remains idempotent and creates no extra graph child.
+
+List/detail views expose matching consent metadata. Human
+`DELETE /api/program-schedules/{id}/workflow-access` revokes future admission;
+expired/revoked consent denies both application triggering and direct native ticks.
+Already admitted roots retain their independent bounded grants; cancel those runs
+explicitly when required. Calendar deletion remains owner-authorized even when
+optional consent metadata is unavailable. Removing the calendar prevents later
+admission without erasing consent audit or completed results.
+
+Installed backend declarations are resolved synchronously after worker preload.
+Temporal coordination cannot use `asyncio.to_thread`; operational I/O continues
+through invocation ports. The native consent gate exposed and corrected that
+unnecessary declaration-resolution bridge. Fresh scheduled entry/admission
+contracts are `unifai-scheduled-program-v2` and `unifai-schedule-admission-v2`.
+Current thread/process calendar cases cover worker restart during review, replay,
+material retirement and refusal of revoked native ticks. Generic event-source
+admission is described next. Broader recovery, isolated remote delivery and full
+UI controls remain open.
+
 Rapid calendar actions can reuse a Temporal workflow ID within one second. The
 generic engine extension binds empty-ID native ingress to a versioned opaque
 generation identity. Results, messages, cancellation, events, and replay resolve
@@ -1079,14 +2921,249 @@ and callers should reload rather than assume the mutation was rejected.
 Legacy `/schedule.*` routes, `workflow_schedules` documents, and their calendars
 still use the retained workers. They are not silently rewritten. Migrating those
 records/clients, retaining authoring definitions beyond calendar retention, legacy
-quota policy, and deployment drain checks remain on the full migration ledger.
+quota policy, and deployment drain checks remain in [the active plan](plan.md#remaining-milestone-order).
 Native run history lives in Mongo and survives deletion of its calendar.
+
+## Authenticated event-driven Program starts
+
+Enable `UNIFAI_EVENT_SOURCES_ENABLED=true` with Mongo storage to expose the generic
+event-start adapter. `ProgramEventService` owns subscription approval and admission
+through application-owned ports. `MongoEventSources` stores private registrations;
+the HTTP adapter handles transport. `ExecutionService` still owns root submission,
+provisioning, delivery claims, uncertain submission and recovery. Run Engine owns
+execution and physical environment lifetimes. There is no second event scheduler.
+
+A human registers an immutable source containing a pinned Program revision, event
+type, optional additional input schema, requested workflow scopes and expiry of at
+most 30 days. Creation prepares the Program without starting work or allocating its
+environments. The complete prepared snapshot stays private; source metadata exposes
+its digest. Draft/resource changes cannot retarget it. Binding an occurrence replaces
+only root input/context/identity, preserving compiled calls, schemas, resources and
+placement. Changed/withdrawn profile configuration or work-budget policy refuses new
+binding instead of silently adopting new execution settings. Already admitted roots
+retain their own frozen preparation and recovery behavior.
+
+| Endpoint | Authority and result |
+| --- | --- |
+| `POST /api/program-events/sources` | Human owner; creates source and returns its delivery key once, with `Cache-Control: no-store` |
+| `GET /api/program-events/sources?after=...&limit=100` | Human owner; bounded, identity-type-scoped metadata page |
+| `GET /api/program-events/sources/{id}` | Human owner; metadata without delivery key, hash or raw prepared configuration |
+| `GET /api/program-events/sources/{id}/settings` | Human owner; frozen admitted profile catalog and work limits |
+| `DELETE /api/program-events/sources/{id}` | Human owner; idempotent, one-way revocation with audit retained |
+| `POST /api/program-events/deliveries` | Source bearer; typed event and minimal admission receipt, HTTP 202 |
+
+The source key is purpose-separated from workflow/reviewer/evidence credentials.
+The settings response projects only the frozen public profile catalog and work
+limits. It does not expose backend configuration or establish current availability;
+the pinned Program describes its authored per-call/environment selections.
+Only its hash is stored. Losing the creation response does not permit retrieving
+that key: inspect owner metadata, revoke the unusable source and explicitly create
+a replacement. Source-key rotation/renewal and keyed creation are not implemented.
+Source management rejects any supplied bearer even with a valid human cookie.
+Event delivery uses its bearer exclusively; a cookie cannot rescue an invalid key.
+The receipt contains source/event/execution IDs and submission state, not inputs,
+results, private placement or workflow credentials. The human opens that execution
+through the existing workbench/API contracts.
+
+Each delivery supplies `event_id`, `event_type` and portable JSON `inputs`. Both
+the source's optional schema and the pinned Program's input contract must hold.
+Schemas use existing bundled Draft 2020-12 interfaces, without network reference
+resolution. Source/type/schema errors are private refusals. Source ID plus event ID
+determines the public idempotency key; the normal submission service chooses the
+separate private native identity. Concurrent/uncertain redelivery reuses the original
+root. Changed input under the same event ID is HTTP 409; another source has its own
+namespace. A 202 receipt is not operational completion or verified acceptance.
+
+Workflow access reuses private `WorkflowConsents` and keyed purpose provisioning.
+Consent binds the complete source definition and template digest; every occurrence
+binds original human/time/scopes to its actual request. Variable event input is not
+mistaken for the identical concrete request used by a calendar tick. Mongo's clock
+also fences source expiry. Source revocation/expiry refuses later deliveries;
+already admitted roots have separate bounded grants and cancellation. These checks
+do not provide an atomic stale-attempt fence for external work already in flight.
+The context's event provenance is observation metadata, never authorization.
+
+Generic backend and graph Programs use this same path, including nested Programs,
+typed operations and Human Review. The Local source remains bound to its owning
+Local host; restarting that host cannot recover its environments or silently move
+new occurrences elsewhere. Use durable Temporal coordination for the verified
+API/worker-restart path. Current tests cover thread/process receivers, source
+persistence, concurrent delivery, review, replay and independent material cleanup.
+See [event admission evidence](evidence/2026-11-05-event-admission.md).
+
+Owner-scoped source settings also expose a frozen safe placement tree: static graph
+calls, declared child relationships, environment imports and Program defaults.
+Imported child environment profiles may be unresolved and backend Program calls are
+dynamic; this is admitted intent, not a live execution trace. Backend configuration,
+resource payloads and credentials are excluded. See [placement evidence](evidence/2026-11-05-frozen-placement.md).
+
+Owners can rotate source credentials with `POST /api/program-events/sources/{id}/credential`,
+supplying the `expected_revision` from source settings. The response contains the
+new credential once; stale revisions fail. An unconfirmed response requires inspecting
+settings and rotating again. Rotation preserves source consent and deduplication but
+does not fence a delivery already authenticated. See [rotation evidence](evidence/2026-11-05-event-rotation.md).
+
+This adapter starts roots. Provider-specific signature verification/mapping, event
+routing into existing waits, traffic/fairness controls,
+remote private delivery and full trigger UI remain separate work. Do not call this
+live Jira integration or massive-scale acceptance. Existing authorized review and
+runtime-message contracts still own continuation of their particular waits.
+
+The optional Engineering implementation is registered by installing the
+`mas_plugins.engineering.program` application module in both API and worker
+configuration. Its implementation and repair are declared child Programs;
+verification and review use scoped service operation bundles. This is an initial
+application slice. Local thread/process API tests exercise the same published
+revision independently and within a deterministic delivery graph. The test now
+verifies published fixture bytes with automatically provisioned `artifact@1`,
+review and verification capabilities and terminal retirement. See
+[managed artifact evidence](evidence/2026-11-05-managed-artifacts.md) for the scoped
+proof and outstanding coding-agent, remote and recovery acceptance.
+
+Install `mas_plugins.engineering.coding` alongside that module to register
+`coding_file_candidate@1`. This backend Program consumes `EngineeringWork` whose
+`task` follows `CodingInput` (`prompt`, optional `context` and immutable input files).
+Configure coding, artifact-loader, workspace-reader and content-publication bundles,
+a relative output `path`, coding `execution` and separate `artifact_execution`.
+It loads input/report bytes on artifact placement, invokes coding with inline
+files, reads the actual returned workspace on coding placement, and publishes the
+bounded content on artifact placement. Loaded hashes/sizes, exported paths and the
+published identity must match before it returns an `EngineeringCandidate`.
+This is an optional single-file composition, not a new operation category or a
+Git requirement. Other candidate Programs can return other verification subjects.
+
+Coding and workspace reads must access the same physical workspace. On isolated
+receivers use an approved named environment binding; repeating a profile alone
+does not establish shared storage. Repairs attach the previous blob candidate at the
+configured output path and check reports under `.unifai/reports/<artifact_id>`.
+Original input files are preserved, except that the previous candidate replaces an
+original input at the output path. Conflicting report paths and input limits fail
+before coding; report lists are not silently truncated. Trusted checks and acceptance
+still belong to Engineering and its authorized services.
+The native [candidate handoff evidence](evidence/2026-11-05-coding-candidate.md)
+uses the real CLI adapter with a protocol executable, operator-private credentials
+and Local thread/process receivers. It is not paid-agent, automatic provisioning,
+remote placement, or full feature-design/UI acceptance.
+
+### Feature design and approval
+
+Install `mas_plugins.engineering.design` in both API and worker application-module
+configuration to register `feature_design@1`. It takes a task and nonempty acceptance
+criteria. Its configured designer child takes `DesignWork` and returns a
+`DesignProposal` (plan text and optional generic references). The child can be a
+published Program or an owned body, through normal registration and contracts.
+
+Each proposal becomes a numbered `DesignRevision` containing the exact request,
+criteria and proposal. The normal scoped Human Review operations persist that full
+revision as the subject. A rejected decision supplies the previous design and the
+recorded reviewer response to the next bounded attempt. Approval returns `approved`;
+exhaustion, pending observation and closed review remain explicit unsatisfied
+outcomes. A design result cannot substitute a different subject or relabel rejection
+as approval. Revision numbers are local to this execution, not Programs library
+publication revisions. The durable review occurrence identifies the accepted version.
+
+Install `mas_plugins.engineering.feature` to register `coding_feature@1`. Its input
+has a coding prompt, optional context and acceptance criteria. It composes declared
+design and Engineering child Programs, checks that the reviewed request matches the
+original input, and starts Engineering only after approval. Engineering receives the
+approved proposal, revision, criteria and approval ID as structured context alongside
+the original task. Oversized combined context fails its input contract; it is not
+silently truncated. Unsatisfied design never invokes Engineering.
+
+These are optional ADLC compositions, not new execution kinds or core scheduling
+primitives. They use `ProgramRuntime` child calls, scoped effects and native waiting.
+Existing publication, environment imports and placement still apply. Normal designer
+and Engineering Programs remain independently reusable. No graph state is passed to
+generic operations, and the generic platform remains useful outside coding.
+
+Engineering repair feedback now carries check evidence/report references and the
+recorded reviewer response, rather than only outcome labels. Its result enforces the
+same candidate for verification/review; `verified` requires accepted checks and an
+approving human response. Serialized consistency does not itself establish authority:
+production execution still obtains decisions and checks through scoped services.
+
+The [design/feature checkpoint](evidence/2026-11-05-feature-design.md) uses real native
+HTTP, Mongo/Redis, thread/process review/check/artifact receivers and automatic root
+credentials with seeded candidate fixtures. The newer [coding repair checkpoint](evidence/2026-11-05-coding-repair.md)
+replaces candidate fixtures with the production CLI adapter and controlled protocol
+code generation, independent executable checks and staged repair evidence. The
+[production-checker checkpoint](evidence/2026-11-06-engineering-program-checks.md)
+adds native and actual-App proof. Complete live acceptance, Temporal recovery and
+the broader remote matrix remain on the active plan.
+
+### Workspace input preparation and saved bundles
+
+`CodingInput.files` accepts immutable `ArtifactFile` references or bounded
+`InlineFile` content with contained relative paths. Aggregate inline content is
+limited to 1 MiB. `CodingOperation` computes its normal isolated/shared
+workspace, validates the final prompt, and calls its optional `WorkspacePreparation`
+port before invoking the agent. Missing, failed or cancelled preparation cannot
+silently proceed to coding. Input paths appear in the prompt without copying report
+bytes into the model context. Canonical duplicate destination paths are rejected.
+
+Configure a `providers/artifact_workspace` resource whose `store` references the
+normal artifact-store provider, then set the coding resource's
+`workspace_preparation` to that provider. Existing dependency discovery/factories
+construct the closure. The application preparation service uses artifact-transfer
+and workspace-file ports; HTTP/filesystem details stay in adapters. Preparation runs
+inside the coding invocation's actual workspace and needs no separate environment
+or fabricated graph state. Code/publisher placement and borrowed environment ownership
+remain Run Engine responsibilities. This works with fresh isolated repair workspaces;
+the file adapter still refuses to overwrite different existing content in shared ones.
+Report reads require explicit `verification-reports` access in the root artifact scope.
+
+For credential-free receiving workspaces, configure `providers/inline_workspace`.
+It accepts only content values and refuses unresolved references before writing.
+The normal `load_artifact_content`, `read_workspace_content` and
+`publish_file_content` operations bridge trusted storage access and isolated
+workspace work without delivering an artifact-store credential to the producer.
+`InlineContent` describes unpublished bytes; it does not imply a storage record.
+Its hash/size verification is shared with published inline artifacts. Registered
+transfers default to 65,536 bytes and permit at most 1 MiB. Values may be retained
+in coordination history; encoding is neither encryption nor secret redaction.
+This optional path does not replace streaming artifacts or repository transport.
+
+Human authoring can capture a saved resource for backend configuration with
+`POST /api/resources/snapshot`, passing `{ "source": <ResourceSourceRef> }`.
+The shared `SavedResourceResolver` checks the selected revision, authorizes and
+captures transitive dependencies, rechecks the closure, protects credential fields,
+and returns a digest-checked `ElementBundle`. Graph authoring and backend fields
+reuse the same construction pipeline. Bearers cannot gain this human authority even
+alongside a cookie; team selection uses the authenticated owner scope. This POST can
+create private configuration-secret references; it is a selection action, not a
+polling/read-preview endpoint. Captures freeze configuration rather than following
+later library edits. The UI client is `captureResourceSnapshot`. Backend Program
+configuration now uses shared `SchemaValue` fields and a saved-resource capture
+adapter for `ElementBundle` fields. `SavedResourcePicker` handles scoped/paginated
+catalog selection; graph adoption remains a separate wrapper. Configuration capture
+never copies redacted catalog fields, and pending capture locks editing/publication
+to avoid applying a response to newer edits. Unmount aborts the request and guards
+its completion; this does not undo a server-side capture that already committed.
+The existing placement controls render `ExecutionSelection` with approved profiles
+and named environments. Local schema references, nested objects, arrays, scalar
+fields and optional omission are supported; unresolved, recursive or complex schemas
+retain JSON editing. This is presentation assistance, not a JSON Schema validator.
+Pinned invocation, explicit capability consent and the shared execution/review route
+are integrated. Shared artifact inspection recognizes generic blob references in
+inputs, results and review subjects with bounded traversal. Inspection requires
+normal owner authorization and exact reference matching; reviewer assignment alone
+does not grant another owner's artifact content. Downloads remain attachments.
+Explicit text preview is limited to 256 KiB, verifies byte count and SHA-256 before
+strict UTF-8 decoding, and renders escaped text. Binary/invalid/oversized content
+does not become executable markup. Closing inspection aborts pending preview work.
+The [controlled App journey](evidence/2026-11-05-feature-ui.md) verifies design approval,
+repair, final review and source/report retrieval after compute deletion. Live-agent,
+production verification and complete Engineering authoring acceptance remain open.
+
+Configured plugin modules export `ELEMENT_SPECIFICATIONS`; reflective built-in
+discovery alone does not prove that explicit module installation works. Codex now
+supports both paths through the normal registry, including identical registration.
 
 ## Durable worker and deployment
 
 Run the API and a separate worker with the same `UNIFAI_HOST` endpoint, namespace,
-and task queue. The default queue is `unifai-programs-v2`; keep legacy workers and
-their original queues available to drain earlier executions.
+and task queue. The default queue is `unifai-programs-v2`. Superseded worker
+entrypoints and queues are not compatibility requirements.
 
 For example, after starting Temporal and the application's storage services:
 
@@ -1119,9 +3196,9 @@ evidence under both hosts; remote worker-loss and journal recovery remain open.
 Policies belong to approved execution profiles in deployment configuration. Programs
 select a profile through their default, an element's imported preference, or a step
 override. A program cannot supply inline OpenShell policy, SDK objects, or a policy
-file path through that selection. All configured profiles are available to program
-authors; this is not a per-user profile authorization system. Expose only profiles
-appropriate for the deployment's authors.
+file path through that selection. `UNIFAI_PROFILE_ACCESS` can restrict discovery and
+admission by owner; without that policy, all configured profiles are available to
+authors. Expose only profiles appropriate for the deployment and owner grants.
 
 For an inline policy, use the OpenShell profile's existing `policy` field in
 `UNIFAI_EXECUTION_PROFILES`. For a separately maintained JSON policy, configure:
@@ -1205,7 +3282,7 @@ parent continues. Lifetime follows explicit program scope, including branches an
 child calls. Equal names across separate session turns do not imply compute reuse;
 durable artifacts require their own storage contract. Completion, failure, and
 cancellation all require owned cleanup; remote worker-loss and active cancellation
-validation remain separate gates in the migration ledger.
+validation remain separate gates in [the active plan](plan.md#verification-cadence).
 
 The API persists immutable submission snapshots and application records. Run
 Engine owns durable coordination, activity delivery, timers, messages, and native
@@ -1225,9 +3302,27 @@ becomes `unknown` with `execution_observation_unavailable`; it is never submitte
 again merely because observation is missing. A later successful observation or
 result clears that transient failure.
 
-Active native-preview records without a stored location cannot be safely recovered
-by the new application. Finish those runs with their compatible deployment before
-upgrading. This is separate from draining legacy UnifAI workers and queues.
+Root submission also has an application-owned delivery claim. The repository
+atomically assigns a private token and expiry when admitting an initial or recovery
+attempt. Reconciliation observes an active `starting` attempt without redelivering
+it. `UNIFAI_SUBMISSION_TIMEOUT_SECONDS` bounds the original I/O (default 30 seconds);
+its claim expires five seconds later so a crashed owner can be recovered. Finishing
+an attempt is fenced by its token: an expired owner's late reply/refusal cannot
+overwrite the newer owner. Recovery always uses the identical stored request and
+private native ID. A genuine first-start collision remains refused. This claim
+protects application delivery, not worker scheduling or environment ownership.
+
+Cancellation first records durable `cancel_requested` intent after validating
+ownership/location. It does not claim native cancellation has finished. A request
+arriving before native acceptance is applied once admission becomes observable,
+and stale submission/projection updates cannot erase it. The original submission
+path and background reconciliation both use the existing engine cancellation port.
+Wrong-location requests fail before changing cancellation intent. This preserves
+the original coordinator boundary rather than starting work on a replacement host.
+
+Active records without a stored location are rejected. Prototype formats and old
+workers are not compatibility requirements under the fresh-platform decision;
+cleanup of currently owned resources remains required.
 
 `GET /api/executions/{id}/children` returns application records for direct children.
 Projection reads accepted native child requests and preserves bound inputs,
@@ -1244,11 +3339,15 @@ notification uses an ordinary invoked effect and therefore consumes an invocatio
 from the run's configured budget. Approval request IDs must be unique within the
 root execution; distinct requests cannot reuse the same ID with different payloads.
 
-## Planned Human Review step
+## Human Review
 
-Status: investigated design, not implemented. Implement after the native async
-agent/tool refactor, before expanding live-provider tests. This adds the explicitly
-requested human-interaction behavior; it does not introduce agent delegation.
+Status: the `human_review@1` application program, registered review effects,
+Mongo-backed decisions, scoped workflow access, native HTTP routes and actual
+reviewer UI are implemented. Local graph/code/thread/process execution and
+Temporal API/worker restart with native replay have focused evidence. The broader
+milestone is recorded through [the evidence index](evidence/README.md). Visual program-block authoring,
+parallel/repeated occurrence coverage and retained remote environments remain
+acceptance work; this does not introduce an agent delegation framework.
 
 Run Engine has two relevant capabilities:
 
@@ -1266,11 +3365,11 @@ References in the companion checkout:
 `src/runengine/programs/graph/handle.py` (`GraphHandle.resume`), and
 `src/runengine/programs/graph/traversal/README.md` describe the pre-node boundary.
 UnifAI's current compiler does not set interrupt flags. Existing receiver-side
-tool approvals use a different synchronous gate and Redis tickets; those tests
+tool approvals use a separate receiver-side gate and Redis tickets; those tests
 do not prove durable Human Review.
 
-**Application representation.** Call the feature **Human Review**. Implement one
-registered, versioned application program. Use the existing `ProgramCallStep` so
+**Application representation.** The feature is **Human Review**, implemented as one
+registered, versioned application program. It uses the existing `ProgramCallStep` so
 it appears as a reusable graph step and can also run independently or be called
 by another application. This explicit program call creates a child execution;
 reviewing an ordinary element does not otherwise require a child. A palette item
@@ -1298,8 +3397,9 @@ Use a review-specific request model rather than filling the tool approval model'
 required tool fields with fictitious values. Reuse execution authorization,
 identity, interaction observation, and persistence conventions where their
 semantics fit. Add only the narrow review persistence/effect port required by
-this use case. Database access, notifications, and opening/finalizing the request
-run as invoked effects through the existing runtime boundary. The application
+this use case. The coordinator opens and inspects requests through invoked effects
+at the existing runtime boundary. The API and owned reconciler persist lifecycle
+changes and deliver notifications through application-owned ports. The application
 coordinator itself performs no direct database, Redis, HTTP, or wall-clock I/O.
 It uses engine messages/timers for waiting and expiry. Engine SDK objects remain
 in adapters; no second scheduler or custom durability layer belongs in UnifAI.
@@ -1335,6 +3435,78 @@ application policy with port doubles, adapters against real persistence, and the
 complete HTTP/Temporal path with the independent Docker infrastructure. Existing
 tool HITL behavior remains covered separately. Record remote-agent placement and
 environment-retention results only after running those cases.
+
+### Current contracts and setup
+
+Enable `UNIFAI_REVIEWS_ENABLED=true` with Mongo storage. Configure
+`UNIFAI_REVIEW_POLICIES` as a mapping of policy IDs to admitted owners, assigned
+human user IDs in `reviewers`, and `max_timeout_seconds`. Include
+`mas.application.reviews.program` in `UNIFAI_APPLICATION_MODULES` and
+`mas_plugins.reviews.specification` in `UNIFAI_ELEMENT_MODULES`. Registration uses
+the existing application registry and element discovery; no dedicated review
+worker or compiler branch exists.
+
+The ordinary `review_service` provider supports `open_human_review`,
+`inspect_human_review` and `close_human_review` operations. Factories and transitive
+dependency bundles construct them. `HumanReviewConfig` freezes a policy, prompt,
+allowed decisions, response schema/deadline, opener/inspection bundles, execution
+selection and bounded reconciliation cadence. Its subject is the exact portable
+JSON input passed to that program. Graph bindings choose its input shape; there
+is no automatic artifact or Git interpretation.
+
+Response schemas use the bounded, self-contained JSON Schema draft 2020-12
+subset enforced by `ReviewSchema`. Local references are validated, including their
+targets. External references, resource `$id` scopes and regular-expression
+validation are rejected. The stable submission envelope is Pydantic-owned. The UI
+renders simple string/number/boolean/enum fields and uses JSON input for complex
+schemas; server validation remains authoritative.
+
+| Route | Authority and behavior |
+| --- | --- |
+| `POST /api/review-access` | Authenticated human issues scoped access; optional configured Idempotency-Key recovers the same issuance |
+| `GET /api/review-access/self` | Workflow credential metadata, without secret material |
+| `DELETE /api/review-access/{id}` | Authenticated owner revokes workflow access |
+| `POST /api/reviews` | Scoped workflow capability opens an occurrence bound to its actual active execution/root |
+| `GET /api/reviews/inbox` | Assigned human's cursor-paginated inbox across owners; selected workspace does not grant reviewer authority |
+| `GET /api/executions/{root}/reviews` | Human owner's paginated root review inspection; bearer credentials cannot use it and ownership never grants decision authority |
+| `GET /api/reviews/{id}` | Authorized owner/workflow read or assigned reviewer read |
+| `POST /api/reviews/{id}/responses` | Assigned human session only; stable key, expected revision, decision and schema-validated data |
+| `POST /api/reviews/{id}/close` | Authorized owner/workflow cancels or supersedes the occurrence |
+
+Workflow bearer credentials cannot submit decisions, including alongside a human
+cookie. Assignment is frozen when the occurrence opens; ownership alone does not
+permit a human response. Access is purpose-separated from artifact/verification
+credentials. Operator-only `UNIFAI_REVIEW_ENDPOINT` and
+`UNIFAI_REVIEW_ACCESS_DIRECTORY` bind workers to private mode-0600 capability files
+named by `review_credential_key(owner, root)`. HTTPS is required unless the operator
+explicitly enables insecure transport; the test harness uses loopback only.
+Endpoint and private directory settings are not authored program data. Effective
+workflow authority follows actual root liveness. Opt-in bounded same-token renewal
+uses the existing reconciler, as described above. Automatic provisioning, rotation
+and managed-secret retirement remain part of the credential-lifecycle milestone;
+operator-owned private credential files are not deleted by authentication.
+
+Decision acceptance and notification intent commit together through Mongo CAS.
+The reconciler sends only an occurrence wakeup to the exact review execution;
+the coordinator ignores message data and invokes inspection for its authoritative
+result. Its finite runtime receive timeout also recovers lost notifications.
+Pending records expire or cancel when their execution/root becomes inactive.
+Decided records retain their original human response. A bounded check limit returns
+`check_limit` with a pending review; it never invents an approval.
+
+Temporal message admission requires a live workflow worker to acknowledge an
+Update. The API-owned reconciler is cancelled and drained during shutdown rather
+than waiting for that acknowledgement; its persisted delivery intent survives.
+This is application task ownership, not a replacement scheduler. Local-host waits
+remain in-memory and do not promise restart durability.
+
+The actual App exposes `/reviews` and `/reviews/{id}` through its sidebar. It
+refreshes authoritative snapshots, preserves response identity after uncertain
+submission, prevents older revisions replacing a newer accepted decision, and
+aborts old requests on selection/workspace changes. Approval is distinct from
+notification delivery; the screen can show a saved decision whose workflow
+notification is still pending. The current screen does not grant artifact access
+to reviewers or implement visual review-block authoring.
 
 ## Receiver services and interactions
 
@@ -1564,7 +3736,7 @@ coordinator drift before reconnecting through the original settings. These
 checks do not establish remote backend cleanup, environment borrowing, scheduling,
 or complete legacy HTTP compatibility. The separately selected remote deployment
 suite verifies the backend cleanup/lifetime cases described below; remaining
-contracts stay on the migration ledger.
+contracts stay in [the active plan](plan.md#remaining-milestone-order).
 
 With all three test services configured, `integration/deployment` starts a real
 loopback HTTP process using the production ASGI factory and a separate native
@@ -1597,16 +3769,19 @@ enforcement, or worker-loss recovery.
 
 ### Coding agents and Codex CLI
 
-`codex_agent_node` is a catalog element backed by the installed Codex CLI. Its
-`CodexAgentNodeFactory` builds the concrete `CodexAgentNode`, whose adapter binds
-`CodexCodingAgent` to the application-owned `CodingAgent` port and `CodingAgentNode`.
-The package follows sibling node naming: `config.py`, `identifiers.py` with
-`Identifier`/`META`, `codex_agent_node.py`, `codex_agent_node_factory.py`, and
-`spec/spec.py` declaring `CodexAgentNodeElementSpec`. Like the existing simple
-nodes, it uses Pydantic validation and the default card builder rather than empty
-custom validator/card classes. Shared node contracts now live in
-`mas.application.elements.node` and `node_config`; vendor plugins import inward.
-The coding workflow implementation has no CLI, OpenShell or Run Engine imports.
+`operations/codex_coding` is the production typed coding operation. Its outer
+plugin lives at `multi-agent/plugins/mas_plugins/coding/codex`: configuration,
+identifier, specification/factory, and CLI adapter. `bootstrap.elements` installs
+`CodexSpec` into the existing element registry. Bundles, resource secrets,
+construction factories, category builders, and receiver ownership are shared
+with other registered operations. The former Codex node implementation is deleted.
+
+The application owns `CodingAgent`, `CodingInput`, `CodingOutcome` and
+`CodingOperation`. The operation translates explicit work into a coding request;
+the provider adapter owns the subprocess protocol. No application coding module
+imports graph state, provider SDKs, transport adapters or Run Engine. Graphs
+project inputs/results through `OperationStep` bindings. Custom programs invoke
+the identical operation through `ProgramRuntime`.
 
 The element configuration requires an explicit `model`; an optional protected `api_key`
 selects resource-owned credentials.
@@ -1630,18 +3805,22 @@ between sequential coding steps. Program children use the existing explicit
 environment imports. The element creates no sandbox, worker, child engine or child
 program. The environment owner controls retention and deletion.
 
-The receiver-local `UNIFAI_CODING_WORKSPACE_ROOT` defaults to `/tmp/unifai-coding`.
-Within it, a hash of the root execution identity and a validated workspace name
-select the work directory. Sibling steps and child programs in the same imported
-environment can deliberately share that directory; other root executions use a
-different directory. The initial contract supports sequential work on a shared
-workspace. Authors should use different names for parallel independent edits.
+The receiver-local `UNIFAI_WORKSPACE_ROOT` defaults to `/tmp/unifai-workspaces`.
+Within it, the root execution identity selects a hashed namespace.
+`workspace_mode=isolated` (default) additionally scopes the directory by execution
+identity and stable invocation key: concurrent calls and child executions use
+separate directories while retries of the same logical call find the same one.
+`workspace_mode=shared` explicitly selects the root namespace plus configured
+workspace name, allowing sequential steps/children to share files in one retained
+or imported environment. Sharing files does not coordinate simultaneous edits;
+parallel independent work should use the default isolation. The typed outcome
+includes the receiver-relative workspace binding, not a durable artifact reference.
 These files belong to the execution environment, not durable artifact storage.
 Local thread placement leaves files on the operator's worker; choose a disposable
 remote environment when its destruction should remove the workspace.
 
 Each invocation starts a fresh noninteractive `codex exec --json --ephemeral` turn.
-Workflow state carries the previous step's answer; files carry repository changes.
+Explicit input bindings carry the previous answer; files carry repository changes.
 CLI chat-thread resumption is not implemented. The CLI defaults to workspace-write permissions and noninteractive approval
 handling; it does not wait on a terminal. An operator may set receiver-only
 `UNIFAI_CODEX_SANDBOX_MODE=danger-full-access` for a profile whose external
@@ -1831,7 +4010,7 @@ and closes an editor when renewal fails. Workspace changes remount its provider
 and editors. Targeted full-App personal/team profile save/reload, delayed type
 selection and team-switch checks pass in the owned browser fixture. Full workflow
 authoring, account/session callback lifetimes and successful notification/share
-flows remain outstanding; see the migration ledger.
+flows remain outstanding; see [the active plan](plan.md#remaining-milestone-order).
 
 These leases coordinate cooperative editors; resource/blueprint version checks
 remain the persistence conflict boundary. They do not make writes transactional

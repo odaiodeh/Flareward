@@ -9,20 +9,20 @@ from typing import Any, ClassVar
 from a2a.types import AgentCard
 from pydantic import HttpUrl
 
-from mas.application.capabilities.iem_capable import IEMCapableMixin
 from mas.application.capabilities.retriever_capable import RetrieverCapableMixin
-from mas.application.capabilities.workload_capable import WorkloadCapableMixin
 from mas.application.elements.node import BaseNode
 from mas.core.auth.credentials.credential import AuthCredential
 from mas.domain.messages import ChatMessage, Role
 from mas.domain.workloads import AgentResult, Task
 from mas.elements.providers.a2a_client import A2AProvider
+from mas.graph.capabilities.messaging import GraphMessagingMixin
+from mas.graph.capabilities.workloads import GraphWorkloadMixin
 from mas.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 
 
-class A2AAgentNode(WorkloadCapableMixin, IEMCapableMixin, RetrieverCapableMixin, BaseNode):
+class A2AAgentNode(GraphWorkloadMixin, GraphMessagingMixin, RetrieverCapableMixin, BaseNode):
     """
     A2A Agent Node - Delegates work to remote agent via A2A protocol.
 
@@ -95,7 +95,7 @@ class A2AAgentNode(WorkloadCapableMixin, IEMCapableMixin, RetrieverCapableMixin,
 
     async def run(self, state: StateView) -> StateView:
         """Main entry point - process all incoming TaskPackets."""
-        await self.process_packets(state)
+        await self.process_packets()
         return state
 
     # ========== TASK PROCESSING ==========

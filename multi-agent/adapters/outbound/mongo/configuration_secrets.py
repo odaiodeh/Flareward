@@ -3,12 +3,12 @@
 import asyncio
 from uuid import uuid4
 
+from mas.application.execution.ports import ExecutionError
 from mas.core.async_work import await_owned
 from mas.core.auth.credentials.ports import CipherError, TokenCipher
 from mas.core.identity import Identity
 from mas.core.secrets import SECRET_PREFIX, reference_id
-from mas.execution.models import ExecutionFailure, FailureKind
-from mas.execution.ports import ExecutionError
+from mas.domain.execution.models import ExecutionFailure, FailureKind
 from pydantic import SecretStr
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.errors import PyMongoError

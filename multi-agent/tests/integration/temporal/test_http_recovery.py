@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 import httpx
 from inbound.http_api.app import create_app
-from mas.programs.models import ApplicationDefinition, ProgramDefinition
+from mas.domain.programs.models import ApplicationDefinition, ProgramDefinition
 from support.elements import element_registry
 from temporalio.api.enums.v1 import EventType
 
@@ -50,10 +50,13 @@ async def test_waiting_session_survives_api_restart_without_extra_root_or_graph_
                 implementation=ApplicationDefinition(implementation="waiting", version="1"),
             )
             saved = await first.put(
-                "/api/programs/persistent-wait", json=definition.model_dump(mode="json")
+                "/api/programs/persistent-wait",
+                json={"definition": definition.model_dump(mode="json"), "expected_version": 0},
             )
             assert saved.status_code == 200, saved.text
-            published = await first.post("/api/programs/persistent-wait/revisions")
+            published = await first.post(
+                "/api/programs/persistent-wait/revisions", json={"expected_version": 1}
+            )
             assert published.status_code == 201, published.text
             session = await first.post(
                 "/api/sessions",

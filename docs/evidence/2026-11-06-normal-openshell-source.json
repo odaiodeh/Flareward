@@ -1,0 +1,63 @@
+{
+  "scope": "Focused normal OpenShell transport/policy and live Codex smoke evidence; not a full build/SBOM manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/config/execution_policies.py": "28e7c5d8a48f1603d03df5ad9075d1a724b66d6207cd3b73fdef7828d39a822f",
+    "multi-agent/config/policies/openshell-restricted.json": "7236cd1d32d9c579808d54805f9094cf879763000d59e9127c55b8ec237c26a9",
+    "multi-agent/plugins/mas_plugins/coding/codex/adapter.py": "c751a6ebdf9cfb4c413094d126877ec2ee30d16a86ee4e8d45daa31cdae114e0",
+    "multi-agent/plugins/mas_plugins/subprocesses.py": "38a1e135b1664b373782ee6d729c8739c186b23be0ea86218d8401961a92edf9",
+    "multi-agent/plugins/mas_plugins/testing/contracts.py": "7da2a0c09f9b3abd4c8da0461f98a3d84b0af3f5813523c2b43f35c017b174dd",
+    "multi-agent/plugins/mas_plugins/testing/program.py": "20e42adaedb29c553aacb44582d01bff57c43e63d870948cda88e49e7801b35a",
+    "multi-agent/plugins/mas_plugins/testing/python_functions.py": "2a72653fcee847977c50dbfd893b9a9143f2655db179f6e8d8630ada426f3771",
+    "multi-agent/tests/adapters/test_python_function_checks.py": "b1fe8db18d58e9e1fa693884f04e484a4e02923cd16a5d18791f48d11118ffc7",
+    "multi-agent/tests/conftest.py": "cec29236b75b8e497b4c01caa7e5c26fb8c7d02973c43f4278d1017a3da4054b",
+    "multi-agent/tests/infra/Dockerfile.codex": "9d8b8cf43f4433b1456ba379f8e601d2b25c1323fff72b50a7c0d77a3dd1206b",
+    "multi-agent/tests/infra/Dockerfile.receiver": "02003e1ca425f7ac164b59732ccc4d785bfdac2bb83449b5a441b784e5fa146b",
+    "multi-agent/tests/infra/verify_images.py": "b7d73915bbdea045e280f0d0692bc7cffa7d3d7b1d24531f6ded0e273a3e5fe6",
+    "multi-agent/tests/integration/coding/test_codex_cli.py": "9e60cd710ac6395f2473748892ef7e4b5a4caeb4b73502ec63bd6d962e57c5e1",
+    "multi-agent/tests/integration/deployment/test_candidate_policies.py": "4334c7566e16ef8dcf6f56cd3465064a823217c5319feb14d3b13ead246b1d09",
+    "multi-agent/tests/integration/deployment/test_codex_agents.py": "f4ae40fb40814de32bdf1b295373bfb6b7145f837e8e99359b7331caf1cd9601",
+    "multi-agent/tests/support/http_probe.py": "84d28e0cb620647ff25e615baecb0694b30eb69139e39c1864da95df04898f43",
+    "multi-agent/tests/support/openshell_deployment.py": "e9c5914d00f73b60e34e5269fb921fd4d67a2d81b077ee9328c5a37c4e660b73",
+    "multi-agent/tests/support/program_check_api.py": "625c3393f9ed07ab9c355c2bfc053556bf3afe8c1ce19362cec014e1d9106d1e"
+  },
+  "aggregate_encoding": "SHA-256 of compact sorted-key UTF-8 JSON files map",
+  "aggregate_sha256": "c652b0392e0b31f9176195e92e586e4f9c3ef60faba004d6bb9c03ede5026daf",
+  "companion": {
+    "git_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+    "compared_files": {
+      "infra/openshell/sandbox-image/policy.yaml": "c89e8c2cb2a6544ff0dd7c322c8eda883ada5f3a3b02362156bb99903a8d523f",
+      "infra/openshell/sandbox-image/Dockerfile": "347bf2a0e6ba2fea6562164b61df10f485f71385addac36beb75954dc1e0fe6e",
+      "infra/openshell/docker-compose.yml": "6379f1eb82f0bd04be8f70d87ee96f5fdd969ccd84ae164dc52a785ff7b2f1b6",
+      "infra/openshell/gateway.toml": "fb2a4fa3b9d9321cbc599f11dcfb88c7ba154e54777ad3160103d31ca0902d74",
+      "tests/e2e/openshell_policy.py": "f24c7b44a37507343e005a4b3db36fd263519d825e9003353a83bb0675fb67e3",
+      "tests/e2e/conftest.py": "a68a57412a2a25647a2954089a2cb24afdabc891ff5c4336a0c3f3f94ef19e18",
+      "tests/e2e/runtime/invocation/test_openshell_policy.py": "10ce586c240a0d2847c74e4e5d92c35ceb2d4230e5ac87ffaccccd4eb9726784",
+      ".cursor/skills/run-e2e-tests/SKILL.md": "0f7d1f2aae0324dd75207fb81a7511d85eb0f40014c5d473e0bb39c674dea24e"
+    },
+    "compared_file_status": []
+  },
+  "images": [
+    {
+      "tag": "unifai-sandbox:normal-candidate-20261106",
+      "identity": "sha256:68e9e322e20f9dcb8a72ba5dbe3e771afedfdf58599517a9cb2936748ba61fe0",
+      "matched_python_files": 1392
+    },
+    {
+      "tag": "unifai-codex:normal-candidate-20261106",
+      "identity": "sha256:933135af5f057f36744412de1585fcb45107ab94132d100ffd6715ad5def0aea",
+      "matched_python_files": 1392,
+      "codex_cli": "0.166.0"
+    }
+  ],
+  "live_gate": {
+    "model": "gpt-5.4-nano",
+    "sequential_saved_operations": 2,
+    "command_limit_per_operation": 4,
+    "timeout_seconds_per_operation": 60,
+    "cases_passed": 1,
+    "duration_seconds": 30.87,
+    "completed_api_log_secret_audit_passed": true,
+    "diagnostic_only_secret_assertion_refinement_after_gate": true
+  }
+}

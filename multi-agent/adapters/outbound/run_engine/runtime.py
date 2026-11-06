@@ -4,14 +4,18 @@ from collections.abc import Awaitable, Callable
 from functools import partial
 
 from inbound.run_engine.elements import invoke_element
-from mas.core.execution_context import ExecutionContext
+from mas.application.execution.placement import PlacementRefused
+from mas.core.enums import ResourceCategory
 from mas.domain.element_bundles import ElementBundle
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution_preferences import ExecutionSelection
 from mas.graph.models.step_context import StepContext
 from pydantic import JsonValue
 from run_engine.context import child_request
-from run_engine.models import ElementCall
+from run_engine.models import ElementCall, ElementSpecifications, ProgramPlacement
 from runengine.coordination.models import RunRequest
 from runengine.coordination.ports import CoordinationOperations, RunHandle
+from runengine.coordination.targets import EnvironmentTarget
 from runengine.core.refs import FunctionRef
 from runengine.invocation.config import ExecutorConfig
 from runengine.invocation.models import InvocationRequest
@@ -47,10 +51,10 @@ class RunEngineProgramRuntime:
     def __init__(
         self,
         operations: CoordinationOperations,
-        children: dict[str, dict],
-        specifications: tuple[FunctionRef, ...],
+        children: dict[str, dict[str, JsonValue]],
+        specifications: ElementSpecifications,
         context: ExecutionContext,
-        element_target: dict | None,
+        placement: ProgramPlacement,
         receiver: FunctionRef | None = None,
         cancellation: FunctionRef | None = None,
     ) -> None:
@@ -60,9 +64,23 @@ class RunEngineProgramRuntime:
         self._context = context
         self._receiver = receiver
         self._cancellation = cancellation
-        self._element_target = (
-            ExecutorConfig.model_validate(element_target) if element_target else None
-        )
+        self._placement = placement.model_copy(deep=True)
+        self._profiles = {
+            name: ExecutorConfig.model_validate(target)
+            for name, target in placement.profiles.items()
+        }
+        self._element_target = self._target(None)
+
+    def _target(self, selection: ExecutionSelection | None) -> ExecutorConfig | EnvironmentTarget:
+        selection = ExecutionSelection.model_validate(selection.model_dump() if selection else {})
+        if selection.environment is not None:
+            if selection.environment not in self._placement.environments:
+                raise PlacementRefused("Invocation references an undeclared environment")
+            return EnvironmentTarget(name=selection.environment)
+        profile = selection.profile or self._placement.default_profile
+        if profile not in self._profiles:
+            raise PlacementRefused("Invocation profile is not approved")
+        return self._profiles[profile].model_copy(deep=True)
 
     @property
     def execution_id(self) -> str:
@@ -76,13 +94,18 @@ class RunEngineProgramRuntime:
         key: str,
         environment_imports: dict[str, str] | None = None,
     ) -> ChildProgramExecution:
+        declared_imports = self._placement.child_imports.get(name, {})
+        if environment_imports is not None and environment_imports != declared_imports:
+            raise ValueError("Child environment imports must match its published bindings")
         request = child_request(RunRequest.model_validate(self._children[name]), self._context)
+        if not isinstance(request.input, dict):
+            raise ValueError("Prepared child input must be an object")
         payload = dict(request.input)
         payload["inputs"] = inputs
         request = request.model_copy(update={"input": payload}, deep=True)
         async with engine_errors():
             handle = await self._operations.start_child(
-                request, key=key, environment_imports=environment_imports
+                request, key=key, environment_imports=declared_imports
             )
         return ChildProgramExecution(
             handle,
@@ -105,15 +128,19 @@ class RunEngineProgramRuntime:
     async def invoke_element(
         self,
         bundle: ElementBundle,
-        inputs: dict[str, JsonValue],
+        inputs: JsonValue,
         *,
         key: str,
+        execution: ExecutionSelection | None = None,
     ) -> JsonValue:
         call = ElementCall(
             bundle=bundle,
-            specifications=self._specifications,
+            specifications=self._specifications.for_bundle(bundle),
             context=self._context,
-            step=StepContext(uid=key),
+            key=key,
+            step=None
+            if bundle.root.category == ResourceCategory.OPERATION
+            else StepContext(uid=key),
             receiver=self._receiver,
         )
         async with engine_errors():
@@ -122,7 +149,7 @@ class RunEngineProgramRuntime:
                     invoke_element,
                     kwargs={"inputs": inputs, "call": call.model_dump(mode="json")},
                 ),
-                target=self._element_target,
+                target=self._target(execution),
             )
 
     async def receive(self, name: str, *, timeout: float | None = None) -> JsonValue:

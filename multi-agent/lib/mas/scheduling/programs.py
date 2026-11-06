@@ -9,14 +9,21 @@ from uuid import uuid4
 from jsonschema import Draft202012Validator
 from pydantic import Field, JsonValue
 
-from mas.core.execution_context import ExecutionContext
+from mas.application.access.consent import (
+    WorkflowConsentRequest,
+    WorkflowConsents,
+    consent_definition_digest,
+)
+from mas.application.access.credentials import WorkflowCredentialUnavailable
+from mas.application.execution.models import PreparedExecution, StartExecution
+from mas.application.execution.ports import ProgramExecutionPreparer
+from mas.application.programs.service import ProgramService
 from mas.core.identity import Identity
-from mas.execution.models import PreparedExecution
-from mas.execution.ports import ProgramExecutionPreparer
+from mas.domain.execution.consent import WorkflowConsent
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.models import Model
+from mas.domain.programs.bindings import project
 from mas.graph.state.graph_state import GraphState
-from mas.programs.bindings import project
-from mas.programs.models import Model
-from mas.programs.service import ProgramService
 from mas.scheduling.models import PromptSource, ScheduleDefinition, ScheduleStatus
 from mas.session.domain.session_record import SessionRecord
 from mas.session.execution.program_sessions import CreateProgramSession
@@ -28,6 +35,7 @@ class CreateProgramSchedule(Model):
     inputs: dict[str, JsonValue] = Field(default_factory=dict)
     schedule: ScheduleDefinition
     source: PromptSource = PromptSource.MANUAL
+    workflow_access: WorkflowConsentRequest | None = None
 
 
 class ProgramSchedule(Model):
@@ -41,6 +49,7 @@ class ScheduleRegistration(Model):
     definition: ProgramSchedule
     prepared: PreparedExecution
     run_offset: int = Field(default=0, ge=0)
+    authorization_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
 
 
 class ProgramScheduleView(Model):
@@ -50,6 +59,8 @@ class ProgramScheduleView(Model):
     total_runs: int = 0
     recent_runs: tuple[str, ...] = ()
     next_actions: tuple[datetime, ...] = ()
+    authorization_id: str | None = None
+    workflow_access_consent: WorkflowConsent | None = None
 
 
 class ProgramScheduleError(RuntimeError):
@@ -60,7 +71,11 @@ class ProgramScheduleConflict(ValueError):
     """The caller must reload a changed schedule before updating it."""
 
 
-class ProgramScheduleBackend(Protocol):
+class AppliedScheduleReader(Protocol):
+    async def registration(self, schedule_id: str, owner: Identity) -> ScheduleRegistration: ...
+
+
+class ProgramScheduleBackend(AppliedScheduleReader, Protocol):
     async def create(self, registration: ScheduleRegistration) -> None: ...
     async def get(self, schedule_id: str, owner: Identity) -> ProgramScheduleView: ...
     async def list(self, owner: Identity, *, limit: int) -> list[ProgramScheduleView]: ...
@@ -78,13 +93,18 @@ class ProgramScheduleService:
         programs: ProgramService,
         gateway: ProgramExecutionPreparer,
         backend: ProgramScheduleBackend,
+        consents: WorkflowConsents | None = None,
     ) -> None:
         self._programs = programs
         self._gateway = gateway
         self._backend = backend
+        self._consents = consents
 
     async def _registration(
-        self, definition: ProgramSchedule, credential_user_id: str
+        self,
+        definition: ProgramSchedule,
+        credential_user_id: str,
+        approved_by: Identity | None = None,
     ) -> ScheduleRegistration:
         # Use the same staging, contracts, and compiler as an interactive session.
         # The template is never submitted; a tick binds its actual private identity.
@@ -105,7 +125,30 @@ class ProgramScheduleService:
         prepared = await self._gateway.prepare(
             revision, inputs, staged.run_context, template_handle
         )
-        return ScheduleRegistration(definition=definition, prepared=prepared)
+        registration = ScheduleRegistration(definition=definition, prepared=prepared)
+        if definition.request.workflow_access is not None:
+            if approved_by is None:
+                raise PermissionError(
+                    "Schedule workflow access requires authenticated human consent"
+                )
+            if self._consents is None:
+                raise WorkflowCredentialUnavailable("Scheduled workflow consent is not configured")
+            consent = await self._consents.approve(
+                definition.request.workflow_access,
+                definition.schedule_id,
+                definition.model_dump(mode="json"),
+                prepared.content_digest,
+                StartExecution(
+                    program=definition.request.session.program,
+                    inputs=inputs,
+                    execution_id=template_handle,
+                    session_id=context.session_id,
+                ),
+                definition.owner,
+                approved_by,
+            )
+            registration = registration.model_copy(update={"authorization_id": consent.consent_id})
+        return registration
 
     async def create(
         self,
@@ -114,6 +157,7 @@ class ProgramScheduleService:
         *,
         credential_user_id: str = "",
         request_key: str | None = None,
+        approved_by: Identity | None = None,
     ) -> ProgramScheduleView:
         request = CreateProgramSchedule.model_validate_json(request.model_dump_json())
         schedule_id = program_schedule_id(caller, request_key) if request_key else uuid4().hex
@@ -126,7 +170,9 @@ class ProgramScheduleService:
                 pass
         definition = ProgramSchedule(schedule_id=schedule_id, owner=caller, request=request)
         try:
-            await self._backend.create(await self._registration(definition, credential_user_id))
+            await self._backend.create(
+                await self._registration(definition, credential_user_id, approved_by)
+            )
         except ProgramScheduleConflict:
             if request_key is None:
                 raise
@@ -137,7 +183,9 @@ class ProgramScheduleService:
         self, schedule_id: str, request: CreateProgramSchedule, caller: Identity
     ) -> ProgramScheduleView:
         view = await self.get(schedule_id, caller)
-        if view.definition.request != request:
+        if consent_definition_digest(
+            view.definition.request.model_dump(mode="json")
+        ) != consent_definition_digest(request.model_dump(mode="json")):
             raise ProgramScheduleConflict("Schedule request key belongs to a different request")
         return view
 
@@ -145,13 +193,39 @@ class ProgramScheduleService:
         view = await self._backend.get(schedule_id, caller)
         if not view.definition.owner.owns(caller):
             raise PermissionError(schedule_id)
-        return view
+        return await self._consent_view(view, caller)
+
+    async def _consent_view(
+        self, view: ProgramScheduleView, caller: Identity
+    ) -> ProgramScheduleView:
+        if view.definition.request.workflow_access is None and view.authorization_id is None:
+            return view
+        if (
+            self._consents is None
+            or view.authorization_id is None
+            or view.definition.request.workflow_access is None
+        ):
+            raise WorkflowCredentialUnavailable("Scheduled workflow consent is unavailable")
+        consent = await self._consents.get(view.authorization_id, caller)
+        if (
+            consent.definition_sha256
+            != consent_definition_digest(view.definition.model_dump(mode="json"))
+            or consent.source_id != view.definition.schedule_id
+        ):
+            raise WorkflowCredentialUnavailable(
+                "Schedule consent metadata does not match its definition"
+            )
+        return view.model_copy(update={"workflow_access_consent": consent})
 
     async def list(self, caller: Identity, *, limit: int = 100) -> list[ProgramScheduleView]:
         if not 1 <= limit <= 100:
             raise ValueError("Schedule limit must be between 1 and 100")
         views = await self._backend.list(caller, limit=limit)
-        return [view for view in views if view.definition.owner.owns(caller)]
+        return [
+            await self._consent_view(view, caller)
+            for view in views
+            if view.definition.owner.owns(caller)
+        ]
 
     async def update(
         self,
@@ -161,6 +235,7 @@ class ProgramScheduleService:
         *,
         expected_version: int,
         credential_user_id: str = "",
+        approved_by: Identity | None = None,
     ) -> ProgramScheduleView:
         request = CreateProgramSchedule.model_validate_json(request.model_dump_json())
         view = await self.get(schedule_id, caller)
@@ -174,7 +249,7 @@ class ProgramScheduleService:
             version=current.version + 1,
         )
         await self._backend.replace(
-            await self._registration(definition, credential_user_id),
+            await self._registration(definition, credential_user_id, approved_by),
             expected_version=expected_version,
             restart=(
                 view.status == ScheduleStatus.COMPLETED
@@ -191,13 +266,33 @@ class ProgramScheduleService:
         return await self.get(schedule_id, caller)
 
     async def trigger(self, schedule_id: str, caller: Identity) -> ProgramScheduleView:
-        await self.get(schedule_id, caller)
+        view = await self.get(schedule_id, caller)
+        if view.definition.request.workflow_access is not None:
+            if self._consents is None or view.authorization_id is None:
+                raise WorkflowCredentialUnavailable("Scheduled workflow consent is unavailable")
+            current = await self._backend.registration(schedule_id, caller)
+            await self._consents.resolve(
+                view.authorization_id,
+                schedule_id,
+                current.definition.model_dump(mode="json"),
+                current.prepared.content_digest,
+                caller,
+            )
         await self._backend.trigger(schedule_id)
         return await self.get(schedule_id, caller)
 
     async def delete(self, schedule_id: str, caller: Identity) -> None:
-        await self.get(schedule_id, caller)
+        # Removal remains available if optional consent metadata cannot be read.
+        view = await self._backend.get(schedule_id, caller)
+        if not view.definition.owner.owns(caller):
+            raise PermissionError(schedule_id)
         await self._backend.delete(schedule_id)
+
+    async def revoke_workflow_access(self, schedule_id: str, caller: Identity) -> None:
+        view = await self.get(schedule_id, caller)
+        if self._consents is None or view.authorization_id is None:
+            raise ValueError("Schedule has no managed workflow consent")
+        await self._consents.revoke(view.authorization_id, caller)
 
 
 def stage_schedule(

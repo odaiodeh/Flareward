@@ -140,7 +140,7 @@ Using the Duplication Candidates from the evidence pack:
 
 - Risk of breaking existing modules, APIs, or integrations.
 - Hidden side effects on dependent services.
-- Migration or backward-compatibility concerns.
+- Removal of superseded paths and correctness of the target cutover. For the fresh multi-agent platform, older formats and workers are not preservation requirements.
 - Areas that will need regression testing.
 
 ### 9. Adversarial Challenge Techniques (STRICT)

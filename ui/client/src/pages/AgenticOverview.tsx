@@ -163,14 +163,14 @@ export default function AgenticOverview() {
                   <StatCard icon={<Users className="w-4 h-4" />} title={<span className="flex items-center"><Users className="text-blue-400 mr-3 h-5 w-5" />Team Members</span>} value={effectiveMemberCount} subtext={`In ${selectedTeam?.name ?? "team"}`} iconColor="#60a5fa" iconBgColor="rgba(96,165,250,.15)" />
                 </GlassPanel>
                 <GlassPanel className="h-full">
-                  <StatCard icon={<Zap className="w-4 h-4" />} title={<span className="flex items-center"><Zap className="text-emerald-400 mr-3 h-5 w-5" />Active Sessions</span>} value={agenticStats.data?.activeSessions ?? 0} subtext="Currently running" isLoading={agenticStats.isLoading} error={agenticStats.error} iconColor="#34d399" iconBgColor="rgba(52,211,153,.15)" />
+                  <StatCard icon={<Zap className="w-4 h-4" />} title={<span className="flex items-center"><Zap className="text-emerald-400 mr-3 h-5 w-5" />Observed active sessions</span>} value={agenticStats.data?.activeSessions ?? 0} subtext="Last observed session status" isLoading={agenticStats.isLoading} error={agenticStats.error} iconColor="#34d399" iconBgColor="rgba(52,211,153,.15)" />
                 </GlassPanel>
                 <GlassPanel className="h-full">
                   <StatCard icon={<Database className="w-4 h-4" />} title={<span className="flex items-center"><FaBoxes className="text-amber-400 mr-3 h-5 w-5" />Resources</span>} value={agenticStats.data?.totalResources ?? 0} subtext="Total configured" isLoading={agenticStats.isLoading} error={agenticStats.error} iconColor="#fbbf24" iconBgColor="rgba(251,191,36,.15)" />
                 </GlassPanel>
               </motion.div>
 
-              {/* Active Sessions */}
+              {/* Observed active sessions */}
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }} className="mb-6">
                 <GlassPanel>
                   <Card className="bg-transparent border-0 shadow-none">
@@ -288,7 +288,7 @@ export default function AgenticOverview() {
                     icon={<Zap className="w-4 h-4" />}
                     title={<span className="flex items-center"><FaPlayCircle className="mr-3 h-5 w-5" style={{ color: themeColors.sessions }} />Active Workflows</span>}
                     value={agenticStats.data?.activeSessions || 0}
-                    subtext="Currently running"
+                    subtext="Last observed session status"
                     isLoading={activeSessions.isLoading}
                     error={activeSessions.error}
                     iconColor={themeColors.sessions}

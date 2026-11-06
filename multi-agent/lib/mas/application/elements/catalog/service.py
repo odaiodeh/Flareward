@@ -54,6 +54,10 @@ class CatalogService:
                 if hasattr(spec_cls.output_schema, "model_dump")
                 else spec_cls.output_schema
             )
+        if spec_cls.result_schema is not None:
+            output_schema = spec_cls.result_schema.model_json_schema(
+                mode="serialization", by_alias=False
+            )
 
         return ElementDetailDTO(
             name=spec_cls.name,
@@ -63,6 +67,9 @@ class CatalogService:
             config_schema=spec_cls.config_schema.model_json_schema(),
             tags=spec_cls.tags,
             output_schema=output_schema,
+            input_schema=spec_cls.input_schema.model_json_schema()
+            if spec_cls.input_schema is not None
+            else None,
         )
 
     def list_categories(self) -> list[str]:

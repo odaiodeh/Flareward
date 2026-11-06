@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, ClassVar
 
 from mas.application.capabilities.streaming_capable import StreamingCapableMixin
-from mas.core.contracts import SupportsStateContext
+from mas.application.programs.graph_elements import SupportsStateContext
 from mas.core.tracing import TracingService
 from mas.domain.messages import ChatMessage, Role
 from mas.graph.models import AdjacentNodes, StepContext

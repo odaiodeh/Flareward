@@ -1,15 +1,26 @@
 """Shared public API operations for deployment scenarios."""
 
 import httpx
-from mas.programs.models import ProgramDefinition, ProgramRef
+from mas.domain.programs.models import ProgramDefinition, ProgramRef
 
 
-async def publish_program(http: httpx.AsyncClient, definition: ProgramDefinition) -> ProgramRef:
+async def publish_program(
+    http: httpx.AsyncClient, definition: ProgramDefinition, *, headers: dict[str, str] | None = None
+) -> ProgramRef:
+    previous = await http.get(f"/api/programs/{definition.program_id}", headers=headers)
+    assert previous.status_code in {200, 404}, previous.text
+    version = previous.json()["version"] if previous.status_code == 200 else 0
     saved = await http.put(
-        f"/api/programs/{definition.program_id}", json=definition.model_dump(mode="json")
+        f"/api/programs/{definition.program_id}",
+        json={"definition": definition.model_dump(mode="json"), "expected_version": version},
+        headers=headers,
     )
     assert saved.status_code == 200, saved.text
-    published = await http.post(f"/api/programs/{definition.program_id}/revisions")
+    published = await http.post(
+        f"/api/programs/{definition.program_id}/revisions",
+        json={"expected_version": saved.json()["version"]},
+        headers=headers,
+    )
     assert published.status_code == 201, published.text
     return ProgramRef(program_id=definition.program_id, revision=published.json()["revision"])
 

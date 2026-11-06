@@ -4,7 +4,7 @@ import json
 from importlib.resources import files
 
 import pytest
-from mas.core.execution_context import ExecutionContext
+from mas.domain.execution.context import ExecutionContext
 from outbound.run_engine.compiler import ProgramCompiler
 from pydantic import ValidationError
 from runengine.coordination.models import RunRequest

@@ -34,6 +34,7 @@ class Configuration(BaseModel):
 def builtin_case(application):
     elements = create_autospec(ElementRegistry, instance=True)
     elements.get_schema.return_value = Configuration
+    elements.get_spec.return_value.version = "1.0.0"
     cipher = MemoryCipher()
     fields = ResourceFieldEncryption(elements, cipher)
     repository = create_autospec(ResourceAuthoringRepository, instance=True)

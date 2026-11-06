@@ -508,16 +508,20 @@ export const useWorkspaceData = () => {
       elementData: any,
       availableToAll: boolean = false,
       rid?: string,
+      expectedVersion?: number,
     ) => {
       try {
         setIsLoading(true);
         setError(null);
 
         if (rid) {
+          if (expectedVersion === undefined) throw new Error('Reload the resource before editing');
           const result = await resourcesApi.updateBuiltin({
             resourceId: rid,
+            expectedVersion,
             config: elementData.cfg_dict,
             name: elementData.name,
+            execution: elementData.execution,
             availableToAll,
           });
           if (result) {
@@ -545,6 +549,7 @@ export const useWorkspaceData = () => {
             type,
             name,
             config: cfg_dict,
+            execution: elementData.execution,
             availableToAll,
           });
           if (result) {
@@ -585,13 +590,14 @@ export const useWorkspaceData = () => {
 
   // Toggle available_to_all status for a resource (admin only)
   const toggleBuiltinStatus = useCallback(
-    async (resourceId: string, availableToAll: boolean) => {
+    async (resourceId: string, availableToAll: boolean, expectedVersion: number) => {
       try {
         setIsLoading(true);
         setError(null);
 
         const result = await resourcesApi.toggleBuiltinVisibility({
           resourceId,
+          expectedVersion,
           availableToAll,
         });
 
@@ -625,12 +631,12 @@ export const useWorkspaceData = () => {
 
   // Delete a built-in/admin resource (admin only)
   const deleteBuiltinElement = useCallback(
-    async (rid: string) => {
+    async (rid: string, expectedVersion: number) => {
       try {
         setIsLoading(true);
         setError(null);
 
-        await resourcesApi.deleteResource(rid);
+        await resourcesApi.deleteBuiltin(rid, expectedVersion);
         removeResource(rid);
 
         toast({ title: "Success", description: "Built-in resource deleted successfully" });

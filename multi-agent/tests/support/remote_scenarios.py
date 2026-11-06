@@ -1,16 +1,35 @@
 """Program definitions for remote scenarios contain only application contracts."""
 
+from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.application.elements.construction.resolver import ElementBundleResolver
 from mas.core.enums import ResourceCategory
-from mas.programs.models import (
+from mas.domain.element_bundles import ElementBundle, ResourceKey
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
     ProgramRef,
 )
 
+from support.elements import DependencySpec
+from support.remote import RemoteOperationSpec
 from support.scenarios import resource
+
+
+def remote_operation_bundle() -> ElementBundle:
+    registry = ElementRegistry()
+    registry.register_spec_class(RemoteOperationSpec)
+    registry.register_spec_class(DependencySpec)
+    resources = list(remote_graph().resources)
+    resources[0] = resources[0].model_copy(
+        update={
+            "key": ResourceKey(category=ResourceCategory.OPERATION, rid="probe"),
+            "type_key": RemoteOperationSpec.type_key,
+        }
+    )
+    return ElementBundleResolver(registry).resolve(resources[0].key, resources)
 
 
 def remote_graph(*, retained: bool = False, fail: bool = False) -> GraphDefinition:

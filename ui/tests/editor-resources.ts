@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import axios from '../client/src/http/axiosAgentConfig';
 import { catalogService } from '../client/src/api/catalog';
 import {
-  createResource, deleteResource, getElementSpec, getResource, getResourceSchema,
+  captureResourceSnapshot, createResource, deleteResource, getElementSpec, getResource, getResourceSchema,
   listAllResources, updateResource,
 } from '../client/src/api/resources';
 
@@ -13,9 +13,9 @@ axios.defaults.baseURL = endpoint;
 
 export default async function verifyEditorResources() {
   const catalog = await catalogService.fetchAllElements();
-  assert.ok(catalog.elements.nodes.some(element => element.type === 'codex_agent_node'));
+  assert.ok(catalog.elements.operations.some(element => element.type === 'codex_coding'));
   assert.ok(!(await catalogService.fetchCategories()).includes('sandboxes'));
-  const schema = await getElementSpec('nodes', 'codex_agent_node');
+  const schema = await getElementSpec('operations', 'codex_coding');
   assert.ok(schema.config_schema.required?.includes('model'));
   const envelope = await getResourceSchema();
   assert.ok(envelope.properties.name);
@@ -23,14 +23,19 @@ export default async function verifyEditorResources() {
     profiles: ['process', 'thread'], default_profile: 'thread', environment_profiles: [],
   });
   const placed = await createResource({
-    category: 'nodes', type: 'codex_agent_node', name: 'Placed coding agent',
+    category: 'operations', type: 'codex_coding', name: 'Placed coding agent',
     config: { model: 'fixture-model' }, execution: { profile: 'process' },
   });
   try {
+    assert.ok(placed.source);
+    const snapshot = await captureResourceSnapshot(placed.source);
+    assert.equal(snapshot.root.rid, placed.rid);
+    assert.equal(snapshot.entries.length, 1);
+    assert.match(snapshot.content_digest, /^[0-9a-f]{64}$/);
     assert.deepEqual(placed.execution, { profile: 'process' });
     assert.ok(!('execution' in placed.cfg_dict));
     assert.deepEqual((await getResource(placed.rid)).execution, placed.execution);
-    assert.deepEqual((await listAllResources({ category: 'nodes' })).find(
+    assert.deepEqual((await listAllResources({ category: 'operations' })).find(
       resource => resource.rid === placed.rid,
     )?.execution, placed.execution);
     const retained = await updateResource({
@@ -38,6 +43,11 @@ export default async function verifyEditorResources() {
       name: 'Renamed without changing environment',
     });
     assert.deepEqual(retained.execution, placed.execution);
+    await assert.rejects(captureResourceSnapshot(placed.source), error =>
+      !!error && typeof error === 'object' && 'response' in error &&
+      (error.response as { status: number }).status === 409);
+    assert.ok(retained.source);
+    assert.equal((await captureResourceSnapshot(retained.source)).root.rid, placed.rid);
     await assert.rejects(updateResource({
       resourceId: placed.rid, config: placed.cfg_dict, expected_version: placed.version,
       execution: { profile: 'thread' },
@@ -70,6 +80,9 @@ export default async function verifyEditorResources() {
   });
   try {
     assert.ok(!JSON.stringify(created).includes('typescript-private-value'));
+    assert.ok(created.source);
+    const protectedSnapshot = await captureResourceSnapshot(created.source);
+    assert.ok(!JSON.stringify(protectedSnapshot).includes('typescript-private-value'));
     assert.equal((await getResource(created.rid)).name, created.name);
     const listed = await listAllResources({ category: 'llms', type: 'mock' });
     assert.ok(listed.some(item => item.rid === created.rid));

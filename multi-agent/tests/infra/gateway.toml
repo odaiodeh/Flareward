@@ -18,7 +18,7 @@ gateway_id = "unifai-e2e"
 ttl_secs = 0
 
 [openshell.drivers.docker]
-default_image = "unifai-sandbox:platform-20261029"
+default_image = "unifai-sandbox:program-boundaries-20261103"
 supervisor_image = "ghcr.io/nvidia/openshell/supervisor:0.0.103"
 image_pull_policy = "IfNotPresent"
 sandbox_namespace = "unifai-e2e"

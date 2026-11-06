@@ -5,7 +5,7 @@ import json
 import httpx
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.graph.state.state_view import StateView
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict
@@ -46,7 +46,7 @@ class NetworkProbeFactory(BaseFactory):
         return NetworkProbeNode(cfg.urls)
 
 
-class NetworkProbeSpec(BaseElementSpec):
+class NetworkProbeSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "network_probe"
     name = "Receiver network probe"

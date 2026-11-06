@@ -28,7 +28,7 @@ def editing():
     return owner, store, resources, blueprints, TeamEditService(store, resources, blueprints)
 
 
-@pytest.mark.parametrize("kind", list(EditEntityKind))
+@pytest.mark.parametrize("kind", [EditEntityKind.RESOURCE, EditEntityKind.BLUEPRINT])
 async def test_acquisition_checks_entity_owner_and_uses_the_trusted_actor(editing, kind):
     owner, store, resources, blueprints, service = editing
     lease = EditLease(user_id="human", display_name="human", lease_id="editor")
@@ -63,6 +63,18 @@ async def test_personal_scope_cannot_be_used_as_a_team_namespace(editing):
         await service.acquire(
             Identity.user("human"),
             EditEntityKind.RESOURCE,
+            "entity",
+            EditLease(user_id="human", display_name="human"),
+        )
+    store.acquire.assert_not_awaited()
+
+
+async def test_team_cannot_acquire_the_administrator_namespace(editing):
+    _, store, _, _, service = editing
+    with pytest.raises(PermissionError):
+        await service.acquire(
+            Identity.team("__builtin_admin__"),
+            EditEntityKind.BUILTIN,
             "entity",
             EditLease(user_id="human", display_name="human"),
         )

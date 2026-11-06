@@ -1,9 +1,11 @@
 from typing import Dict
-from pydantic import BaseModel, Field, ConfigDict
 
-from mas.core.resource_models import StepMeta
-from .adjacency import AdjacentNodes
+from pydantic import BaseModel, ConfigDict, Field
+
+from mas.domain.metadata import StepMeta
+
 from ..topology.models import StepTopology
+from .adjacency import AdjacentNodes
 
 
 class StepContext(BaseModel):

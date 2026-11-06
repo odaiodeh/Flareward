@@ -15,6 +15,7 @@ COPY --from=unifai /multi-agent/lib/ /opt/mas/lib/
 COPY --from=unifai /multi-agent/adapters/ /opt/mas/adapters/
 COPY --from=unifai /multi-agent/bootstrap/ /opt/mas/bootstrap/
 COPY --from=unifai /multi-agent/config/ /opt/mas/config/
+COPY --from=unifai /multi-agent/plugins/ /opt/mas/plugins/
 RUN pip install --no-cache-dir /opt/run-engine /opt/global-utils "/opt/mas[api,credentials,blueprints,telemetry]"
 
 COPY --from=unifai /multi-agent/tests/support/ /opt/test-fixtures/support/

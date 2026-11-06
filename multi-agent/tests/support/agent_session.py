@@ -12,8 +12,8 @@ from mas.application.ports.llm import BaseLLM
 from mas.application.ports.tool import BaseTool
 from mas.core.element_deps import ElementBuildContext
 from mas.core.enums import ResourceCategory
-from mas.core.execution_context import ExecutionContext
 from mas.core.ref.models import ToolRef
+from mas.domain.execution.context import ExecutionContext
 from mas.domain.messages import ChatMessage, Role, ToolCall
 from mas.domain.tools import ToolDefinition
 from mas.elements.nodes.custom_agent.spec.spec import CustomAgentNodeElementSpec

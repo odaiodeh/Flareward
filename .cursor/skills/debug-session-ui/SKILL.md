@@ -26,8 +26,8 @@ private draft as public shared-chat data. Shared-chat access requires its own
 application policy; a sharing-metadata toggle does not supply that policy.
 
 For resource placement, trace `ExecutionProfileField`, `lib/resource-editor.ts`,
-`useWorkspaceData.saveElement` and the native resource service. Only nodes and
-conditions select a reusable profile. The authenticated catalog endpoint exposes
+`useWorkspaceData.saveElement` and the native resource service. Nodes, conditions
+and operations select a reusable profile. The authenticated catalog endpoint exposes
 approved names/default, never raw backend configuration. Preserve `execution`
 beside `cfg_dict`, the loaded version, and selected team scope. Omission preserves
 the preference; an explicit null profile clears it. An unavailable saved name
@@ -136,6 +136,14 @@ lease keys are gone. Do not flush either shared store. The runner cleans only it
 unique data; test services remain running. Save proof of the persisted profile.
 
 ### Session streaming and decisions
+
+`useSessionStream.executionReference` records the session and exact observed root
+from accepted submission/reconnection. Cancellation/view replacement clears it;
+late status/submission responses remain generation-guarded. The session view links
+that reference to the shared `/executions/:id` workbench only when it matches the
+selected session. Do not derive the link from a stale previous-turn status object
+or expose owner-only inspection as part of a public shared-chat promise. This link
+is implemented; full Session browser/lifetime acceptance remains required.
 
 For wrong-turn or missing stream data, compare the submission's `executionId`,
 the pinned subscription ID, event cursors, and the current session record.

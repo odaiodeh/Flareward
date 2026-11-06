@@ -30,6 +30,9 @@ Preserve these verified integration details:
   setup. Strict verification needs complete certificate extensions and callback
   hostname SANs. Keep TLS and client authentication enabled. Do not print keys,
   JWTs, or broad container environments while diagnosing errors.
+  Expired certificates require a fresh ignored state directory. Confirm no active
+  sandbox use and recreate only the owned gateway service with `--no-deps`; other
+  shared services do not need to restart. Preserve the old state while it has callers.
 - Use the same absolute state path inside and outside the gateway because its
   Docker driver creates sibling bind mounts. Check actual supervisor logs when
   gateway health succeeds but a sandbox stays provisioning or enters error.
@@ -44,6 +47,16 @@ fixture accepts required endpoints separately from private file values; profile
 payloads carry only references. A passing collector connection does not establish
 general policy enforcement. Inspect the actual image policy and backend error
 before broadening access or changing host routing.
+
+Normal OpenShell is the current feature-milestone profile. Optional strict candidate
+filesystem isolation requires Landlock support in the actual host kernel and explicit
+`--strict-sandbox-filesystem` / `hard_requirement`. The recorded Docker Desktop kernel lacks
+`CONFIG_SECURITY_LANDLOCK`, despite its recent version. A supervisor can report ready
+briefly, then restart; the SDK may report only a closed exec relay. Inspect the exact
+owned container state and supervisor stderr before retrying. Keep strict acceptance
+pending for a capable Linux runner only when that extra guarantee is requested.
+Normal-profile execution and network policy tests do not require a new Linux VM.
+See [candidate-profile evidence](../../../docs/evidence/2026-11-05-candidate-profile.md).
 
 For environment lifetime, use Run Engine ownership and explicit child imports.
 The remote scenarios distinguish one-off receivers, shared files within an owned
@@ -65,3 +78,18 @@ API and selected backend. Distinguish gateway health, sandbox readiness, receive
 imports, program completion, replay, and cleanup; each proves a different boundary.
 Record versions, images, selected endpoints, and limitations without claiming
 production isolation or policy enforcement from deterministic execution tests.
+
+If a public-image build stalls at registry metadata, check its exact process tree
+and public registry connectivity before retrying. A waiting credential helper is
+different from an unreachable registry. For confirmed helper blockage, stop only
+the owned build/helper processes and use a temporary Docker configuration with
+empty `auths`, no credential store, and the already observed daemon endpoint.
+Do not read, replace or print the user's Docker credentials. Keep the temporary
+configuration scoped to those public-image build commands.
+
+Check daemon responsiveness separately from Desktop's reported running state and
+container state cached by the API. A successful container inspection does not
+prove that container exec, gateway TLS or the build is responsive. Preserve live
+handles across observation timeouts; do not restart Docker Desktop or unrelated
+services as an implicit test repair. Record preflight failures separately from
+test results and keep current-source remote verification pending until it runs.

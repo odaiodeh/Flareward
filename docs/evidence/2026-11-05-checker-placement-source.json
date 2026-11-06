@@ -1,0 +1,52 @@
+{
+  "scope": "Focused checker-placement source and image evidence; not a full build/dependency manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/lib/mas/application/verification/check_service.py": "56e9ecf9724c370cee43f0f105fddad835ce34ec4fdbfce39a08a132b2135a71",
+    "multi-agent/lib/mas/application/verification/maintenance.py": "8c3d6244715153c111251b3990d57f723a9977a2f2644fe5ee0b9e07034f0441",
+    "multi-agent/lib/mas/application/verification/program_checks.py": "74180e11524b14f459fa8f1ab0ce5a728bf29a7052cf4232dcab9cb5fa46de74",
+    "multi-agent/lib/mas/domain/check_runs.py": "acd1a92070ccab0177af30b84e4025c31a3579d556d264303a6256ca41bdc3a0",
+    "multi-agent/plugins/mas_plugins/testing/_python_worker.py": "e2651a1e846ed8dd434fc91104c841a6abd51e7bcde3370bbaf61df323734466",
+    "multi-agent/plugins/mas_plugins/testing/python_functions.py": "cc67c4de13819a529a2ebcc2e0e3588ddc291fcd635e5c1094b9dd25c9823399",
+    "multi-agent/plugins/mas_plugins/testing/specification.py": "bb27ccc5caa812562f6c9bf9ed3825c9484e11c8827f6c93fb72ecfdd4373cca",
+    "multi-agent/tests/infra/Dockerfile.receiver": "02003e1ca425f7ac164b59732ccc4d785bfdac2bb83449b5a441b784e5fa146b",
+    "multi-agent/tests/infra/verify_images.py": "b7d73915bbdea045e280f0d0692bc7cffa7d3d7b1d24531f6ded0e273a3e5fe6",
+    "multi-agent/tests/integration/deployment/test_program_checks.py": "4068b57a6d6ea63607c56094121d3b7c7bea5e56cb3d551c58c85ed082dfa5e8",
+    "multi-agent/tests/integration/deployment/test_remote_programs.py": "348efa547cb34f75afb90ce1705700c066427ef18b404813c90dee702035ad09",
+    "multi-agent/tests/integration/verification/test_program_checks.py": "18ff1d209cbd2c33a0e1fa3016ca7eb43fb696f263afa75308b8ea8bb068e368",
+    "multi-agent/tests/support/deployment_backend.py": "584e0b4805ad7170d9adb6249f2441084901e0795d74ccf1da85089f3c371444",
+    "multi-agent/tests/support/kubernetes_deployment.py": "ae84fbeed8033caf2e5fb182b1892039fe0b6dcd154ba5fecccb391281dc1f58",
+    "multi-agent/tests/support/program_check_api.py": "37203cd71e0174b0c2c476833dced0a15d1a2ff5832ce8674fcd99e9d5b8f11d",
+    "multi-agent/tests/support/remote.py": "34cea4bb279dd84a4045185ec8adb36f1b99edeb7446f0ec744d1b00316799a4"
+  },
+  "aggregate_encoding": "SHA-256 of compact sorted-key UTF-8 JSON files map",
+  "aggregate_sha256": "4c43fd58b23eaf35b4a823259520b110b20fb70e798592cf498dbe919f6781b8",
+  "companion": {
+    "git_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+    "inspected_files": {
+      "src/runengine/invocation/config.py": "ff20de516a9f4454750510e74122a99fd1707620a7ff406fbb93dd9008b67988",
+      "src/runengine/adapters/invocation/kubernetes/executor.py": "5ba71d0cbcd6f6d63b50ff5d346123e5c494e458c491b47d2bc1701412b54892"
+    }
+  },
+  "image": {
+    "tag": "unifai-receiver:python-checks-20261105-v2",
+    "docker_index": "sha256:31470b71e2d38292f0e799392ce7901d3ffd881bea2a85ee03316fc3f510c11d",
+    "config_cri_id": "sha256:1d6ed9c01ffd16b7875c766777cbde10bbcc200f657938e44c2d4792a9cd87ee",
+    "kind_import_digest": "sha256:7826c2441f31ea6e6cec3bceede9b535bfca259fa1f5f9bba6d316033d07650b",
+    "matched_python_files": 1389,
+    "observed_receivers": [
+      {
+        "receiver_namespace": "unifai-e2e-ca4aca4b12ee4ebb",
+        "receiver_pod": "runengine-unifai-ae99d4e4238d4d9493ec485ade6559b8--3ce90f27cn48",
+        "receiver_image": "unifai-receiver:python-checks-20261105-v2",
+        "receiver_image_id": "docker.io/library/import-2026-11-05@sha256:7826c2441f31ea6e6cec3bceede9b535bfca259fa1f5f9bba6d316033d07650b"
+      },
+      {
+        "receiver_namespace": "unifai-e2e-e39e2ce3688548c6",
+        "receiver_pod": "runengine-unifai-e91f81a6d0c64184a44a59eb3ca39b6e--cab5101tjlj2",
+        "receiver_image": "unifai-receiver:python-checks-20261105-v2",
+        "receiver_image_id": "docker.io/library/import-2026-11-05@sha256:7826c2441f31ea6e6cec3bceede9b535bfca259fa1f5f9bba6d316033d07650b"
+      }
+    ]
+  }
+}

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 from mas.core.identity import Identity
-from mas.programs.models import ApplicationDefinition, ProgramDefinition
+from mas.domain.programs.models import ApplicationDefinition, ProgramDefinition
 from mas.scheduling.models import PromptSource, ScheduleDefinition, ScheduleOverlapPolicy
 from mas.scheduling.programs import ProgramScheduleConflict, program_schedule_id
 from outbound.temporal.program_schedules import TemporalProgramSchedules

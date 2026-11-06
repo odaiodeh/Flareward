@@ -5,7 +5,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from mas.domain.messages import ChatMessage
-from mas.domain.workloads.models import AgentResult, ArtifactRef
+from mas.domain.workloads.models import AgentResult, WorkspaceArtifact
 from mas.domain.workloads.task import Task
 
 
@@ -15,7 +15,7 @@ class WorkspaceContext(BaseModel):
     # Shared Context Data
     facts: list[str] = Field(default_factory=list)
     results: list[AgentResult] = Field(default_factory=list)
-    artifacts: dict[str, ArtifactRef] = Field(default_factory=dict)
+    artifacts: dict[str, WorkspaceArtifact] = Field(default_factory=dict)
     variables: dict[str, Any] = Field(default_factory=dict)
     conversation_history: list[ChatMessage] = Field(default_factory=list)
 

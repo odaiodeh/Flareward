@@ -12,7 +12,7 @@ from collections.abc import AsyncGenerator
 from contextlib import aclosing
 from typing import Any
 
-from google import genai
+import google.genai as genai
 from google.genai import types
 
 from mas.application.ports.llm import BaseLLM

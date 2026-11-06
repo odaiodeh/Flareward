@@ -1,222 +1,112 @@
 ---
-description: Universal engineering standards — SOLID, hexagonal architecture, Pydantic, enums, types, imports, naming, error handling, and Python safety patterns. Non-negotiable for all code.
+description: SOLID, hexagonal boundaries, minimal class-oriented Python, validated contracts, native async lifetimes, and safe error handling.
 globs:
   - "**/*.py"
 ---
 
-# Engineering Standards
-
-Non-negotiable rules for ALL code in this repository. Violations must be fixed before merge.
-
----
-
-## 1. SOLID Principles
-
-| Principle | Rule | Violation Sign |
-|-----------|------|----------------|
-| **SRP** | One class = one reason to change | Class described with "and" |
-| **OCP** | Extend via new classes, not modifying existing | Adding `if/elif` chains for new types |
-| **LSP** | Subtypes substitutable for base | Adapter breaks port contract |
-| **ISP** | Small focused interfaces | Implementors forced to stub methods |
-| **DIP** | Depend on abstractions, not concretions | Importing adapter from domain |
-
-Split an application service when:
-- **8+ public methods** clustering into 3+ independent groups
-- Method cluster A never calls methods in cluster B
-- Generic name ("Orchestrator", "Manager", "Handler")
-
-After decomposition: each focused service owns one cluster. A thin facade may remain for backward compatibility but must contain zero business logic.
-
----
-
-## 2. Hexagonal Architecture
-
-### Layer Placement Decision Tree
-
-| Question | Yes | No |
-|----------|-----|-----|
-| Does it call `subprocess`, `open()`, `shutil.which()`, `socket`, `requests`, or any filesystem/network/OS operation? | **Adapter** | next |
-| Does it orchestrate multiple ports/domain objects to fulfill a use case? | **Application Service** | next |
-| Does it define pure data, business rules, or computations with zero I/O? | **Domain** | next |
-| Is it an abstract interface (ABC) defining a contract? | **Port** | Reconsider design |
-
-If a domain class does I/O, split it: pure domain class + adapter/loader.
-
-### Import Direction (Dependency Inversion)
-
-```text
-domain/       may import: stdlib, other domain modules
-              must NOT import: ports/, adapters/, services/, frameworks
-
-ports/        may import: stdlib, domain/
-              must NOT import: adapters/, services/, frameworks
-
-services/     may import: stdlib, domain/, ports/
-              must NOT import: adapters/ (concrete classes)
-
-adapters/     may import: stdlib, domain/, ports/, frameworks, external libs
-              must NOT import: services/ (except composition root)
-```
-
-Composition root (`cli.py`, app factory, `main()`) is the ONLY place where concrete adapters are instantiated and injected.
-
-If a service contains `from project.adapters.xyz import ConcreteClass`, that is a DIP violation.
-
-### Import Matrix (rings)
-
-| Ring | Can Import | Cannot Import |
-|------|-----------|---------------|
-| Domain (`lib/mas/`) | Own domain code only | Adapters, Bootstrap |
-| Adapters (`adapters/`) | Domain (to implement ports) | Bootstrap, other tech dirs |
-| Bootstrap (`bootstrap/`) | Domain + Adapters | — (top level) |
-
-Import direction is STRICTLY inward. No exceptions.
-
-### Port-per-Adapter Rule
-
-Every adapter class must implement exactly one Port (ABC).
-- Adapter without a corresponding Port = missing abstraction
-- Service directly instantiating or importing an adapter = DIP violation
-
-### Domain-Specific Overrides
-
-Each service's skill files contain an **"Established Patterns"** section that documents
-pre-approved deviations. When a component's skill explicitly lists a pattern as established
-practice, the domain skill takes precedence for that component. Reviewers MUST check the
-relevant domain's Established Patterns table before flagging a violation.
-
----
-
-## 3. Pydantic Models — Always
-
-| Use For | Rule |
-|---------|------|
-| All structured data crossing boundaries | Pydantic BaseModel |
-| Immutable value objects | `model_config = {"frozen": True}` |
-| Mutable defaults | `Field(default_factory=list)` |
-| Constraints | `Field(ge=0)`, `@field_validator` |
-| Never | Bare `dict` for structured data, `Any` for typed fields |
-
----
-
-## 4. Enums — No Magic Strings
-
-| Rule | Example |
-|------|---------|
-| Every fixed value set = Enum | `SessionStatus`, `ResourceCategory` |
-| Use `str, Enum` for JSON serialization | `class Status(str, Enum): ...` |
-| Compare against enum, never string | `status == SessionStatus.RUNNING` not `status == "running"` |
-| New values = explicit enum addition | Update all consumers |
-
-Violations:
-- `if status == "healthy"` should be `if status is ServiceStatus.HEALTHY`
-- `type: str` field used for discrimination should be an Enum field
-
----
-
-## 5. Type Hints — Mandatory
-
-| Rule | Applies To |
-|------|-----------|
-| Full annotations on all signatures | Functions, methods, class attributes |
-| Return type always declared | Use `-> None` for void |
-| `Optional[X]` explicit | Never leave nullable implicit |
-| Use `TYPE_CHECKING` for type-only imports | Avoids circular imports |
-
----
-
-## 6. Imports — Top of File Only
-
-| Position | Contents |
-|----------|----------|
-| First | Standard library (`import logging`, `from typing import ...`) |
-| Second | Third-party (`from pydantic import ...`, `from flask import ...`) |
-| Third | Local domain (`from mas.core.identity import Identity`) |
-| Fourth | Local adapters (only in adapter/bootstrap code) |
-
-**Rules:**
-- NO inline imports (single exception: lazy imports in the composition root — `bootstrap/` — for conditional adapter wiring)
-- NO wildcard imports (`from x import *`)
-- NO circular imports (refactor if needed)
-
----
-
-## 7. No Hardcoded Values
-
-| Instead of... | Use... |
-|---------------|--------|
-| Magic numbers in logic | Named constants (`MAX_FILES = 10`) |
-| Connection strings in code | Config parameters |
-| Feature behavior in code | Config flags |
-| Raw strings for statuses | Enums |
-
----
-
-## 8. Error Handling
-
-| Rule | Detail |
-|------|--------|
-| Specific domain exceptions | `SessionNotFoundError`, not generic `Exception` |
-| Never catch bare `Exception` in business logic | Only in outermost adapter layer |
-| Adapter wraps tech errors | `pymongo.errors.X` → domain exception |
-| Always include context | `raise Error(f"Cannot upload {n} files, max is {max}")` |
-
-### Per-Layer Error Contract
-
-| Layer | May raise | May catch | Must NOT do |
-|-------|-----------|-----------|-------------|
-| **Domain** | `ValueError`, `KeyError`, custom domain exceptions | Nothing (let errors propagate) | `SystemExit`, `print()`, I/O |
-| **Services** | `RuntimeError`, domain exceptions | Domain exceptions (to add context) | `SystemExit`, `print()` to stderr |
-| **Adapters (CLI)** | `SystemExit` (at entry point only) | `RuntimeError`, `KeyError`, `FileNotFoundError` | Swallowing exceptions silently |
-| **Adapters (API)** | HTTP status codes via framework | Service/domain exceptions | `SystemExit` |
-
-A single error boundary at the CLI entry point (`main()`) is preferred over scattered `try/except`.
-
----
-
-## 9. Naming
-
-| Thing | Convention | Example |
-|-------|-----------|---------|
-| Classes | PascalCase | `SessionService` |
-| Functions/methods | snake_case | `upload_batch` |
-| Constants | UPPER_SNAKE | `MAX_FILES_PER_UPLOAD` |
-| Private | Leading `_` | `_validate_files` |
-| Files/dirs | snake_case | `session_repository.py` |
-| Enums | PascalCase + UPPER values | `SessionStatus.RUNNING` |
-
----
-
-## 10. Documentation
-
-| When | What |
-|------|------|
-| Every public class | One-line docstring minimum |
-| Non-obvious behavior | Explain WHY, not WHAT |
-| Constraints/invariants | Document in docstring or comment |
-| Never | Narrate obvious code, explain what code does line-by-line |
-
----
-
-## 11. Python Safety Patterns
-
-### Shell commands
-
-- `subprocess.run/call/Popen` must use **list form**, never a single string
-- User-derived values → `shlex.quote()` each argument
-- Parsing command strings → `shlex.split()`, never `str.split()`
-- `shell=True` → flag as **MAJOR** unless explicitly justified
-
-### File safety
-
-- Sensitive files (secrets, tokens, `.env`) → create with `os.open(path, flags, 0o600)`
-- `# noqa` comments → investigate root cause, don't suppress
-
-### Pattern matching
-
-- Substring matching (`if name in content`) for service/process identification → use `re.search(rf"\b{re.escape(name)}\b", content)`
-
-### Resource management
-
-- Every `open()` must be inside `with` or `contextlib.ExitStack`
-- Large files → stream or chunk, never `.read_text()` into memory
+# Engineering standards
+
+Follow the user's task and the applicable architecture. For the multi-agent
+platform, start/resume with `docs/status.md` and `docs/plan.md`. Search and read
+relevant sections of `docs/architecture/README.md` and the development guide;
+retrieve specific proof through `docs/evidence/README.md`. Do not load full guides
+or historical archives by default. Rewrite compact status/plan facts and keep
+detailed milestone results in evidence records. The full goal/target still define
+completion. Historical implementation patterns do not override the target.
+The fresh multi-agent platform has no requirement to retain superseded APIs,
+formats, workers, aliases, or compatibility facades. Other services consuming
+shared libraries retain their own contracts unless their migration is authorized.
+
+## Cohesive, minimal design
+
+- Give each class a cohesive responsibility and explicit dependencies. Prefer
+  composition and narrow interfaces; keep subclasses substitutable.
+- Use classes for related behavior, policies, services, and owned lifecycles.
+  Small stateless helpers can remain functions in their owning module. Do not
+  introduce a class, base class, facade, or interface solely for ceremony.
+- Extend registered capabilities through specifications, factories, and plugins.
+  Do not add integration-specific compiler branches or competing registries.
+- Split services along independent responsibilities, not an arbitrary method
+  count. Avoid global discovery state, singleton lookup, service locators, hidden
+  dependencies, circular imports, and duplicate implementations.
+
+## Hexagonal ownership
+
+| Layer | Owns | Depends on |
+| --- | --- | --- |
+| Domain | Values, invariants, outcomes and business rules | Domain values and minimal validation types |
+| Application | Use cases, policy, operation contracts and ports | Domain and application-owned interfaces |
+| Adapters/plugins | HTTP/SDK/database/filesystem/process integration | The inward contracts they implement or call |
+| Composition root | Registration, configuration and concrete wiring | Application, adapters and plugins |
+
+`lib/mas` contains multiple existing layers; it is not all domain code. Assess
+ownership by responsibility and imports, not just the top-level directory.
+Domain/application contracts must not import concrete plugins, transport layers,
+provider SDKs, database drivers, or execution SDK types. Concrete integrations
+import inward. Inbound adapters call application services; outbound adapters
+implement application-owned ports. Keep infrastructure adapters cooperating through
+explicit contracts and owned composition, without moving business policy outward.
+
+Use ABCs or Protocols when they express a real substitutable boundary. There is
+no rule requiring exactly one ABC per adapter class. Pure payload mappers, wire
+models and composition helpers need no artificial application port. Vendor-neutral
+behavior belongs inward; vendor integration belongs in the plugin/adapter ring.
+Run Engine owns scheduling, durable coordination and physical environment
+lifetimes. UnifAI owns application policies and translates through its ports.
+
+## Models, types and enums
+
+- Use Pydantic for validated configuration, API, invocation and portable-data
+  boundaries. Use ordinary classes or dataclasses internally where additional
+  runtime validation serves no purpose. Use safe mutable defaults and appropriate
+  constraints. Freeze values that should be immutable.
+- Use enums for closed statuses and policies. Extensible plugin/program/type
+  identities remain strings with explicit versions where required; adding a
+  plugin must not require editing a central enum.
+- Annotate production interfaces, signatures and return values precisely. Avoid
+  unstructured dictionaries for known contracts and `Any` where a useful type is
+  available. JSON Schema and extensible JSON payloads need appropriately typed
+  mappings, not a separate model for every possible user-defined field.
+- Do not duplicate validation/models across layers without a distinct contract.
+  Keep raw SDK settings and private credentials outside public application/UI data.
+
+## Async execution and ownership
+
+- Use native async I/O and explicit async resource lifetimes. Pure computation,
+  constructors and ordinary factories may remain synchronous.
+- Avoid nested event loops, async bridges and blocking I/O on the event loop.
+  If a required dependency is synchronous, isolate the blocking adapter operation
+  and retain ownership until it has stopped before releasing its resources.
+- Own acquisitions, tasks, clients and subprocesses explicitly. Drain or cancel
+  owned work and close partially constructed resources on success and failure.
+  Cancellation must propagate after cleanup; never report it as successful work.
+- Keep shared compute, mutable workspace files, conversation state and durable
+  artifacts distinct. A borrowed environment does not transfer deletion rights.
+
+## Imports and error semantics
+
+- Put imports at the top of files: standard library, dependencies, local modules.
+  Use type-only imports when appropriate, avoid wildcard imports and repair cycles.
+  Optional plugin selection belongs in explicit composition, not hidden imports
+  inside business functions.
+- Use meaningful application exceptions. Translate technical failures at adapter
+  boundaries without leaking SDK classes, credentials, input values or raw private
+  diagnostics. Do not hide failures with empty success results or silent fallback.
+- Broad exception handling belongs at deliberate translation/cleanup boundaries;
+  preserve cancellation and failure classification. Include only safe context.
+- Keep names precise, public interfaces small and comments focused on non-obvious
+  ownership/invariants. Remove dead code and replaced guidance with the old path.
+
+## Process, file and test discipline
+
+- Use argument lists for subprocess execution. Avoid shell interpretation of
+  user-derived values. Shell quoting is necessary only when intentionally building
+  shell text; do not quote arguments passed directly to an executable.
+- Create secret files privately from the start. Scope filesystem access, validate
+  containment where required, bound resource use and clean only owned resources.
+- Tests follow the same boundaries as production code. Use owned-port doubles for
+  application policy and actual adapters for integration evidence. Reuse cohesive
+  scenario fixtures, not test inheritance hierarchies or another scheduler.
+- Verify actual behavior and failure ownership. Keep paid-provider cases opt-in.
+  Record exact gate results and limitations; passing tests do not prove perfection,
+  architectural completion, or production scalability.

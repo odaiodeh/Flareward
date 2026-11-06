@@ -4,8 +4,9 @@ from unittest.mock import create_autospec
 
 import pytest
 from mas.core.enums import ResourceCategory
-from mas.core.execution_preferences import ResourceExecutionDefaults
 from mas.core.identity import Identity
+from mas.domain.element_bundles import ResourceKey
+from mas.domain.execution_preferences import ResourceExecutionDefaults
 from mas.resources.authoring import (
     ResourceAuthoringRepository,
     ResourceAuthoringService,
@@ -66,6 +67,26 @@ async def test_create_encrypts_declared_secrets_and_collects_typed_dependencies(
         config={"dependency": "$ref:catalog-tool"},
     )
     assert dependent.nested_refs == ["catalog-tool"]
+
+
+async def test_source_reference_is_owner_scoped_and_resolves_only_inside_server(
+    application, resource_case
+):
+    service, repository, _ = resource_case
+    view = await service.get("tool", application.owner)
+    assert view.source is not None
+    resolved = await service.resolve_source(view.source.key, application.owner)
+    assert resolved.reference == view.source
+    assert resolved.definition.config["api_key"] == "private-value"
+    assert "private-value" not in view.model_dump_json() and "private-value" not in repr(resolved)
+    with pytest.raises(KeyError):
+        await service.resolve_source(view.source.key, Identity.team(application.owner.id))
+    with pytest.raises(KeyError):
+        await service.resolve_source(
+            ResourceKey(category="operations", rid="tool"), application.owner
+        )
+    repository.get.return_value.resource.version += 1
+    assert (await service.get("tool", application.owner)).source != view.source
 
 
 async def test_update_round_trips_encrypted_configuration_and_fences_stale_writes(
@@ -176,7 +197,7 @@ async def test_construction_dependencies_cannot_select_an_invocation_backend(
     application, resource_case
 ):
     service, repository, _ = resource_case
-    with pytest.raises(ValueError, match="only to nodes and conditions"):
+    with pytest.raises(ValueError, match="only to nodes, operations and conditions"):
         await service.create(
             application.owner,
             category=ResourceCategory.TOOL,
@@ -185,7 +206,7 @@ async def test_construction_dependencies_cannot_select_an_invocation_backend(
             config={},
             execution=ResourceExecutionDefaults(profile="process"),
         )
-    with pytest.raises(ValueError, match="only to nodes and conditions"):
+    with pytest.raises(ValueError, match="only to nodes, operations and conditions"):
         await service.update(
             "tool",
             application.owner,

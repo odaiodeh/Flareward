@@ -1,4 +1,4 @@
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.field_hints import HiddenHint
 
@@ -8,7 +8,7 @@ from ..user_question import UserQuestionNode
 from ..user_question_node_factory import UserQuestionNodeFactory
 
 
-class UserQuestionNodeElementSpec(BaseElementSpec):
+class UserQuestionNodeElementSpec(GraphElementSpec):
     """Element specification for User Question Node."""
 
     category = ResourceCategory.NODE

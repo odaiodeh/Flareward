@@ -20,6 +20,8 @@ from support.blueprints import OverlayMockConfig, OverlayMockSpec
 class InspectedModelConfig(OverlayMockConfig):
     label: str = Field(default="Shared", json_schema_extra=ReadOnlyHint(read_only=False).to_hints())
     expected_digest: str = hashlib.sha256(b"caller-model-private").hexdigest()
+    expected_owner: str = "workspace"
+    expected_human: str = "human"
     fail: bool = False
     report_failure: bool = False
 
@@ -37,10 +39,12 @@ class ModelValidator(BaseElementValidator):
                     )
                 ]
             )
-        assert context.user_id == "workspace"
-        assert context.credential_lookup_user_id() == "human"
+        assert context.user_id == config.expected_owner
+        assert context.credential_lookup_user_id() == config.expected_human
         assert context.auth_service is not None
-        credential = context.auth_service.get_credential("human", "inspection", "api_key")
+        credential = context.auth_service.get_credential(
+            config.expected_human, "inspection", "api_key"
+        )
         assert credential is not None and credential.access_token == "probe-server-private"
         valid = hashlib.sha256(config.api_key.encode()).hexdigest() == config.expected_digest
         return ValidatorReport(

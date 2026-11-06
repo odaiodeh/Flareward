@@ -10,7 +10,8 @@ from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
 from mas.resources.builtin_aware_service import BuiltinAwareResourceService
 from mas.resources.errors import ResourceStorageError
-from outbound.mongo.resource_inspection import StoredResourceInspection
+from mas.resources.inspection import InspectionContext
+from outbound.mongo.resource_inspection import StoredResourceProbe
 from pydantic import ValidationError
 from pymongo.errors import PyMongoError
 
@@ -18,7 +19,7 @@ from pymongo.errors import PyMongoError
 @pytest.fixture
 def inspection_case():
     service = create_autospec(BuiltinAwareResourceService, instance=True)
-    return service, StoredResourceInspection(service)
+    return service, StoredResourceProbe(service)
 
 
 async def test_inspection_preserves_owner_and_human_identity_at_all_entrypoints(inspection_case):
@@ -28,7 +29,7 @@ async def test_inspection_preserves_owner_and_human_identity_at_all_entrypoints(
         is_valid=True, element_rid="resource", element_type="fixture"
     )
     results = await inspection.validate(
-        ["resource", "resource"], owner, credential_user_id="human", timeout_seconds=2
+        ["resource", "resource"], InspectionContext(owner, "human"), timeout_seconds=2
     )
     assert len(results) == 2 and all(result.is_valid for result in results)
     for call in service.validate_resource_async.call_args_list:
@@ -37,11 +38,11 @@ async def test_inspection_preserves_owner_and_human_identity_at_all_entrypoints(
         assert call.kwargs["credential_user_id"] == "human"
         assert call.kwargs["timeout_seconds"] == 2
     await inspection.validate_config(
-        ResourceCategory.LLM, "mock", {}, owner, credential_user_id="human"
+        ResourceCategory.LLM, "mock", {}, InspectionContext(owner, "human")
     )
     assert service.validate_config_async.call_args.kwargs["caller"].identity == owner
     assert service.validate_config_async.call_args.kwargs["credential_user_id"] == "human"
-    await inspection.cards(["resource"], owner)
+    await inspection.cards(["resource"], InspectionContext(owner))
     assert service.get_cards.call_args.kwargs["caller"].identity == owner
 
 
@@ -64,10 +65,10 @@ async def test_inspection_translates_storage_schema_and_provider_failures(
     service, inspection = inspection_case
     service.get_cards.side_effect = error
     with pytest.raises(expected) as raised:
-        await inspection.cards(["resource"], Identity.user("owner"))
+        await inspection.cards(["resource"], InspectionContext(Identity.user("owner")))
     assert "private-value" not in str(raised.value)
     service.validate_resource_async.side_effect = KeyError("private-value")
-    result = await inspection.validate(["missing"], Identity.user("owner"))
+    result = await inspection.validate(["missing"], InspectionContext(Identity.user("owner")))
     assert not result[0].is_valid and "private-value" not in result[0].model_dump_json()
 
 
@@ -89,7 +90,9 @@ async def test_inspection_drains_siblings_before_failure_or_cancellation(inspect
         return ElementValidationResult(is_valid=True, element_rid=rid, element_type="fixture")
 
     service.validate_resource_async.side_effect = validate
-    task = asyncio.create_task(inspection.validate(["slow", "failure"], Identity.user("owner")))
+    task = asyncio.create_task(
+        inspection.validate(["slow", "failure"], InspectionContext(Identity.user("owner")))
+    )
     try:
         async with asyncio.timeout(5):
             await entered.wait()

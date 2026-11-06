@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import GlassPanel from "@/components/ui/GlassPanel";
 import { StatCard } from "@/components/ui/stat-card";
-import { 
+import {
   FaUsers, FaRocket, FaCheckCircle, FaSync, FaCubes, FaChartLine
 } from "react-icons/fa";
 import type { ReactNode } from "react";
@@ -21,10 +21,9 @@ import { ErrorDisplay } from "@/components/shared/ErrorDisplay";
 import { StatusBreakdownChart } from "@/components/analytics/StatusBreakdownChart";
 import { TopUsersChart } from "@/components/analytics/TopUsersChart";
 import { WorkflowExecutionChart } from "@/components/analytics/WorkflowExecutionChart";
-import { ActiveTodayTable } from "@/components/analytics/ActiveTodayTable";
 import { AllUsersTable } from "@/components/analytics/AllUsersTable";
-import { TopBlueprintsQuickView } from "@/components/analytics/TopBlueprintsQuickView";
-import { BlueprintsTable } from "@/components/analytics/BlueprintsTable";
+import { TopProgramsQuickView } from "@/components/analytics/TopProgramsQuickView";
+import { ProgramsTable } from "@/components/analytics/ProgramsTable";
 import { truncateUserId } from "@/components/analytics/analyticsHelpers";
 import { getWorkflowStatusColors } from "@/components/agentic-ai/chat/WorkPlanDisplayHelpers";
 import type { TimeRange, UserActivity } from "@/types/systemStats";
@@ -33,7 +32,6 @@ export default function Analytics() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
-  const [activeTodayPage, setActiveTodayPage] = useState(0);
   const [allUsersPage, setAllUsersPage] = useState(0);
   const itemsPerPage = 10;
   const { primaryHex } = useTheme();
@@ -43,8 +41,8 @@ export default function Analytics() {
 
   // Fetch system-wide stats data
   const { data: analytics, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['systemStats', timeRange, user?.username || user?.sub],
-    queryFn: () => fetchSystemWideStats(timeRange, user?.username || user?.sub),
+    queryKey: ['systemStats', timeRange, allUsersPage, user?.username || user?.sub],
+    queryFn: () => fetchSystemWideStats(timeRange, allUsersPage * itemsPerPage, itemsPerPage),
     staleTime: 60000,
     gcTime: 300000,
     refetchInterval: 30000,
@@ -58,7 +56,6 @@ export default function Analytics() {
 
   // Reset pagination when time range changes
   useEffect(() => {
-    setActiveTodayPage(0);
     setAllUsersPage(0);
   }, [timeRange]);
 
@@ -78,10 +75,11 @@ export default function Analytics() {
   // Backend returns data already scoped to the selected time range
   const completedRuns = analytics?.status_breakdown?.COMPLETED || 0;
   const totalRuns = analytics?.total_stats?.total_runs || 0;
-  const successRate = totalRuns > 0 ? (completedRuns / totalRuns) * 100 : 0;
+  const terminalRuns = completedRuns + (analytics?.status_breakdown.FAILED ?? 0) + (analytics?.status_breakdown.CANCELLED ?? 0);
+  const successRate = terminalRuns > 0 ? (completedRuns / terminalRuns) * 100 : null;
 
   // Prepare chart data
-  const statusData = analytics?.status_breakdown 
+  const statusData = analytics?.status_breakdown
     ? Object.entries(analytics.status_breakdown).map(([status, count]) => ({
         name: status,
         value: typeof count === 'number' ? count : 0,
@@ -89,11 +87,11 @@ export default function Analytics() {
       }))
     : [];
 
-  const topUsersData = analytics?.active_users?.slice(0, 8).map((u: UserActivity) => ({
+  const topUsersData = analytics?.top_owners?.slice(0, 8).map((u: UserActivity) => ({
     name: truncateUserId(u.display_name || u.identity_id, 12),
     fullName: u.display_name || u.identity_id,
     runs: u.run_count,
-    blueprints: u.blueprints_used,
+    programs: u.programs_used,
     completed: u.status_breakdown?.COMPLETED || 0,
     failed: u.status_breakdown?.FAILED || 0,
   })) || [];
@@ -115,34 +113,34 @@ export default function Analytics() {
       icon: <FaRocket className="w-4 h-4" />,
       title: 'Total Runs',
       value: analytics?.total_stats?.total_runs || 0,
-      subtext: timeRange === 'all' ? 'All workflow executions' : 'In selected period',
+      subtext: timeRange === 'all' ? 'Recorded root execution requests' : 'In selected period',
       iconColor: colors.primary,
       iconBgColor: `${colors.primary}33`,
     },
     {
       key: 'total-users',
       icon: <FaUsers className="w-4 h-4" />,
-      title: 'Total Users',
+      title: 'Total Owners',
       value: analytics?.total_stats?.unique_users || 0,
-      subtext: timeRange === 'all' ? 'Unique users' : 'Active users',
+      subtext: timeRange === 'all' ? 'Users and teams' : 'Owners with recorded executions',
       iconColor: colors.info,
       iconBgColor: `${colors.info}33`,
     },
     {
       key: 'success-rate',
       icon: <FaCheckCircle className="w-4 h-4" />,
-      title: 'Success Rate',
-      value: `${successRate.toFixed(1)}%`,
-      subtext: '↑ Completed runs',
+      title: 'Operational completion',
+      value: successRate === null ? "—" : `${successRate.toFixed(1)}%`,
+      subtext: 'Completed / terminal recorded executions',
       iconColor: colors.success,
       iconBgColor: `${colors.success}33`,
     },
     {
       key: 'workflows-in-use',
       icon: <FaCubes className="w-4 h-4" />,
-      title: 'Workflows in Use',
-      value: analytics?.total_stats?.blueprints_used || 0,
-      subtext: 'Distinct blueprints executed',
+      title: 'Programs in Use',
+      value: analytics?.total_stats?.programs_used || 0,
+      subtext: 'Distinct Programs with recorded requests',
       iconColor: colors.warning,
       iconBgColor: `${colors.warning}33`,
     },
@@ -183,14 +181,14 @@ export default function Analytics() {
         {/* Header with Actions */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-2xl font-heading font-bold">Workflow Analytics</h2>
+            <h2 className="text-2xl font-heading font-bold">Program Analytics</h2>
             <p className="text-sm text-gray-400 mt-1">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button 
-              onClick={() => refetch()} 
+            <Button
+              onClick={() => refetch()}
               variant="outline"
               size="sm"
               disabled={isFetching}
@@ -205,7 +203,7 @@ export default function Analytics() {
         {/* Time Range Filter */}
         <div className="flex gap-2 mb-6">
           {[
-            { value: 'today' as TimeRange, label: 'Today' },
+            { value: 'today' as TimeRange, label: 'Today (UTC)' },
             { value: '7days' as TimeRange, label: 'Last 7 Days' },
             { value: '30days' as TimeRange, label: 'Last 30 Days' },
             { value: 'all' as TimeRange, label: 'All Time' }
@@ -259,11 +257,11 @@ export default function Analytics() {
               </TabsTrigger>
               <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                 <FaUsers className="mr-2" />
-                Users
+                Owners
               </TabsTrigger>
-              <TabsTrigger value="blueprints" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <TabsTrigger value="programs" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                 <FaRocket className="mr-2" />
-                Blueprints
+                Programs
               </TabsTrigger>
             </TabsList>
 
@@ -276,16 +274,15 @@ export default function Analytics() {
                 {/* Top Active Users */}
                 <TopUsersChart topUsersData={topUsersData} colors={colors} />
 
-                {/* Top Blueprints Quick View */}
-                <TopBlueprintsQuickView 
-                  blueprints={analytics?.top_blueprints?.slice(0, 5) || []}
-                  totalBlueprints={analytics?.top_blueprints?.length || 0}
+                {/* Top Programs Quick View */}
+                <TopProgramsQuickView
+                  programs={analytics?.top_programs || []}
                   colors={colors}
                 />
 
                 {/* Workflow Execution Chart */}
-                <WorkflowExecutionChart 
-                  timeSeriesData={analytics?.time_series || []} 
+                <WorkflowExecutionChart
+                  timeSeriesData={analytics?.time_series || []}
                   timeRange={timeRange}
                   colors={colors}
                 />
@@ -295,15 +292,9 @@ export default function Analytics() {
             {/* Users Tab */}
             <TabsContent value="users">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ActiveTodayTable 
-                  users={analytics?.active_users || []}
-                  page={activeTodayPage}
-                  setPage={setActiveTodayPage}
-                  itemsPerPage={itemsPerPage}
-                  timeRange={timeRange}
-                />
-                <AllUsersTable 
-                  users={analytics?.active_users || []}
+                <AllUsersTable
+                  users={analytics?.owner_activity || []}
+                  total={analytics?.total_stats.unique_users ?? 0}
                   page={allUsersPage}
                   setPage={setAllUsersPage}
                   itemsPerPage={itemsPerPage}
@@ -311,13 +302,15 @@ export default function Analytics() {
               </div>
             </TabsContent>
 
-            {/* Blueprints Tab */}
-            <TabsContent value="blueprints">
-              <BlueprintsTable blueprints={analytics?.top_blueprints || []} colors={colors} />
+            {/* Programs Tab */}
+            <TabsContent value="programs">
+              <ProgramsTable programs={analytics?.top_programs || []} colors={colors} />
             </TabsContent>
           </Tabs>
         </motion.div>
 
+        <p className="mt-4 text-sm text-muted-foreground">Stored execution observations; live state may differ. Completion does not establish verified acceptance.</p>
+        {analytics?.time_series_truncated && <p role="status">The timeline shows the latest 366 activity dates.</p>}
         {/* Footer */}
         <div className="mt-6 text-center text-xs text-gray-500">
           Data generated at: {analytics?.generated_at ? new Date(analytics.generated_at).toLocaleString() : 'N/A'} • Auto-refreshes every 30 seconds
@@ -330,7 +323,7 @@ export default function Analytics() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header title="Workflow Analytics" onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <Header title="Program Analytics" onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         {renderContent()}
         <StatusBar />
       </div>

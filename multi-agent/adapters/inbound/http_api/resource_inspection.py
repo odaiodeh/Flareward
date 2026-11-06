@@ -4,10 +4,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
 from mas.application.elements.validation import ElementValidationResult
+from mas.application.resources.inspection import ResourceInspectionService
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
 from mas.domain.element_card import ElementCard
-from mas.resources.inspection import ResourceInspection
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from inbound.http_api.dependencies import authenticated, get_inspection
@@ -15,7 +15,7 @@ from inbound.http_api.inspection_models import ValidationSettings
 
 router = APIRouter(prefix="/api/resources", tags=["resource inspection"])
 type Caller = Annotated[Identity, Depends(authenticated)]
-type Service = Annotated[ResourceInspection, Depends(get_inspection)]
+type Service = Annotated[ResourceInspectionService, Depends(get_inspection)]
 
 
 class ResourceSelection(BaseModel):

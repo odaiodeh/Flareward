@@ -1,7 +1,7 @@
 """Workload models package."""
 
 # Common models
-from mas.domain.workloads.models.common import AgentResult, ArtifactRef
+from mas.domain.workloads.models.common import AgentResult, WorkspaceArtifact
 
 # WorkPlan models
 from mas.domain.workloads.models.workplan_models import (
@@ -20,7 +20,7 @@ from mas.domain.workloads.models.workplan_models import (
 __all__ = [
     # Common
     "AgentResult",
-    "ArtifactRef",
+    "WorkspaceArtifact",
     # WorkPlan
     "WorkItemStatus",
     "WorkItemKind",

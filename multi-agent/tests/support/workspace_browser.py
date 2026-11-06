@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated
 
 import httpx
-from fastapi import Depends, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse
 from inbound.http_api.dependencies import authenticated
 from mas.core.identity import Identity
@@ -15,7 +15,10 @@ from support.placement_browser import create_app as placement_app
 
 
 def create_app():
-    app = placement_app()
+    return add_workspace_routes(placement_app())
+
+
+def add_workspace_routes(app: FastAPI) -> FastAPI:
 
     @app.middleware("http")
     async def delayed_selection(request: Request, call_next):
@@ -60,6 +63,7 @@ def create_app():
 
     @app.get("/inventory")
     @app.get("/agentic-ai")
+    @app.get("/executions/{execution_id}")
     async def workspace():
         return FileResponse(Path(os.environ["PLACEMENT_BROWSER_ASSETS"]) / "workspace-browser.html")
 

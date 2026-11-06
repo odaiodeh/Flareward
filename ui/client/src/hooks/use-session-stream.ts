@@ -30,6 +30,7 @@ export interface UseSessionStreamOptions {
 }
 
 export interface UseSessionStreamReturn {
+  executionReference: { sessionId: string; executionId: string } | null;
   isStreaming: boolean;
   isReconnecting: boolean;
   isSubmitting: boolean;
@@ -58,6 +59,7 @@ export function useSessionStream(options: UseSessionStreamOptions): UseSessionSt
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [streamStatus, setStreamStatus] = useState<StreamStatusResponse | null>(null);
   const [lastEventId, setLastEventId] = useState<string | null>(null);
+  const [executionReference, setExecutionReference] = useState<UseSessionStreamReturn['executionReference']>(null);
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const subscriptionGenerationRef = useRef(0);
@@ -78,6 +80,7 @@ export function useSessionStream(options: UseSessionStreamOptions): UseSessionSt
    * Cancel any active stream subscription.
    */
   const cancelStream = useCallback(() => {
+    setExecutionReference(null);
     subscriptionGenerationRef.current += 1;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -97,6 +100,7 @@ export function useSessionStream(options: UseSessionStreamOptions): UseSessionSt
    */
   const subscribeToStream = useCallback((sessionId: string, executionId?: string, selectedTeam = teamId): void => {
     cancelStream();
+    if (executionId) setExecutionReference({ sessionId, executionId });
     const controller = new AbortController();
     abortControllerRef.current = controller;
     const ownsSubscription = () => abortControllerRef.current === controller && !controller.signal.aborted;
@@ -193,6 +197,7 @@ export function useSessionStream(options: UseSessionStreamOptions): UseSessionSt
       const status = await getSessionStreamStatus(sessionId, teamId);
       if (subscriptionGenerationRef.current !== generation) return false;
       setStreamStatus(status);
+      if (status?.execution_id) setExecutionReference({ sessionId, executionId: status.execution_id });
       
       if (status && status.is_active) {
         // Session is actively streaming - start subscription in background
@@ -226,6 +231,7 @@ export function useSessionStream(options: UseSessionStreamOptions): UseSessionSt
   }, [cancelStream, teamId]);
   
   return {
+    executionReference,
     isStreaming,
     isReconnecting,
     isSubmitting,

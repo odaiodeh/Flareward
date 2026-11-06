@@ -1,7 +1,7 @@
 """Coordinator placement identity covers routing and native submission policy."""
 
 import pytest
-from mas.execution.models import PreparedExecution
+from mas.application.execution.models import PreparedExecution
 from outbound.run_engine.location import host_location
 from pydantic import ValidationError
 from runengine.adapters.coordination.config import LocalHostConfig, TemporalHostConfig

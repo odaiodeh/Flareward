@@ -6,27 +6,42 @@ from dataclasses import dataclass
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
+from mas.application.access.admission import WorkflowAccessService
 from mas.application.actions.service import ActionsService
+from mas.application.artifacts.access import ArtifactAccessService
+from mas.application.artifacts.service import ArtifactService
+from mas.application.artifacts.workflow_access import ArtifactWorkflowAccessService
 from mas.application.collaboration.editing import TeamEditService
 from mas.application.elements.catalog.service import CatalogService
+from mas.application.elements.construction.snapshots import SavedResourceResolver
+from mas.application.events import ProgramEventService
+from mas.application.execution.placement import ProfileAccess
+from mas.application.execution.service import ExecutionService
+from mas.application.programs.blueprints import BlueprintProgramService
+from mas.application.programs.service import ProgramService
+from mas.application.reporting.service import ReportingService
+from mas.application.resources.builtins import BuiltinAdministration
+from mas.application.resources.inspection import ResourceInspectionService
+from mas.application.reviews.access import ReviewAccessService
+from mas.application.reviews.service import ReviewService
 from mas.application.sharing.notifications import ShareNotifications
+from mas.application.verification.access import VerificationAccessService
+from mas.application.verification.check_service import CheckRunService
+from mas.application.verification.service import VerificationService
 from mas.blueprints.authoring import BlueprintAuthoringService
 from mas.blueprints.inspection import BlueprintInspectionService
 from mas.blueprints.placement import BlueprintPlacementService
 from mas.blueprints.queries import BlueprintQueryService
-from mas.core.execution_preferences import ExecutionProfileCatalog
 from mas.core.identity import Identity
-from mas.execution.service import ExecutionService
 from mas.graph.analysis import BlueprintGraphAnalysisService
 from mas.interactions.service import InteractionService
-from mas.programs.blueprints import BlueprintProgramService
-from mas.programs.service import ProgramService
 from mas.resources.authoring import ResourceAuthoringService
-from mas.resources.inspection import ResourceInspection
 from mas.scheduling.programs import ProgramScheduleService
 from mas.session.execution.blueprint_sessions import BlueprintSessionService
 from mas.session.execution.program_sessions import ProgramSessionService
 from mas.session.execution.queries import SessionQueryService
+
+from inbound.http_api.verification_auth import EvidenceAuthenticator
 
 type Authenticator = Callable[[Request], Awaitable[Identity]]
 
@@ -41,7 +56,7 @@ class HttpServices:
     blueprints: BlueprintProgramService | None = None
     authoring: BlueprintAuthoringService | None = None
     resources: ResourceAuthoringService | None = None
-    inspection: ResourceInspection | None = None
+    inspection: ResourceInspectionService | None = None
     blueprint_inspection: BlueprintInspectionService | None = None
     graph_analysis: BlueprintGraphAnalysisService | None = None
     schedules: ProgramScheduleService | None = None
@@ -49,11 +64,25 @@ class HttpServices:
     blueprint_queries: BlueprintQueryService | None = None
     blueprint_sessions: BlueprintSessionService | None = None
     session_queries: SessionQueryService | None = None
-    execution_profiles: ExecutionProfileCatalog | None = None
+    execution_profiles: ProfileAccess | None = None
     blueprint_placement: BlueprintPlacementService | None = None
     team_editing: TeamEditService | None = None
     actions: ActionsService | None = None
     share_notifications: ShareNotifications | None = None
+    artifacts: ArtifactService | None = None
+    artifact_access: ArtifactAccessService | None = None
+    artifact_workflow_access: ArtifactWorkflowAccessService | None = None
+    verifications: VerificationService | None = None
+    authenticate_verifier: EvidenceAuthenticator | None = None
+    verification_access: VerificationAccessService | None = None
+    check_runs: CheckRunService | None = None
+    reviews: ReviewService | None = None
+    review_access: ReviewAccessService | None = None
+    program_events: ProgramEventService | None = None
+    reporting: ReportingService | None = None
+    builtin_administration: BuiltinAdministration | None = None
+    resource_snapshots: SavedResourceResolver | None = None
+    workflow_access: WorkflowAccessService | None = None
 
 
 type ServicesFactory = Callable[[], AbstractAsyncContextManager[HttpServices]]
@@ -61,9 +90,23 @@ type ServicesFactory = Callable[[], AbstractAsyncContextManager[HttpServices]]
 
 def get_services(request: Request) -> HttpServices:
     services = getattr(request.app.state, "platform", None)
-    if services is None:
+    if not isinstance(services, HttpServices):
         raise HTTPException(status_code=503, detail="Application startup has not completed")
     return services
+
+
+def get_artifacts(services: Annotated[HttpServices, Depends(get_services)]) -> ArtifactService:
+    if services.artifacts is None:
+        raise HTTPException(status_code=503, detail="Artifact storage is not configured")
+    return services.artifacts
+
+
+def get_artifact_access(
+    services: Annotated[HttpServices, Depends(get_services)],
+) -> ArtifactAccessService:
+    if services.artifact_access is None:
+        raise HTTPException(status_code=503, detail="Artifact access is not configured")
+    return services.artifact_access
 
 
 def get_actions(services: Annotated[HttpServices, Depends(get_services)]) -> ActionsService:
@@ -99,6 +142,26 @@ async def authenticated(
     services: Annotated[HttpServices, Depends(get_services)],
 ) -> Identity:
     return await services.authenticate(request)
+
+
+@dataclass(frozen=True)
+class HumanPrincipal:
+    owner: Identity
+    user: Identity
+
+
+async def human_principal(
+    request: Request,
+    services: Annotated[HttpServices, Depends(get_services)],
+) -> HumanPrincipal:
+    """A supplied bearer cannot acquire human authority through a session cookie."""
+    if request.headers.get("Authorization") is not None:
+        raise HTTPException(401, "Human session required")
+    owner = await services.authenticate(request)
+    user = getattr(request.state, "authenticated_user", "") or (owner.id if owner.is_user else "")
+    if not user:
+        raise HTTPException(401, "Human session required")
+    return HumanPrincipal(owner, Identity.user(user))
 
 
 def get_sessions(
@@ -141,7 +204,17 @@ def get_resources(
     return services.resources
 
 
-def get_inspection(services: Annotated[HttpServices, Depends(get_services)]) -> ResourceInspection:
+def get_resource_snapshots(
+    services: Annotated[HttpServices, Depends(get_services)],
+) -> SavedResourceResolver:
+    if services.resource_snapshots is None:
+        raise HTTPException(status_code=503, detail="Resource snapshots are not configured")
+    return services.resource_snapshots
+
+
+def get_inspection(
+    services: Annotated[HttpServices, Depends(get_services)],
+) -> ResourceInspectionService:
     if services.inspection is None:
         raise HTTPException(status_code=503, detail="Resource inspection is not configured")
     return services.inspection

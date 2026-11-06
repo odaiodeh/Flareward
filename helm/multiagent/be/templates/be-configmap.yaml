@@ -3,10 +3,10 @@ kind: ConfigMap
 metadata:
   name: multiagent-be-configmap
   #namespace: {{ .Values.global.namespace }}
-data: 
+data:
   # role: {{ .Values.global.role }}
   # mode: {{ .Values.global.mode }}
-  PORT: {{ .Values.service.port | quote}} 
+  UNIFAI_BIND_PORT: {{ .Values.service.port | quote}}
 {{- range $key, $value:= .Values.env }}
   {{ $key }}: {{ $value | quote }}
 {{- end }}

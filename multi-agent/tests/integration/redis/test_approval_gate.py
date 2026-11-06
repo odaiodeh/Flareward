@@ -7,7 +7,6 @@ from uuid import uuid4
 
 import pytest
 from mas.core.async_work import await_owned
-from mas.core.execution_context import ExecutionContext
 from mas.core.hitl.models import (
     ApprovalDecision,
     ApprovalRequest,
@@ -18,6 +17,7 @@ from mas.core.hitl.models import (
     ToolAccessMode,
 )
 from mas.core.identity import Identity
+from mas.domain.execution.context import ExecutionContext
 from mas.interactions.models import ApprovalTicket, InteractionConflict
 from outbound.interactions.redis_gate import RedisApprovalGate
 from outbound.interactions.redis_store import RedisInteractionStore

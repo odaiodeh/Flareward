@@ -3,10 +3,10 @@ from __future__ import annotations
 from mas.application.elements.builder import SessionElementBuilder
 from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.elements.instances import ElementInstances
+from mas.application.execution.context import ExecutionContextHolder
 from mas.blueprints.models.blueprint import BlueprintSpec
 from mas.core.auth.service import AuthService
 from mas.core.element_deps import ElementBuildContext
-from mas.core.execution_context import ExecutionContextHolder
 from mas.core.platform_config import PlatformConfig
 from mas.core.tracing import TracingService
 from mas.engine.factory import GraphBuilderFactory

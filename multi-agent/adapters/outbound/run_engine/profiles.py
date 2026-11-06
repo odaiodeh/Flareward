@@ -2,7 +2,8 @@
 
 from collections.abc import Mapping
 
-from mas.core.execution_preferences import ExecutionProfileCatalog
+from mas.domain.execution_preferences import ExecutionProfileCatalog
+from run_engine.models import ProgramPlacement
 from runengine.bootstrap.environments import EnvironmentFactory
 from runengine.bootstrap.executors import InvocationExecutorBuilder
 from runengine.invocation.config import ExecutorConfig
@@ -24,4 +25,14 @@ def profile_catalog(
                 name for name, profile in profiles.items() if supports_retained_environment(profile)
             )
         ),
+    )
+
+
+def placement_catalog(placement: ProgramPlacement) -> ExecutionProfileCatalog:
+    return profile_catalog(
+        {
+            name: ExecutorConfig.model_validate(config)
+            for name, config in placement.profiles.items()
+        },
+        placement.default_profile,
     )

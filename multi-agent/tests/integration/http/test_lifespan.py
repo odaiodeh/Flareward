@@ -8,7 +8,7 @@ from fastapi import HTTPException, Request
 from inbound.http_api.app import create_app
 from inbound.http_api.dependencies import authenticated
 from mas.core.identity import Identity
-from mas.programs.models import ApplicationDefinition, ProgramDefinition
+from mas.domain.programs.models import ApplicationDefinition, ProgramDefinition
 from pydantic import ValidationError
 from runengine.adapters.coordination.config import LocalHostConfig, TemporalHostConfig
 from runengine.invocation.config import K8sRunnerConfig, ThreadRunnerConfig
@@ -83,9 +83,14 @@ async def test_lifespan_assembles_services_and_projects_results_without_reader()
                 implementation=ApplicationDefinition(implementation="greeting", version="1"),
             )
             assert (
-                await client.put("/api/programs/lifecycle", json=definition.model_dump(mode="json"))
+                await client.put(
+                    "/api/programs/lifecycle",
+                    json={"definition": definition.model_dump(mode="json"), "expected_version": 0},
+                )
             ).status_code == 200
-            assert (await client.post("/api/programs/lifecycle/revisions")).status_code == 201
+            assert (
+                await client.post("/api/programs/lifecycle/revisions", json={"expected_version": 1})
+            ).status_code == 201
             submitted = await client.post(
                 "/api/executions",
                 json={

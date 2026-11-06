@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from mas.application.workloads.hooks import WorkPlanHook, WorkPlanHookPoint
+from mas.application.workloads.storage import WorkloadStorage
 from mas.domain.messages import ChatMessage
 from mas.domain.workloads.models import (
     AgentResult,
@@ -266,24 +267,24 @@ class IWorkspaceService(ABC):
         """Check if work plan exists."""
         pass
 
-    # ========== GRAPHSTATE INTEGRATION ==========
+    # ========== MESSAGE CONTEXT ==========
 
     @abstractmethod
-    def sync_from_graphstate(
+    def sync_messages(
         self,
         thread_id: str,
-        graphstate_messages: list[ChatMessage],
+        messages: list[ChatMessage],
         limit: int = 10,
         strategy: str = "conversation",  # "facts" | "conversation" | "both"
     ) -> int:
-        """Sync recent GraphState messages to workspace."""
+        """Sync recent messages to workspace."""
         pass
 
 
 class WorkspaceService(IWorkspaceService):
     """Concrete implementation of workspace service."""
 
-    def __init__(self, storage):
+    def __init__(self, storage: WorkloadStorage):
         """Initialize with storage implementation."""
         self._storage = storage
         self._workplan_hooks: list[WorkPlanHook] = []
@@ -515,22 +516,18 @@ class WorkspaceService(IWorkspaceService):
         workspace.clear_all()
         self.update_workspace(workspace)
 
-    # ========== GRAPHSTATE INTEGRATION IMPLEMENTATION ==========
+    # ========== MESSAGE CONTEXT IMPLEMENTATION ==========
 
-    def sync_from_graphstate(
+    def sync_messages(
         self,
         thread_id: str,
-        graphstate_messages: list[ChatMessage],
+        messages: list[ChatMessage],
         limit: int = 10,
         strategy: str = "conversation",
     ) -> int:
-        """Sync recent GraphState messages to workspace."""
+        """Sync recent messages to workspace."""
         # Filter out cancelled messages, then take the most recent N
-        valid_messages = (
-            [msg for msg in graphstate_messages if not msg.is_cancelled]
-            if graphstate_messages
-            else []
-        )
+        valid_messages = [msg for msg in messages if not msg.is_cancelled] if messages else []
         recent_messages = valid_messages[-limit:]
 
         if not recent_messages:

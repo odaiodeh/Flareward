@@ -2,7 +2,7 @@
 
 from datetime import timedelta
 
-from mas.programs.models import PathBinding, ProgramRef
+from mas.domain.programs.models import PathBinding, ProgramRef
 from mas.scheduling.models import ScheduleDefinition
 from mas.scheduling.programs import CreateProgramSchedule
 from mas.session.execution.program_sessions import CreateProgramSession

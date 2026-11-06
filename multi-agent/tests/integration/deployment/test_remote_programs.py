@@ -8,20 +8,106 @@ from uuid import uuid4
 import pytest
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
-from mas.programs.models import (
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ApplicationDefinition,
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
     ProgramDefinition,
 )
 from support.http_programs import execute_program, publish_program
-from support.remote_scenarios import borrowing_graph, remote_graph, scoped_environment_graph
+from support.remote_scenarios import (
+    borrowing_graph,
+    remote_graph,
+    remote_operation_bundle,
+    scoped_environment_graph,
+)
 from support.scenarios import resource
 from support.telemetry import span_attributes
 from support.temporal import replay
+
+
+@pytest.mark.parametrize("retained", [False, True], ids=["profile", "named-environment"])
+async def test_custom_program_selects_remote_operation_placement(deployed_remote, retained):
+    deployment = deployed_remote
+    definition = ProgramDefinition(
+        program_id="remote-typed-operation",
+        name="Remote typed operation",
+        owner=deployment.owner,
+        implementation=ApplicationDefinition(
+            implementation="placed_operation",
+            version="1",
+            config={
+                "bundle": remote_operation_bundle().model_dump(mode="json"),
+                "execution": {"environment": "shared"} if retained else {"profile": "remote"},
+            },
+            environments={"shared": "remote"} if retained else {},
+        ),
+    )
+    reference = await publish_program(deployment.http, definition)
+    execution_id = uuid4().hex
+    result = await execute_program(
+        deployment.http, reference, execution_id, {"text": "typed input"}
+    )
+    assert result["phase"] == "completed", result.get("failure")
+    proof = result["result"]["proof"]
+    deployment.backend.verify(proof)
+    assert proof["prompt"] == "typed input" and proof["context"]["execution_id"] == execution_id
+    if deployment.replay is not None:
+        await deployment.replay(result["context"]["engine_handle"])
+    await deployment.backend.assert_clean()
+
+
+async def test_custom_child_borrows_declared_environment_without_owning_deletion(deployed_remote):
+    deployment = deployed_remote
+    bundle = remote_operation_bundle().model_dump(mode="json")
+    child = await publish_program(
+        deployment.http,
+        ProgramDefinition(
+            program_id="typed-borrower",
+            name="Typed borrower",
+            owner=deployment.owner,
+            implementation=ApplicationDefinition(
+                implementation="placed_operation",
+                version="1",
+                config={"bundle": bundle, "execution": {"environment": "workspace"}},
+            ),
+        ),
+    )
+    root = await publish_program(
+        deployment.http,
+        ProgramDefinition(
+            program_id="typed-owner",
+            name="Typed owner",
+            owner=deployment.owner,
+            implementation=ApplicationDefinition(
+                implementation="borrowing_operation",
+                version="1",
+                config={"bundle": bundle, "execution": {"environment": "shared"}},
+                children={"greet": child},
+                environments={"shared": "remote"},
+                child_environment_imports={"greet": {"workspace": "shared"}},
+            ),
+        ),
+    )
+    execution_id = uuid4().hex
+    result = await execute_program(deployment.http, root, execution_id, {"text": "borrowed input"})
+    assert result["phase"] == "completed", result.get("failure")
+    proofs = [result["result"][name]["proof"] for name in ("before", "child", "after")]
+    for proof in proofs:
+        deployment.backend.verify(proof)
+    assert len({proof["hostname"] for proof in proofs}) == 1
+    assert [proof["environment_reused"] for proof in proofs] == [False, True, True]
+    children = (await deployment.http.get(f"/api/executions/{execution_id}/children")).json()
+    assert len(children) == 1 and children[0]["program"] == child.model_dump(mode="json")
+    assert proofs[1]["context"]["parent_execution_id"] == execution_id
+    assert proofs[2]["context"]["execution_id"] == execution_id
+    if deployment.replay is not None:
+        for execution in (result, children[0]):
+            await deployment.replay(execution["context"]["engine_handle"])
+    await deployment.backend.assert_clean()
 
 
 @pytest.mark.parametrize("retained", [False, True], ids=["invocations", "retained-environment"])

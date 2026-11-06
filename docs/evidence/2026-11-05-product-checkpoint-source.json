@@ -1,0 +1,42 @@
+{
+  "scope": "Focused checkpoint files, not a complete dependency or image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "groups": {
+    "curated_inspection": {
+      "files": {
+        "multi-agent/adapters/inbound/http_api/app.py": "292f24c1e7e602ef06d445a72388fc4f1c24342de129af28ef4d585b37a7a998",
+        "multi-agent/adapters/inbound/http_api/curated_inspection.py": "269d3634727246437a4bc576edd5c7474e759cd2bdbc5a0b8d8ddb3c0c87b1df",
+        "multi-agent/adapters/inbound/http_api/dependencies.py": "c0e5eaac3d12ad6e755b67bbefc51e9d2d42e80c7120d5c1ed15e975305f8e38",
+        "multi-agent/adapters/inbound/http_api/resource_inspection.py": "7b39fbe90e0a0c63ab4f9456ec12618b399695204676e625ab12e53370699886",
+        "multi-agent/adapters/outbound/mongo/resource_inspection.py": "8f5e7843675c500b02c047687d698b95a8a0db3c27978cb1f935e59653a5cdf1",
+        "multi-agent/bootstrap/library.py": "da8cc6d7e17d206bce45e168d63aa7d19f926baa13bf12272909a62efbfdfb76",
+        "multi-agent/bootstrap/platform.py": "a1822748da0790939b8f9bdc80fd61063205ef495ca82731ae39d426d71dfda0",
+        "multi-agent/lib/mas/application/resources/inspection.py": "c952300a80f0d91058f8d171d0505dd27e772f7ef61dc5329c2d292cd17b48fd",
+        "multi-agent/lib/mas/resources/inspection.py": "171a42095ea6c9552ebd9b89b3a5b895973aeb35a956bc2d9c5fccf487d9edb6",
+        "multi-agent/tests/adapters/mongo/test_resource_inspection.py": "edc0035792310563f9eab69a23436f2ff1e01274cc2b93a282f706171d2c3c52",
+        "multi-agent/tests/application/test_resource_inspection.py": "05cb9fa720ed40e19716996131932241ade038b98bb57387865f2766c7bf6208",
+        "multi-agent/tests/integration/http/test_curated_inspection.py": "2a9480f11f162d3a7ee292ae59c258620c522315cfafeb67c89320ee51f318a7",
+        "multi-agent/tests/support/curated_inspection_http.py": "123705c12bbb6dfe5965b17aeeb331f9ffd1764faabf0e2b6054fcb886799ef1",
+        "multi-agent/tests/support/inspection.py": "cc1b2ec382f1a784b4c704db80fd3107ab00b148ad4a2a5106cf0a38d2f24ae9",
+        "ui/client/src/api/curatedInspection.ts": "54670d018cf419264da8549cb45a181427f292bbc47136a3d8e89ac531613ba8",
+        "ui/client/src/components/agentic-ai/workspace/ElementForm.tsx": "c75c29e83ac88bc3e3c6866cf0fe52c8029ec21f1611e1dd36127c2377855b0b",
+        "ui/client/src/components/agentic-ai/workspace/validation/ValidationStatusBadge.tsx": "985b19bc1716e5a7366c44496151ba56561bf41946543a13e6ad09835f014420",
+        "ui/client/src/features/configuration/RepositoryManagement.tsx": "7a838b68f39d37a62906d985737c5d41b0d7e4bee5cab7315b77afc5d38257f7",
+        "ui/client/src/features/configuration/repository-management/BuiltinResourceTable.tsx": "33c71c4200d285eda175b4c66cbf78e8c99b1860b932d7f67566d7b45502b707",
+        "ui/client/src/hooks/use-curated-validation.ts": "aeda497a68da84e9611f980060016ecef9fca88e1ea415476adf28217c7e99ad",
+        "ui/tests/curated-inspection.ts": "c184620b78694d3521751467506dc60e2e8e183c6e04bf784fd8d88283e53e76",
+        "ui/tests/run-api-contracts.mjs": "b437e314b570c956c18572ce746ba3cfa62ad5e60e56c02d84c3e21a8f50d0cf"
+      },
+      "aggregate_sha256": "a22a67756c129fa7ac7d869e58351263a62e9388cbbcc10abf03e17ae0c57070"
+    },
+    "coding_candidate": {
+      "files": {
+        "multi-agent/plugins/mas_plugins/engineering/coding.py": "ed2e8b17a970612ccd90b94e868bee5f1e56c8744b322dc888ee33a2fc9fb9ea",
+        "multi-agent/plugins/mas_plugins/engineering/program.py": "41ea11bb8769a371fd864ef154a3440559792cfd142e0c9d21a5d9ee45dd5119",
+        "multi-agent/tests/application/test_coding_file_candidate.py": "2a3a7ca3a51cad625df32e2f2cf7cf94e2c14d54e0cb907ba64e62cf4d022a13",
+        "multi-agent/tests/integration/coding/test_artifact_handoff.py": "b786eae50ec3ee33e5d94b2b25f75eb77f4e519313380759c6e06a026c90537a"
+      },
+      "aggregate_sha256": "585335a499ee7b10b866aaf11205e41fc2d6855f2cd022492aeba35e6549bbec"
+    }
+  }
+}

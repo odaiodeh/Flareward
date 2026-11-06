@@ -5,11 +5,14 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import create_autospec
 
 import pytest
-from mas.core.execution_context import ExecutionContext
+from mas.application.execution.models import PreparedExecution
+from mas.application.execution.ports import ProgramExecutionGateway
 from mas.core.identity import Identity
-from mas.execution.models import ExecutionPhase, PreparedExecution, SubmissionState
-from mas.execution.ports import ProgramExecutionGateway
-from mas.programs.models import ApplicationDefinition
+from mas.domain.execution.budgets import WorkLimits
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import ExecutionPhase, SubmissionState
+from mas.domain.execution_preferences import ExecutionProfileCatalog
+from mas.domain.programs.models import ApplicationDefinition
 from mas.scheduling.admission import ScheduledAdmission, scheduled_execution_id
 from mas.scheduling.models import ScheduleDefinition, ScheduleStatus
 from mas.scheduling.programs import (
@@ -117,7 +120,15 @@ async def test_scheduled_admission_recovers_partial_session_creation_without_new
         engine_name="run_engine",
         engine_handle="native-tick",
     )
-    prepared = PreparedExecution(format="test", payload_json="{}", location="original")
+    prepared = PreparedExecution(
+        format="test",
+        payload_json="{}",
+        location="original",
+        work_limits=WorkLimits(max_dispatches=3),
+        admitted_profiles=ExecutionProfileCatalog(
+            profiles=("original",), default_profile="original"
+        ),
+    )
     executions = MemoryExecutionRepository()
     sessions = create_autospec(SessionStore, instance=True)
     sessions.create.side_effect = [OSError("lost session write"), True]
@@ -126,6 +137,8 @@ async def test_scheduled_admission_recovers_partial_session_creation_without_new
         await admission.admit(definition, context, prepared)
     record = await executions.get(execution_id)
     assert record.submission == SubmissionState.ACCEPTED
+    assert record.work_limits == prepared.work_limits
+    assert record.admitted_profiles == prepared.admitted_profiles
     await admission.admit(definition, context, prepared)
     assert len(await executions.pending()) == 1
     admitted = sessions.create.await_args.args[0]
@@ -192,6 +205,18 @@ async def test_schedule_creation_recovers_a_lost_reply_with_an_owner_scoped_key(
             application.owner,
             request_key="stable",
         )
+    # Python equality must not silently adopt a different JSON request identity.
+    for previous, changed in ((True, 1), (1, 1.0)):
+        key = "typed-" + type(previous).__name__
+        typed = request.model_copy(update={"inputs": {"name": previous}})
+        with pytest.raises(ProgramScheduleError):
+            await service.create(typed, application.owner, request_key=key)
+        with pytest.raises(ProgramScheduleConflict):
+            await service.create(
+                typed.model_copy(update={"inputs": {"name": changed}}),
+                application.owner,
+                request_key=key,
+            )
 
 
 async def test_schedule_update_snapshots_mutable_inputs_before_awaiting_storage(application):

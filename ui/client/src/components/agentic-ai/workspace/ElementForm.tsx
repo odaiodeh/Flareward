@@ -64,7 +64,7 @@ export const ElementForm: React.FC<ElementFormProps> = ({
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [executionProfile, setExecutionProfile] = useState('');
-  const supportsPlacement = !builtinOnly && ['nodes', 'conditions'].includes(elementType.category);
+  const supportsPlacement = ['operations', 'nodes', 'conditions'].includes(elementType.category);
 
   useEffect(() => {
     if (isOpen) setExecutionProfile(editingElement?.execution?.profile ?? '');
@@ -800,7 +800,7 @@ export const ElementForm: React.FC<ElementFormProps> = ({
                 );
               })}
             {isOpen && supportsPlacement && (
-              <ExecutionProfileField value={executionProfile} onChange={setExecutionProfile} />
+              <ExecutionProfileField value={executionProfile} onChange={setExecutionProfile} teamId={isTeamWorkspace ? teamId : undefined} />
             )}
           </div>
 

@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..config import RouterBooleanConditionConfig
@@ -9,7 +9,7 @@ from ..router import RouterBooleanCondition
 from ..router_condition_factory import RouterBooleanConditionFactory
 
 
-class RouterBooleanConditionElementSpec(BaseElementSpec):
+class RouterBooleanConditionElementSpec(GraphElementSpec):
     """Element specification for Router Boolean Condition."""
 
     category: ClassVar[ResourceCategory] = ResourceCategory.CONDITION

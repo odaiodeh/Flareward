@@ -4,7 +4,6 @@ import asyncio
 import json
 
 from mas.core.async_work import await_owned
-from mas.core.execution_context import ExecutionContext
 from mas.core.hitl.models import (
     ApprovalDecision,
     ApprovalOverrides,
@@ -13,6 +12,7 @@ from mas.core.hitl.models import (
     HITLConfig,
 )
 from mas.core.hitl.ports import ApprovalGate
+from mas.domain.execution.context import ExecutionContext
 from mas.interactions.models import REQUEST, RESPONSE, ApprovalStatus
 from redis.asyncio import Redis
 

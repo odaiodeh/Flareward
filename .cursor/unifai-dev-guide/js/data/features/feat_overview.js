@@ -34,7 +34,7 @@ FEATURES.feat_overview = {
       </div>
       <h3>Agentic Overview Data (UI → MAS /api2)</h3>
       <div class="endpoint-list">
-        <div class="endpoint"><span class="method get">GET</span><span class="path">/statistics/stats.get?userId= — workflow counts, sessions, resources</span></div>
+        <div class="endpoint"><span class="method get">GET</span><span class="path">/reporting/overview — workflow counts, sessions, resources</span></div>
         <div class="endpoint"><span class="method get">GET</span><span class="path">/blueprints/available.blueprints.resolved.get?userId=</span></div>
         <div class="endpoint"><span class="method get">GET</span><span class="path">/sessions/session.user.blueprints.get?userId=</span></div>
         <div class="endpoint"><span class="method get">GET</span><span class="path">/resources/resources.list?userId=</span></div>
@@ -52,7 +52,7 @@ FEATURES.feat_overview = {
       <ul>
         <li><code>pages/AgenticOverview.tsx</code> — uses <code>hooks/use-agentic-data.ts</code></li>
         <li>Components: <code>StatCard</code>, <code>ResourceDistributionChart</code>, <code>WorkflowList</code></li>
-        <li>Stats come from <code>MAS /statistics/stats.get</code> which aggregates MongoDB data</li>
+        <li>Stats come from <code>MAS /reporting/overview</code> which aggregates MongoDB data</li>
       </ul>
     `,
     flow: [
@@ -67,12 +67,12 @@ FEATURES.feat_overview = {
       { step: 2, label: 'GET /data_sources/data.sources.get', actor: 'UI → RAG', detail: '<code>DataSourceService.list()</code> → enriches each source with pipeline status from <code>pipeline_monitoring.pipelines</code>' },
       { step: 3, label: 'GET /vector/chunks.counts', actor: 'UI → RAG → Qdrant', detail: '<code>QdrantVectorRepository.count()</code> per collection (<code>document_data</code>, <code>slack_data</code>)' },
       { step: 4, label: 'Route /agentic-overview → AgenticOverview.tsx', actor: 'UI', detail: '<code>use-agentic-data.ts</code> hook fetches from MAS' },
-      { step: 5, label: 'GET /statistics/stats.get?userId=', actor: 'UI → MAS', detail: '<code>StatisticsService.get_stats()</code> → aggregates workflow counts, active sessions, resources by category from MongoDB' },
+      { step: 5, label: 'GET /reporting/overview', actor: 'UI → MAS', detail: '<code>ReportingService.overview()</code> → reports owner-scoped draft/resource counts and last-observed active sessions through the Mongo reporting port' },
     ],
       _endpoints: [
     { method: 'GET', path: '/data_sources/data.sources.get', summary: 'pipeline statuses' },
     { method: 'GET', path: '/vector/chunks.counts', summary: 'Qdrant doc/slack chunk totals' },
-    { method: 'GET', path: '/statistics/stats.get?userId=', summary: 'workflow counts, sessions, resources' },
+    { method: 'GET', path: '/reporting/overview', summary: 'workflow counts, sessions, resources' },
     { method: 'GET', path: '/blueprints/available.blueprints.resolved.get?userId=' },
     { method: 'GET', path: '/sessions/session.user.blueprints.get?userId=' },
     { method: 'GET', path: '/resources/resources.list?userId=' },
@@ -117,7 +117,7 @@ FEATURES.feat_overview = {
       <div class="dev-scenario">
         <h4>Add a new stat card to the Agentic Overview</h4>
         <ol>
-          <li>Add the aggregation query to <code>StatisticsService.get_stats()</code> in MAS</li>
+          <li>Extend the application reporting contract and its Mongo reader; preserve owner scoping and bounded detail</li>
           <li>Add the stat card component in <code>AgenticOverview.tsx</code></li>
           <li>Wire the data from the <code>use-agentic-data.ts</code> hook</li>
         </ol>

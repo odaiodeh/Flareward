@@ -1,0 +1,53 @@
+{
+  "scope": "Focused execution/review source, shared schema, tests and browser fixture; not a full dependency or image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/adapters/inbound/http_api/app.py": "292f24c1e7e602ef06d445a72388fc4f1c24342de129af28ef4d585b37a7a998",
+    "multi-agent/adapters/inbound/http_api/reviews.py": "43c82ee84f35b15f49cbcdaa2faf764188eb71fe08f9386607ec143040774b77",
+    "multi-agent/adapters/outbound/mongo/reviews.py": "a8c03d9e621be5bf7950d03a4611713fb24a5bcd6304013087d6dffd90a7d436",
+    "multi-agent/lib/mas/application/execution/service.py": "dc1bc36e34f4ed5ac70c47f7c50759b0840d063ce4eede8bb0d035a499e746a4",
+    "multi-agent/lib/mas/application/reviews/ports.py": "286d4c43441f32e0f2106ffad5efd9b3d6f03cc3ec4c52c7f0d5f22c40435b5d",
+    "multi-agent/lib/mas/application/reviews/service.py": "b4c05d7fba6178cfc5bd83de1d87d15a7562f1ae962fd517ca34f18553241d86",
+    "multi-agent/tests/application/test_review_queries.py": "1a6c87abbb0af20ae192f9b16231cbfc4f6fa3705b3693a9c8cf2cc29e9ef48f",
+    "multi-agent/tests/application/test_reviews.py": "671aa843d8927449d935c199d44f848726d31553b4f30c1f14432eb6ff7d9245",
+    "multi-agent/tests/integration/mongo/test_review_queries.py": "92a5058330d14a0ae883142784a6dba6e8fef0eb80d021319243253e5e9b93d2",
+    "multi-agent/tests/integration/reviews/test_workflow.py": "de5e00bc37c1aa0dbf7ef5c00f7afd31a238c3022fb640e54c44d96384f34643",
+    "multi-agent/tests/integration/ui/test_editor_client.py": "e8ae01b5db0dbafd9803d20e97df39db4c98840860526eecd877bfcf9b2c37da",
+    "multi-agent/tests/support/program_browser.py": "c9285258d6955e3b26455e1f70d6fa01c59b5ffd7658c3324a1a8bbd0038f7dc",
+    "multi-agent/tests/support/review_browser.py": "55734d18be1e1fb2e1c8057bc314fe995a3adfbf983c1fec6f0fbc6120019fe2",
+    "multi-agent/tests/support/review_queries.py": "67b0dd49310734bed8f51a2d3b086cc9671889a391ed2e14bacd84fdf87c4933",
+    "multi-agent/tests/support/reviews.py": "f4eda0d6028dd8a7dfe02d91e9f4e0681bb7cf3a5da6c27541881b00ccb722e2",
+    "multi-agent/tests/support/workspace_browser.py": "de7c29af4ff2f9a10cdadf708fae81b40d480f0ffb38dccb9debf25a2407ac2f",
+    "ui/client/src/App.tsx": "c53a53faafe3a5cc73f53a4d3c26ea4f48ba3dfce8c189e85af5118e6e8dc372",
+    "ui/client/src/api/programs.ts": "9f4119f3a4d578c22e0e2eb6a879c8259b595bdfb41d88a83307b912a4f17d83",
+    "ui/client/src/api/reviews.ts": "9a8974b7d8cb6bf5d8ee06b040d3d9bf55de55a3f2500cb5289c034101cc2aa8",
+    "ui/client/src/components/agentic-ai/ExecutionTab.tsx": "f5cbb62d21bc24f88e3816a3296001f5c846d7b4f2d57c8d5c6ffcd4f161f289",
+    "ui/client/src/components/executions/ExecutionWorkbench.tsx": "155e893178a33feb7c0306462a9b605fb8a5286073b45a191aef54dbef5edad2",
+    "ui/client/src/components/executions/ProgramInvocation.tsx": "5cbbf78a0f4fa16fef0c960ee2fecbe084ba5b102b03094ed68d87546f85262b",
+    "ui/client/src/components/reviews/ExecutionReviews.tsx": "868f4b26d7bb3f4930ffa96d69ca7b7509ee495dd36bb3206d4da8aeaf37d0e2",
+    "ui/client/src/components/reviews/ReviewDetail.tsx": "f3897f5656d6e4f0e5179fc3fcd7a25d6f157d627871e78323387113a579d693",
+    "ui/client/src/components/schema/JsonField.tsx": "2f3775052316aff43c34e03b1a395205c0c64b4f136e6c5e6695e4fe9ba7fbc3",
+    "ui/client/src/components/schema/SchemaValue.tsx": "27d3e780d4a9d869520b0b86454626943f023b04703170a43f85ed5957892800",
+    "ui/client/src/components/schema/schema.ts": "1134d5eae40ff9c2e5d31ebcbaf58af05c706494eadde39df91dd869da48cfbf",
+    "ui/client/src/features/programs/ProgramEditor.tsx": "5ff624fe294ede9cace1d8134e716ef69a7e0ccc8ebb7a30f9c165216c5fa630",
+    "ui/client/src/hooks/use-session-stream.ts": "8108c32407103f4eb7328db7589983e9a1d512c26c94f25d2697afbe2bef37d2",
+    "ui/client/src/pages/Execution.tsx": "4e1436f47f864ec9348485cf63defa0fb7b3604c54c1d3d8856731260f61d27b",
+    "ui/client/src/pages/HumanReviews.tsx": "12c3f2f570f8673471d6f51763455f270b7f426bdeaf203e656a9d8718faf6a4",
+    "ui/tests/build-placement-browser.mjs": "2e160c196f6e6c3266eb78a8261e90dfe69742df303f5507271da3e4f4ff2e8c",
+    "ui/tests/human-reviews.ts": "17ef0d4bf9e33073e275ee7aedd9fda9880cff9b78a857ab5ce74e32e13ee453",
+    "ui/tests/ui-contracts.ts": "784ef13e3f6e99d8fa93416f7d09372093860ee0fe4011705172becc48bbfd80",
+    "ui/tests/workspace-browser.tsx": "433eb758c1e6b7ba2922f21e6fac26488c390a27adbceaa986b8d10ba1ecdc1c"
+  },
+  "aggregate_sha256": "b123d9cdfac93b16fbcfc0e8d397097b0f2e386234d6073bb2a72bf5ac8c6fe1",
+  "removed": [
+    "ui/client/src/features/programs/ProgramRun.tsx",
+    "ui/client/src/components/reviews/ReviewResponseFields.tsx"
+  ],
+  "artifacts": {
+    "docs/evidence/assets/2026-11-05-execution-workbench.jpg": "9eca8c32c6db62f28de35dc0aec98e096e06336cd430662ebcfc4d7b7d8851fb"
+  },
+  "build": {
+    "workspace_script": "workspace-browser-C3ju8EPR.js",
+    "sha256": "b2c4b8b622080ca3ad50ae4eff2420bcdcb52683399554215499089cfb10b947"
+  }
+}

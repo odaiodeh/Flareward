@@ -6,8 +6,9 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, SerializeAsAny, model_validator
 
-from mas.core.execution_preferences import ExecutionSelection, ResourceExecutionDefaults
 from mas.core.ref.models import ConditionRef, NodeRef, Ref
+from mas.domain.execution_preferences import ExecutionSelection, ResourceExecutionDefaults
+from mas.domain.metadata import StepMeta
 
 
 class BlueprintExecutionStats(BaseModel):
@@ -43,13 +44,6 @@ class ResourceSpec[T: BaseModel](BaseModel):
     type: str
     config: SerializeAsAny[T]
     execution: ResourceExecutionDefaults = Field(default_factory=ResourceExecutionDefaults)
-
-
-class StepMeta(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    description: str = ""
-    display_name: str = ""
-    tags: list[str] = Field(default_factory=list)
 
 
 class StepDef(BaseModel):

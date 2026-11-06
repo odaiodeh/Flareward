@@ -6,10 +6,10 @@ from pydantic import BaseModel
 from mas.blueprints.contracts import BlueprintTemplate, ResolvedBlueprint
 from mas.core.caller_scope import CallerScope
 from mas.core.enums import ResourceCategory
-from mas.core.execution_preferences import ResourceExecutionDefaults
 from mas.core.ref import RefWalker
 from mas.core.ref.models import Ref
 from mas.core.resource_models import BlueprintResource, ResourceSpec
+from mas.domain.execution_preferences import ResourceExecutionDefaults
 from mas.resources.ports import ResourceReader
 
 

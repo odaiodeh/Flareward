@@ -1,18 +1,18 @@
 import logging
 from typing import Any, ClassVar
 
-from mas.application.capabilities.iem_capable import IEMCapableMixin
 from mas.application.capabilities.llm_capable import LlmCapableMixin
-from mas.application.capabilities.workload_capable import WorkloadCapableMixin
 from mas.application.elements.node import BaseNode
 from mas.domain.messages import ChatMessage, Role
 from mas.domain.workloads import AgentResult, Task
+from mas.graph.capabilities.messaging import GraphMessagingMixin
+from mas.graph.capabilities.workloads import GraphWorkloadMixin
 from mas.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 
 
-class LLMMergerNode(WorkloadCapableMixin, IEMCapableMixin, LlmCapableMixin, BaseNode):
+class LLMMergerNode(GraphWorkloadMixin, GraphMessagingMixin, LlmCapableMixin, BaseNode):
     """
     Enhanced LLM Merger with workspace integration.
 
@@ -34,7 +34,7 @@ class LLMMergerNode(WorkloadCapableMixin, IEMCapableMixin, LlmCapableMixin, Base
     async def run(self, state: StateView) -> StateView:
         """Process incoming TaskPackets, collect results, then merge and broadcast."""
         # First, collect all incoming task results
-        await self.process_packets(state)
+        await self.process_packets()
 
         # Then, merge collected results for each thread
         merged_results_by_thread = await self._merge_all_collected_results()

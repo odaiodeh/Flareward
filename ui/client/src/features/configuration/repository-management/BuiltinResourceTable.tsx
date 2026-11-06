@@ -44,7 +44,7 @@ interface BuiltinResourceTableProps {
   typeFilters: Record<string, string>;
   availableToAll: Record<string, boolean>;
   isTogglingStatus: string | null;
-  getValidationStatus: (rid: string) => ValidationStatus;
+  getValidationStatus: (rid: string) => ValidationStatus | 'unavailable';
   onTypeFilterChange: (category: string, value: string) => void;
   onToggleAvailableToAll: (rid: string) => void;
   onViewDetails: (resource: ResourceItem) => void;

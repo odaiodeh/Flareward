@@ -1,5 +1,21 @@
 import axios from '@/http/axiosAgentConfig';
-import { ElementSchema, ResourceExecutionDefaults } from '@/types/workspace';
+import { ElementSchema, ResourceExecutionDefaults, ResourceKey, ResourceSourceRef } from '@/types/workspace';
+import type { ResourceDefinition } from '@/api/programs';
+
+export interface ElementBundle {
+  schema_version: 1;
+  root: ResourceKey;
+  entries: { resource: ResourceDefinition; dependencies: ResourceKey[] }[];
+  content_digest: string;
+}
+
+export async function captureResourceSnapshot(
+  source: ResourceSourceRef, teamId?: string, signal?: AbortSignal,
+): Promise<ElementBundle> {
+  return (await axios.post<ElementBundle>('/resources/snapshot', { source }, {
+    params: { teamId }, signal,
+  })).data;
+}
 
 export interface ResourceIdentity {
   type: 'user' | 'team' | 'system';
@@ -23,6 +39,7 @@ export interface ResourceInstance {
   ownership?: 'builtin' | 'custom';
   visibility?: 'draft' | 'public';
   user_configured?: boolean;
+  source?: ResourceSourceRef | null;
   /**
    * Present when toggling/promoting to "available to all" cascaded to
    * aggregated elements (LLMs, providers, tools, etc.) that weren't
@@ -46,6 +63,21 @@ export interface ResourcesListResponse {
     offset: number;
     has_more: boolean;
   };
+}
+
+export interface ResourcePage {
+  resources: ResourceInstance[]; total: number; offset: number; limit: number;
+}
+
+export async function listResourcePage(params: {
+  category?: string; offset?: number; limit?: number; teamId?: string; signal?: AbortSignal;
+}): Promise<ResourcePage> {
+  const { signal, ...query } = params;
+  return (await axios.get<ResourcePage>('/resources', { params: query, signal })).data;
+}
+
+export async function getResourceSnapshotSource(resourceId: string, teamId?: string, signal?: AbortSignal): Promise<ResourceInstance> {
+  return (await axios.get<ResourceInstance>(`/resources/${encodeURIComponent(resourceId)}`, { params: { teamId }, signal })).data;
 }
 
 export interface BuiltinsListResponse {
@@ -178,34 +210,33 @@ export async function getBuiltinUserConfig(params: {
   resourceId: string;
   teamId?: string;
 }): Promise<Record<string, any> | null> {
-  const query = new URLSearchParams();
-  query.set('resourceId', params.resourceId);
-  if (params.teamId) query.set('teamId', params.teamId);
-  const { data } = await axios.get<{ config: Record<string, any> | null }>(
-    `/resources/builtin.user-config?${query.toString()}`,
+  const { data } = await axios.get<{ fields: Record<string, unknown> } | null>(
+    `/resources/${encodeURIComponent(params.resourceId)}/configuration`,
+    { params: params.teamId ? { teamId: params.teamId } : undefined },
   );
-  return data.config;
+  return data?.fields ?? null;
 }
 
-export async function listBuiltins(params?: {
-  category?: string;
-  type?: string;
-}): Promise<BuiltinsListResponse> {
-  const query = new URLSearchParams();
-  if (params?.category) query.set('category', params.category);
-  if (params?.type) query.set('type', params.type);
-  const qs = query.toString();
-  const { data } = await axios.get<BuiltinsListResponse>(
-    `/resources/builtins.list${qs ? `?${qs}` : ''}`,
-  );
-  return data;
+export async function listBuiltins(params?: { category?: string; type?: string }): Promise<BuiltinsListResponse> {
+  const resources: ResourceInstance[] = [];
+  let offset = 0;
+  while (true) {
+    const { data } = await axios.get<ResourcePage>('/administration/resources', {
+      params: { ...params, offset, limit: 100 },
+    });
+    resources.push(...data.resources);
+    offset += data.resources.length;
+    if (offset >= data.total) return { resources };
+    if (!data.resources.length) throw new Error('Curated resource listing changed; refresh it');
+  }
 }
 
-export async function getBuiltinSchema(resourceId: string): Promise<any> {
-  const { data } = await axios.get(
-    `/resources/builtin.schema?resourceId=${encodeURIComponent(resourceId)}`,
-  );
-  return data;
+export async function getBuiltin(resourceId: string): Promise<ResourceInstance> {
+  return (await axios.get<ResourceInstance>(`/administration/resources/${encodeURIComponent(resourceId)}`)).data;
+}
+
+export async function getBuiltinSchema(resourceId: string): Promise<ElementSchema['config_schema']> {
+  return (await axios.get<ElementSchema['config_schema']>(`/resources/${encodeURIComponent(resourceId)}/configuration-schema`)).data;
 }
 
 export async function getElementSpec(category: string, type: string, signal?: AbortSignal): Promise<ElementSchema> {
@@ -217,69 +248,53 @@ export async function getElementSpec(category: string, type: string, signal?: Ab
 }
 
 export async function configureBuiltin(payload: {
-  resourceId: string;
-  teamId?: string;
-  config: Record<string, any>;
+  resourceId: string; teamId?: string; config: Record<string, unknown>; expectedVersion?: number;
 }): Promise<ResourceInstance> {
-  const { data } = await axios.patch<ResourceInstance>(
-    '/resources/builtin.configure',
-    payload,
-  );
-  return data;
+  await axios.patch(`/resources/${encodeURIComponent(payload.resourceId)}/configuration`, {
+    config: payload.config, expected_version: payload.expectedVersion,
+  }, { params: payload.teamId ? { teamId: payload.teamId } : undefined });
+  return getResourceSnapshotSource(payload.resourceId, payload.teamId);
 }
 
 export async function createBuiltin(payload: {
-  teamId?: string;
-  category: string;
-  type: string;
-  name: string;
-  config: Record<string, any>;
-  availableToAll?: boolean;
+  teamId?: string; category: string; type: string; name: string;
+  config: Record<string, unknown>; availableToAll?: boolean;
+  execution?: ResourceExecutionDefaults;
 }): Promise<ResourceInstance> {
-  const { data } = await axios.post<ResourceInstance>(
-    '/resources/builtin.create',
-    payload,
-  );
-  return data;
+  const { teamId, availableToAll, ...resource } = payload;
+  return (await axios.post<ResourceInstance>('/administration/resources', {
+    ...resource, public: availableToAll ?? false,
+  }, { params: teamId ? { teamId } : undefined })).data;
 }
 
 export async function updateBuiltin(payload: {
-  resourceId: string;
-  config?: Record<string, any>;
-  name?: string;
-  availableToAll?: boolean;
+  resourceId: string; expectedVersion: number; config?: Record<string, unknown>;
+  name?: string; availableToAll?: boolean;
+  execution?: ResourceExecutionDefaults;
 }): Promise<ResourceInstance> {
-  const { data } = await axios.put<ResourceInstance>(
-    '/resources/builtin.update',
-    payload,
-  );
-  return data;
+  const { resourceId, expectedVersion, availableToAll, ...changes } = payload;
+  return (await axios.put<ResourceInstance>(`/administration/resources/${encodeURIComponent(resourceId)}`, {
+    ...changes, expected_version: expectedVersion, public: availableToAll,
+  })).data;
 }
 
 export async function toggleBuiltinVisibility(payload: {
-  resourceId: string;
-  availableToAll: boolean;
+  resourceId: string; expectedVersion: number; availableToAll: boolean;
 }): Promise<ResourceInstance> {
-  const { data } = await axios.patch<ResourceInstance>(
-    '/resources/builtin.toggle',
-    payload,
-  );
-  return data;
+  return updateBuiltin(payload);
 }
 
-/**
- * Preview which resources would be newly made available to all if
- * `resourceId` were promoted/toggled on — read-only, does not mutate
- * anything. Lets the UI confirm the cascade with the admin *before* the
- * mutation, instead of only disclaiming it after the fact.
- */
-export async function previewBuiltinCascade(
-  resourceId: string,
-): Promise<ResourceDependencySummary[]> {
-  const { data } = await axios.get<{ cascaded_resources: ResourceDependencySummary[] }>(
-    `/resources/builtin.cascade-preview?resourceId=${encodeURIComponent(resourceId)}`,
-  );
-  return data.cascaded_resources || [];
+export async function deleteBuiltin(resourceId: string, expectedVersion: number): Promise<void> {
+  await axios.delete(`/administration/resources/${encodeURIComponent(resourceId)}`, {
+    params: { expected_version: expectedVersion },
+  });
+}
+
+/** Preview the dependency resources that publication would make public. */
+export async function previewBuiltinCascade(resourceId: string): Promise<ResourceDependencySummary[]> {
+  return (await axios.get<ResourceDependencySummary[]>(
+    `/administration/resources/${encodeURIComponent(resourceId)}/publication-preview`,
+  )).data;
 }
 
 // --- Admin edit lock endpoints (built-in resources) ---
@@ -292,40 +307,20 @@ export interface BuiltinEditLockHolder {
 export async function acquireBuiltinEditLock(entityId: string): Promise<
   { acquired: true } | { acquired: false; lockedBy: BuiltinEditLockHolder }
 > {
-  try {
-    const { data } = await axios.post<{
-      acquired: boolean;
-      lockedBy?: BuiltinEditLockHolder;
-    }>("/resources/builtin.edit_lock.acquire", { entityId });
-    if (data.acquired) return { acquired: true };
-    return {
-      acquired: false,
-      lockedBy: data.lockedBy ?? { userId: "?", displayName: "Another admin" },
-    };
-  } catch (e: unknown) {
-    const status = (e as { response?: { status?: number } })?.response?.status;
-    if (status === 501) return { acquired: true };
-    throw e;
-  }
+  const { data } = await axios.post<{ acquired: boolean; lockedBy?: BuiltinEditLockHolder }>(
+    `/administration/resources/${encodeURIComponent(entityId)}/edit-lease`,
+  );
+  if (data.acquired) return { acquired: true };
+  return { acquired: false, lockedBy: data.lockedBy ?? { userId: '?', displayName: 'Another admin' } };
 }
 
 export async function releaseBuiltinEditLock(entityId: string): Promise<void> {
-  try {
-    await axios.post("/resources/builtin.edit_lock.release", { entityId });
-  } catch (e: unknown) {
-    const status = (e as { response?: { status?: number } })?.response?.status;
-    if (status === 501) return;
-    throw e;
-  }
+  await axios.delete(`/administration/resources/${encodeURIComponent(entityId)}/edit-lease`);
 }
 
 export async function heartbeatBuiltinEditLock(entityId: string): Promise<void> {
-  try {
-    await axios.post("/resources/builtin.edit_lock.heartbeat", { entityId });
-  } catch (e: unknown) {
-    const status = (e as { response?: { status?: number } })?.response?.status;
-    if (status === 501) return;
-    throw e;
-  }
+  const { data } = await axios.put<{ renewed: boolean }>(
+    `/administration/resources/${encodeURIComponent(entityId)}/edit-lease`,
+  );
+  if (!data.renewed) throw new Error('Editing lease expired; reload before saving');
 }
-

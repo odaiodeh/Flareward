@@ -19,6 +19,15 @@ Most teams have knowledge scattered across Slack threads, Jira tickets, PDFs, an
 
 ## Architecture
 
+The [full target architecture and ASCII diagrams](docs/architecture/README.md) record
+the agreed direction for composable operations, graph/code programs, UI integration,
+and engine-backed human review. For implemented native-platform behavior, use the
+[development guide](docs/program-platform-development.md). Start ongoing work with
+[current status](docs/status.md) and [the active plan](docs/plan.md); retrieve
+specific verification records through [the evidence index](docs/evidence/README.md).
+Read relevant reference sections on demand. The overview below also
+describes existing legacy paths and is not a native-platform completion claim.
+
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │                     React / Vite / Tailwind UI                │
@@ -163,6 +172,13 @@ A React-based interface with two primary views:
 **Blueprint Builder** — Visual drag-and-drop editor for composing agent graphs. Select nodes from the element catalog, wire them together, configure LLMs and tools, then execute — all without writing YAML. During execution, inspect each node's input/output in real time.
 
 **RAG Dashboard** — Monitor data source health: document counts, chunking/embedding status, last ingestion timestamps. Upload documents and register Slack channels.
+
+The agreed [UI target](docs/architecture/README.md#unified-ui-and-live-execution-experience)
+evolves the existing builder, resource library and session views into one Program
+workspace and shared execution workbench. Preserve and improve live visualization,
+support structured invocation and optional conversation, and allow substantial
+visual/interaction improvements. Current Workflows, Chats and Programs screens
+remain under convergence; the separate Program runner is an interim surface.
 
 ---
 

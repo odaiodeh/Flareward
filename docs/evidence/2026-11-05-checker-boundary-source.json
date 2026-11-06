@@ -1,0 +1,49 @@
+{
+  "scope": "Focused separated checker contracts, implementation and verification; not a full build/dependency manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/adapters/outbound/run_engine/runtime.py": "414b0479a14e8788555cc32982c12e5ece257215b5c3f3c3e027bb64d82a995e",
+    "multi-agent/lib/mas/application/programs/ports.py": "504c6d60d586daff04b7e2854bc83241db5ca5fd90f61afd65a1a961bf7ef6d1",
+    "multi-agent/lib/mas/application/programs/registry.py": "4a06d6abba021d63ac07822786d8d3a56f7aafc06ca8e517dd07f0aecc429ec4",
+    "multi-agent/lib/mas/application/verification/program_checks.py": "74180e11524b14f459fa8f1ab0ce5a728bf29a7052cf4232dcab9cb5fa46de74",
+    "multi-agent/plugins/mas_plugins/testing/__init__.py": "48c19afae348d67aa14d70aecb29db27518eff71481542b80fc733674d6cb5f6",
+    "multi-agent/plugins/mas_plugins/testing/_python_worker.py": "ee766792889da52eed4fc154b340bd97b8255841898b7e6fe134f6e1dc272ba3",
+    "multi-agent/plugins/mas_plugins/testing/contracts.py": "7da2a0c09f9b3abd4c8da0461f98a3d84b0af3f5813523c2b43f35c017b174dd",
+    "multi-agent/plugins/mas_plugins/testing/program.py": "20e42adaedb29c553aacb44582d01bff57c43e63d870948cda88e49e7801b35a",
+    "multi-agent/plugins/mas_plugins/testing/python_functions.py": "451b7b74c029e8bbbce562ad475c90b3946bd07871926be6965788fc5bd0dd23",
+    "multi-agent/plugins/mas_plugins/testing/specification.py": "44990ffd34000d06661644fb840d6761cbbca36902d4def637bb6c8c1272c4cc",
+    "multi-agent/tests/adapters/test_python_function_checks.py": "10e0c4890902ff900fbefc695df3111c4b20e8cc859a149abff9d7e9488a59ca",
+    "multi-agent/tests/application/test_python_function_program.py": "ca6df02b0477dd5df7e3528fd51cdf876433b7ca47decc195d8a0b68b7e29b7a",
+    "multi-agent/tests/infra/Dockerfile.receiver": "02003e1ca425f7ac164b59732ccc4d785bfdac2bb83449b5a441b784e5fa146b",
+    "multi-agent/tests/infra/verify_images.py": "b7d73915bbdea045e280f0d0692bc7cffa7d3d7b1d24531f6ded0e273a3e5fe6",
+    "multi-agent/tests/integration/deployment/test_program_checks.py": "90644cdd8917574899c1b5ba35c9f348de9ded9ccbb550dacc2c5b2d469dcfbb",
+    "multi-agent/tests/integration/verification/test_program_checks.py": "b0e0b63fd668df5dda437eb28987ef530fe4f8b97fb833a92028971d8d4477ae",
+    "multi-agent/tests/support/program_check_api.py": "625c3393f9ed07ab9c355c2bfc053556bf3afe8c1ce19362cec014e1d9106d1e",
+    "multi-agent/tests/support/program_checks.py": "5ba77244e82d836baa6075a0316068afdd3b4f2bfcf3593e99c01531f22611b4",
+    "multi-agent/tests/support/python_checks.py": "94d43b1de8f09e88cbab1ac329278039032c897f55b5eb0d48a8c8196392e2fa"
+  },
+  "aggregate_encoding": "SHA-256 of compact sorted-key UTF-8 JSON files map",
+  "aggregate_sha256": "5b41d7105773b754041f0c8933121086805bfcf17e1243a8d2616ffd5b5ac803",
+  "companion_git_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "image": {
+    "tag": "unifai-receiver:python-boundary-20261105",
+    "docker_index": "sha256:c945b6fde4f371e674c62299c344bfdeccbc9bcf03b5498fb7faccc55a4af7b6",
+    "config_cri_id": "sha256:9df4962f54a0be30095c4248b7bf12b1f78b6699d786539cbe36eca3beb70982",
+    "kind_import_digest": "sha256:cf62d20f0b98258a0f775c61a93ddfe5dde7c3771a94c6f4bcb8a1388ccaf80e",
+    "matched_python_files": 1391,
+    "observed_receivers": [
+      {
+        "receiver_namespace": "unifai-e2e-837b125d9bc54847",
+        "receiver_pod": "runengine-unifai-2cf56d20d5654a53a1778f5e1c16b928--d6aa957z26qm",
+        "receiver_image": "unifai-receiver:python-boundary-20261105",
+        "receiver_image_id": "docker.io/library/import-2026-11-05@sha256:cf62d20f0b98258a0f775c61a93ddfe5dde7c3771a94c6f4bcb8a1388ccaf80e"
+      },
+      {
+        "receiver_namespace": "unifai-e2e-f1a2eb3b904a4d4e",
+        "receiver_pod": "runengine-unifai-0cd24247caed46abb2a592e49886a5fc--8813c715xgnr",
+        "receiver_image": "unifai-receiver:python-boundary-20261105",
+        "receiver_image_id": "docker.io/library/import-2026-11-05@sha256:cf62d20f0b98258a0f775c61a93ddfe5dde7c3771a94c6f4bcb8a1388ccaf80e"
+      }
+    ]
+  }
+}

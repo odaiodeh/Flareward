@@ -1,6 +1,6 @@
 from collections.abc import Callable, Iterator
-from enum import Enum
-from typing import Annotated, Any, get_type_hints
+from enum import StrEnum
+from typing import Annotated, Any, Self, get_type_hints
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,13 +19,12 @@ from .merge_strategies import (
 
 class GraphState(BaseModel):
     """
-    Pydantic-backed execution state for LangGraph.
+    Application state for graph-based node adapters.
 
     • Declares your main channels with merge-strategies via Annotated
     • Behaves like a dict: __getitem__, __setitem__, keys(), items(), etc.
-    • Properly handles state persistence across LangGraph nodes
+    • Execution adapters specialize the state for their runtime
     • Raises KeyError for non-existent keys (like standard dict)
-    • extra="ignore" silently drops unknown keys from old DB records
     """
 
     model_config = ConfigDict(
@@ -112,7 +111,7 @@ class GraphState(BaseModel):
             [
                 field_name
                 for field_name, field_info in cls.model_fields.items()
-                if field_info.json_schema_extra
+                if isinstance(field_info.json_schema_extra, dict)
                 and field_info.json_schema_extra.get("external", False)
             ]
         )
@@ -135,7 +134,7 @@ class GraphState(BaseModel):
         """
         streamable = set()
         for field_name, field_info in cls.model_fields.items():
-            if field_info.json_schema_extra:
+            if isinstance(field_info.json_schema_extra, dict):
                 is_streamable = field_info.json_schema_extra.get("streamable", False)
                 if is_streamable:
                     streamable.add(field_name)
@@ -162,7 +161,7 @@ class GraphState(BaseModel):
     # —————– Merge Strategy Introspection —————–
 
     @classmethod
-    def get_merge_strategies(cls) -> dict[str, Callable]:
+    def get_merge_strategies(cls) -> dict[str, Callable[[Any, Any], Any]]:
         """
         Extract the merge function from each Annotated channel field.
 
@@ -170,7 +169,7 @@ class GraphState(BaseModel):
             { field_name: merge_callable } for every channel
             that declares a merge strategy via Annotated[Type, fn].
         """
-        strategies: dict[str, Callable] = {}
+        strategies: dict[str, Callable[[Any, Any], Any]] = {}
         hints = get_type_hints(cls, include_extras=True)
         for field_name in cls.model_fields:
             hint = hints.get(field_name)
@@ -188,7 +187,7 @@ class GraphState(BaseModel):
         return self.model_dump(mode="json")
 
     @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> GraphState:
+    def deserialize(cls, data: dict[str, Any]) -> Self:
         """
         Reconstruct a GraphState from a serialized dict.
 
@@ -199,9 +198,15 @@ class GraphState(BaseModel):
         return cls.model_validate(data)
 
 
-def _build_channel_enum() -> Enum:
-    mapping = {name.upper(): name for name in GraphState.model_fields}
-    return Enum("Channel", mapping, type=str)
+class Channel(StrEnum):
+    """Closed names of the base graph channels; Program-defined channels use strings."""
 
-
-Channel = _build_channel_enum()
+    USER_PROMPT = "user_prompt"
+    NODES_OUTPUT = "nodes_output"
+    MESSAGES = "messages"
+    OUTPUT = "output"
+    TARGET_BRANCH = "target_branch"
+    INTER_PACKETS = "inter_packets"
+    TASK_THREADS = "task_threads"
+    THREADS = "threads"
+    WORKSPACES = "workspaces"

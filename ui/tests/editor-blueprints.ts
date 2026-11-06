@@ -78,12 +78,12 @@ export default async function verifyEditorBlueprints() {
 
     // Prove the editor's saved draft feeds the native execution foundation.
     const imported = await axios.put('/programs/editor-authored/blueprint', { blueprint_id: blueprintId });
-    assert.equal(imported.data.execution_profile, 'process');
-    assert.equal(imported.data.implementation.steps[0].execution.profile, null);
-    const bindings = Object.fromEntries(Object.keys(imported.data.input_schema.properties).map(
+    assert.equal(imported.data.definition.execution_profile, 'process');
+    assert.equal(imported.data.definition.implementation.steps[0].execution.profile, null);
+    const bindings = Object.fromEntries(Object.keys(imported.data.definition.input_schema.properties).map(
       name => [name, { kind: 'path', path: [name] }],
     ));
-    const published = await axios.post('/programs/editor-authored/revisions');
+    const published = await axios.post('/programs/editor-authored/revisions', { expected_version: imported.data.version });
     assert.equal(published.data.revision, 1);
     await updateResource({
       resourceId: node.rid, config: node.cfg_dict, expected_version: node.version,

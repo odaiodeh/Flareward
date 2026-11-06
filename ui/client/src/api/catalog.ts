@@ -1,4 +1,10 @@
 import axios from '@/http/axiosAgentConfig';
+import type { JsonValue } from '@shared/json';
+
+export interface ElementContracts {
+  input_schema: Record<string, JsonValue> | null;
+  output_schema: Record<string, JsonValue> | null;
+}
 
 export interface CatalogResponse {
   elements: { [category: string]: any[] };
@@ -11,8 +17,12 @@ export interface ExecutionProfileCatalog {
 }
 
 export const catalogService = {
-  async fetchExecutionProfiles(signal?: AbortSignal): Promise<ExecutionProfileCatalog> {
-    const response = await axios.get<ExecutionProfileCatalog>("/catalog/execution-profiles", { signal });
+  async fetchElementContracts(category: string, type: string, signal?: AbortSignal): Promise<ElementContracts> {
+    const { data } = await axios.get<ElementContracts>(`/catalog/elements/${encodeURIComponent(category)}/${encodeURIComponent(type)}`, { signal });
+    return { input_schema: data.input_schema, output_schema: data.output_schema };
+  },
+  async fetchExecutionProfiles(teamId?: string, signal?: AbortSignal): Promise<ExecutionProfileCatalog> {
+    const response = await axios.get<ExecutionProfileCatalog>("/catalog/execution-profiles", { params: { teamId }, signal });
     return response.data;
   },
   /**
@@ -35,7 +45,7 @@ export const catalogService = {
     } catch (err: any) {
       console.warn("Failed to fetch categories from catalog, using fallback:", err);
       // Fallback categories if API call fails
-      return ['nodes', 'llms', 'tools', 'providers', 'retrievers', 'conditions'];
+      return ['operations', 'nodes', 'llms', 'tools', 'providers', 'retrievers', 'conditions'];
     }
   },
 };

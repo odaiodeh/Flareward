@@ -1,7 +1,7 @@
 """Infrastructure support owns native worker processes and replays recorded history."""
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 from contextlib import asynccontextmanager
 from importlib import import_module
 from pathlib import Path
@@ -45,9 +45,17 @@ async def replay(client: Client, settings: WorkerSettings, run_id: str) -> None:
 
 
 @asynccontextmanager
-async def worker_process(settings: WorkerSettings, log: Path) -> AsyncIterator[OwnedProcess]:
+async def worker_process(
+    settings: WorkerSettings,
+    log: Path,
+    *,
+    environment: Mapping[str, str] | None = None,
+) -> AsyncIterator[OwnedProcess]:
+    configuration = settings_environment(settings)
+    if environment is not None:
+        configuration.update(environment)
     async with command_process(
-        ["-m", "bootstrap.http_cli", "worker"], settings_environment(settings), log
+        ["-m", "bootstrap.http_cli", "worker"], configuration, log
     ) as worker:
         client = await Client.connect(settings.host.endpoint, namespace=settings.host.namespace)
         async with asyncio.timeout(30):

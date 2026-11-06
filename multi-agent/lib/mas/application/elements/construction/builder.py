@@ -15,6 +15,8 @@ from mas.application.elements.construction.resolver import ElementBundleResolver
 from mas.application.elements.construction.secrets import ConfigurationSecrets
 from mas.application.elements.instances import ElementInstances
 from mas.application.elements.lifecycle import ElementPreparation
+from mas.application.elements.specification import BaseElementSpec
+from mas.application.execution.ports import ExecutionError
 from mas.core.async_work import await_owned
 from mas.core.element_deps import ElementBuildContext
 from mas.core.ref.models import Ref
@@ -27,6 +29,7 @@ from mas.domain.element_bundles import ElementBundle
 class BuiltElement:
     element: Any
     registry: ElementInstances
+    specification: type[BaseElementSpec]
     protected: bool = False
 
 
@@ -96,6 +99,18 @@ class ElementBundleBuilder:
                     instance = registry.get_instance(resource.key.category, resource.key.rid)
                     if isinstance(instance, ElementPreparation):
                         await instance.prepare_element()
+                except ExecutionError as error:
+                    if protected:
+                        message = f"Element construction failed for {resource.type_key}"
+                        raise ExecutionError(
+                            error.failure.model_copy(
+                                update={
+                                    "message": message,
+                                    "code": None,
+                                }
+                            )
+                        ) from None
+                    raise
                 except Exception:
                     if protected:
                         raise ValueError(
@@ -106,6 +121,9 @@ class ElementBundleBuilder:
             yield BuiltElement(
                 registry.get_instance(bundle.root.category, bundle.root.rid),
                 registry,
+                self._registry.get_spec(
+                    bundle.root.category, resolved.entries[-1].resource.type_key
+                ),
                 bundle.root in private_resources,
             )
         except BaseException as error:

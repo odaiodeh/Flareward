@@ -17,6 +17,7 @@ dependencies = [
     "typer",
     "runengine>=0.2,<0.3",
     "jsonschema>=4.23",
+    "referencing>=0.36,<1",
 ]
 
 [project.optional-dependencies]
@@ -27,7 +28,7 @@ api = [
 ]
 blueprints = ["a2a-sdk>=0.3,<1"]
 credentials = ["authlib>=1.3", "cryptography>=43", "pymongo>=4.11"]
-dev = ["mas[api,blueprints,credentials,temporal,mcp,telemetry,openai,gemini,tools]", "pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.9", "mypy>=2,<3"]
+dev = ["mas[api,blueprints,credentials,temporal,mcp,telemetry,openai,gemini,tools]", "pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.9", "mypy>=2,<3", "types-jsonschema>=4.23"]
 e2e = ["mas[dev]", "runengine[kubernetes,openshell]>=0.2,<0.3", "openshell>=0.0.104"]
 flask = ["flask", "flask-cors", "gunicorn"]
 mongo = ["pymongo>=4.11"]
@@ -50,14 +51,12 @@ all = [
 test = ["pytest>=6.0"]
 
 [project.scripts]
-mas = "bootstrap.cli:app"
 mas-platform = "bootstrap.http_cli:main"
 
 # ---------------------------------------------------------------------------
 # Package discovery
 #
-#   lib/         → Domain + Application (the hexagon)
-#                  All domain code lives under lib/mas/ → `from mas.* import …`
+#   lib/         → Domain values in mas.domain; use cases/ports in mas.application
 #   adapters/    → Inbound & outbound technology adapters
 #   bootstrap/   → Composition root (wires hexagon to adapters)
 #
@@ -65,7 +64,7 @@ mas-platform = "bootstrap.http_cli:main"
 # package under them is directly importable.
 # ---------------------------------------------------------------------------
 [tool.setuptools.packages.find]
-where = ["lib", "adapters", "."]
+where = ["lib", "adapters", "plugins", "."]
 include = ["mas*", "inbound*", "outbound*", "temporal*", "bootstrap*", "config*", "run*"]
 
 [tool.setuptools.package-data]
@@ -79,7 +78,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-pythonpath = ["lib", "adapters", ".", "tests"]
+pythonpath = ["lib", "adapters", "plugins", ".", "tests"]
 addopts = "-v --tb=short --strict-markers --disable-warnings --color=yes --import-mode=importlib"
 console_output_style = "progress"
 junit_family = "xunit2"

@@ -3,12 +3,11 @@
 from dataclasses import dataclass
 
 from mas.application.elements.catalog.element_registry import ElementRegistry
-from mas.application.elements.construction.resolver import ElementBundleResolver
 from mas.application.elements.construction.secrets import ConfigurationSecrets
+from mas.application.programs.registry import ApplicationRegistry
+from mas.application.programs.service import ProgramService
 from mas.core.identity import Identity
 from mas.core.secrets import ConfigurationSecretStore
-from mas.programs.registry import ApplicationRegistry
-from mas.programs.service import ProgramService
 from outbound.memory.program_repository import MemoryProgramRepository
 
 from support.elements import element_registry
@@ -31,7 +30,7 @@ def make_application(secret_store: ConfigurationSecretStore | None = None) -> Ap
     programs = ProgramService(
         MemoryProgramRepository(),
         applications,
-        ElementBundleResolver(elements),
+        elements,
         ConfigurationSecrets(elements, secret_store),
     )
     return Application(programs, Identity.user("alice"), elements, applications)

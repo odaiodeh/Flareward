@@ -200,3 +200,14 @@ For detailed troubleshooting, see [ARCHITECTURE.md - Troubleshooting](./ARCHITEC
 ---
 
 Have Fun! 🚀
+
+## Native multi-agent image build input
+
+The multi-agent image uses the canonical Python 3.14 `mas-platform` service.
+For both image-build pipelines, configure `RUN_ENGINE_SOURCE` on the build agent
+to an approved Run Engine checkout. The multi-agent Podman build passes it as the
+`run_engine` named context and uses `multi-agent/Dockerfile.dockerignore` explicitly.
+A missing source path fails the build instead of selecting an unrelated published
+SDK. Other component build inputs are unchanged. Confirm the build agent supports
+Podman named contexts; the pipeline change has not been exercised on Jenkins.
+See the multi-agent package guide for local image verification and runtime settings.

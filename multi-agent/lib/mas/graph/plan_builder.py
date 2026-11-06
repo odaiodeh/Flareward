@@ -1,7 +1,9 @@
 from mas.application.elements.catalog.element_registry import ElementRegistry
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.blueprints.contracts import ResolvedBlueprint
 from mas.core.enums import ResourceCategory
-from mas.core.resource_models import ResourceSpec, StepDef, StepMeta
+from mas.core.resource_models import ResourceSpec, StepDef
+from mas.domain.metadata import StepMeta
 from mas.graph.graph_plan import GraphPlan
 from mas.graph.models import ConditionMeta, Step
 
@@ -29,7 +31,9 @@ class PlanBuilder:
         """Build a single step from definition."""
         # Resolve node reference
         node_spec = self._find_node_by_ref(step_def.node.ref, blueprint)
-        elem_spec = self._registry.get_spec(ResourceCategory.NODE, node_spec.type)
+        elem_spec = GraphElementSpec.require(
+            self._registry.get_spec(ResourceCategory.NODE, node_spec.type)
+        )
         step_meta = step_def.meta.model_copy(deep=True) if step_def.meta else StepMeta()
         step_meta.display_name = node_spec.name
 
@@ -66,8 +70,10 @@ class PlanBuilder:
 
     def _extract_condition_reads(self, condition_spec: ResourceSpec) -> set[str]:
         """Extract channels that a condition reads from its config."""
-        elem_spec = self._registry.get_spec(ResourceCategory.CONDITION, condition_spec.type)
-        return getattr(elem_spec, "reads", set())
+        elem_spec = GraphElementSpec.require(
+            self._registry.get_spec(ResourceCategory.CONDITION, condition_spec.type)
+        )
+        return set(elem_spec.reads)
 
     def _find_node_by_ref(self, ref: str, blueprint: ResolvedBlueprint) -> ResourceSpec:
         """Find node by reference."""

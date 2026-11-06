@@ -5,7 +5,6 @@ from enum import StrEnum
 
 from pydantic import Field, JsonValue, TypeAdapter, ValidationError
 
-from mas.core.execution_context import APPROVAL_RULES_TAG, ExecutionContext
 from mas.core.hitl.models import (
     ApprovalDecision,
     ApprovalOverrides,
@@ -13,7 +12,8 @@ from mas.core.hitl.models import (
     ApprovalResponse,
     ApprovalRuleSet,
 )
-from mas.programs.models import Model
+from mas.domain.execution.context import APPROVAL_RULES_TAG, ExecutionContext
+from mas.domain.models import Model
 
 REQUEST = TypeAdapter(ApprovalRequest)
 RESPONSE = TypeAdapter(ApprovalResponse)

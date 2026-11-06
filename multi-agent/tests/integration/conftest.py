@@ -3,26 +3,25 @@
 import asyncio
 import os
 from dataclasses import dataclass
-from uuid import uuid4
 
 import pytest
 from cryptography.fernet import Fernet
+from mas.application.execution.service import ExecutionService
+from mas.application.programs.service import ProgramService
 from mas.core.auth.credentials.models import StoredCredential
 from mas.core.identity import Identity
-from mas.execution.service import ExecutionService
-from mas.programs.service import ProgramService
 from mas.session.execution.program_sessions import ProgramSessionService
 from outbound.memory.execution_repository import MemoryExecutionRepository
 from outbound.memory.session_store import MemorySessionStore
 from outbound.run_engine.compiler import ProgramCompiler
 from outbound.run_engine.gateway import RunEngineGateway
-from pymongo import AsyncMongoClient
 from runengine.adapters.coordination.config import LocalHostConfig
 from runengine.bootstrap.hosts import RunHostBuilder
 from runengine.coordination.ports import RunHost
 from runengine.invocation.config import ProcessRunnerConfig, ThreadRunnerConfig
 from support.application import Application
 from support.conditions import ELEMENT_SPECIFICATIONS as CONDITION_SPECIFICATIONS
+from support.databases import isolated_mongo
 
 from bootstrap.credentials import receiver_auth
 from config.platform_settings import PlatformSettings
@@ -79,14 +78,20 @@ async def mongo_database():
     uri = os.environ.get("UNIFAI_TEST_MONGO_URI")
     if not uri:
         pytest.skip("Set UNIFAI_TEST_MONGO_URI to run actual Mongo repository contracts")
-    client = AsyncMongoClient(uri, serverSelectionTimeoutMS=5000)
-    database = client[f"unifai_platform_test_{uuid4().hex}"]
-    try:
-        await client.admin.command("ping")
+    async with isolated_mongo(uri) as database:
         yield database
-    finally:
-        await client.drop_database(database.name)
-        await client.close()
+
+
+@pytest.fixture
+async def transaction_database():
+    uri = os.environ.get("UNIFAI_TEST_MONGO_TRANSACTION_URI")
+    if not uri:
+        pytest.skip("Set UNIFAI_TEST_MONGO_TRANSACTION_URI for atomic Mongo catalog tests")
+    async with isolated_mongo(uri) as database:
+        assert (await database.client.admin.command("hello")).get("setName"), (
+            "The configured transaction service must support Mongo transactions"
+        )
+        yield database
 
 
 @pytest.fixture

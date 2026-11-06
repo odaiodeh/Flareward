@@ -21,6 +21,14 @@ def test_native_credential_storage_refuses_unencrypted_configuration(settings_cl
         )
 
 
+def test_managed_workflow_source_requires_absolute_path_but_no_vault_key(tmp_path):
+    with pytest.raises(ValidationError, match="absolute directory"):
+        ReceiverSettings(workflow_credential_directory="relative-workflow-access")
+    settings = ReceiverSettings(workflow_credential_directory=tmp_path / "managed")
+    assert settings.workflow_credential_directory == tmp_path / "managed"
+    assert not settings.credential_encryption_key.get_secret_value()
+
+
 @pytest.fixture
 def mounted_secrets(tmp_path, monkeypatch):
     directory = tmp_path / "receiver-secrets"

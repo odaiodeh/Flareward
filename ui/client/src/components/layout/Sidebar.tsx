@@ -297,6 +297,15 @@ export default function Sidebar() {
             status={null}
             isCollapsed={isCollapsed}
           />
+          <NavItem
+            icon={<FaFileAlt className="sidebar-icon" />}
+            label="Human Reviews"
+            to="/reviews"
+            isActive={location === '/reviews' || location.startsWith('/reviews/')}
+            status={null}
+            isCollapsed={isCollapsed}
+          />
+          <NavItem icon={<FaPuzzlePiece className="sidebar-icon" />} label="Programs" to="/programs" isActive={location === '/programs'} status={null} isCollapsed={isCollapsed} />
         </ul>
         
         {viewMode !== 'team' && (

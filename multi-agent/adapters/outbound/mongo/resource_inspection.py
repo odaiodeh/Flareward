@@ -7,12 +7,11 @@ from functools import partial
 from mas.application.elements.exceptions import ElementInspectionError
 from mas.application.elements.validation import ElementValidationResult
 from mas.core.async_work import await_owned
-from mas.core.caller_scope import CallerScope
 from mas.core.enums import ResourceCategory
-from mas.core.identity import Identity
 from mas.domain.element_card import ElementCard
 from mas.resources.builtin_aware_service import BuiltinAwareResourceService
 from mas.resources.errors import ResourceStorageError
+from mas.resources.inspection import InspectionContext
 from mas.resources.resolver import ResourceDependencyError
 from pydantic import JsonValue, ValidationError
 from pymongo.errors import PyMongoError
@@ -39,16 +38,15 @@ async def inspect_async[T](operation: Awaitable[T]) -> T:
         raise ElementInspectionError() from None
 
 
-class StoredResourceInspection:
+class StoredResourceProbe:
     def __init__(self, resources: BuiltinAwareResourceService) -> None:
         self._resources = resources
 
     async def validate(
         self,
         rids: list[str],
-        caller: Identity,
+        context: InspectionContext,
         *,
-        credential_user_id: str = "",
         timeout_seconds: float = 10,
     ) -> list[ElementValidationResult]:
         semaphore = asyncio.Semaphore(10)
@@ -59,9 +57,9 @@ class StoredResourceInspection:
                     return await inspect_async(
                         self._resources.validate_resource_async(
                             rid,
-                            caller=CallerScope(identity=caller),
-                            user_id=caller.id,
-                            credential_user_id=credential_user_id,
+                            caller=context.scope,
+                            user_id=context.owner.id,
+                            credential_user_id=context.credential_user_id,
                             timeout_seconds=timeout_seconds,
                         )
                     )
@@ -71,9 +69,14 @@ class StoredResourceInspection:
         # Drain every started probe even if one fails. Library clients remain owned
         # until all sibling work exits; no request can abandon background probes.
         tasks = [asyncio.create_task(validate_one(rid)) for rid in rids]
+
+        def cancel_tasks() -> None:
+            for task in tasks:
+                task.cancel()
+
         results = await await_owned(
             asyncio.gather(*tasks, return_exceptions=True),
-            on_cancel=lambda: [task.cancel() for task in tasks],
+            on_cancel=cancel_tasks,
         )
         values: list[ElementValidationResult] = []
         for result in results:
@@ -87,10 +90,9 @@ class StoredResourceInspection:
         category: ResourceCategory,
         type_key: str,
         config: dict[str, JsonValue],
-        caller: Identity,
+        context: InspectionContext,
         *,
         name: str | None = None,
-        credential_user_id: str = "",
         timeout_seconds: float = 10,
     ) -> ElementValidationResult:
         return await inspect_async(
@@ -100,13 +102,11 @@ class StoredResourceInspection:
                 config,
                 name,
                 timeout_seconds,
-                caller=CallerScope(identity=caller),
-                user_id=caller.id,
-                credential_user_id=credential_user_id,
+                caller=context.scope,
+                user_id=context.owner.id,
+                credential_user_id=context.credential_user_id,
             )
         )
 
-    async def cards(self, rids: list[str], caller: Identity) -> dict[str, ElementCard]:
-        return await inspect_owned(
-            partial(self._resources.get_cards, rids, caller=CallerScope(identity=caller))
-        )
+    async def cards(self, rids: list[str], context: InspectionContext) -> dict[str, ElementCard]:
+        return await inspect_owned(partial(self._resources.get_cards, rids, caller=context.scope))

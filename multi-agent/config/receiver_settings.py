@@ -1,6 +1,7 @@
 """Receiver-local services and secrets; never included in invocation payloads."""
 
 from enum import StrEnum
+from pathlib import Path
 from typing import Self
 
 from pydantic import AnyHttpUrl, Field, SecretStr, model_validator
@@ -23,6 +24,7 @@ class ReceiverSettings(InteractionSettings):
     server_configs_collection: str = "server_configs"
     credential_encryption_key: SecretStr = SecretStr("")
     configuration_secrets: bool = False
+    workflow_credential_directory: Path | None = None
     tracing: TracingBackend = TracingBackend.DISABLED
     langfuse_public_key: SecretStr = SecretStr("")
     langfuse_secret_key: SecretStr = SecretStr("")
@@ -31,6 +33,11 @@ class ReceiverSettings(InteractionSettings):
 
     @model_validator(mode="after")
     def validate_configuration(self) -> Self:
+        if (
+            self.workflow_credential_directory is not None
+            and not self.workflow_credential_directory.is_absolute()
+        ):
+            raise ValueError("Managed workflow credentials require an absolute directory")
         if self.credentials == CredentialBackend.MONGO and not (
             self.credential_encryption_key.get_secret_value()
         ):

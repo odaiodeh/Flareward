@@ -7,7 +7,7 @@ by infrastructure adapters.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from mas.core.execution_context import ExecutionContext
+from mas.domain.execution.context import ExecutionContext
 from mas.engine.domain.models import GraphDefinition
 from mas.graph.state.graph_state import GraphState
 from mas.session.domain.workflow_session import WorkflowSession

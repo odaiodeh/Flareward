@@ -49,6 +49,8 @@ def discovery_package(tmp_path, monkeypatch):
         ("from .missing_internal import value", ModuleNotFoundError),
         ("raise ImportError('Incompatible installed SDK', name='dependency')", ImportError),
         ("raise ValueError('Invalid plugin declaration')", ValueError),
+        ("import mas_plugins.missing_internal_module", ModuleNotFoundError),
+        ("import mas.missing_internal_module", ModuleNotFoundError),
     ],
 )
 def test_broken_installed_plugins_fail_discovery_instead_of_disappearing(
@@ -66,3 +68,25 @@ def test_an_uninstalled_optional_dependency_keeps_its_adapter_unavailable(discov
     name, root, source = discovery_package
     source.write_text("import unifai_optional_dependency_that_is_not_installed")
     assert SpecDiscoverer(root, package=name).discover() == []
+
+
+def test_explicit_optional_modules_use_the_same_scoped_discovery(discovery_package):
+    name, root, source = discovery_package
+    source.write_text("import unifai_optional_dependency_that_is_not_installed")
+    assert SpecDiscoverer(root, package=name).discover_modules([f"{name}.tools.example.spec"]) == []
+
+
+def test_abstract_spec_bases_are_not_discovered_but_concrete_descendants_are(discovery_package):
+    name, root, source = discovery_package
+    source.write_text(
+        "from support.elements import DependencySpec\n"
+        "class SharedBase(DependencySpec, abstract=True):\n    pass\n"
+        "class Concrete(SharedBase):\n    pass\n"
+    )
+    found = SpecDiscoverer(root, package=name).discover()
+    assert [specification.__name__ for specification in found] == ["Concrete"]
+    assert not found[0].is_abstract
+
+
+def test_graph_contract_module_has_no_installable_base_specifications():
+    assert SpecDiscoverer().discover_modules(["mas.application.programs.graph_elements"]) == []

@@ -1,274 +1,46 @@
 ---
-name: mas-knowledge
-description: >-
-  MAS domain knowledge — architecture, component routing, rules, recipes.
-  Use when working on any file under multi-agent/.
-paths: multi-agent/**
+name: multi-agent
+description: Develop UnifAI's composable program platform, typed operations, resource construction, UI contracts, and Run Engine integration with inward dependencies.
 ---
 
-# MAS Knowledge System
+# UnifAI program platform
 
-The native program-platform migration is active. Use
-[the current architecture and ownership guide](../../../../../docs/program-platform-development.md)
-and [the completion ledger](../../../../../docs/execution-platform-migration.md)
-for the FastAPI/Run Engine path. Older execution/session recipes below describe
-retained legacy-worker areas; they are not instructions to recreate that infrastructure
-in the native platform. Shared domain/application code and construction contracts
-have moved outside the element plugins.
+Start with [current status](../../../../../docs/status.md) and
+[the active plan](../../../../../docs/plan.md). Search/read relevant sections of
+[the target architecture](../../../../../docs/architecture/README.md) and
+[the development guide](../../../../../docs/program-platform-development.md).
+Use [selected evidence](../../../../../docs/evidence/README.md) when needed;
+do not load guides/archives wholesale. Verify the relevant source before edits.
 
-Orchestration engine: blueprint YAML → executable agent graph → runtime engine → streamed results.
+This is a fresh platform. Older stored formats, Flask/LangGraph execution paths,
+old workers, dual APIs, and import aliases are not preservation requirements.
+Convert useful behavior to the target contracts and remove superseded code/tests/
+dependencies. Do not create compatibility fixtures or hold deletion for old-run
+drain. Cancellation/resource draining for active owned work is still required.
 
-## System Graph
+## Ownership
 
-```
-         ┌──────────┐
-         │ BOOTSTRAP│ wires everything
-         └────┬─────┘
-              │
-    ┌─────────┼──────────┐
-    ▼         ▼          ▼
-┌───────┐ ┌────────┐ ┌────────┐
-│SESSION │→│ELEMENTS│→│ ENGINE │    DOMAIN (lib/mas/)
-└───┬───┘ └───┬────┘ └───┬────┘
-    │         │           │
-    ▼         ▼           ▼
-┌──────┐  ┌────────────────────┐
-│ CORE │  │     ADAPTERS       │    OUTER RING
-└──────┘  │ flask, mongo, redis│
-          │ langgraph, temporal│
-          │ gemini, auth       │
-          └────────────────────┘
-```
+- Domain: portable definitions, typed values, identities and pure invariants.
+- Application: use cases, policies, owned ports, catalog and construction.
+- Plugins/adapters: providers, external SDKs, storage, HTTP and engine translation.
+- Bootstrap: explicit registration, settings, dependency injection and lifecycle.
+- Run Engine: scheduling, invocations, children, timers/messages and environments.
+- UI: authoring and observation through the same application contracts.
 
-## File → Component Routing
+Specifications, factories, category builders and dependency bundles are useful
+existing mechanisms. Reuse them; do not create a second registry or runner.
+Typed operations have request/result models and explicit graph bindings.
+Programs compose graph and registered code implementations through runtime ports.
+Keep deployment settings and credentials outside operation behavior/configuration.
 
-| Path prefix | Component |
-|-------------|-----------|
-| `lib/mas/session/` | Session |
-| `lib/mas/elements/`, `catalog/`, `validation/` | Elements |
-| `lib/mas/engine/`, `graph/` | Engine/Graph |
-| `lib/mas/core/` | Core |
-| `lib/mas/resources/`, `lib/mas/blueprints/` | Resources & Blueprints |
-| `lib/mas/collaboration/`, `lib/mas/sharing/` | Resources & Blueprints (edit locks, cloning) |
-| `adapters/` | Adapters |
-| `bootstrap/`, `config/` | Bootstrap |
+Authentication establishes the human; an explicitly selected team is authorized
+at the boundary. Use typed Identity for owner-scoped application operations.
+Authored IDs and execution metadata alone do not prove authority.
 
-## Component Deep-Dives
+## Verification
 
-For detailed component architecture and cross-component contracts:
-
-| Component | Reference |
-|-----------|-----------|
-| Session | `references/session.md` — lifecycle, two-phase execution, ports, boundaries |
-| Elements | `references/elements.md` — plugin system, nodes, tools, LLMs, auto-discovery |
-| Engine/Graph | `references/engine-graph.md` — GraphState channels, plan layers, compilation, executors |
-| Core | `references/core.md` — identity, ExecutionContext, ElementDeps, channels, enums |
-| Resources & Blueprints | `references/resources.md` — registry/service split, built-in resource lifecycle, per-identity overlays, cascade promote/demote, admin edit locks |
-| Adapters | `references/adapters.md` — inbound/outbound structure, conventions |
-| Bootstrap | `references/bootstrap.md` — composition root, config, wiring |
-
-## Task Router
-
-| Working on... | Load |
-|---------------|------|
-| Session lifecycle (create, run, submit, cancel) | `references/session.md` |
-| Nodes, tools, LLMs, providers, retrievers | `references/elements.md` |
-| Graph state channels, compilation, execution | `references/engine-graph.md` |
-| Identity, auth, streaming, enums, ElementDeps | `references/core.md` |
-| Resources, blueprints, built-in admin lifecycle, per-identity overlays | `references/resources.md` |
-| Flask endpoints, Mongo repos, new integrations | `references/adapters.md` |
-| Wiring, config, startup | `references/bootstrap.md` |
-| Crossing component boundaries | Both relevant `references/` files |
-
-## Recipes
-
-| Task | Recipe |
-|------|--------|
-| Add a new agent node | `recipes/add-new-node.md` |
-| Add a new LLM adapter | `recipes/add-new-llm.md` |
-| Add a new tool | `recipes/add-new-tool.md` |
-| Add a new provider | `recipes/add-new-provider.md` |
-
----
-
-## MAS Architectural Rules
-
-### 1. The Import Law
-
-| Code in | Can import `mas.*` | Can import `adapters/` | Can import `bootstrap/` |
-|---------|-------------------|----------------------|------------------------|
-| `lib/mas/` | Yes (own domain) | **Never** | **Never** |
-| `adapters/` | Yes | Yes (own layer) | Never |
-| `bootstrap/` | Yes | Yes | Yes (own layer) |
-
-**Single exception**: `mas.engine.factory.GraphBuilderFactory` uses `importlib.import_module()`
-to lazy-load engine implementations at runtime. No other dynamic or static crossing from domain to adapters is permitted.
-
-### 2. Identity Object — Always
-
-Every operation on user-owned data accepts `Identity` from `mas.core.identity.models`.
-Never raw `user_id` or `team_id` strings **inside the domain** (services, repositories, ExecutionContext).
-
-```python
-class Identity(BaseModel):
-    type: IdentityType   # USER | TEAM
-    id: str
-    display_name: str = ""
-```
-
-Identity flows: Flask decorator resolves Identity → service method(identity=...) → repository scopes by identity.
-All repositories that filter by owner accept `Identity`. `ExecutionContext` carries identity through execution runtime.
-
-**Wire contracts at the Flask / UI boundary (established dual pattern):**
-
-| Contract | Client → MAS | Prefer for |
-|----------|--------------|------------|
-| **New** | Session cookie + optional `teamId` (omit → personal workspace) | New endpoints and new UI API clients. Do not transfer `userId` + `identityType` onto new Flask schemas. |
-| **Legacy** | `userId` + `identityType=team\|user` | Existing blueprints/sessions/resources/etc. still use this; decorator still accepts it. |
-
-Both resolve to the same `Identity`. Coexistence is an intentional migration inconsistency — not a review finding. New code must use the new contract (see `references/adapters.md` → Workspace identity wire contracts).
-
-### 3. Two-Phase Session Execution
-
-Every session execution follows two strictly ordered phases:
-
-```
-STAGE:    SessionInputProjector.apply(record, inputs) → persists → status = QUEUED
-EXECUTE:  manager.get_session(id) → hydrate WorkflowSession → runner.run() → COMPLETED
-```
-
-These phases are never combined. Staging persists inputs before execution begins, guaranteeing crash-recoverability.
-
-### 4. Session Status Machine
-
-```
-PENDING → QUEUED → RUNNING → COMPLETED
-                           → FAILED
-                           → CANCELLED
-Shared-session: LOCKED, IN_USE
-```
-
-No status may be skipped. No backward transitions. New statuses require updating: `SessionStatus` enum, `SessionLifecycle`, repository queries, and the streaming subscribe endpoint.
-
-### 5. Element Auto-Discovery
-
-Elements are discovered from `lib/mas/elements/<category>/<element_name>/spec/`.
-The outbound `SpecDiscoverer` reads classes exported by the actual installed modules.
-`bootstrap.elements.installed_elements()` performs discovery and explicit module
-registration at startup. `mas.application.elements.catalog.element_registry.ElementRegistry` has no
-discovery operation or global singleton; import its class from the `element_registry`
-module. Broken internal/incompatible imports fail startup. Missing optional SDKs
-leave their adapters unavailable.
-
-Required `ClassVar` fields on every spec: `category`, `type_key`, `name`, `description`, `config_schema`, `factory_cls`.
-
-### 6. Service as Public API
-
-Each domain component exposes one service class. All access from outside the component goes through that service — never through repositories or internal modules directly.
-
-A service can still be split into internal collaborators for SRP as it grows — e.g.
-`ResourcesService` composes `ResourceFieldEncryption` internally — as long as the
-outward-facing facade class is the only one external callers import.
-
-A domain can also expose **two** peer facades when it genuinely owns two
-separable concepts: `ResourcesService` (base resource CRUD/validation/cards)
-and `BuiltinResourceService` (built-in descriptor lifecycle, admin CRUD +
-cascade, per-identity overlays) are both public — `builtins.py`/`ShareCloner`
-inject `BuiltinResourceService` directly rather than through `ResourcesService`.
-`ResourcesService` still composes `BuiltinResourceService` internally, but only
-for the small set of built-in-awareness helpers its own CRUD needs, never as a
-pass-through for the admin/overlay surface. See "Established Patterns" in
-`references/resources.md`.
-
-### 7. Composition Root Wiring
-
-All dependency wiring lives in `bootstrap/container.py`. Constructor injection only.
-No service instantiates its own infrastructure dependencies. No global state, no service locator.
-
-### 8. Flask Endpoint Conventions
-
-- Service access: `current_app.container.<service>`
-- Auth decorators: `@with_require_identity_authorization`, `@with_authenticated_user`, `@with_identity`, `@require_admin_access` (all session-backed; resolve workspace `Identity`)
-- Workspace wire: prefer session + optional `teamId`; legacy `userId`+`identityType` still present on older surfaces (see Rule 2 and `references/adapters.md`)
-- Route naming: RPC-style dot-separated (`user.session.create`, `blueprint.save`)
-- Streaming: `Response(generator(), mimetype="application/x-ndjson")` with `X-Accel-Buffering: no`
-- Endpoints are thin: parse request, call service, format response. No business logic.
-
-### 9. Ports Location Convention
-
-| Pattern | Location |
-|---------|----------|
-| Persistence | `lib/mas/<component>/repository/repository.py` or `repository/base.py` |
-| Session execution | `lib/mas/session/execution/ports.py` |
-| Identity authorization | `lib/mas/core/identity/ports.py` |
-| Auth credentials | `lib/mas/core/auth/credentials/ports.py` |
-| Auth strategies | `lib/mas/core/auth/ports.py` |
-| Streaming channels | `lib/mas/core/channels/protocols.py` |
-| Collaboration storage | `lib/mas/collaboration/ports.py` |
-
-All use `ABC` + `@abstractmethod`. Implementations live under `adapters/outbound/`.
-Ports are pure interfaces — no logging, no infrastructure imports, no concrete dependencies. Default method bodies (fallback implementations) are permitted but must stay infrastructure-free.
-
-### 10. ExecutionContext Propagation
-
-`ExecutionContext` (frozen Pydantic model) carries runtime state: identity, scope, engine_name, engine_handle, started_at, tags.
-Created at session creation → updated at staging → carried through `WorkflowSession` → available to nodes via `ElementDeps`.
-Immutable — mutations produce new copies via `with_scope()`, `mark_active()`, `mark_finished()`.
-
----
-
-## Endpoint Groups
-
-| Group | Count | Prefix | Key operations |
-|-------|-------|--------|----------------|
-| Sessions | 15 | `/sessions/` | create, submit, execute, cancel, subscribe, state |
-| Blueprints | 11 | `/blueprints/` | save, update, get, validate, schema |
-| Resources | 11 | `/resources/` | CRUD, validate, cards, schema |
-| Built-ins | 14 | `/resources/` (`builtins_bp`) | admin CRUD, promote/demote/toggle + cascade, schema, per-identity overlays, duplicate, admin edit locks |
-| Catalog | 3 | `/catalog/` | categories, elements, specs |
-| Templates | 11 | `/templates/` | CRUD, instantiate, materialize |
-| Shares | 7 | `/shares/` | create, accept, decline, to_team |
-| Collaboration | 14 | `/collaboration/` | join/leave, presence, edit locks |
-| Graph Validation | 7 | `/graph/validation/` | topology validators |
-| Actions/Stats/etc. | 11 | various | actions, statistics, credentials, health |
-
-## Port → Adapter Wiring
-
-| Port | Adapter | Tech |
-|------|---------|------|
-| `BlueprintRepository` | `MongoBlueprintRepository` | MongoDB |
-| `ResourceRepository` | `MongoResourceRepository` | MongoDB |
-| `SessionRepository` | `MongoSessionRepository` | MongoDB |
-| `ShareRepository` | `MongoShareRepository` | MongoDB |
-| `TemplateRepository` | `MongoTemplateRepository` | MongoDB |
-| `CredentialStore` | `MongoCredentialStore` | MongoDB + Fernet |
-| `ServerConfigStore` | `MongoServerConfigStore` | MongoDB |
-| `FlowStateStore` | `RedisFlowStateStore` | Redis |
-| `ChannelFactory` | `RedisChannelFactory` / `LocalChannelFactory` | Redis Streams / in-proc |
-| `CollaborationStore` | `RedisCollaborationStore` | Redis |
-| `BackgroundSessionEngine` | `TemporalSessionEngine` | Temporal |
-| `IdentityProvider` | `IdentityPodProvider` / `DevProvider` | HTTP / in-proc |
-| `AuthStrategy` | `OAuth2Strategy` / `ApiKeyStrategy` | httpx / in-proc |
-| `BaseGraphBuilder` | `TemporalBuilder` / `LangGraphBuilder` | Temporal / LangGraph |
-| `BuiltinUserConfigRepository` | `MongoBuiltinUserConfigRepository` | MongoDB |
-| `BuiltinResourceDescriptorRepository` | `MongoBuiltinResourceDescriptorRepository` | MongoDB, `$lookup`-joined to `resources` |
-| `AdminConfigReaderPort` | `MongoAdminConfigReader` | MongoDB (backend's `config` DB, read-only — see `references/adapters.md` Established Patterns) |
-
-## MongoDB Collections
-
-| Collection | Key Fields | Notable |
-|------------|-----------|---------|
-| blueprints | blueprint_id, identity, spec_dict, rid_refs | Unique on blueprint_id |
-| workflow_sessions | run_id, identity, blueprint_id, graph_state, status | Compound identity+time index |
-| resources | rid, identity, category, type, name, cfg_dict | Unique on identity+category+type+name. No built-in-related fields — see `builtin_resource_descriptors` |
-| builtin_resource_descriptors | rid, visibility, parent_builtin_id, created, updated | One doc per built-in resource, joined to `resources` by `rid`; existence = "this resource is a built-in" |
-| builtin_user_configs | config_id, resource_id, identity_key, fields (encrypted) | Unique on resource_id+identity_key — one overlay doc per built-in per identity |
-| shares | share_id, sender/recipient_identity, status | TTL auto-expiry on expires_at |
-| templates | template_id, draft, placeholders, metadata | Text search on name+description |
-| credentials | user_id, server_identifier, tokens (encrypted) | Fernet-encrypted tokens |
-| server_configs | server_identifier, client_id/secret, endpoints | OAuth client configurations |
-
-## Factual Reference (optional)
-
-For full endpoint signatures, class architecture, or call graphs beyond the tables above:
-`.cursor/unifai-dev-guide/docs/services/mas.md`
+Use [boundary refactoring](../../../refactor-agent-boundaries/SKILL.md) and
+[platform tests](../../../run-platform-tests/SKILL.md) for relevant checks.
+Verify behavior, cancellation, ownership, actual adapter delivery and UI integration.
+Old generated MAS diagrams and deleted recipes are not architectural authority.
+Do not suppress a defect merely because an old implementation used the pattern.

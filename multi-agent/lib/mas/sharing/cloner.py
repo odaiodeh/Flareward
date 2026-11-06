@@ -97,12 +97,12 @@ class ShareCloner:
         resources_service: ResourceClonePort,
         blueprint_service: BlueprintService,
         element_registry: ElementRegistry,
-        builtin_resource_service: BuiltinDescriptorReader,
+        builtin_descriptors: BuiltinDescriptorReader,
     ):
         self.resources = resources_service
         self.blueprints = blueprint_service
         self.elements = element_registry
-        self.builtin = builtin_resource_service
+        self._descriptors = builtin_descriptors
 
     @staticmethod
     def _recipient_identity(ctx: CloneContext) -> Identity:
@@ -269,7 +269,7 @@ class ShareCloner:
                 # Load and validate resource
                 doc = self.resources.get(rid)
 
-                descriptor = self.builtin.get_descriptor(rid)
+                descriptor = self._descriptors.get(rid)
                 if descriptor is not None:
                     if descriptor.visibility != ResourceVisibility.PUBLIC:
                         raise ShareCloneError(

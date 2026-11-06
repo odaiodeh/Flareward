@@ -1,41 +1,47 @@
-## Overview
+# Native Program platform deployment
 
-This readme refers to the procedure of deploying the multi-agent part of UnifAi.
+The API and durable worker use the same Python 3.14 platform image. Its entrypoint
+is `mas-platform`; the API chart supplies `serve --host 0.0.0.0 --port <service.port>`
+and the worker chart supplies `worker`. No ROLE/Gunicorn/old Temporal CLI is used.
+Build and verify the image using [the package guide](../../multi-agent/README.md#native-service-image).
 
-**NOTE: this readme file refers ONLY to the multiagent deployment. and assume existing deployment of shared resources.**
+Configure existing shared services and private secrets before installation:
 
+- Override `env.UNIFAI_HOST` with the same Temporal endpoint, namespace and task
+  queue on API and worker. The example defaults use `temporal:7233` and do not
+  discover the actual service address.
+- Set `UNIFAI_MONGO_URI` and optional database explicitly. Native configuration
+  does not use old MONGODB_IP/RABBITMQ_IP/BACKEND_ENV settings.
+- Supply the API's `UNIFAI_SECRET_KEY` and `UNIFAI_IDENTITY_URL` through the configured
+  shared Secret/ConfigMap. Use session authentication for the normal UI.
+- Configure native Redis interactions, library/authoring, receiver credentials,
+  encryption and managed workflow access as needed using the package development
+  guide. Keep secrets out of Helm command arguments and committed values.
+- Set the same installed application/element modules, applicable placement policies
+  and credential-purpose settings on API and worker. Configure a suitable durable
+  environment journal when retained remote environments are enabled.
 
-## Deployment procedure
+The charts reference shared ConfigMaps/Secrets and existing storage; they do not
+provision Mongo, Redis, Temporal or private credential delivery. Configure those
+references, image repository/tag and service addresses in deployment values.
 
-### Pre-requisites
-1. this deployment is being deployed on the same cluster of the shared-resources deployment.
-this necessarily means that the mongodb and rabbit are all accessible withing this cluster by unsing thes values below.
-2. all actions are being done from this current folder (unifai/helm/multiagent)
-
-
-in order to deploy the helm please use the procedure below:
-
-1. Login to the cluster you want to deploy the multiagent on.
-
-2. If the shared resources are on the same cluster just run the command 
-```
-helm install <deployment name> ./be
-```
-
-3. If the shared resources are on a different cluster
-
-- If the shared resources are NOT on the same cluster please *create a new yaml file with this content:
-
-```
-env:
-  MONGODB_IP: <mongo db address> 
-  MONGODB_PORT: <mongo db port>
-  RABBITMQ_IP: <rabbitmq address>
-  RABBITMQ_PORT: <rabbitmq port>
+```sh
+helm lint ./be
+helm lint ./temporal-worker
+helm template unifai-api ./be -f deployment-values.yaml
+helm template unifai-worker ./temporal-worker -f deployment-values.yaml
 ```
 
-- now the command will be (assuming the new file was called new_values.yaml):
+After reviewing rendered output, deploy the charts using the normal environment's
+release procedure. Use distinct release names and the same applicable runtime
+configuration. The API probes `/api/health/health` on its configured service port.
+The worker has no HTTP service or port. Its old `pgrep` probes were removed because
+process-name matching does not establish task-queue readiness. Kubernetes still
+restarts a terminated worker process; automated poller-based rollout readiness is
+not implemented here and remains required deployment acceptance work.
 
-```
-helm install <deployment name> -f new_values.yaml ./be
-```
+Chart lint/render and an isolated Local image smoke test are separate from actual
+cluster acceptance. Validate native poller readiness, API/worker recovery, durable
+journals, replicas, private receiver delivery, isolation and cleanup before claiming
+production Kubernetes/OpenShell readiness. The old service modules still awaiting
+behavior migration/retirement are tracked in the active platform plan.

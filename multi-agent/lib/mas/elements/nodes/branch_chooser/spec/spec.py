@@ -1,4 +1,4 @@
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..branch_chooser import BranchChooserNode
@@ -7,7 +7,7 @@ from ..config import BranchChooserNodeConfig
 from ..identifiers import META, Identifier
 
 
-class BranchChooserNodeElementSpec(BaseElementSpec):
+class BranchChooserNodeElementSpec(GraphElementSpec):
     """Element specification for Branch Chooser Node."""
 
     category = ResourceCategory.NODE

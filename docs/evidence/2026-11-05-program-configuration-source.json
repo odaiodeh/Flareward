@@ -1,0 +1,41 @@
+{
+  "scope": "Focused Program configuration presentation, client, browser fixture and existing capture boundary; not a complete dependency/image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/adapters/inbound/http_api/resources.py": "1211e7d3692ae61b4be81633035ad657ede69cba52ca295d9841f4ab78e68ae8",
+    "multi-agent/lib/mas/application/elements/construction/snapshots.py": "3ee5577e92692bc0b7fc1feaa02fbcb0d2f7867e2039e0c9cae1f01b747d9a65",
+    "multi-agent/tests/integration/ui/test_editor_client.py": "862e85ab2d2198b3aa63822410921f894ae092fb0cf98d9b16a20df858154571",
+    "multi-agent/tests/support/placement_browser.py": "c6fdac61fd4ff462fd2deb068f69bf7ac118bf991c38b82c5da7c3e5218b6d22",
+    "multi-agent/tests/support/program_browser.py": "6dc938eaebb923f608b4acfcd8373cfd13c9edcecded8c4ebadad248667880df",
+    "multi-agent/tests/support/server.py": "d8ea077cfb1fdce8e24b9acb7ca5b8513a5c41c92992294cf8035ce908a5b5e5",
+    "multi-agent/tests/support/workspace_browser.py": "4d35933adcbb97cb7d4bc9592e2a3a1aac4a12ebc666efa2adb41d6db004a275",
+    "ui/client/src/api/programs.ts": "8e9b04fa9cc55ebdd444986468643d0edf4aa2a7dac9fb1a2b71e3272e4f2a75",
+    "ui/client/src/api/resources.ts": "85bfcd7e22c46aec7a501eb112171407d578c5cc5288302cb1222c5bbb29e1aa",
+    "ui/client/src/components/resources/ResourceBundleField.tsx": "eabb8aceb206d06bddab6e6c5c701cdfea9376ee1ace09d8b74abf3d66d06134",
+    "ui/client/src/components/resources/SavedResourcePicker.tsx": "389d500bb09d9f2bba2d707dc432d3c9b1da8318fa3465d5686b95ab11717522",
+    "ui/client/src/components/schema/JsonField.tsx": "2f3775052316aff43c34e03b1a395205c0c64b4f136e6c5e6695e4fe9ba7fbc3",
+    "ui/client/src/components/schema/SchemaValue.tsx": "27d3e780d4a9d869520b0b86454626943f023b04703170a43f85ed5957892800",
+    "ui/client/src/components/schema/schema.ts": "dbbee653b0b87349384a50544eed6f99f9d2fb5a13bcead7fe635d41ebc4cca7",
+    "ui/client/src/features/programs/ExecutionSelectionFields.tsx": "35d87d7bb647e1398b8878ff1f228fb80093dd5da1ff8a9af4fed1a719268988",
+    "ui/client/src/features/programs/ProgramConfiguration.tsx": "8acc650353a168411d86a9c96f7b0100791e6de566de97109450d1883e758808",
+    "ui/client/src/features/programs/ProgramEditor.tsx": "cf6a3d45fc1828b4bba5adefe33304f062a188b8814d3648bfd352ab540ce6c4",
+    "ui/client/src/features/programs/ProgramGraphEditor.tsx": "e44e5ec6ef3a1c134c6e8e717abd5f606f6241a0ce940b9f2adadfae48261d9a",
+    "ui/client/src/features/programs/ProgramRun.tsx": "bfdc0614da1732dbb0b55305f08e1528394dcbf9b572538a125ba81a997b0fb6",
+    "ui/client/src/features/programs/ResourcePicker.tsx": "4b5f233ad80d68786ddb2a4bec906ba66a792c394c97b4a6d9a5077eb9d3e209",
+    "ui/client/src/features/programs/authoring.ts": "fc958f5d06d3b565e8fb7ab8a52af545fdd2aec85264da0311dd35241c17aeb6",
+    "ui/client/src/features/programs/graph-authoring.ts": "d7c1524d5de309344ac403dc14dd349280db847cb25bb1c4f946a4d7356d3620",
+    "ui/shared/json.ts": "06fdd7290d2967b1614ad624e9a7830b2eb59509e3cae7b63ef0af52846d11e8",
+    "ui/tests/build-placement-browser.mjs": "2e160c196f6e6c3266eb78a8261e90dfe69742df303f5507271da3e4f4ff2e8c",
+    "ui/tests/run-api-contracts.mjs": "b437e314b570c956c18572ce746ba3cfa62ad5e60e56c02d84c3e21a8f50d0cf",
+    "ui/tests/ui-contracts.ts": "2f4374f9160751803feb109b055e41e5b98872639f8a6b19da91a742d780e436",
+    "ui/tests/workspace-browser.tsx": "433eb758c1e6b7ba2922f21e6fac26488c390a27adbceaa986b8d10ba1ecdc1c"
+  },
+  "aggregate_sha256": "939e2c698af94cdeb24a0b6e3eeef27a607013d12b8da0030b57f63101cbec5f",
+  "artifacts": {
+    "docs/evidence/assets/2026-11-05-program-configuration.jpg": "d29dad2bf903772303adbbea4a1b0261e2d575db90d95aa4c8afe16e7286cd74"
+  },
+  "build": {
+    "workspace_browser_script": "workspace-browser-8SayX_Oo.js",
+    "sha256": "944e17c6f2998a230898d8b2af197d5a19aa9e77d2cf59e02142255cfc1688ae"
+  }
+}

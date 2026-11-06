@@ -1,4 +1,4 @@
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..card_builder import DeepAgentCardBuilder
@@ -9,7 +9,7 @@ from ..identifiers import META, Identifier
 from ..validator import DeepAgentNodeValidator
 
 
-class DeepAgentNodeElementSpec(BaseElementSpec):
+class DeepAgentNodeElementSpec(GraphElementSpec):
     """Element specification for Deep Agent Node."""
 
     category = ResourceCategory.NODE

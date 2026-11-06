@@ -7,8 +7,11 @@ from mas.application.elements.construction.builder import ElementBundleBuilder
 from mas.application.elements.construction.resolver import ElementBundleResolver
 from mas.application.elements.construction.secrets import ConfigurationSecrets
 from mas.application.elements.exceptions import PluginConfigurationError
+from mas.application.execution.context import ExecutionContextHolder
+from mas.application.execution.ports import ExecutionError
 from mas.core.element_deps import ElementBuildContext
-from mas.core.execution_context import ExecutionContext, ExecutionContextHolder
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import ExecutionFailure, FailureKind
 from support.application import make_application
 from support.elements import DependencyFactory, TextResource, element_registry
 from support.scenarios import resource
@@ -88,7 +91,10 @@ async def test_cancelled_preparation_drains_before_resource_cleanup(preparation_
     assert events == ["prepare:blocked", "drained:blocked", "close:blocked"]
 
 
-async def test_private_preparation_errors_are_masked_and_the_resource_is_closed(monkeypatch):
+@pytest.mark.parametrize("infrastructure", [False, True])
+async def test_private_preparation_errors_are_masked_and_the_resource_is_closed(
+    monkeypatch, infrastructure
+):
     store = MemorySecretStore()
     application = make_application(store)
     source = resource(
@@ -110,6 +116,15 @@ async def test_private_preparation_errors_are_masked_and_the_resource_is_closed(
         instance = original(factory, config, **dependencies)
 
         async def prepare():
+            if infrastructure:
+                raise ExecutionError(
+                    ExecutionFailure(
+                        kind=FailureKind.INFRASTRUCTURE,
+                        retryable=True,
+                        message="SDK error exposes " + config.api_key,
+                        code=config.api_key,
+                    )
+                )
             raise ValueError("SDK error exposes " + config.api_key)
 
         instance.prepare_element = prepare
@@ -117,7 +132,9 @@ async def test_private_preparation_errors_are_masked_and_the_resource_is_closed(
         return instance
 
     monkeypatch.setattr(SecretToolFactory, "create", create)
-    with pytest.raises(ValueError, match="Element construction failed") as error:
+    with pytest.raises(
+        ExecutionError if infrastructure else ValueError, match="Element construction failed"
+    ) as error:
         async with ElementBundleBuilder(application.elements).build(
             bundle,
             ElementBuildContext(execution_ctx=holder, configuration_secrets=store),
@@ -126,3 +143,6 @@ async def test_private_preparation_errors_are_masked_and_the_resource_is_closed(
     assert closed == [True]
     assert "private-prepare-value" not in str(error.value)
     assert error.value.__suppress_context__
+    if infrastructure:
+        assert error.value.failure.kind == FailureKind.INFRASTRUCTURE
+        assert error.value.failure.retryable and error.value.failure.code is None

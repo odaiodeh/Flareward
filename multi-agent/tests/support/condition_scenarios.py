@@ -1,11 +1,12 @@
 """Shared graph data is independent of engine and transport test harnesses."""
 
 from mas.core.enums import ResourceCategory
-from mas.programs.models import (
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ConditionalRoute,
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
+    GraphWritePolicy,
     PathBinding,
 )
 from pydantic import JsonValue
@@ -35,6 +36,7 @@ def routing_graph(
         "condition", category=ResourceCategory.CONDITION, type_key=type_key, config=config
     )
     return GraphDefinition(
+        write_policy=GraphWritePolicy.REDUCE,
         resources=(*outputs, condition),
         steps=tuple(ElementStep(uid=item.key.rid, element=item.key) for item in outputs),
         edges={"yes": ("finish",), "no": ("finish",)},

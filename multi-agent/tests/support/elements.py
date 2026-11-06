@@ -7,6 +7,7 @@ from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
 from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.ref.models import ToolRef
 from mas.elements.conditions.router_boolean.spec.spec import RouterBooleanConditionElementSpec
@@ -16,6 +17,7 @@ from mas.graph.state.state_view import StateView
 from pydantic import BaseModel, ConfigDict
 
 from support.approval import ApprovalSpec
+from support.operations import TextSpec
 from support.recovery import EffectSpec
 from support.secrets import SecretNodeSpec, SecretToolSpec
 
@@ -89,7 +91,7 @@ class EchoFactory(BaseFactory):
         return EchoNode(dependencies["dependency"], cfg.prefix)
 
 
-class EchoSpec(BaseElementSpec):
+class EchoSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_echo"
     name = "Test echo"
@@ -120,7 +122,7 @@ class AsyncEchoFactory(BaseFactory):
         return AsyncEchoNode(dependencies["dependency"], cfg.prefix)
 
 
-class AsyncEchoSpec(BaseElementSpec):
+class AsyncEchoSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_async_echo"
     name = "Async echo"
@@ -139,6 +141,7 @@ ELEMENT_SPECIFICATIONS = (
     EffectSpec,
     SecretToolSpec,
     SecretNodeSpec,
+    TextSpec,
 )
 
 

@@ -1,4 +1,5 @@
 import { getCategoryDisplay, getCategoryDisplayName } from "@/components/shared/helpers";
+import type { ResourceExecutionDefaults } from "@/types/workspace";
 
 export const DROPDOWN_BG = "bg-[#1a1a2e] border-gray-700";
 
@@ -30,6 +31,8 @@ export function getCategoryMeta(key: string) {
 
 export interface ResourceItem {
   rid: string;
+  version: number;
+  execution?: ResourceExecutionDefaults;
   name: string;
   type: string;
   config: any;

@@ -1,5 +1,8 @@
 /** UI-owned contracts use plain data and transport doubles, without a browser or LLM. */
 import assert from 'node:assert/strict';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import SchemaValue from '../client/src/components/schema/SchemaValue';
 import axios from '../client/src/http/axiosAgentConfig';
 import { acquireTeamEditLock, heartbeatTeamEditLock, releaseTeamEditLock } from '../client/src/api/collaborationEditLock';
 import { getSessionState } from '../client/src/api/sessions';
@@ -15,6 +18,60 @@ import type { ElementSchema } from '../client/src/types/workspace';
 import { applyWorkflowPlacement, workflowPlacement } from '../client/src/lib/workflow-placement';
 import { reconstructBlueprintGraph } from '../client/src/hooks/use-load-blueprint';
 import type { YamlFlowState } from '../client/src/types/graph';
+import type { JsonObject } from '../shared/json';
+import { configurationDefaults } from '../client/src/features/programs/authoring';
+import { initialSchemaInput, resolveSchema } from '../client/src/components/schema/schema';
+import { verifyProgramGraphEditing } from './program-graph-contracts';
+import { verifyArtifactContracts } from './artifact-contracts';
+
+function verifyProgramConfigurationSchemas() {
+  assert.deepEqual(initialSchemaInput({ type: 'array' }), []);
+  assert.equal(initialSchemaInput({ type: 'boolean' }), null);
+  const defaultInput: JsonObject = { $defs: { Input: { type: 'object', default: { criteria: ['test'] } } }, $ref: '#/$defs/Input' };
+  const copied = initialSchemaInput(defaultInput) as JsonObject;
+  (copied.criteria as string[]).push('review');
+  assert.deepEqual(initialSchemaInput(defaultInput), { criteria: ['test'] });
+  const schema: JsonObject = {
+    $defs: { Policy: { type: 'string', enum: ['required', 'optional'] }, Recursive: { anyOf: [{ $ref: '#/$defs/Recursive' }, { type: 'null' }] } },
+    properties: { policy: { $ref: '#/$defs/Policy', default: 'required' }, options: { type: 'object', default: { checks: ['test'] } } },
+  };
+  assert.deepEqual(resolveSchema(schema, { $ref: '#/$defs/Policy', default: 'required' })?.enum, ['required', 'optional']);
+  assert.equal(resolveSchema(schema, { $ref: 'https://example.invalid/schema' }), null);
+  assert.equal(resolveSchema(schema, { $ref: '#/$defs/Recursive' }), null);
+  const descriptor = { key: 'engineering', version: '1', name: 'Engineering', description: '', configuration_schema: schema, input_schema: null, output_schema: null };
+  const first = configurationDefaults(descriptor);
+  assert.deepEqual(first, { policy: 'required', options: { checks: ['test'] } });
+  (first.options as { checks: string[] }).checks.push('review');
+  assert.deepEqual(configurationDefaults(descriptor).options, { checks: ['test'] });
+
+  const nested: JsonObject = {
+    type: 'object', additionalProperties: false,
+    $defs: { Rule: { type: 'object', title: 'InternalRuleModel', properties: { text: { type: 'string', title: 'Acceptance criterion' } }, required: ['text'] } },
+    properties: {
+      criteria: { type: 'array', title: 'Criteria', items: { $ref: '#/$defs/Rule' }, maxItems: 2 },
+      optional: { type: 'string', title: 'Optional note' },
+      dynamic: { anyOf: [{ type: 'string' }, { type: 'object' }] },
+    }, required: ['criteria', 'dynamic'],
+  };
+  const values = { criteria: [{ text: '<script>unsafe()</script>' }], dynamic: { variant: 'custom' } };
+  const before = JSON.stringify(values);
+  const rendered = renderToStaticMarkup(React.createElement(SchemaValue, {
+    schema: nested, label: 'Feature input', value: values, onChange: () => assert.fail('Rendering changed input'),
+  }));
+  assert.ok(rendered.includes('Acceptance criterion'));
+  assert.ok(rendered.includes('Configure Optional note'));
+  assert.ok(rendered.includes('Add Criteria'));
+  assert.ok(rendered.includes('variant'));
+  assert.ok(!rendered.includes('InternalRuleModel'));
+  assert.ok(!rendered.includes('<script>unsafe'));
+  assert.equal(JSON.stringify(values), before);
+
+  const recursive: JsonObject = { type: 'object', properties: { child: { $ref: '#' } }, required: ['child'] };
+  const fallback = renderToStaticMarkup(React.createElement(SchemaValue, {
+    schema: recursive, label: 'Recursive input', value: {}, onChange: () => assert.fail('Rendering changed input'),
+  }));
+  assert.ok(fallback.includes('textarea'));
+}
 
 function verifyWorkflowPlacement() {
   const flow: YamlFlowState = {
@@ -136,6 +193,9 @@ async function verifySessionOutputContract() {
 }
 
 export default async function verifyUiContracts() {
+  await verifyArtifactContracts();
+  verifyProgramConfigurationSchemas();
+  verifyProgramGraphEditing();
   verifyWorkflowPlacement();
   verifyResourceEditorBoundaries();
   verifyGraphReferences();

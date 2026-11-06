@@ -13,11 +13,12 @@ Used by:
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
-from mas.core.execution_context import ExecutionContext
+from mas.application.execution.models import StartExecution
 from mas.core.identity import Identity
-from mas.execution.models import StartExecution
+from mas.domain.execution.access import WorkflowAccessApproval
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.programs.models import Bindings, ProgramRef
 from mas.graph.state.graph_state import GraphState
-from mas.programs.models import Bindings, ProgramRef
 from mas.session.domain.models import SessionMeta
 from mas.session.domain.status import SessionStatus
 
@@ -36,6 +37,7 @@ class SessionRecord(BaseModel):
     version: int = Field(default=0, ge=0)
     active_execution_id: str | None = None
     execution_request: StartExecution | None = None
+    workflow_access_approval: WorkflowAccessApproval | None = None
     active_inputs: dict[str, JsonValue] = Field(default_factory=dict)
     cancellation_requested: bool = False
     approval_rules_revision: int = Field(default=0, ge=0)
@@ -48,6 +50,6 @@ class SessionRecord(BaseModel):
         """The background workflow handle (Temporal workflow ID, Celery task ID, etc.)."""
         return self.run_context.engine_handle
 
-    def update_context(self, **updates) -> None:
+    def update_context(self, **updates: JsonValue) -> None:
         """Apply updates to the frozen ExecutionContext."""
         self.run_context = self.run_context.model_copy(update=updates)

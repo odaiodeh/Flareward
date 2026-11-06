@@ -178,6 +178,7 @@ class TemporalProgramSchedules:
         )
         return ProgramScheduleView(
             definition=registration.definition,
+            authorization_id=registration.authorization_id,
             status=ScheduleStatus.COMPLETED
             if complete
             else ScheduleStatus.PAUSED
@@ -219,6 +220,18 @@ class TemporalProgramSchedules:
             if memo is None or not Identity.model_validate(memo).owns(owner):
                 raise PermissionError(schedule_id)
             return await self._view(description)
+
+    async def registration(self, schedule_id: str, owner: Identity) -> ScheduleRegistration:
+        async with calendar_errors(schedule_id):
+            description = (
+                await (await self._connect())
+                .get_schedule_handle(_PREFIX + schedule_id)
+                .describe(rpc_timeout=_RPC_TIMEOUT)
+            )
+            memo = await description.memo_value(_OWNER_MEMO, None)
+            if memo is None or not Identity.model_validate(memo).owns(owner):
+                raise PermissionError(schedule_id)
+            return await self._registration(description)
 
     async def list(self, owner: Identity, *, limit: int) -> list[ProgramScheduleView]:
         result = []

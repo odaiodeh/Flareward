@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 import pytest
-from mas.execution.service import ExecutionService
+from mas.application.execution.service import ExecutionService
 from outbound.memory.execution_repository import MemoryExecutionRepository
 from outbound.run_engine.compiler import ProgramCompiler
 from outbound.run_engine.gateway import RunEngineGateway

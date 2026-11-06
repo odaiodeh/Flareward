@@ -1,0 +1,62 @@
+{
+  "scope": "Focused bounded handoff and live Local/OpenShell HTTP feature journey, before warning-only fixture refinement",
+  "files": {
+    "multi-agent/lib/mas/application/artifacts/content_operations.py": "e46efa33f3e31a1e30ba533dc5179f04f809f45c57b93ef7f19c3efb28bae5c8",
+    "multi-agent/lib/mas/application/artifacts/inline_content.py": "38c987fda40418a0be913397f7e9e712bfa5beea1b34c8bc3861be2eb56cc555",
+    "multi-agent/lib/mas/application/artifacts/operations.py": "03d70b449109ead5e62da0390f71198ee7c86d38b5ef71c91039ddefb32fd0c4",
+    "multi-agent/lib/mas/application/artifacts/ports.py": "407b00ca6c54e7633114bffc7e5bbf1ae9fed62665e095815418f6d93b6f2ff7",
+    "multi-agent/lib/mas/application/artifacts/preparation.py": "2838122412da1c8f59c36b4c3876d69646a43305e6917c46b295d7cc6297baaa",
+    "multi-agent/lib/mas/application/coding/contracts.py": "2d536eb2c33dd3f4340cc0a611c6b146a629a2d43d90c5abfa4be0595fc30008",
+    "multi-agent/lib/mas/domain/artifacts.py": "2c102fb07d2e6813dbfffde78818a121de79e604c0ffae9ba1b998ac0b63a467",
+    "multi-agent/lib/mas/domain/files.py": "16440966f5649bcb7e1f2f182adcc97bd15d9602e930631330658e161252ab92",
+    "multi-agent/plugins/mas_plugins/artifacts/filesystem.py": "67a51132ebc228948ebc67005b7d8bdf7baf5658bf57f6c7d9c1e5a17be06875",
+    "multi-agent/plugins/mas_plugins/artifacts/specification.py": "7f21eb608b6f518ce83a410ce24c056163e94307f8ce3a8812406551222e6b79",
+    "multi-agent/plugins/mas_plugins/engineering/coding.py": "61c063ec3028bab5c5d69e530e11f70ca0f883327f82af6e41ab0f233f4f17ba",
+    "multi-agent/tests/application/test_coding_file_candidate.py": "2ea80e768da58285bccb8290fb15ea8171c521cd59cbdd10f2b6484ff0e91bba",
+    "multi-agent/tests/application/test_coding_operation.py": "cc739a7876416df2b3b8c1e8c66578a4bf2055954653f312ddb717458c62c89b",
+    "multi-agent/tests/application/test_content_transfer.py": "baae675f9a9bccaa721fefd0b61735ddb1e42774fbc7f442e93efdcca8ca1cf5",
+    "multi-agent/tests/domain/test_artifacts.py": "87089758a0ff14ea445611d656aac305345a7cd3c4b33efeb8ca1c0dbfbf216c",
+    "multi-agent/tests/integration/coding/test_artifact_handoff.py": "90330ad742df04a0b0dd760bdaa931516cc74226259aa4e13a754e058fd12d0e",
+    "multi-agent/tests/integration/coding/test_feature_workflow.py": "5db8625c76925c9d31e79d41cab6e31285e500acc963bcae49b5bddd6be6654e",
+    "multi-agent/tests/integration/deployment/test_live_feature.py": "2917851560ce474ab523e1eaae53162c8022e68a6a0a3774569f5c3f4e3576a6",
+    "multi-agent/tests/support/artifacts.py": "f301419b21acc39a80bd280b4f2ef3ca63d3371823d78c43dfdf506f3d9b2697",
+    "multi-agent/tests/support/coding_resources.py": "b8fa0cd705ba0c22662a5518bea38f277cb597a25306d1e9dd90b80031b60f01",
+    "multi-agent/tests/support/engineering_api.py": "e51bcd1d2ae62a99471e98ed528159b59abdab285dead73ad5c40b1f4f92b04f",
+    "multi-agent/tests/support/feature_api.py": "56e109c55f7bf11860c723a97e74a78cffc5c4fbce7fd8ffe4ab30f30941d0d1",
+    "multi-agent/tests/support/live_feature.py": "d6a02c6eea58d85a06875d1916acc30b74c62ab7070358763ffd8f82910cf3c2",
+    "multi-agent/tests/support/operations.py": "4e0d5d5757397792c01c9b52445e73d15662d6171f3422c0b0afba7192778e77",
+    "multi-agent/tests/support/review_api.py": "0bf5c7bceb76846ceed8df8327aca416d9fada6832834eb20890ee9bfa2ebe17"
+  },
+  "aggregate_sha256": "5e2faffc4167cfb44789c340dc36aae220258d6d98528ea80b7847de9f800c6b",
+  "live": {
+    "execution_id": "de8cee36144440debe7876d8692085f8",
+    "outcome": "verified",
+    "attempts": 1,
+    "candidate": {
+      "sha256": "4ba6c8881970c15c36e02f5784c3ea2713b519d51b02afdaf39c13e3e95189da",
+      "size_bytes": 33,
+      "artifact_id": "d2be1a525887243d0a5757c1d0288517eb69e2d6b71f3bde8cd354ad21beef58"
+    },
+    "model": "gpt-5.4-nano",
+    "provider_credential_public_data_audit_passed": true,
+    "retrieval_after_compute_deletion": true,
+    "seconds": 34.59
+  },
+  "images": {
+    "unifai-sandbox:content-handoff-20261106": "sha256:cd0a96ee7401c3813069381ccbbefe6e583e535fcb556f278da4b295ef994fdf",
+    "unifai-codex:content-handoff-20261106": "sha256:94fbdffd48efff2e39a1098fcf5b150d80296d377a5a8e72bddf7cb4bb10ccaa"
+  },
+  "matched_python_files_per_image": 1395,
+  "run_engine_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "post_gate_fixture_correction": {
+    "files": {
+      "multi-agent/tests/support/live_feature.py": "1612414ada4f713620465f0099e863bc2670bbc4f0f15757d7dc327efab4de85",
+      "multi-agent/tests/adapters/test_candidate_profiles.py": "9f25035b477e8889e20f9cccfc4bffc311bb764fcf17d96373b5d3adb51b4ec8"
+    },
+    "focused_profile_tests_passed": 3,
+    "seconds": 0.72,
+    "serialized_profile_unchanged": true,
+    "current_production_runtime_files_matched_per_image": 1283,
+    "paid_gate_repeated": false
+  }
+}

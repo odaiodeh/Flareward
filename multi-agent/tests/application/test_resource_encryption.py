@@ -9,16 +9,17 @@ from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.blueprints.repository.repository import BlueprintRepository
 from mas.core.enums import ResourceCategory
 from mas.core.field_hints import ReadOnlyHint
+from mas.resources.authoring import (
+    BuiltinConfigurationRepository,
+    ResourceAuthoringRepository,
+    ResourceAuthoringService,
+    ResourceRecord,
+)
 from mas.resources.builtin_models import BuiltinResourceDescriptor
-from mas.resources.builtin_service import BuiltinResourceService
 from mas.resources.field_encryption import ResourceFieldEncryption
 from mas.resources.models import ResourceQuery
 from mas.resources.registry import ResourcesRegistry
 from mas.resources.repository.base import ResourceRepository
-from mas.resources.repository.builtin_resource_descriptor_repository import (
-    BuiltinResourceDescriptorRepository,
-)
-from mas.resources.repository.builtin_user_config_repository import BuiltinUserConfigRepository
 from mas.resources.service import CoreResourceService
 from pydantic import BaseModel, Field, SecretStr, ValidationError
 from support.secrets import MemoryCipher
@@ -100,7 +101,7 @@ def test_unsupported_resource_sort_fields_are_rejected(application):
         ResourceQuery(identity=application.owner, sort_by="arbitrary.database.path")
 
 
-def test_retained_core_and_builtin_overlay_writes_preserve_aliased_secretstr(application):
+async def test_core_and_native_overlay_writes_preserve_aliased_secretstr(application):
     class Configuration(BaseModel):
         token: SecretStr = Field(
             alias="apiKey", json_schema_extra=ReadOnlyHint(read_only=False).to_hints()
@@ -126,13 +127,17 @@ def test_retained_core_and_builtin_overlay_writes_preserve_aliased_secretstr(app
     assert "base-private" not in resource.model_dump_json()
     repository.get.return_value = resource
     assert core.resolve(resource.rid).token.get_secret_value() == "base-private"
-    descriptors = create_autospec(BuiltinResourceDescriptorRepository, instance=True)
-    descriptors.get.return_value = BuiltinResourceDescriptor(rid=resource.rid, visibility="public")
-    overlays = create_autospec(BuiltinUserConfigRepository, instance=True)
+    authoring = create_autospec(ResourceAuthoringRepository, instance=True)
+    authoring.get.return_value = ResourceRecord(
+        resource=resource,
+        descriptor=BuiltinResourceDescriptor(rid=resource.rid, visibility="public"),
+    )
+    overlays = create_autospec(BuiltinConfigurationRepository, instance=True)
     overlays.get.return_value = None
-    builtin = BuiltinResourceService(registry, elements, fields, descriptors, overlays)
-    builtin.configure_builtin(resource.rid, application.owner, {"apiKey": "caller-private"})
-    written = overlays.save.call_args.args[0]
+    overlays.replace.return_value = True
+    builtin = ResourceAuthoringService(authoring, elements, fields, overlays)
+    await builtin.configure(resource.rid, application.owner, config={"apiKey": "caller-private"})
+    written = overlays.replace.call_args.args[1]
     assert "caller-private" not in written.model_dump_json()
     assert fields.decrypt(written.fields) == {"token": "caller-private"}
     assert fields.scan_schema_hints(ResourceCategory.TOOL, "fixture") == ({"token"}, {"token"})

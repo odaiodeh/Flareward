@@ -1,18 +1,15 @@
 import { useId } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { catalogService } from '@/api/catalog';
+import { useExecutionProfiles } from '@/hooks/use-execution-profiles';
 
 interface Props {
+  teamId?: string;
   value: string;
   onChange: (profile: string) => void;
 }
 
-export function ExecutionProfileField({ value, onChange }: Props) {
+export function ExecutionProfileField({ value, onChange, teamId }: Props) {
   const id = useId();
-  const { data, isPending, isError } = useQuery({
-    queryKey: ['execution-profiles'],
-    queryFn: ({ signal }) => catalogService.fetchExecutionProfiles(signal),
-  });
+  const { data, isPending, isError } = useExecutionProfiles(teamId);
   const unavailable = !!value && !!data && !data.profiles.includes(value);
   return (
     <div className="space-y-2 border-t border-gray-800 pt-4">

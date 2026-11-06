@@ -2,8 +2,8 @@
 
 from datetime import UTC, datetime, timedelta
 
-from mas.core.execution_context import ExecutionContext
 from mas.core.identity import Identity
+from mas.domain.execution.context import ExecutionContext
 from mas.session.domain.dto import SessionListFilter
 from mas.session.domain.session_record import SessionRecord
 from mas.session.execution.session_store import SessionStore

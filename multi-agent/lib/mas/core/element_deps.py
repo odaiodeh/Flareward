@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 
+from mas.application.access.credentials import WorkflowCredentialSource
+from mas.application.execution.context import ExecutionContextHolder
 from mas.core.auth.service import AuthService
-from mas.core.execution_context import ExecutionContextHolder
 from mas.core.platform_config import PlatformConfig
 from mas.core.secrets import ConfigurationSecretStore
 from mas.core.tracing import TracingService
@@ -24,3 +25,4 @@ class ElementBuildContext:
     platform_config: PlatformConfig | None = field(default=None)
     tracing_service: TracingService | None = field(default=None)
     configuration_secrets: ConfigurationSecretStore | None = None
+    workflow_credentials: WorkflowCredentialSource | None = None

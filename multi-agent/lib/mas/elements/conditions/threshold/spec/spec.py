@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..config import ThresholdConditionConfig
@@ -9,7 +9,7 @@ from ..threshold import ThresholdCondition
 from ..threshold_factory import ThresholdConditionFactory
 
 
-class ThresholdConditionElementSpec(BaseElementSpec):
+class ThresholdConditionElementSpec(GraphElementSpec):
     """Element specification for Threshold Condition."""
 
     category: ClassVar[ResourceCategory] = ResourceCategory.CONDITION

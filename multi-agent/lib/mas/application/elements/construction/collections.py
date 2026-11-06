@@ -14,3 +14,4 @@ class ResourceCollections(Protocol):
     sandboxes: Iterable[ResourceSpec]
     nodes: Iterable[ResourceSpec]
     conditions: Iterable[ResourceSpec]
+    operations: Iterable[ResourceSpec]

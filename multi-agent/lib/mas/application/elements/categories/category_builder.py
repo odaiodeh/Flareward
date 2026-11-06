@@ -104,7 +104,7 @@ class CategoryBuilder(ABC):
 
         raw = resource_spec.config.model_dump(exclude_unset=True)
         try:
-            validated = schema_cls(**raw) if schema_cls else raw
+            validated = schema_cls.model_validate(raw, by_name=True) if schema_cls else raw
         except ValidationError as ve:
             raise PluginConfigurationError(
                 f"Config validation failed for {self.category}/{resource_spec.type}: {ve}", raw

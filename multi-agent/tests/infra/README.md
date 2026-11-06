@@ -7,6 +7,14 @@ The dispatcher uses Python 3.14 and the committed Run Engine baseline described
 in [development](../../../docs/program-platform-development.md). Rebuild receiver
 images after SDK/source changes; do not apply archived prototype patches.
 
+Use this setup/build/deployment workflow at planned milestones, not after every
+edit. Reuse prepared services and batch related source changes before rebuilding
+receivers or running Kubernetes/OpenShell and broad recovery/E2E suites. Use
+focused checks during implementation. Follow the user's
+[verification cadence](../../../docs/plan.md#verification-cadence);
+unchanged policy/provider suites can wait for their own milestone. Current-image
+evidence is still required when the selected remote gate runs.
+
 ```sh
 .venv/bin/python -m pip install -e '../run-engine[kubernetes,openshell,temporal]'
 .venv/bin/python -m pip install -e './multi-agent[e2e]'
@@ -19,16 +27,46 @@ export UNIFAI_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234
 ```
 
 The default stack exposes Mongo on 27018, Redis on 6380, and Temporal on 7234,
-all on loopback. These ports differ from the usual development services. Core
+all on loopback. Run broad regression and remote deployment gates sequentially on
+memory-constrained Docker hosts. If both direct health checks and fixtures time
+out, diagnose the dedicated stack before rerunning; raising test timeouts does
+not establish correctness. Do not restart the user's whole Docker environment or
+stop unrelated containers to recover this stack.
+These ports differ from the usual development services. Core
 ports can be overridden through `UNIFAI_E2E_{MONGO,REDIS,TEMPORAL}_PORT`; update
 the corresponding test URIs too. Inspect existing resources before starting a
 stack. Never stop another project's services to free a port.
 
+## Transaction-capable catalog tests
+
+Curated resource administration atomically updates resource/descriptor dependency
+closures. It requires a Mongo replica set or transaction-capable sharded deployment;
+standalone Mongo fails closed. The optional test profile adds a separate single-node
+replica set without restarting the ordinary Mongo, Redis or Temporal services:
+
+```sh
+UNIFAI_E2E_STATE_DIR="$PWD/multi-agent/tests/infra/.state" docker compose --file multi-agent/tests/infra/compose.yaml --profile transactions up -d --wait --no-deps mongo-transactions
+export UNIFAI_TEST_MONGO_TRANSACTION_URI='mongodb://127.0.0.1:27019/?directConnection=true'
+```
+
+Inspect existing container/port ownership first. The replica advertises its dedicated
+network name; host-side tests use `directConnection=true`. The port can be overridden
+with `UNIFAI_E2E_MONGO_TRANSACTION_PORT`. Its health check initializes only its own
+replica and waits for a writable primary. This is not failover/load acceptance.
+Ordinary Mongo remains on 27018 for the explicit unsupported-storage refusal test.
+The transaction fixture and ordinary fixture share isolated database/client cleanup;
+neither drops unrelated databases. Leaving this owned service healthy allows reuse
+at later milestones. Stop only this service when intentionally retiring the fixture.
+
+## Remote fixture material
+
 The preparation command generates a fresh local CA, separate gateway/client/guest
 certificates, and signing keys in the ignored state directory. Certificates expire
 after seven days. Repeating preparation preserves existing keys; incomplete or
-expired PKI is refused. Stop this stack and choose a new state directory when
-rotating it. Keep private files out of commits, images, logs, and test results.
+expired PKI is refused. For rotation, first confirm no active sandbox use, prepare
+a fresh ignored state directory, then recreate only `gateway` with `--no-deps` and
+that `UNIFAI_E2E_STATE_DIR`. Mongo, Redis and Temporal need no restart. Keep private
+files out of commits, images, logs, and test results.
 The state path must be absolute: the Docker driver binds generated state into
 its sibling sandbox containers at the same path.
 
@@ -40,8 +78,8 @@ code or receiver fixtures. Use a fresh tag for parallel runs and update the imag
 settings consistently. The following tags match the checked-in gateway default.
 
 ```sh
-docker build --build-context unifai="$PWD" --build-context run_engine="$PWD/../run-engine" --file multi-agent/tests/infra/Dockerfile.receiver --tag unifai-receiver:platform-20261029 multi-agent/tests/infra
-docker build --build-arg RECEIVER_BASE=ghcr.io/nvidia/openshell-community/sandboxes/base:latest --build-arg RECEIVER_USER=sandbox --build-context unifai="$PWD" --build-context run_engine="$PWD/../run-engine" --file multi-agent/tests/infra/Dockerfile.receiver --tag unifai-sandbox:platform-20261029 multi-agent/tests/infra
+docker build --build-context unifai="$PWD" --build-context run_engine="$PWD/../run-engine" --file multi-agent/tests/infra/Dockerfile.receiver --tag unifai-receiver:program-boundaries-20261103 multi-agent/tests/infra
+docker build --build-arg RECEIVER_BASE=ghcr.io/nvidia/openshell-community/sandboxes/base:latest --build-arg RECEIVER_USER=sandbox --build-context unifai="$PWD" --build-context run_engine="$PWD/../run-engine" --file multi-agent/tests/infra/Dockerfile.receiver --tag unifai-sandbox:program-boundaries-20261103 multi-agent/tests/infra
 .venv/bin/python multi-agent/tests/infra/verify_images.py
 ```
 
@@ -62,16 +100,21 @@ switch the user's global Kubernetes context.
 
 ```sh
 kind create cluster --name unifai-e2e --config multi-agent/tests/infra/kind.yaml --kubeconfig "$UNIFAI_E2E_STATE_DIR/kubeconfig"
-kind load docker-image unifai-receiver:platform-20261029 --name unifai-e2e
+kind load docker-image unifai-receiver:program-boundaries-20261103 --name unifai-e2e
 export UNIFAI_TEST_KUBECONFIG="$UNIFAI_E2E_STATE_DIR/kubeconfig"
 export UNIFAI_TEST_K8S_CONTEXT=kind-unifai-e2e
-export UNIFAI_TEST_K8S_IMAGE=unifai-receiver:platform-20261029
+export UNIFAI_TEST_K8S_IMAGE=unifai-receiver:program-boundaries-20261103
 ```
 
 The fixture uses an isolated SDK client and creates a unique namespace per case.
 The test kubeconfig needs namespace and Job/pod lifecycle privileges. Receivers
 do not call the Kubernetes API. Normal completion verifies that jobs and pods
 are gone; teardown removes only the fixture's namespace and closes its client.
+The fixture creates a dedicated receiver service account with token automount
+disabled. Namespace display uses a non-secret setting; SDK observation independently
+checks the actual pod. This fixture does not enforce deny-by-default egress or
+certify a hardened hostile-code sandbox. The focused Python-check deployment cases
+exercise controlled source; see [their checkpoint](../../../docs/evidence/2026-11-05-checker-placement.md).
 
 ## OpenShell
 
@@ -84,7 +127,7 @@ authentication nor disabled TLS.
 ```sh
 docker compose --file multi-agent/tests/infra/compose.yaml --profile openshell up -d
 export UNIFAI_TEST_OPENSHELL_ENDPOINT=127.0.0.1:8090
-export UNIFAI_TEST_OPENSHELL_IMAGE=unifai-sandbox:platform-20261029
+export UNIFAI_TEST_OPENSHELL_IMAGE=unifai-sandbox:program-boundaries-20261103
 export UNIFAI_TEST_OPENSHELL_PKI="$UNIFAI_E2E_STATE_DIR/pki"
 ```
 
@@ -99,6 +142,16 @@ The fixture owns a unique workspace (OpenShell limits its name to 19 characters)
 checks physical sandbox absence, and removes that workspace after draining work.
 Run Engine owns invocation and retained-environment sandbox lifetimes. UnifAI
 does not implement another sandbox manager.
+
+Normal `test_candidate_policies.py` cases use the existing OpenShell profile and
+test real network policy, non-root execution, host-file separation and private
+environment exclusion. Optional `--strict-sandbox-filesystem` additionally requests
+`hard_requirement` and checks filesystem denial. That option requires a Linux kernel
+built with `CONFIG_SECURITY_LANDLOCK`; kernel version alone is insufficient. It is
+not a prerequisite for normal OpenShell workflows. On this unsupported Docker Desktop
+kernel, an explicitly strict receiver can briefly report ready before exiting.
+See [the scoped diagnosis](../../../docs/evidence/2026-11-05-candidate-profile.md)
+for current images, fresh gateway PKI state and required Linux-host acceptance.
 
 ## Run and diagnose
 
@@ -170,12 +223,12 @@ Build the OpenShell receiver as above, then its dedicated derivative:
 
 ```sh
 docker build --file multi-agent/tests/infra/Dockerfile.codex \
-  --tag unifai-codex:platform-20261029 multi-agent/tests/infra
+  --tag unifai-codex:program-boundaries-20261103 multi-agent/tests/infra
 .venv/bin/python multi-agent/tests/infra/verify_images.py \
-  --image unifai-codex:platform-20261029
-export UNIFAI_TEST_OPENSHELL_IMAGE=unifai-codex:platform-20261029
-kind load docker-image unifai-codex:platform-20261029 --name unifai-e2e
-export UNIFAI_TEST_K8S_IMAGE=unifai-codex:platform-20261029
+  --image unifai-codex:program-boundaries-20261103
+export UNIFAI_TEST_OPENSHELL_IMAGE=unifai-codex:program-boundaries-20261103
+kind load docker-image unifai-codex:program-boundaries-20261103 --name unifai-e2e
+export UNIFAI_TEST_K8S_IMAGE=unifai-codex:program-boundaries-20261103
 ```
 
 Supply `UNIFAI_TEST_OPENAI_API_KEY` privately, or save it in the ignored file

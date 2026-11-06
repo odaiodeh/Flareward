@@ -23,4 +23,4 @@ worker/receiver artifacts and histories until actual drain is verified. These
 patch files alone do not prove recoverability or that any runs are drained.
 
 See [the current integration status](../README.md) and the dated
-[migration ledger](../../docs/execution-platform-migration.md) for evidence and limits.
+[evidence index](../../docs/evidence/README.md) for dated evidence and limits.

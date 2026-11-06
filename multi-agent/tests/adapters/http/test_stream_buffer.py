@@ -3,8 +3,8 @@
 import asyncio
 
 import pytest
-from mas.core.execution_context import ExecutionContext
 from mas.core.identity import Identity
+from mas.domain.execution.context import ExecutionContext
 from mas.domain.messages import ChatMessage, Role
 from outbound.interactions.buffered_channel import BufferedChannel
 

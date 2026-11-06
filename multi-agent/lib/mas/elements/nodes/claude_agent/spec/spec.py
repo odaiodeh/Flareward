@@ -2,7 +2,7 @@
 Claude Agent Node Specification
 """
 
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..card_builder import ClaudeAgentCardBuilder
@@ -13,7 +13,7 @@ from ..identifiers import META, Identifier
 from ..validator import ClaudeAgentNodeValidator
 
 
-class ClaudeAgentNodeElementSpec(BaseElementSpec):
+class ClaudeAgentNodeElementSpec(GraphElementSpec):
     """Element specification for Claude Agent Node."""
 
     category = ResourceCategory.NODE

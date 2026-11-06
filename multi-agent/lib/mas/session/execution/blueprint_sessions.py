@@ -2,11 +2,11 @@
 
 from uuid import uuid4
 
+from mas.application.programs.blueprints import BlueprintProgramService
+from mas.application.programs.service import ProgramService
 from mas.core.identity import Identity
+from mas.domain.programs.models import PathBinding
 from mas.graph.state.graph_state import GraphState
-from mas.programs.blueprints import BlueprintProgramService
-from mas.programs.models import PathBinding
-from mas.programs.service import ProgramService
 from mas.session.domain.models import SessionMeta
 from mas.session.domain.session_record import SessionRecord
 from mas.session.execution.program_sessions import CreateProgramSession, ProgramSessionService
@@ -26,8 +26,8 @@ class BlueprintSessionService:
     ) -> SessionRecord:
         # A unique draft identity prevents concurrent sessions publishing each other's snapshot.
         program_id = "session-snapshot-" + uuid4().hex
-        await self._blueprints.save(blueprint_id, program_id, caller)
-        revision = await self._programs.publish(program_id, caller)
+        draft = await self._blueprints.save(blueprint_id, program_id, caller)
+        revision = await self._programs.publish(program_id, caller, expected_version=draft.version)
         bindings = {name: PathBinding(path=(name,)) for name in GraphState.model_fields}
         return await self._sessions.create(
             CreateProgramSession(

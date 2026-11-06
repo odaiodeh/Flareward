@@ -1,5 +1,6 @@
 """Async session persistence with optimistic concurrency across server replicas."""
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from pydantic import BaseModel, Field
@@ -37,14 +38,14 @@ class SessionStore(Protocol):
 
     async def scheduled(
         self, owner: Identity, schedule_id: str, *, limit: int
-    ) -> list[SessionRecord]: ...
+    ) -> Sequence[SessionRecord]: ...
 
     async def pending(
         self,
         *,
         limit: int = 100,
         after_session_id: str | None = None,
-    ) -> list[SessionRecord]: ...
+    ) -> Sequence[SessionRecord]: ...
 
 
 class SessionConflict(ValueError):

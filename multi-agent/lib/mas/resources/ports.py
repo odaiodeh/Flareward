@@ -148,13 +148,10 @@ class ResourceClonePort(Protocol):
 class BuiltinDescriptorReader(Protocol):
     """Narrow read port for checking whether a resource is a built-in.
 
-    ``ShareCloner`` needs only this single fact about a resource (never
-    the full ``BuiltinResourceService`` admin/overlay/cascade surface) to
-    decide whether to clone it or keep it shared by reference — satisfied
-    structurally by ``BuiltinResourceService``.
+    Sharing only reads descriptor metadata; it does not own administration.
     """
 
-    def get_descriptor(self, rid: str) -> BuiltinResourceDescriptor | None: ...
+    def get(self, rid: str) -> BuiltinResourceDescriptor | None: ...
 
 
 @runtime_checkable

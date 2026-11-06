@@ -7,13 +7,32 @@ description: Diagnose UnifAI native program schedules, reused Temporal workflow 
 
 Read [the native schedule contract](../../../docs/program-platform-development.md#native-program-schedules)
 and [the test infrastructure guide](../../../multi-agent/tests/infra/README.md).
-Use this workflow for `/api/program-schedules`; retained `/schedule.*` routes and
-their legacy workers have a separate drain/migration obligation.
+Use this workflow for `/api/program-schedules`. Superseded `/schedule.*` routes
+and their old workers are removal targets; do not retain them for compatibility.
 
 Trace one tick through the actual boundaries: Temporal calendar action, generic
 Run Engine worker, installed scheduled entrypoint, invoked business admission,
 and program execution in the same owning run. The admission effect runs on the
 trusted worker. It does not create another execution host or graph child.
+
+For schedule `workflow_access`, inspect private consent and the currently applied
+registration, not portable tags. `authorization_id` must resolve to live, owner-bound
+metadata matching the exact definition/version and prepared digest. Unknown,
+expired, revoked or superseded consent must stop admission before material is
+issued. Original human/time and scope survive retries. Human revocation blocks
+future admission; already admitted roots have independent bounded grants/cancellation.
+Use [the consent contract](../../../docs/program-platform-development.md#recurring-workflow-access-consent)
+and `test_scheduled_workflow_access.py`: its thread/process cases use real private
+storage, worker restart, native replay and a direct native trigger after revocation.
+Calendar list/detail metadata and emergency deletion have separate client/port tests.
+The API/trusted worker need matched private policy/key/binding settings; ordinary
+receivers need their credential source. Never put those secrets in a registration.
+
+Backend declaration resolution is deterministic after worker preload. The native
+gate exposed `asyncio.to_thread` failing in Temporal's coordinator loop; keep I/O
+behind invocation ports and resolve installed declarations without a thread bridge.
+Native Temporal completion can contain a failed Run Engine outcome: inspect the
+SDK outcome/status, not only the raw Temporal workflow status.
 
 Check the boundary indicated by the evidence:
 
@@ -37,8 +56,8 @@ Check the boundary indicated by the evidence:
   its session idempotently. Reconciliation must observe that run, not submit a new
   root. Preserve the original human credential binding and immutable snapshot.
 - Replay failure: preload the same installed worker modules, use the original
-  namespace, and select the exact native generation. Replay old unmarked histories
-  with their original identity behavior. Do not weaken replay restrictions or
+  namespace, and select the exact native generation for current-source histories.
+  UnifAI's fresh formats have no old-worker compatibility promise. Do not weaken replay restrictions or
   replace a generation pin with a latest-workflow lookup.
 - Timer budget changes: manual actions bypass the automatic budget. Metadata/input
   edits preserve its live remainder; rearming a completed series resets its counted
@@ -56,4 +75,4 @@ After engine identity changes also run its native-identity, Temporal handle/mess
 and fixed-history replay regressions. Rebuild receiver images before remote tests.
 Use recorded IDs for targeted calendar/workflow cleanup. Never delete unrelated
 schedules, print credential-bearing payloads, or count a queued action as a completed
-program. Report verified behavior separately from legacy migration and retention gaps.
+program. Report verified behavior separately from remaining native functionality and retention gaps.

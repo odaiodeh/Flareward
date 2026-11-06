@@ -17,6 +17,9 @@ export interface ResourceExecutionDefaults {
   profile?: string | null;
 }
 
+export interface ResourceKey { category: string; rid: string }
+export interface ResourceSourceRef { key: ResourceKey; revision: string }
+
 export interface ElementInstance {
   rid: string;
   name?: string;

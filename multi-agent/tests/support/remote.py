@@ -9,12 +9,15 @@ from pathlib import Path
 
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
+from mas.application.elements.operation import BaseOperation, OperationContext
 from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.element_deps import ElementBuildContext
 from mas.core.enums import ResourceCategory
 from mas.core.ref.models import ToolRef
+from mas.domain.execution.context import ExecutionContext
 from mas.graph.state.state_view import StateView
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 from support.approval import ApprovalSpec
 from support.elements import DependencySpec, TextResource
@@ -29,41 +32,85 @@ class RemoteConfig(BaseModel):
     fail: bool = False
 
 
-class RemoteNode(BaseNode):
-    READS = {"user_prompt", "nodes_output"}
-    WRITES = {"nodes_output", "output"}
+class ReceiverProbe:
+    def __init__(self, dependency: TextResource, fail: bool) -> None:
+        self._dependency, self._fail = dependency, fail
 
-    def __init__(self, dependency: TextResource, deps: ElementBuildContext, fail: bool) -> None:
-        super().__init__()
-        self._dependency, self._holder, self._fail = dependency, deps.execution_ctx, fail
-
-    async def run(self, state: StateView) -> StateView:
+    def capture(self, context: ExecutionContext, key: str, prompt: str) -> dict[str, JsonValue]:
         if self._fail:
             raise ValueError("Deterministic remote application failure")
         dependency, values = self._dependency, []
         while dependency is not None:
             values.append(dependency.value)
             dependency = dependency.dependency
-        namespace = Path("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
         marker = Path("/opt/unifai-e2e-receiver")
-        # Sequential scenario evidence: compute reuse also preserves receiver-local files.
-        root = self._holder.context.root_execution_id
+        root = context.root_execution_id
         reuse_file = Path("/tmp") / ("unifai-reuse-" + hashlib.sha256(root.encode()).hexdigest())
         reused = reuse_file.exists()
         if not reused:
-            reuse_file.write_text(self.uid)
-        proof = {
+            reuse_file.write_text(key)
+        return {
             "hostname": socket.gethostname(),
             "pid": os.getpid(),
             "system": platform.system(),
-            "namespace": namespace.read_text() if namespace.exists() else None,
+            # Descriptive fixture context, not authorization or physical attestation.
+            "namespace": os.environ.get("UNIFAI_TEST_NAMESPACE"),
             "image_marker": marker.read_text() if marker.exists() else None,
             "dependencies": values,
             "environment_reused": reused,
             "environment_first_step": reuse_file.read_text(),
-            "prompt": state["user_prompt"],
-            "context": self._holder.context.model_dump(mode="json"),
+            "prompt": prompt,
+            "context": context.model_dump(mode="json"),
         }
+
+
+class RemoteInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    text: str
+
+
+class RemoteResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    proof: dict[str, JsonValue]
+
+
+class RemoteOperation(BaseOperation[RemoteInput, RemoteResult]):
+    def __init__(self, dependency: TextResource, fail: bool) -> None:
+        self._probe = ReceiverProbe(dependency, fail)
+
+    async def execute(self, request: RemoteInput, context: OperationContext) -> RemoteResult:
+        return RemoteResult(proof=self._probe.capture(context.execution, context.key, request.text))
+
+
+class RemoteOperationFactory(BaseFactory):
+    def accepts(self, cfg: RemoteConfig, element_type: str) -> bool:
+        return element_type == "platform_remote_operation"
+
+    def create(self, cfg: RemoteConfig, **dependencies) -> RemoteOperation:
+        return RemoteOperation(dependencies["dependency"], cfg.fail)
+
+
+class RemoteOperationSpec(BaseElementSpec):
+    category = ResourceCategory.OPERATION
+    type_key = "platform_remote_operation"
+    name = "Remote operation proof"
+    description = "Prove typed invocation placement and environment ownership"
+    config_schema = RemoteConfig
+    factory_cls = RemoteOperationFactory
+    input_schema = RemoteInput
+    result_schema = RemoteResult
+
+
+class RemoteNode(BaseNode):
+    READS = {"user_prompt", "nodes_output"}
+    WRITES = {"nodes_output", "output"}
+
+    def __init__(self, dependency: TextResource, deps: ElementBuildContext, fail: bool) -> None:
+        super().__init__()
+        self._probe, self._holder = ReceiverProbe(dependency, fail), deps.execution_ctx
+
+    async def run(self, state: StateView) -> StateView:
+        proof = self._probe.capture(self._holder.context, self.uid, state["user_prompt"])
         encoded = json.dumps(proof)
         state["nodes_output"][self.uid] = encoded
         state["output"] = encoded
@@ -78,7 +125,7 @@ class RemoteFactory(BaseFactory):
         return RemoteNode(dependencies["dependency"], dependencies["deps"], cfg.fail)
 
 
-class RemoteSpec(BaseElementSpec):
+class RemoteSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_remote"
     name = "Remote receiver proof"
@@ -89,4 +136,10 @@ class RemoteSpec(BaseElementSpec):
     writes = RemoteNode.total_writes()
 
 
-ELEMENT_SPECIFICATIONS = (RemoteSpec, DependencySpec, ApprovalSpec, NetworkProbeSpec)
+ELEMENT_SPECIFICATIONS = (
+    RemoteSpec,
+    RemoteOperationSpec,
+    DependencySpec,
+    ApprovalSpec,
+    NetworkProbeSpec,
+)

@@ -1,8 +1,10 @@
 import threading
+from typing import Any
 
 from pydantic import BaseModel
 
-from mas.application.elements.specification import BaseElementSpec, BaseFactory
+from mas.application.elements.factory import BaseFactory
+from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
 
 
@@ -21,8 +23,14 @@ class ElementRegistry:
     # ------------------------------------------------------------------ #
     def register_spec_class(self, spec_cls: type[BaseElementSpec]) -> None:
         """Compose identical registrations idempotently; reject conflicting implementations."""
+        spec_cls.validate_declaration()
         if spec_cls.category == ResourceCategory.SANDBOX:
             raise ValueError("Sandbox elements are retired; select an execution profile")
+        if spec_cls.category == ResourceCategory.OPERATION and any(
+            not isinstance(model, type) or not issubclass(model, BaseModel)
+            for model in (spec_cls.input_schema, spec_cls.result_schema)
+        ):
+            raise ValueError("Operation specifications require input and result model schemas")
         with self._lock:
             categories_map = self._specs.setdefault(spec_cls.category, {})
             existing = categories_map.get(spec_cls.type_key)
@@ -86,7 +94,9 @@ class ElementRegistry:
         spec_cls = self.get_spec(category, type_key)
         return spec_cls.config_schema
 
-    def get_factory_class(self, category: ResourceCategory, type_key: str) -> type[BaseFactory]:
+    def get_factory_class(
+        self, category: ResourceCategory, type_key: str
+    ) -> type[BaseFactory[Any, Any]]:
         """Return the factory class associated with the spec."""
         spec_cls = self.get_spec(category, type_key)
         return spec_cls.factory_cls

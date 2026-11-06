@@ -24,8 +24,8 @@ class AgentResult(BaseModel):
     )
 
 
-class ArtifactRef(BaseModel):
-    """Reference to an artifact with metadata."""
+class WorkspaceArtifact(BaseModel):
+    """Workspace-local location metadata; durable content requires a platform BlobArtifactRef."""
 
     name: str
     type: str

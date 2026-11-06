@@ -1,16 +1,24 @@
 """Resource transport delegates construction metadata, ownership, and editing policy."""
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Response
+from mas.application.elements.construction.snapshots import ResourceSelection, SavedResourceResolver
 from mas.core.enums import ResourceCategory, ResourceOwnership
-from mas.core.execution_preferences import ResourceExecutionDefaults
 from mas.core.identity import Identity
+from mas.domain.element_bundles import ElementBundle
+from mas.domain.execution_preferences import ResourceExecutionDefaults
 from mas.resources.authoring import ResourceAuthoringService, ResourcePage, ResourceView
 from mas.resources.builtin_models import BuiltinUserConfig
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
-from inbound.http_api.dependencies import authenticated, get_resources
+from inbound.http_api.dependencies import (
+    HumanPrincipal,
+    authenticated,
+    get_resource_snapshots,
+    get_resources,
+    human_principal,
+)
 
 router = APIRouter(prefix="/api/resources", tags=["resources"])
 type Caller = Annotated[Identity, Depends(authenticated)]
@@ -40,8 +48,19 @@ class ConfigureBuiltin(BaseModel):
     expected_version: int | None = Field(default=None, ge=0)
 
 
+@router.post("/snapshot", response_model=ElementBundle)
+async def resource_snapshot(
+    selection: ResourceSelection,
+    principal: Annotated[HumanPrincipal, Depends(human_principal)],
+    service: Annotated[SavedResourceResolver, Depends(get_resource_snapshots)],
+) -> ElementBundle:
+    return await service.bundle(selection, principal.owner)
+
+
 @router.get("/schema/{category}/{type_key}")
-async def resource_schema(category: ResourceCategory, type_key: str, service: Service) -> dict:
+async def resource_schema(
+    category: ResourceCategory, type_key: str, service: Service
+) -> dict[str, Any]:
     return service.schema(category, type_key)
 
 
@@ -87,6 +106,11 @@ async def get_resource(rid: str, caller: Caller, service: Service) -> ResourceVi
 @router.get("/{rid}/configuration", response_model=BuiltinUserConfig | None)
 async def get_configuration(rid: str, caller: Caller, service: Service) -> BuiltinUserConfig | None:
     return await service.configuration(rid, caller)
+
+
+@router.get("/{rid}/configuration-schema")
+async def configuration_schema(rid: str, caller: Caller, service: Service) -> dict[str, Any]:
+    return await service.configuration_schema(rid, caller)
 
 
 @router.patch("/{rid}/configuration", response_model=BuiltinUserConfig)

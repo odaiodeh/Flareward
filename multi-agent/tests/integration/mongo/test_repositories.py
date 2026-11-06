@@ -2,21 +2,23 @@
 
 import asyncio
 import os
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from mas.core.execution_context import ExecutionContext
+from mas.application.execution.models import PreparedExecution, SubmissionClaim
+from mas.application.execution.ports import ExecutionLocationUnavailable
 from mas.core.identity import Identity
-from mas.execution.models import ExecutionPhase, ExecutionRecord, PreparedExecution, SubmissionState
-from mas.execution.ports import ExecutionLocationUnavailable
-from mas.programs.models import ApplicationDefinition, ProgramDefinition, ProgramRef
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import ExecutionPhase, ExecutionRecord, SubmissionState
+from mas.domain.programs.models import ApplicationDefinition, ProgramDefinition, ProgramRef
 from mas.session.domain.session_record import SessionRecord
 from mas.session.domain.status import SessionStatus
 from mas.session.execution.program_sessions import CreateProgramSession, StartSessionTurn
 from outbound.mongo.execution_repository import MongoExecutionRepository
-from outbound.mongo.program_repository import MongoProgramRepository
 from outbound.mongo.session_store import MongoSessionStore
 from runengine.adapters.coordination.config import LocalHostConfig
 from support.elements import element_registry
+from support.execution_claims import assert_submission_claim_contract
 from support.session_store_contracts import assert_query_and_delete_contracts
 
 from bootstrap.platform import compose_platform
@@ -27,26 +29,6 @@ async def test_mongo_session_queries_and_guarded_deletion(mongo_database):
     store = MongoSessionStore(mongo_database)
     await store.initialize()
     await assert_query_and_delete_contracts(store)
-
-
-@pytest.mark.integration
-async def test_published_mongo_revisions_are_atomic_and_detached(mongo_database):
-    repository = MongoProgramRepository(mongo_database)
-    definition = ProgramDefinition(
-        program_id="greeting",
-        name="Greeting",
-        owner=Identity.user("owner"),
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
-    )
-    await repository.save_draft(definition)
-    revisions = await asyncio.gather(*(repository.publish(definition) for _ in range(5)))
-    assert {revision.revision for revision in revisions} == {1, 2, 3, 4, 5}
-    first = await repository.get_revision(ProgramRef(program_id="greeting", revision=1))
-    first.definition.input_schema["description"] = "reader edit"
-    reread = await repository.get_revision(ProgramRef(program_id="greeting", revision=1))
-    assert "description" not in reread.definition.input_schema
-    with pytest.raises(PermissionError):
-        await repository.save_draft(definition.model_copy(update={"owner": Identity.user("other")}))
 
 
 @pytest.mark.integration
@@ -84,18 +66,28 @@ async def test_mongo_prepared_snapshot_claim_and_pre_submission_cancellation(mon
     )
     snapshot = PreparedExecution(format="test/1", payload_json='{"frozen": true}')
     assert await repository.create(record, snapshot)
-    claims = await asyncio.gather(*(repository.claim_submission("prepared") for _ in range(5)))
+    now = datetime.now(UTC)
+    claim = SubmissionClaim(token="a" * 32, expires_at=now + timedelta(seconds=30))
+    claims = await asyncio.gather(
+        *(repository.claim_submission("prepared", claim, now=now) for _ in range(5))
+    )
     assert claims.count(True) == 1
     assert await repository.get_prepared("prepared") == snapshot
     assert not await repository.cancel_prepared("prepared")
     cancelled = record.model_copy(update={"execution_id": "cancelled"})
     assert await repository.create(cancelled, snapshot)
     assert await repository.cancel_prepared("cancelled")
-    assert not await repository.claim_submission("cancelled")
+    assert not await repository.claim_submission("cancelled", claim, now=now)
     assert (await repository.get("cancelled")).phase == ExecutionPhase.CANCELLED
 
 
 @pytest.mark.integration
+async def test_mongo_admission_claims_fence_stale_updates_and_preserve_cancel_intent(
+    mongo_database,
+):
+    await assert_submission_claim_contract(MongoExecutionRepository(mongo_database))
+
+
 async def test_mongo_session_admission_and_legacy_document_compatibility(mongo_database):
     store = MongoSessionStore(mongo_database)
     await store.initialize()
@@ -146,7 +138,11 @@ async def test_mongo_lifespan_reconciles_session_and_retains_result_across_resta
             implementation=ApplicationDefinition(implementation="greeting", version="1"),
         )
         await services.programs.save(leaf, owner)
-        leaf_revision = await services.programs.publish(leaf.program_id, owner)
+        leaf_revision = await services.programs.publish(
+            leaf.program_id,
+            owner,
+            expected_version=(await services.programs.draft(leaf.program_id, owner)).version,
+        )
         definition = ProgramDefinition(
             program_id="persistent",
             name="Persistent",
@@ -156,7 +152,11 @@ async def test_mongo_lifespan_reconciles_session_and_retains_result_across_resta
             ),
         )
         await services.programs.save(definition, owner)
-        revision = await services.programs.publish("persistent", owner)
+        revision = await services.programs.publish(
+            "persistent",
+            owner,
+            expected_version=(await services.programs.draft("persistent", owner)).version,
+        )
         session = await services.sessions.create(
             CreateProgramSession(program=revision.reference), owner
         )

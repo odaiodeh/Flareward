@@ -8,7 +8,7 @@ from mas.blueprints.inspection import BlueprintInspectionService
 from mas.blueprints.placement import BlueprintPlacementService
 from mas.core.identity import Identity
 from mas.domain.element_card import ElementCard
-from mas.execution.placement import GraphPlacementPlan
+from mas.domain.execution.placement import GraphPlacementPlan
 from mas.validation.models import BlueprintValidationResult
 from pydantic import BaseModel, ConfigDict
 

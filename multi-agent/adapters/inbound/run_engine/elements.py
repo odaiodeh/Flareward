@@ -5,23 +5,32 @@ import inspect
 import sys
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
-from typing import cast
 
 from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.elements.condition import ConditionResultError, normalize_condition_result
-from mas.application.elements.construction.builder import ElementBundleBuilder
+from mas.application.elements.construction.builder import BuiltElement, ElementBundleBuilder
 from mas.application.elements.construction.runtime import ElementRuntime
+from mas.application.elements.operation import (
+    BaseOperation,
+    OperationContext,
+    OperationContractError,
+    OperationInvoker,
+)
+from mas.application.elements.specification import BaseElementSpec
+from mas.application.execution.context import ExecutionContextHolder
+from mas.application.execution.ports import ExecutionError
+from mas.application.programs.graph_elements import GraphElementSpec, SupportsStepContext
+from mas.application.programs.state import StateContractError
 from mas.core.async_work import await_owned
-from mas.core.contracts import SupportsStepContext
 from mas.core.element_deps import ElementBuildContext
-from mas.core.execution_context import ExecutionContextHolder
+from mas.core.enums import ResourceCategory
 from mas.core.runtime_binder import NodeRuntimeBinder
 from mas.core.tracing import NoOpTracingService
-from mas.execution.ports import ExecutionError
+from mas.domain.programs.bindings import project
 from mas.graph.state.graph_state import GraphState
 from outbound.run_engine.errors import application_errors
-from pydantic import JsonValue
-from run_engine.models import ElementCall
+from pydantic import JsonValue, ValidationError
+from run_engine.models import ElementCall, MappingConfiguration, ProjectionConfiguration
 from run_engine.state import ProgramGraphState
 from runengine.core.failure import FailureDescriptor
 from runengine.invocation.errors import (
@@ -30,7 +39,7 @@ from runengine.invocation.errors import (
     InvocationInfrastructureError,
 )
 
-__runengine_contract__ = "unifai-elements-v1"
+__runengine_contract__ = "unifai-elements-v3"
 
 
 @asynccontextmanager
@@ -43,10 +52,13 @@ async def default_runtime(holder: ExecutionContextHolder) -> AsyncIterator[Eleme
 @asynccontextmanager
 async def constructed_element(
     request: ElementCall,
-) -> AsyncIterator[tuple[Callable[..., object], ElementRuntime]]:
+) -> AsyncIterator[tuple[BuiltElement, ElementRuntime]]:
     registry = ElementRegistry()
     for reference in request.specifications:
-        registry.register_spec_class(reference.resolve())
+        specification = reference.resolve()
+        if not isinstance(specification, type) or not issubclass(specification, BaseElementSpec):
+            raise InvocationContractError("Installed element specification is invalid")
+        registry.register_spec_class(specification)
     holder = ExecutionContextHolder()
     holder.context = request.context
     manager = request.receiver.resolve()(holder) if request.receiver else default_runtime(holder)
@@ -67,10 +79,16 @@ async def constructed_element(
         async with ElementBundleBuilder(registry).build(request.bundle, runtime.build) as built:
             protected = built.protected
             element = built.element
-            if not callable(element):
-                raise InvocationContractError("Configured graph element is not executable")
-            if isinstance(element, SupportsStepContext):
-                element.set_context(request.step)
+            if request.bundle.root.category == ResourceCategory.OPERATION:
+                if not isinstance(element, BaseOperation):
+                    raise InvocationContractError(
+                        "Configured operation must implement BaseOperation"
+                    )
+            else:
+                if not callable(element):
+                    raise InvocationContractError("Configured graph element is not executable")
+                if isinstance(element, SupportsStepContext):
+                    element.set_context(request.graph_step)
             binder = NodeRuntimeBinder.default()
             try:
                 binder.bind(element, runtime.bindings)
@@ -81,10 +99,13 @@ async def constructed_element(
                         "execution_id": request.context.execution_id,
                         "root_execution_id": request.context.root_execution_id,
                         "parent_execution_id": request.context.parent_execution_id,
-                        "node_uid": request.step.uid,
+                        "invocation_key": request.key,
+                        **(
+                            {"node_uid": request.graph_step.uid} if request.step is not None else {}
+                        ),
                     },
                 ):
-                    yield element, runtime
+                    yield built, runtime
             finally:
                 binder.unbind(element)
     except Exception as error:
@@ -96,7 +117,7 @@ async def constructed_element(
                 ) from None
             if isinstance(error, InvocationInfrastructureError):
                 raise InvocationInfrastructureError(message, retryable=error.retryable) from None
-            if isinstance(error, InvocationContractError):
+            if isinstance(error, (InvocationContractError, StateContractError, ValidationError)):
                 raise InvocationContractError(message) from None
             failure = (
                 error.failure
@@ -124,20 +145,58 @@ async def call_element[**P, R](
     **kwargs: P.kwargs,
 ) -> R:
     """Await native async elements; keep synchronous legacy work off the receiver loop."""
-    if inspect.iscoroutinefunction(element) or inspect.iscoroutinefunction(element.__call__):
+    native_async = inspect.iscoroutinefunction(element) or inspect.iscoroutinefunction(
+        getattr(element, "__call__", None)
+    )
+    if native_async:
         result = element(*args, **kwargs)
     else:
         result = await await_owned(asyncio.to_thread(element, *args, **kwargs), on_cancel=on_cancel)
     if inspect.isawaitable(result):
         return await await_owned(result, on_cancel=on_cancel, cancel_work=True)
-    return cast(R, result)
+    return result
 
 
-async def invoke_element(
-    *, inputs: dict[str, JsonValue], call: dict[str, JsonValue]
-) -> dict[str, JsonValue]:
+async def invoke_element(*, inputs: JsonValue, call: dict[str, JsonValue]) -> JsonValue:
+    request = ElementCall.model_validate(call)
+    if request.bundle.root.category == ResourceCategory.OPERATION:
+        return await invoke_operation(inputs=inputs, call=call)
     result = await execute_element(ProgramGraphState.model_validate(inputs), call=call)
     return result.serialize()
+
+
+@application_errors
+async def invoke_operation(*, inputs: JsonValue, call: dict[str, JsonValue]) -> JsonValue:
+    request = ElementCall.model_validate(call)
+    async with constructed_element(request) as (built, runtime):
+        try:
+            return await call_element(
+                OperationInvoker(built.specification).invoke,
+                runtime.cancel,
+                built.element,
+                inputs,
+                OperationContext(execution=request.context, key=request.key),
+            )
+        except OperationContractError as error:
+            raise InvocationContractError(str(error)) from None
+
+
+@application_errors
+async def execute_operation(
+    state: ProgramGraphState,
+    *,
+    call: dict[str, JsonValue],
+    inputs: dict[str, JsonValue],
+    outputs: dict[str, JsonValue],
+) -> ProgramGraphState:
+    input_mapping = ProjectionConfiguration.model_validate({"bindings": inputs})
+    output_mapping = MappingConfiguration.model_validate({"bindings": outputs})
+    result = await invoke_operation(
+        inputs=project(input_mapping.bindings, state.serialize()), call=call
+    )
+    return state.record_result(
+        ElementCall.model_validate(call).key, result, project(output_mapping.bindings, result)
+    )
 
 
 @application_errors
@@ -147,11 +206,14 @@ async def execute_element(
     call: dict[str, JsonValue],
 ) -> ProgramGraphState:
     request = ElementCall.model_validate(call)
-    async with constructed_element(request) as (element, runtime):
-        result = await call_element(element, runtime.cancel, state.model_copy(deep=True), config={})
+    async with constructed_element(request) as (built, runtime):
+        result = await call_element(
+            built.element, runtime.cancel, state.model_copy(deep=True), config={}
+        )
         if not isinstance(result, GraphState):
             raise InvocationContractError("Element must return application graph state")
-        return ProgramGraphState.model_validate({**state.serialize(), **result.serialize()})
+        writes = GraphElementSpec.require(built.specification).writes
+        return state.accept_node(result, writes=writes)
 
 
 @application_errors
@@ -161,9 +223,9 @@ async def evaluate_condition(
     call: dict[str, JsonValue],
 ) -> str | list[str]:
     request = ElementCall.model_validate(call)
-    async with constructed_element(request) as (element, runtime):
-        result = await call_element(element, runtime.cancel, state.model_copy(deep=True))
+    async with constructed_element(request) as (built, runtime):
+        result = await call_element(built.element, runtime.cancel, state.model_copy(deep=True))
     try:
-        return normalize_condition_result(result, request.step.branches)
+        return normalize_condition_result(result, request.graph_step.branches)
     except ConditionResultError as error:
         raise InvocationContractError(str(error)) from None

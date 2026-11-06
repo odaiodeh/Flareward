@@ -1,24 +1,28 @@
 """Program execution in existing sessions, with conditional turn lifecycle updates."""
 
 import logging
+from collections.abc import Sequence
 from uuid import uuid4
 
 from jsonschema import Draft202012Validator
 from pydantic import Field, JsonValue, ValidationError
 
-from mas.core.execution_context import ExecutionContext
+from mas.application.execution.models import StartExecution
+from mas.application.execution.ports import ExecutionError
+from mas.application.execution.service import ExecutionService
+from mas.application.programs.service import ProgramService
 from mas.core.hitl.models import ApprovalOverrides
 from mas.core.identity import Identity
-from mas.execution.models import TERMINAL_PHASES, ExecutionPhase, ExecutionRecord, StartExecution
-from mas.execution.ports import ExecutionError
-from mas.execution.service import ExecutionService
+from mas.domain.execution.access import WorkflowAccess
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import TERMINAL_PHASES, ExecutionPhase, ExecutionRecord
+from mas.domain.models import Model
+from mas.domain.programs.bindings import BindingError, project
+from mas.domain.programs.models import Bindings, ProgramRef
 from mas.graph.state.graph_state import GraphState
 from mas.interactions.models import parse_approval_rules
 from mas.interactions.ports import ApprovalRulesPublisher
 from mas.interactions.rules import ApprovalRuleChange
-from mas.programs.bindings import BindingError, project
-from mas.programs.models import Bindings, Model, ProgramRef
-from mas.programs.service import ProgramService
 from mas.session.domain.constants import CANCELLED_STATUS_MESSAGE, CANCELLED_TAG
 from mas.session.domain.dto import SessionListFilter
 from mas.session.domain.models import SessionMeta
@@ -58,6 +62,7 @@ class StartSessionTurn(Model):
     inputs: dict[str, JsonValue] = Field(default_factory=dict)
     execution_id: str = Field(default_factory=lambda: str(uuid4()), min_length=1)
     scope: str = "public"
+    workflow_access: tuple[WorkflowAccess, ...] = Field(default=(), max_length=16)
 
 
 class ProgramSessionService:
@@ -141,7 +146,7 @@ class ProgramSessionService:
 
     async def scheduled(
         self, schedule_id: str, caller: Identity, *, limit: int = 20
-    ) -> list[SessionRecord]:
+    ) -> Sequence[SessionRecord]:
         if not 1 <= limit <= 100:
             raise ValueError("Schedule history limit must be between 1 and 100")
         records = await self._store.scheduled(caller, schedule_id, limit=limit)
@@ -154,9 +159,12 @@ class ProgramSessionService:
         caller: Identity,
         *,
         credential_user_id: str = "",
+        approved_by: Identity | None = None,
     ) -> SessionRecord:
+        turn = StartSessionTurn.model_validate_json(turn.model_dump_json())
         record = await self.get(session_id, caller)
-        if record.program is None:
+        program = record.program
+        if program is None:
             raise ValueError("Legacy session must be bound to a published program before execution")
         if self._same_turn(record, turn):
             return await self.refresh(session_id, caller)
@@ -176,16 +184,22 @@ class ProgramSessionService:
         staged.run_context = staged.run_context.with_scope(turn.scope)
         stage_inputs(staged, turn.inputs, credential_user_id)
         inputs = {**project(staged.input_bindings, staged.graph_state.serialize()), **turn.inputs}
-        revision = await self._programs.revision(record.program, caller)
+        revision = await self._programs.revision(program, caller)
         Draft202012Validator(revision.definition.input_schema).validate(inputs)
         staged.active_execution_id = turn.execution_id
         staged.active_inputs = turn.inputs
         staged.cancellation_requested = False
         staged.execution_request = StartExecution(
-            program=record.program,
+            program=program,
             inputs=inputs,
             execution_id=turn.execution_id,
             session_id=session_id,
+            workflow_access=turn.workflow_access,
+        )
+        staged.workflow_access_approval = self._executions.approve_workflow_access(
+            staged.execution_request,
+            caller,
+            approved_by,
         )
         try:
             await self._save(staged, record.version)
@@ -201,6 +215,11 @@ class ProgramSessionService:
             return False
         if record.active_inputs != turn.inputs or record.run_context.scope != turn.scope:
             raise SessionConflict("Turn identity already belongs to a different request")
+        if (
+            record.execution_request is not None
+            and record.execution_request.workflow_access != turn.workflow_access
+        ):
+            raise SessionConflict("Turn workflow access differs from the original request")
         return True
 
     async def _save(self, record: SessionRecord, expected_version: int) -> None:
@@ -212,6 +231,8 @@ class ProgramSessionService:
         record = await self.get(session_id, caller)
         if record.status not in BUSY_STATUSES or record.execution_request is None:
             return record
+        if record.active_execution_id is None:
+            raise SessionConflict("An active Session admission requires an execution identity")
         try:
             execution = await self._executions.get(record.active_execution_id, caller)
         except KeyError:
@@ -220,6 +241,7 @@ class ProgramSessionService:
                     record.execution_request,
                     caller,
                     record.run_context,
+                    workflow_access_approval=record.workflow_access_approval,
                 )
             else:
                 try:
@@ -227,6 +249,7 @@ class ProgramSessionService:
                         record.execution_request,
                         caller,
                         context=record.run_context,
+                        workflow_access_approval=record.workflow_access_approval,
                     )
                 except ValueError:
                     record.status = SessionStatus.FAILED

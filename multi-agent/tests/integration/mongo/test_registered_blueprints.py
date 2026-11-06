@@ -55,10 +55,15 @@ async def test_registered_blueprint_runs_transitive_dependencies_from_inline_or_
             "/api/programs/plugin/blueprint", json={"blueprint_id": blueprint_id}
         )
         assert imported.status_code == 200, imported.text
-        resources = imported.json()["implementation"]["resources"]
+        resources = imported.json()["definition"]["implementation"]["resources"]
         assert len(resources) == 3
-        assert imported.json()["implementation"]["steps"][0]["execution"]["profile"] == profile
-        assert (await http.post("/api/programs/plugin/revisions")).status_code == 201
+        assert (
+            imported.json()["definition"]["implementation"]["steps"][0]["execution"]["profile"]
+            == profile
+        )
+        assert (
+            await http.post("/api/programs/plugin/revisions", json={"expected_version": 1})
+        ).status_code == 201
         started = await http.post(
             "/api/executions",
             json={
@@ -108,7 +113,9 @@ async def test_registered_blueprint_protects_plugin_secret_hints_before_persiste
             json={"blueprint_id": created.json()["blueprint_id"]},
         )
         assert imported.status_code == 200 and secret not in imported.text, imported.text
-        assert (await http.post("/api/programs/private-plugin/revisions")).status_code == 201
+        assert (
+            await http.post("/api/programs/private-plugin/revisions", json={"expected_version": 1})
+        ).status_code == 201
         started = await http.post(
             "/api/executions",
             json={

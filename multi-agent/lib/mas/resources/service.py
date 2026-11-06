@@ -32,7 +32,7 @@ class CoreResourceService:
 
     Has zero awareness of built-ins, overlays, visibility gating,
     or admin locks.  Does not import anything from ``builtin_models``,
-    ``builtin_service``, ``ResourceOwnership``, or ``ResourceVisibility``.
+    curated administration, ``ResourceOwnership``, or ``ResourceVisibility``.
 
     If the built-in feature is removed, this class doesn't change.
     """

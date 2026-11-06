@@ -3,13 +3,16 @@
 from unittest.mock import create_autospec
 
 import pytest
-from mas.core.execution_context import ExecutionContext
+from mas.application.execution.ports import ExecutionError
 from mas.core.identity import Identity
-from mas.execution.models import FailureKind
-from mas.execution.ports import ExecutionError
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import ExecutionFailure, FailureKind
+from outbound.run_engine.errors import application_errors
 from outbound.run_engine.runtime import ChildProgramExecution, RunEngineProgramRuntime
+from run_engine.models import ElementSpecifications, ProgramPlacement
 from runengine.coordination.ports import CoordinationOperations, RunHandle
 from runengine.invocation.errors import InvocationContractError, InvocationInfrastructureError
+from support.elements import element_registry
 from support.scenarios import bundle
 
 
@@ -20,7 +23,11 @@ async def test_runtime_translates_infrastructure_failure_at_each_application_por
         "Native transport failure", retryable=True
     )
     runtime = RunEngineProgramRuntime(
-        operations, {}, (), ExecutionContext(identity=Identity.user("owner")), None
+        operations,
+        {},
+        ElementSpecifications.from_registry(element_registry()),
+        ExecutionContext(identity=Identity.user("owner")),
+        ProgramPlacement(default_profile="thread", profiles={"thread": {"runner_type": "thread"}}),
     )
     with pytest.raises(ExecutionError) as error:
         if operation == "invoke":
@@ -39,3 +46,22 @@ async def test_child_handle_translates_native_contract_failure():
     with pytest.raises(ExecutionError) as error:
         await ChildProgramExecution(handle).result()
     assert error.value.failure.kind == FailureKind.CONTRACT
+
+
+@application_errors
+async def rejected_application_call(failure: ExecutionFailure) -> None:
+    raise ExecutionError(failure)
+
+
+@pytest.mark.parametrize("kind", [FailureKind.CONTRACT, FailureKind.INFRASTRUCTURE])
+async def test_application_error_translation_preserves_classification_and_machine_code(kind):
+    failure = ExecutionFailure(
+        kind=kind, message="Safe refusal", code="CONTROL_REFUSED", retryable=False
+    )
+    expected = (
+        InvocationContractError if kind == FailureKind.CONTRACT else InvocationInfrastructureError
+    )
+    with pytest.raises(expected) as error:
+        await rejected_application_call(failure)
+    assert error.value.failure.code == "CONTROL_REFUSED"
+    assert error.value.failure.origin == kind

@@ -1,6 +1,6 @@
 """Bind immutable compiled context to actual engine runs at the receiving boundary."""
 
-from mas.core.execution_context import ExecutionContext
+from mas.domain.execution.context import ExecutionContext
 from runengine.coordination.models import RunRequest
 from runengine.programs.graph.inputs import GraphProgramInput
 

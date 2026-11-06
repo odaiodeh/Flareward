@@ -10,7 +10,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from mas.core.enums import ResourceCategory
-from mas.core.resource_models import StepMeta
+from mas.domain.metadata import StepMeta
 
 
 class ConditionMeta(BaseModel):

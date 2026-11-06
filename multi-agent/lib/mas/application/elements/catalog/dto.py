@@ -31,6 +31,7 @@ class ElementDetailDTO:
     output_schema: dict[str, Any] | None = (
         None  # Output schema for conditions and other elements that define outputs
     )
+    input_schema: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)

@@ -27,6 +27,12 @@ git diff origin/<base>...HEAD -- <scoped files>
 ```
 Parse the output to build a **provenance map**: for each scoped file, record which line numbers were added (`+`) or modified in this PR. This map is used in subsequent tasks to tag findings with `[NEW]` or `[PRE]` provenance.
 
+### Fresh platform scope
+
+For multi-agent changes, use the target architecture and current native code.
+Deleted MAS references/recipes are obsolete. Do not derive review suppressions
+from historical Flask/LangGraph patterns or demand old-worker/data compatibility.
+
 ### Step 2: Resolve Domains
 
 Match each scoped file against this table (longest prefix first):
@@ -40,7 +46,6 @@ Match each scoped file against this table (longest prefix first):
 | `ui/client/src/` | `ui` | `.cursor/skills/codebase/domains/ui/SKILL.md` |
 | `global_utils/` | `global-utils` | `.cursor/skills/codebase/domains/global-utils/SKILL.md` |
 | `backend/` | `backend` | `.cursor/skills/codebase/domains/backend/SKILL.md` |
-| `temporal-worker/` | `temporal-worker` | `.cursor/skills/codebase/domains/temporal-worker/SKILL.md` |
 | `helm/` | `helm` | `.cursor/skills/codebase/domains/helm/SKILL.md` |
 
 Files not matching any prefix (e.g. `.github/`, `docs/`, `local-development/`, `ci/`, `cli/`, `mcp_servers/`, `scripts/`, `tests/`) have no domain — skip domain resolution for them but still include them in the review scope.

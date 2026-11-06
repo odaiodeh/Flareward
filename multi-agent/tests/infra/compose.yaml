@@ -1,6 +1,17 @@
 name: unifai-e2e
 
 services:
+  mongo-transactions:
+    image: mongo:8
+    profiles: ["transactions"]
+    command: ["mongod", "--replSet", "unifai", "--bind_ip_all"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status() } catch (error) { rs.initiate({_id:'unifai',members:[{_id:0,host:'mongo-transactions:27017'}]}) }; quit(db.hello().isWritablePrimary ? 0 : 1)"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    ports:
+      - "127.0.0.1:${UNIFAI_E2E_MONGO_TRANSACTION_PORT:-27019}:27017"
   mongo:
     image: mongo:8
     healthcheck:

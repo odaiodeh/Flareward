@@ -77,9 +77,19 @@ export async function fetchAgenticStats(teamId?: string): Promise<AgenticStats> 
   if (teamId) query.set('teamId', teamId);
   const qs = query.toString();
   const response = await axios.get(
-    `/statistics/stats.get${qs ? `?${qs}` : ''}`
+    `/reporting/overview${qs ? `?${qs}` : ''}`
   );
-  const data = response.data;
+  const overview = response.data as {
+    blueprint_drafts: number; program_drafts: number; observed_active_sessions: number;
+    blueprint_sessions: Record<string, number>; resources: ResourceStats[];
+  };
+  const data = {
+    totalWorkflows: overview.blueprint_drafts,
+    activeSessions: overview.observed_active_sessions,
+    totalResources: overview.resources.reduce((total, item) => total + item.count, 0),
+    blueprintSessionCounts: overview.blueprint_sessions,
+    resourcesByCategory: overview.resources,
+  };
   
   // Normalize categories on frontend (backend returns raw categories)
   // Group by normalized category to merge duplicates (e.g., 'nodes' -> 'agents')

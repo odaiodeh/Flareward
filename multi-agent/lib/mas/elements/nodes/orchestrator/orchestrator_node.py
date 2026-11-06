@@ -16,14 +16,15 @@ from mas.application.agents.constants import StrategyType
 from mas.application.agents.delegation_policy import DelegationPolicy, PermissiveDelegationPolicy
 from mas.application.agents.execution import ExecutionMode
 from mas.application.capabilities.agent_capable import AgentCapableMixin
-from mas.application.capabilities.iem_capable import IEMCapableMixin
 from mas.application.capabilities.llm_capable import LlmCapableMixin
-from mas.application.capabilities.workload_capable import WorkloadCapableMixin
 from mas.application.elements.node import BaseNode
 from mas.application.ports.tool import BaseTool
 from mas.application.tools.config import ExecutorConfig
 from mas.domain.messages import ChatMessage, Role
 from mas.domain.workloads import AgentResult, Task, WorkItemKind, WorkItemStatus
+from mas.graph.capabilities.messaging import GraphMessagingMixin
+from mas.graph.capabilities.workloads import GraphWorkloadMixin
+from mas.graph.models import AdjacentNodes
 from mas.graph.state.state_view import StateView
 
 from .context import (
@@ -43,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 
 class OrchestratorNode(
-    WorkloadCapableMixin, IEMCapableMixin, AgentCapableMixin, LlmCapableMixin, BaseNode
+    GraphWorkloadMixin, GraphMessagingMixin, AgentCapableMixin, LlmCapableMixin, BaseNode
 ):
     """
     Orchestrator node that plans and delegates work.
@@ -600,7 +601,9 @@ class OrchestratorNode(
         # Apply orchestrator's delegation policy to filter adjacent nodes
         delegation_policy = self._create_delegation_policy()
         all_adjacent = self.get_adjacent_nodes()
-        delegable_adjacent = delegation_policy.filter_delegable_nodes(all_adjacent)
+        delegable_adjacent = AdjacentNodes(
+            nodes=delegation_policy.filter_delegable_nodes(all_adjacent.nodes)
+        )
 
         # Get or create context builder (needed by phase provider for recording transitions)
         context_builder = self._get_or_create_context_builder(cycle.thread_id)
@@ -748,7 +751,9 @@ class OrchestratorNode(
 
             # Get all adjacent nodes and filter by policy
             all_adjacent = self.get_adjacent_nodes()
-            delegable_nodes = delegation_policy.filter_delegable_nodes(all_adjacent)
+            delegable_nodes = AdjacentNodes(
+                nodes=delegation_policy.filter_delegable_nodes(all_adjacent.nodes)
+            )
 
             if not delegable_nodes:
                 return "No delegable nodes available."

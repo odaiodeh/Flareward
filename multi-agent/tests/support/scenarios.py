@@ -3,21 +3,22 @@
 from typing import Protocol
 
 from mas.application.elements.construction.resolver import ElementBundleResolver
+from mas.application.execution.models import StartExecution
+from mas.application.execution.service import ExecutionService
+from mas.application.programs.service import ProgramService
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
 from mas.domain.element_bundles import ElementBundle, ResourceDefinition, ResourceKey
-from mas.execution.models import ExecutionRecord, StartExecution
-from mas.execution.service import ExecutionService
-from mas.programs.models import (
+from mas.domain.execution.models import ExecutionRecord
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramDefinition,
     ProgramImplementation,
     ProgramRevision,
 )
-from mas.programs.service import ProgramService
 from mas.session.domain.session_record import SessionRecord
 from mas.session.execution.program_sessions import ProgramSessionService
 from pydantic import JsonValue
@@ -69,15 +70,34 @@ async def publish(
     platform: ProgramServices,
     program_id: str,
     implementation: ProgramImplementation,
+    *,
+    execution_profile: str | None = None,
+    input_schema: dict[str, JsonValue] | None = None,
+    output_schema: dict[str, JsonValue] | None = None,
 ) -> ProgramRevision:
+    interfaces = {}
+    if input_schema is not None:
+        interfaces["input_schema"] = input_schema
+    if output_schema is not None:
+        interfaces["output_schema"] = output_schema
     definition = ProgramDefinition(
         program_id=program_id,
         name=program_id,
         owner=platform.owner,
         implementation=implementation,
+        execution_profile=execution_profile,
+        **interfaces,
     )
-    await platform.programs.save(definition, platform.owner)
-    return await platform.programs.publish(program_id, platform.owner)
+    try:
+        expected_version = (await platform.programs.draft(program_id, platform.owner)).version
+    except KeyError:
+        expected_version = 0
+    draft = await platform.programs.save(
+        definition, platform.owner, expected_version=expected_version
+    )
+    return await platform.programs.publish(
+        program_id, platform.owner, expected_version=draft.version
+    )
 
 
 def echo_graph(profile: str = "thread") -> GraphDefinition:

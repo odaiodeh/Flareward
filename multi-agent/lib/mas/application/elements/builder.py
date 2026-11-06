@@ -19,6 +19,7 @@ from mas.application.elements.categories.category_builder import CategoryBuilder
 from mas.application.elements.categories.condition_builder import ConditionBuilder
 from mas.application.elements.categories.llm_builder import LLMBuilder
 from mas.application.elements.categories.node_builder import NodeBuilder
+from mas.application.elements.categories.operation_builder import OperationBuilder
 
 # concrete builders
 from mas.application.elements.categories.provider_builder import ProviderBuilder
@@ -44,6 +45,7 @@ class SessionElementBuilder:
         ConditionBuilder,
         ToolBuilder,
         NodeBuilder,
+        OperationBuilder,
     ]
 
     # --------------------------------------------------------------------- #

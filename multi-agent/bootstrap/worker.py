@@ -14,6 +14,7 @@ from runengine.invocation.environment_records import EnvironmentStore
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from bootstrap.programs import CORE_APPLICATION_MODULES
 from config.worker_settings import WorkerSettings
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,12 @@ PLATFORM_MODULES = (
 
 
 def workflow_modules(settings: WorkerSettings) -> tuple[str, ...]:
-    modules = (*PLATFORM_MODULES, *settings.application_modules, *settings.element_modules)
+    modules = (
+        *PLATFORM_MODULES,
+        *CORE_APPLICATION_MODULES,
+        *settings.application_modules,
+        *settings.element_modules,
+    )
     if settings.receiver_module:
         modules = (*modules, settings.receiver_module)
     return tuple(dict.fromkeys(modules))

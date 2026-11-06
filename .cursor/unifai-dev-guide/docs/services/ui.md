@@ -177,8 +177,8 @@ Team mode adds **edit locks** — only one user can edit a blueprint at a time.
 
 | Method | Path | Summary |
 |--------|------|--------|
-| GET | `/statistics/stats.get` | user dashboard |
-| GET | `/statistics/stats.system.get` | admin analytics |
+| GET | `/reporting/overview` | user dashboard |
+| GET | `/reporting/system` | admin analytics |
 | GET | `/sessions/session.user.blueprints.get` |  |
 
 ### Graph Validation — /api2

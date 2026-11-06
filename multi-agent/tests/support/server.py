@@ -3,8 +3,8 @@
 import asyncio
 import signal
 import socket
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator, Callable, Mapping
+from contextlib import asynccontextmanager, nullcontext
 from pathlib import Path
 
 import httpx
@@ -20,10 +20,17 @@ async def api_process(
     *,
     factory: str = "bootstrap.asgi:create_app",
     health_path: str = "/api/health/health",
+    environment: Callable[[str], Mapping[str, str]] | None = None,
+    listener: socket.socket | None = None,
 ) -> AsyncIterator[httpx.AsyncClient]:
-    with socket.socket() as listener:
-        listener.bind(("127.0.0.1", 0))
-        port = listener.getsockname()[1]
+    with nullcontext(listener) if listener is not None else socket.socket() as bound:
+        if listener is None:
+            bound.bind(("127.0.0.1", 0))
+        port = bound.getsockname()[1]
+        base_url = f"http://127.0.0.1:{port}"
+        process_environment = settings_environment(settings)
+        if environment is not None:
+            process_environment.update(environment(base_url))
         async with command_process(
             [
                 "-m",
@@ -31,14 +38,14 @@ async def api_process(
                 factory,
                 "--factory",
                 "--fd",
-                str(listener.fileno()),
+                str(bound.fileno()),
             ],
-            settings_environment(settings),
+            process_environment,
             log,
-            pass_fds=(listener.fileno(),),
+            pass_fds=(bound.fileno(),),
             exit_codes=(0, -signal.SIGTERM),
         ) as server:
-            async with httpx.AsyncClient(base_url=f"http://127.0.0.1:{port}", timeout=30) as http:
+            async with httpx.AsyncClient(base_url=base_url, timeout=30) as http:
                 async with asyncio.timeout(30):
                     while True:
                         server.assert_running()

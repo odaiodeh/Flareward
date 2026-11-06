@@ -6,20 +6,16 @@ from uuid import uuid4
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
 from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.field_hints import SecretHint
 from mas.core.identity import Identity
 from mas.core.ref.models import ToolRef
 from mas.core.secrets import SECRET_PREFIX
 from mas.domain.element_bundles import ResourceDefinition, ResourceKey
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import ElementStep, GraphDefinition, PathBinding, ProgramDefinition
 from mas.graph.state.state_view import StateView
-from mas.programs.models import (
-    ElementStep,
-    ExecutionSelection,
-    GraphDefinition,
-    PathBinding,
-    ProgramDefinition,
-)
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 __runengine_contract__ = "unifai-test-secrets-v1"
@@ -121,7 +117,7 @@ class SecretNodeFactory(BaseFactory):
         return SecretNode(dependencies["tool"])
 
 
-class SecretNodeSpec(BaseElementSpec):
+class SecretNodeSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_secret_node"
     name = "Secret node"

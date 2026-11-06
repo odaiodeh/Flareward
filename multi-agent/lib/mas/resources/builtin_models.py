@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from typing import Any
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, JsonValue
@@ -15,7 +14,7 @@ def identity_to_key(identity: Identity) -> str:
 
 class BuiltinResourceDescriptor(BaseModel):
     """Built-in-specific metadata for a ``Resource``, owned entirely by
-    ``BuiltinResourceService`` and stored in its own
+    ``BuiltinAdministration`` and stored in its own
     ``builtin_resource_descriptors`` collection, joined to the base
     ``resources`` collection by ``rid``.
 
@@ -29,19 +28,6 @@ class BuiltinResourceDescriptor(BaseModel):
     parent_builtin_id: str | None = None
     created: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated: datetime = Field(default_factory=lambda: datetime.now(UTC))
-
-
-class BuiltinUpdateRequest(BaseModel):
-    """Boundary DTO for admin update requests on built-in resources.
-
-    Carries the structured fields from the inbound layer into the service;
-    using a Pydantic model (rather than a bare dict) ensures validation and
-    type safety at the service boundary.
-    """
-
-    config: dict[str, Any] | None = None
-    name: str | None = None
-    available_to_all: bool | None = None
 
 
 class BuiltinUserConfig(BaseModel):

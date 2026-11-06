@@ -1,8 +1,8 @@
 import logging
 
 from mas.application.elements.condition import BaseCondition
-from mas.core.iem.utils import get_outgoing_targets
 from mas.domain.conditions import BranchType, ConditionOutputSchema, DirectBranchDef
+from mas.graph.messaging import get_outgoing_targets
 from mas.graph.state.graph_state import Channel
 from mas.graph.state.state_view import StateView
 
@@ -22,7 +22,7 @@ class RouterDirectCondition(BaseCondition):
 
         Returns:
             - Node UID(s) if targets exist
-            - END if no targets (graceful termination instead of None crash)
+            - END label if no targets; the graph must explicitly declare its destination
         """
         if self.context is None:
             raise RuntimeError("Direct routing requires a step context")
@@ -50,7 +50,7 @@ class RouterDirectCondition(BaseCondition):
         return ConditionOutputSchema(
             branch_type=BranchType.DIRECT,
             direct_config=DirectBranchDef(
-                description="Routes to nodes based on IEM communication patterns"
+                description="Routes to IEM recipients; declare an END destination for no recipients"
             ),
             description="IEM-based router that follows actual packet communication",
         )

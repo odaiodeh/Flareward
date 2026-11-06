@@ -3,9 +3,9 @@
 import asyncio
 
 import pytest
-from mas.execution.models import ExecutionPhase
-from mas.execution.ports import ExecutionMissing
-from mas.programs.models import ApplicationDefinition, PathBinding
+from mas.application.execution.ports import ExecutionMissing
+from mas.domain.execution.models import ExecutionPhase
+from mas.domain.programs.models import ApplicationDefinition, PathBinding
 from mas.session.domain.status import SessionStatus
 from mas.session.execution.program_sessions import (
     CreateProgramSession,

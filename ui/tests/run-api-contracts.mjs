@@ -8,7 +8,13 @@ import { build } from 'vite';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const suites = {
   api: 'editor-resources.ts', blueprints: 'editor-blueprints.ts', sessions: 'chat-sessions.ts',
-  shares: 'sharing-notifications.ts', contracts: 'ui-contracts.ts',
+  shares: 'sharing-notifications.ts', reviews: 'human-reviews.ts', programs: 'program-composition.ts', contracts: 'ui-contracts.ts',
+  access: 'workflow-access.ts',
+  consent: 'schedule-consent.ts',
+  events: 'program-events.ts',
+  reporting: 'reporting.ts',
+  builtins: 'builtin-administration.ts',
+  curated_inspection: 'curated-inspection.ts',
 };
 const suite = process.argv[2] ?? 'api';
 if (!Object.hasOwn(suites, suite)) throw new Error(`Unknown UI contract suite: ${suite}`);

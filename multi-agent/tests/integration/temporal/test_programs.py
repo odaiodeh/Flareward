@@ -3,8 +3,14 @@
 import asyncio
 
 import pytest
-from mas.execution.models import ExecutionPhase, StartExecution
-from mas.programs.models import ApplicationDefinition, GraphDefinition, PathBinding, ProgramCallStep
+from mas.application.execution.models import StartExecution
+from mas.domain.execution.models import ExecutionPhase
+from mas.domain.programs.models import (
+    ApplicationDefinition,
+    GraphDefinition,
+    PathBinding,
+    ProgramCallStep,
+)
 from runengine.adapters.coordination.temporal.host import TemporalRunHost
 from runengine.adapters.coordination.temporal.models import TemporalRunIdentity
 from support.scenarios import echo_graph, publish

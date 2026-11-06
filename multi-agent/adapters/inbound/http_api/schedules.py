@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from mas.core.identity import Identity
-from mas.programs.models import Model
+from mas.domain.models import Model
 from mas.scheduling.programs import (
     CreateProgramSchedule,
     ProgramScheduleService,
@@ -14,7 +14,14 @@ from mas.session.domain.session_record import SessionRecord
 from mas.session.execution.program_sessions import ProgramSessionService
 from pydantic import Field
 
-from inbound.http_api.dependencies import authenticated, get_schedules, get_sessions
+from inbound.http_api.dependencies import (
+    HumanPrincipal,
+    authenticated,
+    get_schedules,
+    get_services,
+    get_sessions,
+    human_principal,
+)
 
 router = APIRouter(prefix="/api/program-schedules", tags=["program schedules"])
 type Caller = Annotated[Identity, Depends(authenticated)]
@@ -36,11 +43,18 @@ async def create(
         str | None, Header(alias="Idempotency-Key", min_length=1, max_length=256)
     ] = None,
 ) -> ProgramScheduleView:
+    approved_by = None
+    if body.workflow_access is not None:
+        principal = await human_principal(request, get_services(request))
+        if not principal.owner.owns(caller):
+            raise PermissionError("Schedule consent owner differs from its authenticated owner")
+        approved_by = principal.user
     return await service.create(
         body,
         caller,
         credential_user_id=getattr(request.state, "authenticated_user", ""),
         request_key=request_key,
+        approved_by=approved_by,
     )
 
 
@@ -64,12 +78,19 @@ async def update(
     service: Service,
     request: Request,
 ) -> ProgramScheduleView:
+    approved_by = None
+    if body.request.workflow_access is not None:
+        principal = await human_principal(request, get_services(request))
+        if not principal.owner.owns(caller):
+            raise PermissionError("Schedule consent owner differs from its authenticated owner")
+        approved_by = principal.user
     return await service.update(
         schedule_id,
         body.request,
         caller,
         expected_version=body.expected_version,
         credential_user_id=getattr(request.state, "authenticated_user", ""),
+        approved_by=approved_by,
     )
 
 
@@ -94,6 +115,16 @@ async def delete(schedule_id: str, caller: Caller, service: Service) -> Response
     return Response(status_code=204)
 
 
+@router.delete("/{schedule_id}/workflow-access", status_code=204)
+async def revoke_workflow_access(
+    schedule_id: str,
+    principal: Annotated[HumanPrincipal, Depends(human_principal)],
+    service: Service,
+) -> Response:
+    await service.revoke_workflow_access(schedule_id, principal.owner)
+    return Response(status_code=204)
+
+
 @router.get("/{schedule_id}/runs", response_model=list[SessionRecord])
 async def runs(
     schedule_id: str,
@@ -103,4 +134,4 @@ async def runs(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> list[SessionRecord]:
     await service.get(schedule_id, caller)
-    return await sessions.scheduled(schedule_id, caller, limit=limit)
+    return list(await sessions.scheduled(schedule_id, caller, limit=limit))

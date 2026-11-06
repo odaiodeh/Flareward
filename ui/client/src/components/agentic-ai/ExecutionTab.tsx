@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from 'wouter';
+import { executionPath } from '@/components/executions/ExecutionWorkbench';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
@@ -124,6 +126,7 @@ export default function ExecutionTab({ runId, onSessionChange }: ExecutionTabPro
   // ── Panel content ──────────────────────────────────────────────────────
   const chatPanelContent = (
     <div className="flex-grow">
+      {!isChatOnlyMode && hub.sessionStream.executionReference?.sessionId === hub.selectedSession?.id && hub.sessionStream.executionReference && <Link className="inline-block px-4 py-2 text-sm underline" href={executionPath(hub.sessionStream.executionReference.executionId)}>Inspect observed execution</Link>}
       {hub.isLoadingSessionMessages ? (
         <SessionMessagesLoader />
       ) : (

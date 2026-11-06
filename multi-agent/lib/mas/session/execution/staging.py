@@ -2,7 +2,7 @@
 
 from pydantic import JsonValue
 
-from mas.core.execution_context import APPROVAL_RULES_TAG
+from mas.domain.execution.context import APPROVAL_RULES_TAG
 from mas.domain.messages import ChatMessage, Role
 from mas.graph.state.graph_state import GraphState
 from mas.interactions.models import parse_approval_rules

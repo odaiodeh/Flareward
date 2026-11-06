@@ -8,13 +8,8 @@ from uuid import uuid4
 import pytest
 from mas.core.enums import ResourceCategory
 from mas.domain.element_bundles import ResourceKey
-from mas.programs.models import (
-    ElementStep,
-    ExecutionSelection,
-    GraphDefinition,
-    PathBinding,
-    ProgramDefinition,
-)
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import ElementStep, GraphDefinition, PathBinding, ProgramDefinition
 from support.http_probe import http_probe
 from support.http_programs import execute_program, publish_program
 from support.scenarios import resource

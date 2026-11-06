@@ -8,13 +8,15 @@ from uuid import uuid4
 import pytest
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
-from mas.programs.models import (
-    ElementStep,
-    ExecutionSelection,
+from mas.domain.element_bundles import ResourceDefinition, ResourceKey
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     GraphDefinition,
+    OperationStep,
     PathBinding,
     ProgramDefinition,
 )
+from mas_plugins.coding.codex.identifiers import TYPE_KEY
 from runengine.adapters.coordination.config import LocalHostConfig, TemporalHostConfig
 from support.deployment_backend import NetworkEndpoint
 from support.http_programs import execute_program, publish_program
@@ -90,9 +92,10 @@ async def coding_deployment(
 @pytest.mark.llm_integration
 async def test_codex_steps_share_files_and_keep_credentials_out_of_published_data(
     coding_deployment,
+    tmp_path,
 ):
     http, backend, api_key, native, worker = coding_deployment
-    resource_ids = []
+    resources = []
     for name, instructions in (
         (
             "write",
@@ -108,48 +111,28 @@ async def test_codex_steps_share_files_and_keep_credentials_out_of_published_dat
     ):
         saved = await create_resource(
             http,
-            ResourceCategory.NODE,
-            "codex_agent_node",
+            ResourceCategory.OPERATION,
+            TYPE_KEY,
             name,
             {
                 "model": "gpt-5.4-nano",
                 "instructions": instructions,
+                "workspace_mode": "shared",
                 "max_commands": 4,
                 "timeout_seconds": 60,
             },
         )
-        resource_ids.append(saved)
-    blueprint = await http.post(
-        "/api/blueprints",
-        json={
-            "spec": {
-                "name": "Coding workflow",
-                "nodes": [{"rid": "$ref:" + rid} for rid in resource_ids],
-                "plan": [
-                    {
-                        "uid": name,
-                        "node": "$ref:" + rid,
-                        **({"after": "write"} if name == "verify" else {}),
-                    }
-                    for name, rid in zip(("write", "verify"), resource_ids, strict=True)
-                ],
-            }
-        },
-    )
-    assert blueprint.status_code == 201, blueprint.text
-    imported = await http.put(
-        "/api/programs/coding-workflow/blueprint",
-        json={
-            "blueprint_id": blueprint.json()["blueprint_id"],
-        },
-    )
-    assert imported.status_code == 200, imported.text
-    by_id = {
-        item.key.rid: item
-        for item in ProgramDefinition.model_validate(imported.json()).implementation.resources
-    }
-    resources = tuple(by_id[rid] for rid in resource_ids)
-    evidence = resource("evidence", category=ResourceCategory.NODE, type_key="coding_evidence")
+        document = await http.get(f"/api/resources/{saved}")
+        assert document.status_code == 200, document.text
+        stored = document.json()
+        resources.append(
+            ResourceDefinition(
+                key=ResourceKey(category=ResourceCategory.OPERATION, rid=saved),
+                type_key=TYPE_KEY,
+                config=stored["cfg_dict"],
+            )
+        )
+    evidence = resource("evidence", category=ResourceCategory.OPERATION, type_key="coding_evidence")
     # Kubernetes owns a retained pod; OpenShell's fixture owns its pre-provisioned sandbox.
     owned_environment = backend.name == "k8s"
     selection = (
@@ -160,7 +143,15 @@ async def test_codex_steps_share_files_and_keep_credentials_out_of_published_dat
     graph = GraphDefinition(
         resources=(*resources, evidence),
         steps=tuple(
-            ElementStep(uid=name, element=item.key, execution=selection)
+            OperationStep(
+                uid=name,
+                element=item.key,
+                execution=selection,
+                inputs={"workspace": PathBinding(path=("values", "workspace"))}
+                if name == "evidence"
+                else {"prompt": PathBinding(path=("user_prompt",))},
+                outputs={"values": PathBinding(path=())},
+            )
             for name, item in zip(
                 ("write", "verify", "evidence"), (*resources, evidence), strict=True
             )
@@ -171,8 +162,9 @@ async def test_codex_steps_share_files_and_keep_credentials_out_of_published_dat
         environments={"coding": "coding"} if owned_environment else {},
         inputs={"user_prompt": PathBinding(path=("task",))},
         outputs={
-            "answer": PathBinding(path=("output",)),
-            "steps": PathBinding(path=("nodes_output",)),
+            "answer": PathBinding(path=("values", "content")),
+            "coding": PathBinding(path=("values",)),
+            "evidence": PathBinding(path=("values", "evidence")),
         },
     )
     definition = ProgramDefinition(
@@ -181,28 +173,31 @@ async def test_codex_steps_share_files_and_keep_credentials_out_of_published_dat
         owner=Identity.user("owner"),
         implementation=graph,
     )
-    # Saved resource references resolve through the library during publication.
+    # Saved resource configurations are frozen into the published program revision.
     reference = await publish_program(http, definition)
     execution = await execute_program(
         http, reference, uuid4().hex, {"task": "Write and verify addition."}
     )
     assert execution["phase"] == "completed", json.dumps(execution.get("failure"))
     assert "VERIFIED_42" in execution["result"]["answer"]
-    proofs = {key: json.loads(value) for key, value in execution["result"]["steps"].items()}
-    assert set(proofs) == {"write", "verify", "evidence"}
-    assert proofs["evidence"]["verified"] == "42"
-    assert "def add" in proofs["evidence"]["source"]
-    assert proofs["verify"]["commands"] > 0
-    assert proofs["evidence"]["system"] == "Linux"
-    assert proofs["evidence"]["namespace"] == backend.namespace
-    assert proofs["evidence"]["image_marker"] == "unifai-platform-e2e-v1"
-    assert all(item["usage"]["input_tokens"] > 0 for item in (proofs["write"], proofs["verify"]))
+    proof = execution["result"]["evidence"]
+    assert proof["verified"] == "42" and "def add" in proof["source"]
+    assert proof["system"] == "Linux" and proof["namespace"] == backend.namespace
+    assert proof["image_marker"] == "unifai-platform-e2e-v1"
+    assert execution["result"]["coding"]["commands"] > 0
+    assert execution["result"]["coding"]["usage"]["input_tokens"] > 0
     revision = await http.get(
         f"/api/programs/{reference.program_id}/revisions/{reference.revision}"
     )
     assert revision.status_code == 200, revision.text
-    assert api_key.get_secret_value() not in revision.text
-    assert api_key.get_secret_value() not in json.dumps(execution)
+    # Never let assertion introspection print a real credential on regression.
+    if any(
+        api_key.get_secret_value() in value
+        for value in (revision.text, json.dumps(execution), (tmp_path / "api.log").read_text())
+    ):
+        pytest.fail(
+            "Private provider credential appeared in public data or API logs", pytrace=False
+        )
     if native is not None:
         await replay(native, worker, execution["context"]["engine_handle"])
     if owned_environment:

@@ -5,9 +5,9 @@ from uuid import uuid4
 from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
 
 from mas.core.enums import ResourceCategory
-from mas.core.execution_preferences import ResourceExecutionDefaults
 from mas.core.field_hints import HiddenHint
 from mas.core.identity import Identity
+from mas.domain.execution_preferences import ResourceExecutionDefaults
 
 
 class Resource(BaseModel):
@@ -20,7 +20,7 @@ class Resource(BaseModel):
     does NOT live here — it lives in the separate
     ``builtin_resource_descriptors`` collection, joined by ``rid``. See
     ``BuiltinResourceDescriptor`` (``mas.resources.builtin_models``) and
-    ``BuiltinResourceService``, which owns that descriptor's full
+    ``BuiltinAdministration``, which owns that descriptor's full
     lifecycle. A resource with no matching descriptor is a plain custom
     resource — existence of a descriptor *is* the "this resource is a
     built-in" signal, so ``Resource`` carries zero built-in-related
@@ -74,7 +74,7 @@ class ResourceQuery(BaseModel):
     Purely identity/category/type/pagination/sort — no ownership/is_admin
     concept. Listing that needs to reason about built-in visibility (the
     ``ownership`` query filter on ``/resources.list``) is handled by
-    ``BuiltinResourceService`` via the joined
+    ``BuiltinAdministration`` via the joined
     ``BuiltinResourceDescriptorRepository`` reads, not by this query object
     or the base ``ResourceRepository``.
     """

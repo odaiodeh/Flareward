@@ -6,8 +6,8 @@ from uuid import uuid4
 
 import pytest
 from mas.core.identity import Identity
+from mas.domain.programs.models import ApplicationDefinition, PathBinding, ProgramDefinition
 from mas.graph.state.graph_state import GraphState
-from mas.programs.models import ApplicationDefinition, PathBinding, ProgramDefinition
 from outbound.interactions.wire import root_key
 from outbound.redis_client import owned_redis
 from pydantic import SecretStr
@@ -126,7 +126,9 @@ async def test_deployed_authoring_session_restart_messages_and_cancellation(
                         json={"blueprint_id": blueprint_id, "execution_profile": profile},
                     )
                     assert imported.status_code == 200, imported.text
-                    published = await http.post("/api/programs/network-graph/revisions")
+                    published = await http.post(
+                        "/api/programs/network-graph/revisions", json={"expected_version": 1}
+                    )
                     assert published.status_code == 201, published.text
                     bindings = {
                         name: PathBinding(path=(name,)).model_dump(mode="json")
@@ -166,11 +168,17 @@ async def test_deployed_authoring_session_restart_messages_and_cancellation(
                     )
                     assert (
                         await http.put(
-                            "/api/programs/network-wait", json=waiting.model_dump(mode="json")
+                            "/api/programs/network-wait",
+                            json={
+                                "definition": waiting.model_dump(mode="json"),
+                                "expected_version": 0,
+                            },
                         )
                     ).status_code == 200
                     assert (
-                        await http.post("/api/programs/network-wait/revisions")
+                        await http.post(
+                            "/api/programs/network-wait/revisions", json={"expected_version": 1}
+                        )
                     ).status_code == 201
                     request = {
                         "program": {"program_id": "network-wait", "revision": 1},

@@ -1,4 +1,4 @@
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 
 from ..config import OrchestratorNodeConfig
@@ -8,7 +8,7 @@ from ..orchestrator_node_factory import OrchestratorNodeFactory
 from ..validator import OrchestratorNodeValidator
 
 
-class OrchestratorNodeElementSpec(BaseElementSpec):
+class OrchestratorNodeElementSpec(GraphElementSpec):
     """Element specification for Orchestrator Node."""
 
     category = ResourceCategory.NODE

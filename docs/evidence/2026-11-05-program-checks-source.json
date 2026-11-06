@@ -1,0 +1,21 @@
+{
+  "scope": "Focused Program-backed check implementation, composition, tests and referenced execution/report contracts; not a full dependency or image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/bootstrap/platform.py": "f59d1c0bb467e4393c32a4d8866e7902c396287088aa53181e8bc3916fc2b707",
+    "multi-agent/config/platform_settings.py": "e98b57a6b13852272a329aa880d8e933fbb8e3a83df0486cf42bb22532c121ac",
+    "multi-agent/lib/mas/application/execution/service.py": "dc1bc36e34f4ed5ac70c47f7c50759b0840d063ce4eede8bb0d035a499e746a4",
+    "multi-agent/lib/mas/application/programs/service.py": "2119780e11ad481f9e517f01b5749bedfd8428ea504a7c317662469973d8a855",
+    "multi-agent/lib/mas/application/verification/check_ports.py": "9e22f6e1c65ee8c312bc7c95b3e3c8c8c944019f221e42da1c3683ca2de07801",
+    "multi-agent/lib/mas/application/verification/check_service.py": "42761ef022a0dc4d4c09d18f973f763ee80002c69320334344eecff6353dd3be",
+    "multi-agent/lib/mas/application/verification/program_checks.py": "ea0c8f8a58a6a67743617e104599e005f2c2506ea7aa36db5d502825e3740cd4",
+    "multi-agent/lib/mas/application/verification/reports.py": "922beae69791fb90d10cc37ffa80a093200c4a6f457b20b5e1bee49803a41edf",
+    "multi-agent/lib/mas/domain/check_runs.py": "ab4ce08e6a235d6d1310feb9e50e9620f842394efc52e3da0340107aaf20b39d",
+    "multi-agent/tests/adapters/test_verification_settings.py": "5ee0bdbaaa530f337e26cd8b419f5394ea2bdbdc3d70d1fb6c80753a68d8aea8",
+    "multi-agent/tests/application/test_program_checks.py": "39e2299490cfd28b44928fd847cf9e795cd8ac6c37cbfff917e4cb6adb4a7e0d",
+    "multi-agent/tests/integration/verification/test_github_checks.py": "61ca69bf54c09faaf33856a923425d30433881ddac5d284754aab93ac3b6ca55",
+    "multi-agent/tests/integration/verification/test_program_checks.py": "8dc7edb19e5821218487336a6b6f89509c264517710248ab605aafaeb633b0c9",
+    "multi-agent/tests/support/program_checks.py": "a385fd1083a9d4ab74f65351b1f973afae5f1384dd08781a5a932e99db212f6a"
+  },
+  "aggregate_sha256": "1444a8ed3b9cd76e5ca3b10d928e8a98d7f3bb22cc101c2e496ec5020abcac82"
+}

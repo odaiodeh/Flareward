@@ -3,6 +3,7 @@
 import logging
 from abc import ABC, abstractmethod
 
+from mas.application.workloads.storage import WorkloadStorage
 from mas.domain.workloads.thread import Thread, ThreadStatus
 
 logger = logging.getLogger(__name__)
@@ -105,7 +106,7 @@ class IThreadService(ABC):
 class ThreadService(IThreadService):
     """Concrete implementation of thread service."""
 
-    def __init__(self, storage):
+    def __init__(self, storage: WorkloadStorage):
         """Initialize with storage implementation."""
         self._storage = storage
         self._max_depth = 50  # Cycle protection

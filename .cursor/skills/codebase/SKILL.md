@@ -8,7 +8,7 @@ description: >-
 # UnifAI Codebase Overview
 
 UnifAI is a multi-service platform for building and running AI agent workflows.
-The monorepo contains backend services (Python/Flask), a frontend (React/TypeScript),
+The monorepo contains backend services (Python/FastAPI or Flask by service), a frontend (React/TypeScript),
 shared libraries, and infrastructure tooling.
 
 ## Domain Routing Table
@@ -16,13 +16,13 @@ shared libraries, and infrastructure tooling.
 | Path prefix | Domain | Skill |
 |-------------|--------|-------|
 | `multi-agent/` | Multi-Agent System (MAS) | `domains/multi-agent/SKILL.md` |
+| `docs/status.md`, `docs/plan.md`, `docs/architecture/`, `docs/evidence/` | Program platform documentation | `domains/multi-agent/SKILL.md` |
 | `rag/` | RAG Pipeline | `domains/rag/SKILL.md` |
 | `shared-resources/identity/` | Identity & Auth | `domains/identity/SKILL.md` |
 | `ui/client/src/` | Frontend UI | `domains/ui/SKILL.md` |
 | `global_utils/` | Global Utilities | `domains/global-utils/SKILL.md` |
 | `backend/` | Platform Backend | `domains/backend/SKILL.md` |
 | `rag/infrastructure/celery/` | Celery Workers | `domains/celery/SKILL.md` |
-| `temporal-worker/` | Temporal Workers | `domains/temporal-worker/SKILL.md` |
 | `helm/` | Helm / Deploy Charts | `domains/helm/SKILL.md` |
 
 Domain skills are auto-surfaced via `paths` when editing files in their scope.
@@ -31,14 +31,13 @@ Domain skills are auto-surfaced via `paths` when editing files in their scope.
 
 | Service | Role | Tech Stack | Port |
 |---------|------|-----------|------|
-| **multi-agent** | AI agent orchestration engine | Python, Flask, MongoDB, Redis, LangGraph | 5001 |
+| **multi-agent** | Composable program platform | Python, FastAPI, Run Engine, MongoDB, Redis | Configured; native default 13457 |
 | **rag** | Document ingestion & retrieval | Python, Flask, MongoDB, Qdrant, Celery | 5002 |
 | **identity** | Auth, teams, SSO | Python, Flask, Keycloak, MongoDB | 5003 |
 | **backend** (platform) | Admin config, platform API | Python, Flask, MongoDB | 5000 |
 | **ui** | Web frontend | React, TypeScript, Vite, TailwindCSS | 3000 |
 | **global_utils** | Shared Python library | Python (package) | — |
 | **celery** | Async task workers for RAG | Python, Celery, Redis | — |
-| **temporal-worker** | Distributed workflow execution | Python, Temporal | — |
 
 ## Cross-Cutting Concerns
 
@@ -49,7 +48,13 @@ Domain skills are auto-surfaced via `paths` when editing files in their scope.
 | MongoDB access | Each service's `adapters/` or `infrastructure/` |
 | Redis caching | `global_utils/redis/` + per-service usage |
 | Message queues | RabbitMQ via Celery (`global_utils/celery_app/`) |
-| Workflow orchestration | Temporal (`multi-agent/adapters/outbound/temporal/`) |
+| Workflow orchestration | Run Engine (`multi-agent/adapters/outbound/run_engine/`), composed in bootstrap |
+
+## MAS authority
+
+For multi-agent work, use docs/architecture/README.md and the current migration
+ledger. Generated MAS service maps may describe removed implementations and must
+not override the fresh platform target. Other services retain their own guidance.
 
 ## Dev-Guide (optional factual reference)
 

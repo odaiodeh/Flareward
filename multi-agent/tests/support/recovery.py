@@ -8,11 +8,11 @@ from pathlib import Path
 
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
+from mas.application.programs.ports import ProgramRuntime
 from mas.core.enums import ResourceCategory
 from mas.domain.element_bundles import ElementBundle
 from mas.graph.state.state_view import StateView
-from mas.programs.ports import ProgramRuntime
 from pydantic import BaseModel, ConfigDict
 
 __runengine_contract__ = "unifai-test-recovery-v1"
@@ -56,7 +56,7 @@ class EffectFactory(BaseFactory):
         return EffectNode(cfg)
 
 
-class EffectSpec(BaseElementSpec):
+class EffectSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_effect"
     name = "Idempotent effect fixture"

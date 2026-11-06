@@ -1,0 +1,32 @@
+{
+  "scope": "Focused owned-check retirement source, tests and referenced execution/verification contracts; not a full dependency or image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/adapters/outbound/mongo/check_runs.py": "bbc1224fdeb3e524cfcf69e98029038e26032eb3f22b1ffc04fba27ddddcaf63",
+    "multi-agent/bootstrap/platform.py": "9c5611ad2b7981a9e6d15664acee476a01213f45642f07a93a8d402cb22ab1bd",
+    "multi-agent/lib/mas/application/execution/access.py": "87b8efb958efb819014df5f818365f0c035125f9de9d09e82f88917ca88baf23",
+    "multi-agent/lib/mas/application/execution/service.py": "dc1bc36e34f4ed5ac70c47f7c50759b0840d063ce4eede8bb0d035a499e746a4",
+    "multi-agent/lib/mas/application/verification/check_ports.py": "27b94903361d9f23e4e33d438dc75ca0f9531496328ea8baaef68f9ed7d241de",
+    "multi-agent/lib/mas/application/verification/check_service.py": "56e9ecf9724c370cee43f0f105fddad835ce34ec4fdbfce39a08a132b2135a71",
+    "multi-agent/lib/mas/application/verification/maintenance.py": "8c3d6244715153c111251b3990d57f723a9977a2f2644fe5ee0b9e07034f0441",
+    "multi-agent/lib/mas/application/verification/program_checks.py": "74180e11524b14f459fa8f1ab0ce5a728bf29a7052cf4232dcab9cb5fa46de74",
+    "multi-agent/lib/mas/application/verification/service.py": "69634a3f9369ae7c3a829d97604449e5bc3001123cbe3eca2492def8d944c166",
+    "multi-agent/lib/mas/domain/check_runs.py": "acd1a92070ccab0177af30b84e4025c31a3579d556d264303a6256ca41bdc3a0",
+    "multi-agent/tests/application/test_check_job_maintenance.py": "1c09688c9334905a03648498863993b79751851722a85439b6e7f2439f87adff",
+    "multi-agent/tests/application/test_program_checks.py": "5b955b3e5803ed001b0a2d5f92d53eee5e63a4859554d65c018720507a3c3ecf",
+    "multi-agent/tests/integration/mongo/test_check_jobs.py": "df73e027b2714ccb368986c99b199a3794a43524d2fc5c94fef6d02e97d2d6e1",
+    "multi-agent/tests/integration/verification/test_program_checks.py": "fbcab5b44de137fe3fa14f0a9f9c4bb01833a78b85e6fba443fbef8eea11e612",
+    "multi-agent/tests/support/check_jobs.py": "4c5fc5c3a2d5fede7969b8d76e82b7b8290c64d5d3bc2c498b6340ba2e146fb9",
+    "multi-agent/tests/support/check_runs.py": "07c5d5a18ab2f669f62e48dffd8ddf27435c7991760810fd2ab1c2752013d4af",
+    "multi-agent/tests/support/program_check_api.py": "054b4538e2009909e647ac6cb92c1c39c9af23429eeb4951f72281d39f393280"
+  },
+  "aggregate_sha256": "8b9261d2f06c1ec03157b2b272527b7e71e38cd864af114e707909f3648a7f23",
+  "companion": {
+    "git_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+    "inspected_files": {
+      "src/runengine/adapters/invocation/thread/executor.py": "0419444f4fd573d545ed307cb2c7b6800447403a6e727aaebb2c08768146d38d",
+      "src/runengine/adapters/invocation/process/executor.py": "3282eef214f3110c67df97ee3974a2d0714cc65453a2d0f14380b5b29c0ef7f4",
+      "src/runengine/core/completion.py": "532707d66659aa79eacd9fd74b19a63ae18951d4b8c2a8fe3b09fa8019deeb70"
+    }
+  }
+}

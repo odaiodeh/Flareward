@@ -6,8 +6,8 @@ import httpx
 import pytest
 from global_utils.constants import INTERNAL_AUTH_HEADER
 from mas.application.capabilities.retriever_capable import RetrieverCapableMixin
-from mas.core.execution_context import ExecutionContext
 from mas.core.identity import Identity
+from mas.domain.execution.context import ExecutionContext
 from mas.domain.messages import ChatMessage, Role
 from mas.elements.retrievers.slack.slack_retriever import SlackRetriever
 from mas.elements.tools.builtin.retriever import RetrieverTool

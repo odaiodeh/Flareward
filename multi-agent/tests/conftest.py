@@ -1,11 +1,10 @@
 """Application fixtures are available without constructing infrastructure."""
 
-import os
-from pathlib import Path
-
 import pytest
-from pydantic import SecretStr
 from support.application import Application, make_application
+from support.coding_cli import codex_cli as codex_cli
+from support.live_coding import live_coding_credential
+from support.repositories import local_repository as local_repository
 
 
 @pytest.fixture
@@ -26,6 +25,12 @@ def pytest_addoption(parser):
         default=False,
         help="Explicitly allow bounded paid Codex coding-agent tests",
     )
+    parser.addoption(
+        "--strict-sandbox-filesystem",
+        action="store_true",
+        default=False,
+        help="Additionally require Landlock filesystem enforcement on a capable Linux host",
+    )
 
 
 @pytest.fixture
@@ -34,10 +39,7 @@ def live_coding_key(request):
         pytest.skip("Select --live-coding to allow real paid coding-agent calls")
     if not request.config.getoption("--platform-backends", default=""):
         pytest.fail("Live coding requires an explicit --platform-backends selection", pytrace=False)
-    key_path = Path(__file__).parent / "infra/.state/llm/UNIFAI_TEST_OPENAI_API_KEY"
-    value = os.environ.get("UNIFAI_TEST_OPENAI_API_KEY", "")
-    if not value and key_path.is_file():
-        value = key_path.read_text().strip()
-    if not value:
+    try:
+        return live_coding_credential()
+    except ValueError:
         pytest.fail("Live coding tests require a private OpenAI test credential", pytrace=False)
-    return SecretStr(value)

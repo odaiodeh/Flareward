@@ -26,9 +26,7 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool as LangChainBaseTool
 
 from mas.application.capabilities.hitl_capable import HITLCapableMixin
-from mas.application.capabilities.iem_capable import IEMCapableMixin
 from mas.application.capabilities.retriever_capable import RetrieverCapableMixin
-from mas.application.capabilities.workload_capable import WorkloadCapableMixin
 from mas.application.elements.node import BaseNode
 from mas.application.ports.llm import BaseLLM
 from mas.application.ports.tool import BaseTool
@@ -41,6 +39,8 @@ from mas.elements.llms.common.chat.converter import LangChainConverter, normalis
 from mas.elements.llms.common.langchain_adapter import BaseLLMChatModelAdapter
 from mas.elements.nodes.deep_agent.hitl_middleware import HITLMiddleware
 from mas.elements.tools.common.converter import LangChainToolsConverter
+from mas.graph.capabilities.messaging import GraphMessagingMixin
+from mas.graph.capabilities.workloads import GraphWorkloadMixin
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +68,8 @@ class ExecutionResult:
 
 
 class DeepAgentNode(
-    WorkloadCapableMixin,
-    IEMCapableMixin,
+    GraphWorkloadMixin,
+    GraphMessagingMixin,
     RetrieverCapableMixin,
     HITLCapableMixin,
     BaseNode,
@@ -128,7 +128,7 @@ class DeepAgentNode(
         """Main entry point — build the Deep Agent (if needed), then process packets."""
 
         await self._ensure_compiled()
-        await self.process_packets(state)
+        await self.process_packets()
         return state
 
     async def _ensure_compiled(self) -> None:

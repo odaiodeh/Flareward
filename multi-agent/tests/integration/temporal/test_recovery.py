@@ -3,9 +3,10 @@
 import asyncio
 
 from mas.application.elements.construction.resolver import ElementBundleResolver
+from mas.application.execution.models import StartExecution
 from mas.core.enums import ResourceCategory
-from mas.execution.models import ExecutionPhase, StartExecution
-from mas.programs.models import ApplicationDefinition
+from mas.domain.execution.models import ExecutionPhase
+from mas.domain.programs.models import ApplicationDefinition
 from support.recovery import effect_counts
 from support.scenarios import publish, resource
 from support.temporal import replay, worker_process

@@ -1,0 +1,25 @@
+{
+  "scope": "Focused inline artifact and Python-check implementation, normal composition, tests and referenced execution/report contracts; not a full dependency/image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/bootstrap/platform.py": "1f52690ef4180b5b7ff5446d5744e5c9bf8997b763f5d309c9a61e085d7975c8",
+    "multi-agent/config/platform_settings.py": "e98b57a6b13852272a329aa880d8e933fbb8e3a83df0486cf42bb22532c121ac",
+    "multi-agent/lib/mas/application/execution/service.py": "dc1bc36e34f4ed5ac70c47f7c50759b0840d063ce4eede8bb0d035a499e746a4",
+    "multi-agent/lib/mas/application/verification/check_service.py": "42761ef022a0dc4d4c09d18f973f763ee80002c69320334344eecff6353dd3be",
+    "multi-agent/lib/mas/application/verification/program_checks.py": "ecad4e43235d857bb51ae0beebb1a8199cc370c7968730f986181d1d66add70a",
+    "multi-agent/lib/mas/application/verification/reports.py": "922beae69791fb90d10cc37ffa80a093200c4a6f457b20b5e1bee49803a41edf",
+    "multi-agent/lib/mas/domain/artifacts.py": "d1b38f5100306ad8d30180959b0aa1a60ba416d300396d4c39a9533ca3dc3dc3",
+    "multi-agent/plugins/mas_plugins/testing/__init__.py": "48c19afae348d67aa14d70aecb29db27518eff71481542b80fc733674d6cb5f6",
+    "multi-agent/plugins/mas_plugins/testing/_python_worker.py": "e2651a1e846ed8dd434fc91104c841a6abd51e7bcde3370bbaf61df323734466",
+    "multi-agent/plugins/mas_plugins/testing/python_functions.py": "cc67c4de13819a529a2ebcc2e0e3588ddc291fcd635e5c1094b9dd25c9823399",
+    "multi-agent/plugins/mas_plugins/testing/specification.py": "bb27ccc5caa812562f6c9bf9ed3825c9484e11c8827f6c93fb72ecfdd4373cca",
+    "multi-agent/tests/adapters/test_python_function_checks.py": "d98aa1b737d1fd767685542a212074c397dcfefe415d52da5d6539a2dafe792f",
+    "multi-agent/tests/application/test_program_checks.py": "13ffef89add0e56f4dd196071a55dcaee3a0acfd48f6ecdc49ef7446963fd053",
+    "multi-agent/tests/domain/test_artifacts.py": "5b220b324143636f53dd05639372846c8b1c2060883022c11162a09516a241c9",
+    "multi-agent/tests/integration/verification/test_program_checks.py": "1c7fadc3804d513e75d4b3fa85a553c7c037f7bd64759ed9ace0efb9d439062b",
+    "multi-agent/tests/support/artifacts.py": "be6c8cdef90b2e00fda160eac7d989d7e927cb6e285af605b3c9fce6891e571b",
+    "multi-agent/tests/support/program_checks.py": "d854eff0617537fb0d074527a1043fdd44e96e7d3616943827b3c98a891e402f",
+    "multi-agent/tests/support/python_checks.py": "b766f63798f83a4f34dffb87cd03264428ea96e90567bbed5e4bfcc0e983d6e5"
+  },
+  "aggregate_sha256": "d8461a5b1029bbf091718d013fc567c5d8598f4244f2680a807996820fa69c0a"
+}

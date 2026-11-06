@@ -3,12 +3,16 @@ name: ui-knowledge
 description: >-
   Domain knowledge for the UnifAI frontend. React/TypeScript SPA with feature-oriented
   layout. Use when working on files under ui/client/src/.
-paths: ui/client/src/**
+metadata:
+  paths: "ui/client/src/**"
 ---
 
 # UI Knowledge System
 
-React 18 SPA (~280 TS/TSX files) with Nginx reverse proxy. Feature-oriented layout (NOT hexagonal).
+React 18 SPA with Nginx reverse proxy. Presentation is feature-oriented, with typed
+API boundaries, pure authoring/data helpers, and explicitly owned query/request
+lifetimes. Apply the target's SOLID and dependency-direction requirements without
+requiring the frontend to mirror the backend's directory names.
 
 ## Component Routing
 
@@ -22,7 +26,7 @@ React 18 SPA (~280 TS/TSX files) with Nginx reverse proxy. Feature-oriented layo
 | `contexts/` | React Contexts | 7 files / 8 contexts | Auth, Theme, View, Shared, Notification, AgenticAI, Streaming, Project |
 | `http/` | HTTP Clients | 4 | Axios instances for each backend service |
 | `features/` | Feature Modules | ~22 | Slack, docs, configuration slices |
-| `pages/` | Pages | ~12 | Route-level page components |
+| `pages/` | Pages | Route-level | Page components compose feature views |
 | `types/` | Types | ~8 | Shared TypeScript types (graph, session, workspace, templates) |
 
 ## HTTP Clients (4 backends)
@@ -95,8 +99,9 @@ For full endpoint catalog (72 endpoints), component details, and hook documentat
 
 ## Domain Rules
 
-Frontend-specific conventions. Note: UI does NOT follow hexagonal architecture —
-it uses feature-oriented layout instead.
+Frontend-specific conventions. Feature-oriented folders describe presentation
+organization; they do not exempt UI code from clean boundaries, cohesive ownership
+or separation of application behavior from transport and rendering.
 
 ---
 
@@ -175,7 +180,7 @@ guard.
 Every `ElementInstance` (`types/workspace.ts`) carries `ownership?: 'builtin' | 'custom'`,
 `visibility?: 'draft' | 'public'`, and `userConfigured?: boolean`, mirroring the
 backend's `ResourceOwnership`/`ResourceVisibility` (see
-`domains/multi-agent/references/resources.md`). Two pages consume this:
+docs/program-platform-development.md). Two pages consume this:
 
 - **Agent Repository** (`pages/AgentRepository.tsx`) — end-user view, filterable
   All / Built-in / Personal; configuring a built-in (`BuiltinConfigureModal`) writes
@@ -202,20 +207,49 @@ from the authorization URL's `redirect_uri`. Do not add a bare `message` event
 listener for a new OAuth flow without this check (a same-object-different-origin
 popup navigation could otherwise spoof the callback).
 
+### 11. Programs library and canonical authoring
+
+`pages/Programs.tsx` composes `features/programs/`: saved-library queries, versioned
+editing, schema configuration, pinned dependencies, graph projection and execution
+observation. There is one public Programs library; graph/registered implementation
+differences are internal editing/validation concerns. `api/programs.ts` owns the
+transport contract. Saves carry `{definition, expected_version, presentation?, resource_selections?}`;
+publication carries the observed source version. Never silently upgrade child pins.
+Canvas positions are presentation data, not another executable graph model.
+
+`ResourcePicker` lists native saved resources and sends only their source markers.
+The server resolves authorized dependency snapshots and protects private fields;
+never build portable resources from display/redacted `cfg_dict`. Pending selections
+participate in dirty/discard state and clear only after a confirmed save. Resource
+adoption explicitly changes shared construction snapshots; per-block profile or
+environment choices remain separate. Catalog contracts are metadata, not authority.
+Conditional routes use the same source-capture path and their own execution
+selection. Pure graph-edit helpers preserve label-specific connections and clear
+removed entry/exit choices. Keep the selected-block section's React lifetime
+scoped by UID; siblings must not reuse that key. Check repeated edits in the actual
+browser because transport tests cannot detect duplicated/stale controls.
+
+Scope query keys by owner and authenticated human. Mutable drafts reload explicitly
+rather than replacing unsaved edits during focus refetches. Invalid JSON must block
+submission and participate in the discard guard. Unknown start delivery retries the
+same execution identity and input. Use the existing `dark-inputs` parent convention
+and check actual browser contrast. The older blueprint builder remains pending
+convergence; neither current view is evidence that the full target editor is done.
+
 ---
 
-### Established Patterns — UI Frontend
+### Existing patterns and refactoring guidance
 
-These patterns are established and reviewers MUST NOT flag them as violations:
+Assess existing patterns against the target architecture. File size and historical
+usage are not architectural exemptions. Preserve useful behavior while extracting
+cohesive responsibilities when a concrete boundary or lifecycle justifies it.
 
 | Pattern | Where it exists | Why it's acceptable |
 |---------|-----------------|---------------------|
-| Feature-oriented layout instead of hexagonal architecture | Entire `ui/client/src/` | React SPA — hex doesn't apply; features, hooks, contexts replace ports/adapters |
-| Large context files (700+ LOC) | `AgenticAIContext` (~760 LOC) | Client-side cache + validation orchestration; splitting fragments tightly coupled state |
-| Large hooks (1400+ LOC) | `useGraphCreationLogic` (~1470 LOC) | Graph builder state machine; complexity is inherent, not decomposable without prop-drilling |
+| Feature-oriented presentation layout | Entire `ui/client/src/` | Keep typed transport boundaries, pure models/helpers and explicit state ownership; do not add backend-shaped folders without a purpose |
 | `AgenticAIContext` calls API/axios directly (bypasses hook layer) | `contexts/AgenticAIContext.tsx` | Resource maps and validation caches require batch fetching at context init; hook indirection adds no value |
 | `AuthContext` uses `http/authClient` directly | `contexts/AuthContext.tsx` | Auth is the boundary — session management can't go through a domain API layer |
 | Some components import `@/api/*` without hook wrappers | `TeamSettingsModal`, `SharedPanel`, etc. | Simple one-off API calls where a hook would be trivial; TanStack React Query adoption is partial |
 | Nested provider tree (7–8 contexts deep) | `App.tsx` | Standard React cross-cutting state; each context has a clear single responsibility |
 | Streaming via native `fetch` (not Axios) | `useSessionStream` | NDJSON streaming requires `ReadableStream` API; Axios doesn't support streaming reads |
-| Card fields driven generically by server-side schema hints (`hints.card`, `hints.secret`, `hints.hidden`, `hints.conditional`) instead of per-element-type switch statements | `lib/cardFields.ts#getCardFields()`, consumed by `BuiltInElementCard`, `ElementGrid` | Mirrors the backend `field_hints.py` contract (see `domains/multi-agent/references/elements.md`) — adding a new element type never requires touching card-rendering code, only its config schema |
+| Card fields driven generically by server-side schema hints (`hints.card`, `hints.secret`, `hints.hidden`, `hints.conditional`) instead of per-element-type switch statements | `lib/cardFields.ts#getCardFields()`, consumed by `BuiltInElementCard`, `ElementGrid` | Mirrors the backend `field_hints.py` contract (see docs/program-platform-development.md) — adding a new element type never requires touching card-rendering code, only its config schema |

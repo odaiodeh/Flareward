@@ -1,0 +1,51 @@
+{
+  "scope": "Focused workflow catalog, consent, artifact inspection and controlled feature browser dependencies; not a full dependency/image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "multi-agent/adapters/inbound/http_api/artifacts.py": "0fb505d95c085d1cda0eea9dcf3bec711aebd989572eb4d1eb4ee7406dd2bf42",
+    "multi-agent/adapters/inbound/http_api/catalog.py": "6f38a972006d4e1874c8fab1ee8b009b30e095b85d85d8fe065ca8809fde510a",
+    "multi-agent/adapters/inbound/http_api/dependencies.py": "4140c45cd68c872483b07ab1ef7b8103c41f7cd48e69e30036ffb7e47da0b507",
+    "multi-agent/bootstrap/platform.py": "d3e26d6d0914a1f777628ea24a8cca44eed093796ebefc8ed1877a3c3a870d4b",
+    "multi-agent/lib/mas/application/access/admission.py": "787cdfb4e0a41e1bca09c0325dcb9c35c11723162a0c16da25feca77bfd9532a",
+    "multi-agent/lib/mas/application/access/catalog.py": "8e594448cc614cafa30906d315f191b32fa18b4bd6cc1342f75cf15f12c8228a",
+    "multi-agent/lib/mas/application/artifacts/workflow_access.py": "2ce4e0a3a4c255b1bcf2364da828fbda151c660da7aad12f259a40c15faff06e",
+    "multi-agent/lib/mas/application/reviews/access.py": "35d87e22e7c06b092e04c5a6619d2ee40ff48db5edfcbb7645ba5126ec056327",
+    "multi-agent/lib/mas/application/verification/access.py": "2e06075deada62029482f41edf5e2e255859126921ba8c76f73e0038e6eed96c",
+    "multi-agent/lib/mas/application/verification/access_models.py": "f3b49d91a5de4f6c3d4e05038130d1b6b1b92b0fd9be4bad404f5f3f03e762e1",
+    "multi-agent/tests/application/test_workflow_access_catalog.py": "62f369b9f25f4e185a34b23ed77be01ba65a280361c58b360c294181549720c1",
+    "multi-agent/tests/integration/coding/test_feature_workflow.py": "845415bb1d90973be488fd00ae4d4f9fa2dbbd7993e37a0dddaaf316de771f04",
+    "multi-agent/tests/integration/http/test_artifacts.py": "310c6aba72230b90d1ecfc6ab89d59ee7962c5b2c8977fd15c0d10280baaf306",
+    "multi-agent/tests/integration/http/test_workflow_access_catalog.py": "4fb6230effc3249474579283554ba7a5d7865c08c863a69d83e4a4af30e4c8ed",
+    "multi-agent/tests/integration/ui/test_editor_client.py": "e8ae01b5db0dbafd9803d20e97df39db4c98840860526eecd877bfcf9b2c37da",
+    "multi-agent/tests/support/coding_cli.py": "cc8c5fc44ac9b16f3abde99142c5eb9bfdb716d6f25377b78ee50154f2e498d9",
+    "multi-agent/tests/support/engineering_api.py": "115c304885b36469ac1ed8c83f23331d791cab2976725068918274e43496b8bf",
+    "multi-agent/tests/support/engineering_programs.py": "4df8d893336e9bd52a170dc37cbe3ec55aad416f4ec06d2e746e005a208382c1",
+    "multi-agent/tests/support/feature_api.py": "139bb58c880b999e271156cfa33c194e0409d8e00892ab14a73ec06bc68d4321",
+    "multi-agent/tests/support/feature_browser.py": "64dd1935a78b9a7fdfca5c2f32fd69e99e425754c116bb473ac17d95496b8b3b",
+    "multi-agent/tests/support/feature_design.py": "a7ad170ec08cc92f0530e8fd0600788c948c9c61b7bd0d91db80d9d443df1f08",
+    "multi-agent/tests/support/placement_browser.py": "4af34c11f781a7c019598857074859d648329d0f0b6988d04839887a3f36334b",
+    "multi-agent/tests/support/python_check_api.py": "1f4e43724b623565c74969af288d10ae48615c590508224e6c15acb9af834e1c",
+    "multi-agent/tests/support/review_programs.py": "8600a0cedfcaeb443020b382e3e019c25c6ea10512a958310da152b2b3d4f6e2",
+    "multi-agent/tests/support/workspace_browser.py": "1aa31e7b3bd3b9d216922942cb642053fefd9b51335509f2e3b171c3f23ed886",
+    "ui/client/src/api/artifacts.ts": "6d2e28542ec94b9d772dbfe7366f9cb302929f800e8b37e2e4e9342856386fbd",
+    "ui/client/src/api/workflow-access.ts": "10c593d5d52cea1b9751b5dd691415d355dc280eb5c0c38c98c0bca717ce33ad",
+    "ui/client/src/components/artifacts/ArtifactReferences.tsx": "87521708fb1030a8d32b7bbfd7350e529a5e016d565e71fc03925c8f42c7dc43",
+    "ui/client/src/components/executions/ExecutionWorkbench.tsx": "bdfe6c7f831b51ce7f2f30f982a1f09fefd6177ad3bd3fe9134e0a252d6c94d1",
+    "ui/client/src/components/executions/ProgramInvocation.tsx": "24165e341060a2aee88e36f09798cfe16f196c018c67df1802ea7fa163bf09b5",
+    "ui/client/src/components/executions/WorkflowAccessFields.tsx": "d4538fcfa6ced0eae19d6a7f3515c83d46f06287ad18113f50d971de52d9f9e1",
+    "ui/client/src/components/reviews/ReviewDetail.tsx": "522b9585ab506b444d13d638222c422cd1625b7552ceff3010fc45f752074c1b",
+    "ui/client/src/lib/artifact-references.ts": "c3f3afffefd6e18bd7ca11b4eefbf8e8ad2a58091f6c0f22f3a6543ff53d7baf",
+    "ui/tests/artifact-contracts.ts": "946b68af131fd4e5d8b7a8b2eb2368a42443d8926094643deacf4e91002bc894",
+    "ui/tests/build-placement-browser.mjs": "2e160c196f6e6c3266eb78a8261e90dfe69742df303f5507271da3e4f4ff2e8c",
+    "ui/tests/ui-contracts.ts": "53931ef4a4e50ad16a694a069bc830fa2ed8b0fd22ef4f9db6f511d82367cf11",
+    "ui/tests/workflow-access.ts": "9fa5ae11396c93f96e717cb970f60be2f59ce094e5df374b1c885f079472fbf4"
+  },
+  "aggregate_sha256": "71c5eeaff09972d26725a8b9fdf191f11d644c3bc4d617683b5b87514a739b53",
+  "artifacts": {
+    "docs/evidence/assets/2026-11-05-feature-ui.jpg": "c22d253050cd9ab12f6771a9faeeb36100841a23db25bf3cbfcb7ed4dab2ea6c"
+  },
+  "build": {
+    "workspace_script": "workspace-browser-CdfussQQ.js",
+    "sha256": "d775edf9f1d43552734c6452c523147a6bdd6ff1fdb85f5f7bbaafb7c19fc8c2"
+  }
+}

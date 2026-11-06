@@ -3,7 +3,7 @@
 import httpx
 from inbound.http_api.app import create_app
 from mas.core.identity import Identity
-from mas.programs.models import ApplicationDefinition
+from mas.domain.programs.models import ApplicationDefinition
 from support.scenarios import publish
 
 

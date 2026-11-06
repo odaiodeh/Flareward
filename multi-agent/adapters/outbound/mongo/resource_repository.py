@@ -102,7 +102,7 @@ class MongoResourceRepository(ResourceRepository):
         knowledge. Listings that need to merge in public built-ins or
         filter by ownership go through
         ``BuiltinResourceDescriptorRepository.find_visible_for_identity``
-        instead (see ``BuiltinResourceService``).
+        instead (see ``BuiltinAdministration``).
         """
         filter_dict = self._build_resource_filter(query)
 

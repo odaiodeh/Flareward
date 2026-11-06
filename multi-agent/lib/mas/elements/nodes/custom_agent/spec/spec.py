@@ -1,4 +1,4 @@
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.elements.nodes.custom_agent.card_builder import CustomAgentCardBuilder
 from mas.elements.nodes.custom_agent.config import CustomAgentNodeConfig
@@ -8,7 +8,7 @@ from mas.elements.nodes.custom_agent.identifiers import META, Identifier
 from mas.elements.nodes.custom_agent.validator import CustomAgentNodeValidator
 
 
-class CustomAgentNodeElementSpec(BaseElementSpec):
+class CustomAgentNodeElementSpec(GraphElementSpec):
     """Element specification for Custom Agent Node."""
 
     category = ResourceCategory.NODE

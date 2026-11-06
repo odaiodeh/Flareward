@@ -11,11 +11,11 @@ from mas.application.capabilities.hitl_capable import HITLCapableMixin
 from mas.application.elements.construction.runtime import ElementRuntime
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.execution.context import ExecutionContextHolder
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.channels import SessionChannel
 from mas.core.element_deps import ElementBuildContext
 from mas.core.enums import ResourceCategory
-from mas.core.execution_context import ExecutionContextHolder
 from mas.core.hitl.models import (
     ApprovalDecision,
     ApprovalRequest,
@@ -165,7 +165,7 @@ class ContextFactory(BaseFactory):
         return ContextNode(dependencies["deps"], dependencies["auth_credential"])
 
 
-class ContextSpec(BaseElementSpec):
+class ContextSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "receiver_context"
     name = "Receiver context"

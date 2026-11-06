@@ -4,6 +4,10 @@ UnifAI owns application behavior. Run Engine owns traversal, coordination,
 invocation and environment lifecycle. This inventory tracks the integration
 contracts without moving UnifAI business logic into its execution infrastructure.
 
+The [sandbox capability diagnostics request](run-engine-sandbox-capability-diagnostics-request.md)
+records an opaque relay failure hiding a missing host Landlock capability. Strict
+refusal is correct; a supported Linux host remains necessary. This is not an engine patch.
+
 ## Current dependency: committed SDK
 
 Verified on 2026-10-30: the local Run Engine checkout is clean at commit
@@ -66,7 +70,7 @@ composition, dependencies, environment lifetime/borrowing, private settings, rep
 and physical cleanup. The OpenShell allow/deny policy matrix passed **8 cases**
 across both hosts and environment lifetimes. No paid model tests ran. These results
 do not cover remote worker loss, concurrent Codex, or Celery. Exact image identities
-and reports are in the [migration ledger](../docs/execution-platform-migration.md).
+and reports are in the [archived execution evidence](../docs/evidence/archive/execution-platform-migration-2026-11-04.md#committed-run-engine-adoption-2026-10-30).
 
 ## Strict-label adoption (2026-10-30)
 
@@ -81,7 +85,7 @@ zero failures/errors/skips or reported warnings:
 Local/Temporal × Kubernetes/OpenShell program matrix passed **28 cases** in
 358.81 seconds, no failures/errors/skips or reported warnings. JUnit:
 `/tmp/unifai-strict-label-remote-20261030.xml`. Exact image identities are in the
-migration ledger. The policy matrix above belongs to the preceding join commit;
+archived execution evidence linked above. The policy matrix above belongs to the preceding join commit;
 it was not rerun for this label-only SDK change. The earlier
 results above belong to `da10d1ac`, not automatically to this newer SDK.
 
@@ -105,7 +109,7 @@ with fresh source-matched receiver images: **28 remote cases passed** across
 Local/Temporal and Kubernetes/OpenShell. This confirms existing remote composition
 and environment contracts after UnifAI's module moves, not remote condition-label
 invocation specifically. Current image identities, scope and the separate broad/
-focused action gates are in the [migration ledger](../docs/execution-platform-migration.md#native-async-action-migration-2026-10-30).
+focused action gates are in the [archived action evidence](../docs/evidence/archive/execution-platform-migration-2026-11-04.md#native-async-action-migration-2026-10-30).
 
 New `GraphBuilder` plans default to ACTIVE. Explicit ALL and recorded plans without
 a policy retain ALL behavior. The policy belongs to the strict `GraphPlan` /
@@ -124,6 +128,11 @@ and recovery, not installation into the current SDK.
 
 ## Remaining handoff
 
+[Pool invocation cancellation](run-engine-invocation-cancellation-request.md) records
+the inspected thread/process drain behavior, native observation and acceptance
+criteria for prompt cooperative receiver cancellation. UnifAI currently retains
+retirement intent until the bounded invocation actually terminates.
+
 [Conditional-routing request](run-engine-conditional-routing-request.md) retains
 original reproductions and acceptance requirements. RE-06/RE-07 and the ACTIVE stalled-frontier part of RE-08 are now implemented.
 Retain the original acceptance criteria as regression requirements and complete
@@ -135,3 +144,15 @@ backend capabilities before adding interfaces. Current live evidence for externa
 secret mounts/files does not prove automatic managed-environment secret setup.
 UnifAI continues to own authorization, approved profiles, provider credential
 resolution, review schemas, agent behavior and application condition semantics.
+
+## Environment file-I/O investigation
+
+The [private receiver delivery request](run-engine-private-receiver-delivery-request.md)
+describes the distinct trusted invocation identity and out-of-band setup capability
+needed for automatic per-root workflow credentials on isolated receivers.
+
+The [scoped file transfer proposal](run-engine-environment-file-io-request.md)
+records the checked environment ports and a possible out-of-band contract for
+strict credential isolation. It is not a confirmed bug or an implemented SDK
+capability. UnifAI retains artifact policy/storage and the SDK retains environment
+identity, grants and lifetime. No companion source change was made.

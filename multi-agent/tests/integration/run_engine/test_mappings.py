@@ -37,7 +37,7 @@ def test_compilation_snapshots_mapping_configuration():
             input_mapping=map_program_inputs,
             output_mapping=map_program_outputs,
             input_arguments=GraphCallArguments(kwargs={"bindings": bindings}),
-            output_arguments=GraphCallArguments(kwargs={"bindings": {}}),
+            output_arguments=GraphCallArguments(kwargs={"bindings": {}, "key": "child"}),
         )
         .compile()
     )

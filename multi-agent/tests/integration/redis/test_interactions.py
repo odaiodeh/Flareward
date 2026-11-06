@@ -11,16 +11,16 @@ from inbound.http_api.app import create_app
 from mas.core.enums import ResourceCategory
 from mas.core.hitl.models import ApprovalOverrides
 from mas.core.identity import Identity
-from mas.interactions.rules import ApprovalRuleChange
-from mas.programs.models import (
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ApplicationDefinition,
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
     ProgramDefinition,
 )
+from mas.interactions.rules import ApprovalRuleChange
 from outbound.interactions.redis_store import RedisInteractionStore
 from outbound.interactions.wire import root_key
 from outbound.redis_client import owned_redis
@@ -110,9 +110,14 @@ async def publish_interaction(case, profile="thread", *, requests=1, child=False
         implementation=approval_graph(profile, requests),
     )
     assert (
-        await http.put(f"/api/programs/{program_id}", json=definition.model_dump(mode="json"))
+        await http.put(
+            f"/api/programs/{program_id}",
+            json={"definition": definition.model_dump(mode="json"), "expected_version": 0},
+        )
     ).status_code == 200
-    revision = await http.post(f"/api/programs/{program_id}/revisions")
+    revision = await http.post(
+        f"/api/programs/{program_id}/revisions", json={"expected_version": 1}
+    )
     reference = {"program_id": program_id, "revision": revision.json()["revision"]}
     if child:
         parent = ProgramDefinition(
@@ -132,8 +137,13 @@ async def publish_interaction(case, profile="thread", *, requests=1, child=False
                 outputs={"answer": PathBinding(path=("output",))},
             ),
         )
-        await http.put(f"/api/programs/{parent.program_id}", json=parent.model_dump(mode="json"))
-        await http.post(f"/api/programs/{parent.program_id}/revisions")
+        await http.put(
+            f"/api/programs/{parent.program_id}",
+            json={"definition": parent.model_dump(mode="json"), "expected_version": 0},
+        )
+        await http.post(
+            f"/api/programs/{parent.program_id}/revisions", json={"expected_version": 1}
+        )
         reference = {"program_id": parent.program_id, "revision": 1}
     return reference
 
@@ -520,7 +530,13 @@ async def test_session_rules_are_snapshotted_and_seeded_before_receiver_requests
         implementation=approval_graph("thread"),
     )
     await services.programs.save(definition, Identity.user("owner"))
-    revision = await services.programs.publish(program_id, Identity.user("owner"))
+    revision = await services.programs.publish(
+        program_id,
+        Identity.user("owner"),
+        expected_version=(
+            await services.programs.draft(program_id, Identity.user("owner"))
+        ).version,
+    )
     created = await http.post(
         "/api/sessions",
         json={
@@ -575,7 +591,11 @@ async def test_cancelling_child_subtree_preserves_waiting_sibling(
             implementation=approval_graph(profile, request_prefix=name),
         )
         await services.programs.save(definition, owner)
-        revisions[name] = (await services.programs.publish(name, owner)).reference
+        revisions[name] = (
+            await services.programs.publish(
+                name, owner, expected_version=(await services.programs.draft(name, owner)).version
+            )
+        ).reference
     # The cancelled child is itself a program that calls another program. Its
     # grandchild's process wait must see the ancestor cancellation fence.
     middle = ProgramDefinition(
@@ -587,7 +607,13 @@ async def test_cancelling_child_subtree_preserves_waiting_sibling(
         ),
     )
     await services.programs.save(middle, owner)
-    revisions["left"] = (await services.programs.publish("middle", owner)).reference
+    revisions["left"] = (
+        await services.programs.publish(
+            "middle",
+            owner,
+            expected_version=(await services.programs.draft("middle", owner)).version,
+        )
+    ).reference
     parent = ProgramDefinition(
         program_id="parallel",
         name="parallel",
@@ -597,7 +623,11 @@ async def test_cancelling_child_subtree_preserves_waiting_sibling(
         ),
     )
     await services.programs.save(parent, owner)
-    revision = await services.programs.publish("parallel", owner)
+    revision = await services.programs.publish(
+        "parallel",
+        owner,
+        expected_version=(await services.programs.draft("parallel", owner)).version,
+    )
     root = "scoped-" + uuid4().hex
     roots.append(root)
     response = await http.post(

@@ -8,7 +8,7 @@ and ``collaboration/presence.py``).
 ``admin_edit_lock_service_or_error`` and ``reject_if_locked_by_other``
 are specific to the *admin* edit lock: used by ``builtins.py``
 (admin-only built-in routes) whose endpoints go through
-``BuiltinResourceService`` directly rather than through
+the retired built-in Flask service rather than through
 ``ResourcesService.guard_write_access`` (which handles the lock check
 internally for the generic CRUD path).
 """

@@ -6,10 +6,10 @@ from typing import Self
 from pydantic import Field, SecretStr, model_validator
 from runengine.adapters.coordination.config import TemporalHostConfig
 
-from config.receiver_settings import ReceiverSettings
+from config.workflow_access_settings import WorkflowAccessSettings
 
 
-class WorkerSettings(ReceiverSettings):
+class WorkerSettings(WorkflowAccessSettings):
     host: TemporalHostConfig = Field(
         default_factory=lambda: TemporalHostConfig(task_queue="unifai-programs-v2")
     )
@@ -21,6 +21,7 @@ class WorkerSettings(ReceiverSettings):
 
     @model_validator(mode="after")
     def validate_journal(self) -> Self:
+        self.validate_workflow_key()
         if self.environment_sqlite is not None and self.environment_postgres is not None:
             raise ValueError("Choose one Run Engine environment journal")
         return self

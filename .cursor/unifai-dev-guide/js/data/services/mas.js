@@ -309,8 +309,8 @@ SERVICES.mas = {
         <div class="endpoint-list">
           <div class="endpoint"><span class="method get">GET</span><span class="path">/actions/actions.list — list available actions</span></div>
           <div class="endpoint"><span class="method post">POST</span><span class="path">/actions/action.execute — sync execution</span></div>
-          <div class="endpoint"><span class="method get">GET</span><span class="path">/statistics/stats.get — user dashboard</span></div>
-          <div class="endpoint"><span class="method get">GET</span><span class="path">/statistics/stats.system.get — admin analytics</span></div>
+          <div class="endpoint"><span class="method get">GET</span><span class="path">/reporting/overview — user dashboard</span></div>
+          <div class="endpoint"><span class="method get">GET</span><span class="path">/reporting/system — admin analytics</span></div>
           <div class="endpoint"><span class="method post">POST</span><span class="path">/credentials/exchange — OAuth code exchange</span></div>
           <div class="endpoint"><span class="method get">GET</span><span class="path">/credentials/status — credential health</span></div>
           <div class="endpoint"><span class="method post">POST</span><span class="path">/credentials/client-config.save — OAuth client config</span></div>
@@ -430,7 +430,7 @@ SERVICES.mas = {
       <details>
         <summary>statistics — Dashboard Aggregation <span class="ep-count">svc</span></summary>
         <div class="endpoint-list">
-          <p><code>StatisticsService</code> — facade over BlueprintService, SessionService, ResourcesService. User scope + admin system-wide analytics. No own persistence.</p>
+          <p><code>ReportingService</code> — native async reporting over ReportingReader and AdministratorPolicy; selected-owner overview and human-admin root-execution analytics. Stored projections are not verified acceptance.</p>
         </div>
       </details>
       <details>
@@ -496,7 +496,7 @@ SERVICES.mas = {
     _ports: [
     { name: 'ResourcesService', role: 'CRUD with schema validation, dependency resolution, auth credential cleanup. Delete-guarded: cannot remove resources in use by blueprints.' },
     { name: 'TemplateService', role: 'create, instantiate (preview), materialize (saves blueprint + resources). Placeholder substitution engine. Text search index for catalog browsing.' },
-    { name: 'StatisticsService', role: 'facade over BlueprintService, SessionService, ResourcesService. User scope + admin system-wide analytics. No own persistence.' },
+    { name: 'ReportingService', role: 'native async reporting over ReportingReader and AdministratorPolicy; selected-owner overview and human-admin root-execution analytics. Stored projections are not verified acceptance.' },
     { name: 'ActionsService', role: 'auto_discover, execute_action_sync. Registered: AuthenticateAction, ValidateConnectionAction, GetToolsNamesAction (MCP). Linked by (category, type).' },
   ],
   _endpoints: [
@@ -581,8 +581,8 @@ SERVICES.mas = {
     { method: 'POST', path: '/graph/validation/required_nodes.validate', group: 'Graph Validation' },
     { method: 'GET', path: '/actions/actions.list', summary: 'list available actions', group: 'Actions, Stats, Credentials, Health, Workspace' },
     { method: 'POST', path: '/actions/action.execute', summary: 'sync execution', group: 'Actions, Stats, Credentials, Health, Workspace' },
-    { method: 'GET', path: '/statistics/stats.get', summary: 'user dashboard', group: 'Actions, Stats, Credentials, Health, Workspace' },
-    { method: 'GET', path: '/statistics/stats.system.get', summary: 'admin analytics', group: 'Actions, Stats, Credentials, Health, Workspace' },
+    { method: 'GET', path: '/reporting/overview', summary: 'user dashboard', group: 'Actions, Stats, Credentials, Health, Workspace' },
+    { method: 'GET', path: '/reporting/system', summary: 'admin analytics', group: 'Actions, Stats, Credentials, Health, Workspace' },
     { method: 'POST', path: '/credentials/exchange', summary: 'OAuth code exchange', group: 'Actions, Stats, Credentials, Health, Workspace' },
     { method: 'GET', path: '/credentials/status', summary: 'credential health', group: 'Actions, Stats, Credentials, Health, Workspace' },
     { method: 'POST', path: '/credentials/client-config.save', summary: 'OAuth client config', group: 'Actions, Stats, Credentials, Health, Workspace' },

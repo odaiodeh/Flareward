@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from mas.core.execution_context import ExecutionContextHolder
+from mas.application.execution.context import ExecutionContextHolder
 from mas.core.hitl.models import HITLMode, ToolApprovalPolicy
 from mas.core.hitl.ports import ApprovalGate
 

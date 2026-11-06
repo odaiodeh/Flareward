@@ -1,0 +1,19 @@
+{
+  "multi-agent/adapters/inbound/http_api/artifact_access.py": "21ac137ec0fc43a7e693da0f3bfc907e98d6219ffd14554fb358ba09859c23da",
+  "multi-agent/adapters/inbound/http_api/dependencies.py": "c5a69cb82aa9c36916da71e883912032f0567c671cc12b86d48c3a33705f882d",
+  "multi-agent/adapters/outbound/mongo/artifact_workflow_access.py": "55886e2f9d11f0095238170a0b6c4d7b2a01bde9545955d1e67c240c1c647cc9",
+  "multi-agent/bootstrap/platform.py": "1527e3205393f8aa351b54a55c82f230490837331f19e70c6fad36beb05a2b28",
+  "multi-agent/bootstrap/workflow_access.py": "1283166ff490dcf3d8c523e4a6592c9dd76420e6a08cdbe369eef66e7c19dbbc",
+  "multi-agent/config/platform_settings.py": "f7e1a70f9cdae7054b5a93ccfa4357b40f27dab584ef2800f347d728f41044f2",
+  "multi-agent/config/workflow_access_settings.py": "a2ead80ac04ac859d3ba96a86a39af7377e34eacb3c9383739a6eb877715f63b",
+  "multi-agent/lib/mas/application/artifacts/access_models.py": "847ebac2e50a8e1c07e2a4bf3ffdd71167354fb26dfa0c078b8a53823bc78a2e",
+  "multi-agent/lib/mas/application/artifacts/workflow_access.py": "85ae02e316073d25205e88c59ebc8a6c3e55cd04c7bd2f332d101e92f874ac0e",
+  "multi-agent/plugins/mas_plugins/artifacts/http.py": "848cc170dc7f8e9f884d2fe8a01d19123f1e479733e3fb90ad6e9143672f9ee1",
+  "multi-agent/plugins/mas_plugins/artifacts/specification.py": "ff503f88da5e1695ec2a0d03cc0248fa27a9d749ce33a0a5c63a905729b5431d",
+  "multi-agent/tests/adapters/test_artifact_credentials.py": "018c3a5b2ec441552bb6162e84f072441e28652b4403315a5fb32f7f8f94e32b",
+  "multi-agent/tests/application/test_artifact_workflow_access.py": "7a30d35124e4bc28cee0b97b7d6b769c9b03eaf9c4e59ca21144c32ca8c1b6c7",
+  "multi-agent/tests/integration/http/test_artifact_access.py": "13ca969bf9658be1d46396ec9751fa641465c09dd2cfac9b792818d6dd482758",
+  "multi-agent/tests/integration/mongo/test_artifact_workflow_access.py": "59b659877a09faacedb92180a0742b1ba4006c74b976036c41824a61cf306b0a",
+  "multi-agent/tests/integration/verification/test_engineering_workflow.py": "5abeb59eb837e71f8c44ddc274b32491d00ac0b6b2035d65d3d1f988d6d4bb06",
+  "multi-agent/tests/support/artifact_workflow.py": "88e7e59fd923f8fd40a54aa685139143976a75106ec37b71459f164658d07136"
+}

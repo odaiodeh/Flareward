@@ -1,11 +1,5 @@
 from abc import ABC
-from typing import (
-    Any,
-    ClassVar,
-    Union,
-    get_args,
-    get_origin,
-)
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 
@@ -14,7 +8,6 @@ from mas.application.elements.cards.interface import CardBuilder
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.validation import ElementValidator
 from mas.core.enums import ResourceCategory
-from mas.graph.state.graph_state import Channel
 
 
 class BaseElementSpec(ABC):
@@ -30,11 +23,12 @@ class BaseElementSpec(ABC):
     name: ClassVar[str]
     description: ClassVar[str]
     config_schema: ClassVar[type[BaseModel]]
-    factory_cls: ClassVar[type[BaseFactory]]
+    input_schema: ClassVar[type[BaseModel] | None] = None
+    result_schema: ClassVar[type[BaseModel] | None] = None
+    factory_cls: ClassVar[type[BaseFactory[Any, Any]]]
     dependencies: ClassVar[list[ResourceCategory]] = []
-    reads: ClassVar[set[Channel]] = set()
-    writes: ClassVar[set[Channel]] = set()
     # ── optional metadata ------------------------------------------------
+    is_abstract: ClassVar[bool] = True
     version: ClassVar[str] = "1.0.0"
     tags: ClassVar[list[str]] = []
     hints: ClassVar[list[Any]] = []
@@ -49,9 +43,17 @@ class BaseElementSpec(ABC):
     # ─────────────────────────────────────────────────────────────────────
     # compile‑time validation
     # ─────────────────────────────────────────────────────────────────────
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, *, abstract: bool = False, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
+        cls.is_abstract = abstract
+        if not abstract:
+            cls.validate_declaration()
 
+    @classmethod
+    def validate_declaration(cls) -> None:
+        """Only complete, concrete specifications can enter an installed catalog."""
+        if cls.is_abstract:
+            raise TypeError("Abstract element specifications cannot be registered")
         missing = [
             name for name in cls._collect_required_attrs() if getattr(cls, name, None) is None
         ]
@@ -61,31 +63,12 @@ class BaseElementSpec(ABC):
     # ─────────────────────────────────────────────────────────────────────
     # helper lives *inside* the class
     # ─────────────────────────────────────────────────────────────────────
-    @classmethod
-    def _collect_required_attrs(cls) -> set[str]:
-        """
-        Return names of every attribute declared on *BaseElementSpec* that is
-        required (i.e. no default value and not annotated as Optional[...]).
-
-        We intentionally inspect `BaseElementSpec` (the contract) rather than
-        `cls` (the concrete subclass) so the rule set is stable.
-        """
-        base = BaseElementSpec  # alias for readability
-        required: set[str] = set()
-
-        for name, anno in base.__annotations__.items():
-            # Default provided → optional
-            if name in base.__dict__:
-                continue
-
-            # Optional[...] or Union[..., None] → optional
-            origin = get_origin(anno)
-            if origin is Union and type(None) in get_args(anno):
-                continue
-
-            required.add(name)
-
-        return required
+    @staticmethod
+    def _collect_required_attrs() -> set[str]:
+        """Base-contract fields with no default are required on installed specifications."""
+        return {
+            name for name in BaseElementSpec.__annotations__ if name not in BaseElementSpec.__dict__
+        }
 
     # ─────────────────────────────────────────────────────────────────────
     # nice repr for debugging

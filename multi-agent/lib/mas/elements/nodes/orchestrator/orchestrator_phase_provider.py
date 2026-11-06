@@ -137,7 +137,7 @@ class OrchestratorPhaseProvider(PhaseProvider):
     def _get_current_thread(self):
         """Get current thread for delegation context."""
         workload_service = self._get_workload_service()
-        return workload_service.get_thread(self._thread_id)
+        return workload_service.get_thread_service().get_thread(self._thread_id)
 
     def set_current_user_request(self, request: str) -> None:
         """Set the current user request for building focused prompts."""

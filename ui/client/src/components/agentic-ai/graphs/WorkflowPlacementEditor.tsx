@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { catalogService } from '@/api/catalog';
+import { useExecutionProfiles } from '@/hooks/use-execution-profiles';
 import type { ExecutionSelection, WorkflowPlacement, YamlFlowState } from '@/types/graph';
 import { applyWorkflowPlacement } from '@/lib/workflow-placement';
 import { previewBlueprintPlacement } from '@/api/blueprints';
@@ -46,10 +46,7 @@ export function WorkflowPlacementEditor({ flow, value, onChange, teamId, disable
   teamId?: string;
 }) {
   const previewId = useId();
-  const { data, isError, isPending } = useQuery({
-    queryKey: ['execution-profiles'],
-    queryFn: ({ signal }) => catalogService.fetchExecutionProfiles(signal),
-  });
+  const { data, isError, isPending } = useExecutionProfiles(teamId);
   const [environmentName, setEnvironmentName] = useState('');
   const [environmentProfile, setEnvironmentProfile] = useState('');
   const profiles = data?.profiles ?? [];

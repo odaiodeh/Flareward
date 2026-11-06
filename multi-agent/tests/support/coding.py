@@ -1,72 +1,84 @@
-"""Read physical workspace evidence after actual coding invocations."""
+"""Read physical workspace evidence after actual typed coding invocations."""
 
 import asyncio
 import hashlib
-import json
 import os
 import platform
 import socket
 from pathlib import Path
+from typing import Any
 
 from mas.application.elements.factory import BaseFactory
-from mas.application.elements.node import BaseNode
+from mas.application.elements.operation import BaseOperation, OperationContext
 from mas.application.elements.specification import BaseElementSpec
 from mas.core.enums import ResourceCategory
-from mas.graph.state.state_view import StateView
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class EvidenceConfig(BaseModel):
-    pass
+    model_config = ConfigDict(extra="forbid")
 
 
-def read_evidence(workspace: Path) -> dict[str, str | None]:
+class EvidenceInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    workspace: str
+
+
+class EvidenceRecord(BaseModel):
+    source: str
+    verified: str
+    system: str
+    hostname: str
+    namespace: str | None
+    image_marker: str
+
+
+class EvidenceResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    evidence: EvidenceRecord
+
+
+def read_evidence(workspace: Path) -> EvidenceRecord:
     namespace = Path("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-    return {
-        "source": (workspace / "calculation.py").read_text(),
-        "verified": (workspace / "verified.txt").read_text().strip(),
-        "system": platform.system(),
-        "hostname": socket.gethostname(),
-        "namespace": namespace.read_text() if namespace.is_file() else None,
-        "image_marker": Path("/opt/unifai-e2e-receiver").read_text(),
-    }
+    return EvidenceRecord(
+        source=(workspace / "calculation.py").read_text(),
+        verified=(workspace / "verified.txt").read_text().strip(),
+        system=platform.system(),
+        hostname=socket.gethostname(),
+        namespace=namespace.read_text() if namespace.is_file() else None,
+        image_marker=Path("/opt/unifai-e2e-receiver").read_text(),
+    )
 
 
-class EvidenceNode(BaseNode):
-    READS = {"nodes_output"}
-    WRITES = {"nodes_output"}
-
-    def __init__(self, holder):
-        super().__init__()
-        self._holder = holder
-
-    async def run(self, state: StateView) -> StateView:
-        namespace = hashlib.sha256(self._holder.context.root_execution_id.encode()).hexdigest()
-        directory = Path(os.environ.get("UNIFAI_CODING_WORKSPACE_ROOT", "/tmp/unifai-coding"))
-        workspace = directory / namespace / "work"
-        state["nodes_output"][self.uid] = json.dumps(
-            await asyncio.to_thread(read_evidence, workspace)
-        )
-        return state
+class EvidenceOperation(BaseOperation[EvidenceInput, EvidenceResult]):
+    async def execute(self, request: EvidenceInput, context: OperationContext) -> EvidenceResult:
+        namespace = hashlib.sha256(context.execution.root_execution_id.encode()).hexdigest()
+        directory = Path(
+            os.environ.get("UNIFAI_WORKSPACE_ROOT", "/tmp/unifai-workspaces")
+        ).resolve()
+        workspace = (directory / request.workspace).resolve()
+        if not workspace.is_relative_to(directory / namespace):
+            raise ValueError("Evidence workspace does not belong to this execution")
+        return EvidenceResult(evidence=await asyncio.to_thread(read_evidence, workspace))
 
 
-class EvidenceFactory(BaseFactory):
-    def accepts(self, cfg, element_type):
+class EvidenceFactory(BaseFactory[EvidenceConfig, EvidenceOperation]):
+    def accepts(self, cfg: EvidenceConfig, element_type: str) -> bool:
         return element_type == "coding_evidence"
 
-    def create(self, cfg, **dependencies):
-        return EvidenceNode(dependencies["deps"].execution_ctx)
+    def create(self, cfg: EvidenceConfig, **dependencies: Any) -> EvidenceOperation:
+        return EvidenceOperation()
 
 
 class EvidenceSpec(BaseElementSpec):
-    category = ResourceCategory.NODE
+    category = ResourceCategory.OPERATION
     type_key = "coding_evidence"
     name = "Coding workspace evidence"
-    description = "Read files written by the actual coding agent in this environment"
+    description = "Read files written by coding operations in the selected environment"
     config_schema = EvidenceConfig
     factory_cls = EvidenceFactory
-    reads = EvidenceNode.total_reads()
-    writes = EvidenceNode.total_writes()
+    input_schema = EvidenceInput
+    result_schema = EvidenceResult
 
 
 ELEMENT_SPECIFICATIONS = (EvidenceSpec,)

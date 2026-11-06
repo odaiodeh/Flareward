@@ -6,13 +6,14 @@ import os
 
 import pytest
 from cryptography.fernet import Fernet
+from mas.application.execution.models import StartExecution
 from mas.core.auth.credentials.models import StoredCredential
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
-from mas.execution.models import ExecutionPhase, StartExecution
-from mas.programs.models import (
+from mas.domain.execution.models import ExecutionPhase
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
@@ -94,7 +95,11 @@ async def test_native_receiver_uses_human_credentials_for_team_owned_child(
             ),
         )
         await services.programs.save(leaf, owner)
-        revision = await services.programs.publish(leaf.program_id, owner)
+        revision = await services.programs.publish(
+            leaf.program_id,
+            owner,
+            expected_version=(await services.programs.draft(leaf.program_id, owner)).version,
+        )
         parent = ProgramDefinition(
             program_id="credential-parent",
             name="Team program",
@@ -113,7 +118,11 @@ async def test_native_receiver_uses_human_credentials_for_team_owned_child(
             ),
         )
         await services.programs.save(parent, owner)
-        revision = await services.programs.publish(parent.program_id, owner)
+        revision = await services.programs.publish(
+            parent.program_id,
+            owner,
+            expected_version=(await services.programs.draft(parent.program_id, owner)).version,
+        )
         record = await services.executions.start(
             StartExecution(program=revision.reference, execution_id="root", session_id="chat"),
             owner,

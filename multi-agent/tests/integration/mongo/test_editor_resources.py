@@ -1,14 +1,14 @@
 """Existing UI requests reach native services, encryption and ownership through FastAPI."""
 
 from mas.core.identity import Identity
-from mas.elements.nodes.codex_agent.spec.spec import CodexAgentNodeElementSpec
+from mas_plugins.coding.codex.specification import CodexSpec
 from support.blueprint_http import library_api
 from support.blueprints import library_elements
 
 
 async def test_editor_catalog_uses_installed_specs_and_preserves_dynamic_forms(secret_settings):
     elements = library_elements()
-    elements.register_spec_class(CodexAgentNodeElementSpec)
+    elements.register_spec_class(CodexSpec)
     settings = secret_settings.model_copy(update={"library": True})
     async with library_api(settings, Identity.user("owner"), elements=elements) as http:
         legacy = await http.get("/api/catalog/elements.list.get")
@@ -17,17 +17,18 @@ async def test_editor_catalog_uses_installed_specs_and_preserves_dynamic_forms(s
         assert "sandboxes" not in legacy.json()["elements"]
         codex = next(
             item
-            for item in legacy.json()["elements"]["nodes"]
-            if item["type"] == "codex_agent_node"
+            for item in legacy.json()["elements"]["operations"]
+            if item["type"] == "codex_coding"
         )
-        assert codex["name"] == "Codex Agent Node"
+        assert codex["name"] == "Codex Coding Agent"
         detail = await http.get(
-            "/api/catalog/element.spec.get", params={"category": "nodes", "type": codex["type"]}
+            "/api/catalog/element.spec.get",
+            params={"category": "operations", "type": codex["type"]},
         )
         assert detail.status_code == 200, detail.text
         assert detail.json()["config_schema"]["properties"]["model"]
         assert "model" in detail.json()["config_schema"]["required"]
-        same = await http.get("/api/catalog/elements/nodes/codex_agent_node")
+        same = await http.get("/api/catalog/elements/operations/codex_coding")
         assert same.json() == detail.json()
         assert (await http.get("/api/catalog/elements/nodes/missing")).status_code == 404
         assert (

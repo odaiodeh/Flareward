@@ -10,7 +10,7 @@ from typing import Annotated
 from uuid import uuid4
 
 from cryptography.fernet import Fernet
-from fastapi import Depends
+from fastapi import Depends, FastAPI
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from inbound.http_api.dependencies import authenticated
@@ -32,7 +32,10 @@ from support.sharing import invitation
 
 
 def create_app():
-    app = native_app()
+    return add_browser_routes(native_app())
+
+
+def add_browser_routes(app: FastAPI) -> FastAPI:
 
     @app.get("/fixture/login")
     async def login():

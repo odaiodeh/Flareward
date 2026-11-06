@@ -31,7 +31,7 @@ def prepare(directory: Path) -> None:
             raise ValueError("Incomplete test PKI; choose a new state directory")
         certificate = x509.load_pem_x509_certificate((directory / "server.crt").read_bytes())
         if certificate.not_valid_after_utc <= datetime.now(UTC):
-            raise ValueError("Expired test PKI; stop its stack and choose a new state directory")
+            raise ValueError("Expired test PKI; recreate its gateway with a new state directory")
         return
     directory.mkdir(parents=True, mode=0o700, exist_ok=True)
     directory.chmod(0o700)

@@ -1,11 +1,12 @@
 """Real local runtime integration for public program contracts and composition."""
 
 import pytest
+from mas.application.execution.models import StartExecution
 from mas.core.identity import Identity
-from mas.execution.models import ExecutionPhase, StartExecution
-from mas.programs.models import (
+from mas.domain.execution.models import ExecutionPhase
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ApplicationDefinition,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,

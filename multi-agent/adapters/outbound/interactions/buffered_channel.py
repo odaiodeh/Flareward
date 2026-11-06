@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from mas.core.channels import SessionChannel
-from mas.core.execution_context import ExecutionContext
+from mas.domain.execution.context import ExecutionContext
 from pydantic import JsonValue, TypeAdapter
 from pydantic_core import to_jsonable_python
 

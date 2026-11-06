@@ -89,7 +89,7 @@ reads the `config.admin_config` collection directly and read-only, to answer
 `is_admin(username)` without a network round-trip per request. It never writes to
 this collection — writes remain exclusively through `AdminConfigService`
 (`config.section.update`). This is a narrow, intentional exception, not backend-internals
-importing; see the mirrored entry in `domains/multi-agent/references/adapters.md`.
+importing; verify the actual native adapter and docs/program-platform-development.md.
 
 ---
 
@@ -126,6 +126,6 @@ These patterns are established and reviewers MUST NOT flag them as violations:
 | `ActionDispatcher` with direct `requests.post()` — no port ABC | `admin_config/action_dispatcher.py` | Single outbound integration (RAG only); port abstraction for one consumer is over-engineering |
 | Flat package layout (no `domain/`, `ports/`, `adapters/` split) | `admin_config/`, `api/flask/`, `core/` | Service has ~10 files total; hex folder ceremony would add noise without benefit |
 | `current_app.container.admin_config_service` access in endpoints | `api/flask/endpoints/*.py` | Standard Flask composition — no DI framework; container is wired at startup |
-| `SingletonMeta` on `AppContainer` | `core/app_container.py` | Process-wide singleton for Flask entry point; same pattern as MAS |
+| `SingletonMeta` on `AppContainer` | `core/app_container.py` | Process-wide singleton for Flask entry point; a backend-local pattern, not a requirement for the UnifAI platform |
 | Gateway-trust auth via `X-Username` / `X-User-Id` headers | Flask endpoints | Admin-only service behind gateway; no need for full Identity auth stack |
 | MAS reads `config.admin_config` directly (read-only) instead of calling an API | `multi-agent/adapters/outbound/mongo/admin_config_reader.py` | Avoids a per-request network round-trip for the `is_admin` gate; write path is unaffected — still exclusively `AdminConfigService` |

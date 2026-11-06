@@ -2,12 +2,14 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from mas.core.enums import ResourceCategory, ResourceOwnership, ResourceVisibility
 from mas.core.identity import Identity
 from mas.resources.authoring import ResourceRecord
 from mas.resources.errors import ResourceDuplicateNameError, ResourceStorageError
 from mas.resources.models import Resource
+from pydantic import ValidationError
 from pymongo import IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
 from pymongo.errors import DuplicateKeyError, PyMongoError
@@ -27,7 +29,12 @@ async def storage_errors() -> AsyncIterator[None]:
 
 class MongoResourceAuthoringRepository:
     def __init__(
-        self, database: AsyncDatabase, *, resources: str, descriptors: str, blueprints: str
+        self,
+        database: AsyncDatabase[dict[str, Any]],
+        *,
+        resources: str,
+        descriptors: str,
+        blueprints: str,
     ) -> None:
         self._resources, self._blueprints = database[resources], database[blueprints]
         self._lookup = {
@@ -143,13 +150,20 @@ class MongoResourceAuthoringRepository:
         )
 
     @staticmethod
-    def _record(row: dict) -> ResourceRecord:
-        return ResourceRecord(
-            resource=row, descriptor=row["_descriptor"][0] if row["_descriptor"] else None
-        )
+    def _record(row: dict[str, Any]) -> ResourceRecord:
+        try:
+            return ResourceRecord.model_validate(
+                {
+                    "resource": row,
+                    "descriptor": row["_descriptor"][0] if row["_descriptor"] else None,
+                    "storage_revision": row.get("_admin_fence", 0),
+                }
+            )
+        except ValidationError:
+            raise ResourceStorageError() from None
 
     @staticmethod
-    def _unchanged(resource: Resource) -> dict:
+    def _unchanged(resource: Resource) -> dict[str, Any]:
         return {
             "_id": resource.rid,
             **identity_q(resource.identity),

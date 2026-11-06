@@ -1,3 +1,39 @@
+# UnifAI UI
+
+## Target experience
+
+The [target UI design](../docs/architecture/README.md#unified-ui-and-live-execution-experience)
+evolves the existing resource library, blueprint builder and session experience
+into one Program-authoring workspace and shared execution workbench. Programs are
+reusable library/canvas components. Structured inputs and optional conversation
+use the same execution contracts. Preserve and improve live visualization of
+active work, nested Programs, iterations, retries and waits, using authoritative
+execution state and exact published revisions.
+
+Reuse useful existing components and patterns while allowing substantial
+improvements to layout, navigation, accessibility and visual presentation. The
+current Workflows, Chats and Programs routes have not yet completed convergence.
+Program invocation now opens the shared `/executions/:id` route; the embedded
+Program runner was removed. Session/review links use the same execution view.
+See the [development guide](../docs/program-platform-development.md#program-discovery-saved-library-and-authoring)
+for implemented behavior and [the active plan](../docs/plan.md#remaining-milestone-order)
+for remaining work. Start/resume with [current status](../docs/status.md); read
+only relevant reference sections. These links describe targets and status separately.
+
+Work backend-led while connecting thin UI journeys as contracts stabilize. Shared
+schema fields and protected saved-resource capture now have a focused
+[browser checkpoint](../docs/evidence/2026-11-05-program-configuration.md). Structured
+invocation and shared execution/review now have their own
+[checkpoint](../docs/evidence/2026-11-05-execution-workbench.md). Owner-filtered workflow
+permissions and verified text previews now support a [controlled Engineering journey](../docs/evidence/2026-11-05-feature-ui.md),
+including approval, repair and durable artifact retrieval. A [live OpenShell browser
+checkpoint](../docs/evidence/2026-11-06-live-feature-ui.md) now joins real Codex,
+production checks and fresh output retrieval after compute removal. Complete
+authoring and Session browser journeys, occurrence views, workspace convergence
+and later visual refinement remain required. The existing JointJS builder and
+newer React Flow Program editor are temporary coexistence; the form-heavy Programs
+page and panel-based execution view do not yet satisfy the target visual workspace.
+
 ## Building the UI
 
 When building the UI, we currently work with a lock file. This allows us to keep working in the same environment without constant synchronization of development environments. In addition, it makes the production build more stable (as we only lock after a successful build). If a change needs to be made to one of the packages, the developer in question is responsible for removing the lock file and installing the modules anew using the updated `package.json`. This means the developer will have to resolve all issues with packages/modules versions prior to merging into the `main` branch.

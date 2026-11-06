@@ -3,14 +3,19 @@
 from collections.abc import AsyncIterator, Awaitable, Callable
 from uuid import uuid4
 
-from mas.core.execution_context import ExecutionContext
-from mas.execution.models import ExecutionPhase, ExecutionRecord, PreparedExecution, SubmissionState
-from mas.execution.ports import ExecutionError, ExecutionLocationUnavailable, SubmissionUnconfirmed
-from mas.programs.models import ProgramRevision
-from pydantic import JsonValue
+from mas.application.execution.models import PreparedExecution
+from mas.application.execution.ports import (
+    ExecutionError,
+    ExecutionLocationUnavailable,
+    SubmissionUnconfirmed,
+)
+from mas.domain.execution.context import ExecutionContext
+from mas.domain.execution.models import ExecutionPhase, ExecutionRecord, SubmissionState
+from mas.domain.programs.models import ProgramRevision
+from pydantic import JsonValue, ValidationError
 from run_engine.context import current_context
 from run_engine.models import ProgramPayload
-from runengine.coordination.enums import RunFailureCode, RunPhase
+from runengine.coordination.enums import RunFailureCode
 from runengine.coordination.errors import RunContractError, RunSubmissionError
 from runengine.coordination.models import RunRequest
 from runengine.coordination.ports import (
@@ -27,8 +32,10 @@ from runengine.invocation.errors import (
 
 from outbound.run_engine.compiler import ProgramCompiler
 from outbound.run_engine.errors import engine_errors, portable_failure
+from outbound.run_engine.profiles import placement_catalog
+from outbound.run_engine.status import execution_phase
 
-PREPARED_FORMAT = "runengine/request-v2"
+PREPARED_FORMAT = "runengine/request-v10"
 
 
 class RunEngineGateway:
@@ -57,21 +64,43 @@ class RunEngineGateway:
         execution_id: str,
     ) -> PreparedExecution:
         request = await self._compiler.compile(revision, context.identity, context)
-        data = dict(request.input)
-        data["inputs"] = inputs
-        request = request.model_copy(update={"input": data, "run_id": execution_id}, deep=True)
+        payload = ProgramPayload.model_validate(request.input)
+        payload.inputs = inputs
+        request = request.model_copy(
+            update={"input": payload.model_dump(mode="json"), "run_id": execution_id}, deep=True
+        )
         request = self._host.validate(request)
         return PreparedExecution(
-            format=PREPARED_FORMAT, payload_json=request.model_dump_json(), location=self.location
+            format=PREPARED_FORMAT,
+            payload_json=request.model_dump_json(),
+            location=self.location,
+            work_limits=payload.work_budget.limits if payload.work_budget is not None else None,
+            admitted_profiles=placement_catalog(payload.placement),
+            placement=payload.placement.summary,
         )
 
-    async def start(self, prepared: PreparedExecution, *, recover: bool = False) -> None:
-        prepared = PreparedExecution.model_validate_json(prepared.model_dump_json())
+    def _request(self, prepared: PreparedExecution) -> RunRequest:
         if not prepared.location or prepared.location != self.location:
             raise ExecutionLocationUnavailable()
         if prepared.format != PREPARED_FORMAT:
-            raise ValueError(f"Unsupported prepared execution format: {prepared.format}")
-        request = RunRequest.model_validate_json(prepared.payload_json)
+            raise ValueError("Unsupported prepared execution format")
+        try:
+            prepared = PreparedExecution.model_validate_json(prepared.model_dump_json())
+            request = RunRequest.model_validate_json(prepared.payload_json)
+            payload = ProgramPayload.model_validate(request.input)
+        except ValidationError:
+            raise ValueError("Prepared execution snapshot is invalid") from None
+        limits = payload.work_budget.limits if payload.work_budget is not None else None
+        if limits != prepared.work_limits:
+            raise ValueError("Prepared work limits differ from the admitted request")
+        if placement_catalog(payload.placement) != prepared.admitted_profiles:
+            raise ValueError("Prepared profiles differ from the admitted request")
+        if payload.placement.summary is None or payload.placement.summary != prepared.placement:
+            raise ValueError("Prepared placement differs from the admitted request")
+        return request
+
+    async def start(self, prepared: PreparedExecution, *, recover: bool = False) -> None:
+        request = self._request(prepared)
         try:
             await self._host.start(request)
         except RunSubmissionError as error:
@@ -84,16 +113,42 @@ class RunEngineGateway:
         except (InvocationContractError, InvocationInfrastructureError) as error:
             raise ExecutionError(portable_failure(error)) from error
 
+    async def bind(
+        self,
+        template: PreparedExecution,
+        revision: ProgramRevision,
+        inputs: JsonValue,
+        context: ExecutionContext,
+        execution_id: str,
+    ) -> PreparedExecution:
+        request = self._request(template)
+        payload = ProgramPayload.model_validate(request.input)
+        if (
+            payload.program != revision.reference
+            or payload.content_digest != revision.content_digest
+            or not payload.context.identity.owns(context.identity)
+        ):
+            raise PermissionError("Execution template does not belong to this Program and owner")
+        self._compiler.authorize_template(payload, context.identity)
+        payload = payload.model_copy(update={"inputs": inputs, "context": context}, deep=True)
+        request = self._host.validate(
+            request.model_copy(
+                update={"input": payload.model_dump(mode="json"), "run_id": execution_id}, deep=True
+            )
+        )
+        return PreparedExecution(
+            format=template.format,
+            location=template.location,
+            payload_json=request.model_dump_json(),
+            work_limits=template.work_limits,
+            admitted_profiles=template.admitted_profiles,
+            placement=template.placement,
+        )
+
     async def status(self, execution_id: str) -> ExecutionPhase:
         async with engine_errors():
             status = await (await self._handle(execution_id)).status()
-        return {
-            RunPhase.RUNNING: ExecutionPhase.RUNNING,
-            RunPhase.COMPLETED: ExecutionPhase.COMPLETED,
-            RunPhase.FAILED: ExecutionPhase.FAILED,
-            RunPhase.CANCELLED: ExecutionPhase.CANCELLED,
-            RunPhase.UNKNOWN: ExecutionPhase.UNKNOWN,
-        }[status.phase]
+        return execution_phase(status.phase)
 
     async def result(self, execution_id: str) -> JsonValue:
         async with engine_errors():
@@ -126,10 +181,16 @@ class RunEngineGateway:
                 ExecutionRecord(
                     execution_id=context.execution_id,
                     owner=context.identity,
-                    program=payload.revision.reference,
+                    program=payload.program,
+                    body_path=payload.body_path,
+                    content_digest=payload.content_digest,
                     inputs=payload.inputs,
                     context=context,
+                    admitted_profiles=placement_catalog(payload.placement),
                     location=self.location,
+                    work_limits=payload.work_budget.limits
+                    if payload.work_budget is not None
+                    else None,
                     session_id=context.session_id or None,
                     parent_execution_id=context.parent_execution_id,
                     phase=ExecutionPhase.RUNNING,

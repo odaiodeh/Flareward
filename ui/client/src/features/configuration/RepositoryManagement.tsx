@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { useWorkspaceData } from "@/hooks/use-workspace-data";
-import { useAgenticAI } from "@/contexts/AgenticAIContext";
+import { useCuratedValidation } from "@/hooks/use-curated-validation";
 import { useToast } from "@/hooks/use-toast";
 import { useBuiltinEditLockSession } from "@/hooks/use-builtin-edit-lock-session";
 import { acquireBuiltinEditLock, previewBuiltinCascade, listBuiltins } from "@/api/resources";
@@ -70,11 +70,9 @@ export default function RepositoryManagement() {
   } | null>(null);
   const [isApplyingCascade, setIsApplyingCascade] = useState(false);
 
-  const {
-    validateResources,
-    getValidationStatus,
-    getValidationResult,
-  } = useAgenticAI();
+  const { getValidationStatus, getValidationResult, revalidate } = useCuratedValidation(
+    Object.values(categoryResources).flat(),
+  );
 
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
   const [selectedValidationResult, setSelectedValidationResult] =
@@ -82,27 +80,16 @@ export default function RepositoryManagement() {
 
   const { startLockHeartbeat, stopLockHeartbeat } = useBuiltinEditLockSession();
 
-  const allBuiltinRids = useMemo(
-    () => Object.values(categoryResources).flat().map((r) => r.rid),
-    [categoryResources],
-  );
-  const allBuiltinRidsKey = useMemo(
-    () => allBuiltinRids.join(","),
-    [allBuiltinRids],
-  );
-  useEffect(() => {
-    if (allBuiltinRidsKey) {
-      validateResources(allBuiltinRidsKey.split(","));
-    }
-  }, [allBuiltinRidsKey, validateResources]);
 
   const handleValidationClick = useCallback((rid: string) => {
     const result = getValidationResult(rid);
     if (result) {
       setSelectedValidationResult(result);
       setIsValidationModalOpen(true);
+    } else {
+      void revalidate();
     }
-  }, [getValidationResult]);
+  }, [getValidationResult, revalidate]);
 
   const availableCategories = useMemo(
     () => categories.filter(
@@ -130,6 +117,8 @@ export default function RepositoryManagement() {
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push({
           rid: r.rid,
+          version: r.version,
+          execution: r.execution,
           name: r.name,
           type: r.type,
           config: r.cfg_dict,
@@ -271,6 +260,8 @@ export default function RepositoryManagement() {
         }
         setEditingElement({
           rid: resource.rid,
+          version: resource.version,
+          execution: resource.execution,
           name: resource.name,
           config: resource.config,
           category: categoryKey,
@@ -310,6 +301,7 @@ export default function RepositoryManagement() {
     }
     setDetailsElement({
       rid: resource.rid,
+      execution: resource.execution,
       name: resource.name,
       config: resource.config,
       category: categoryKey,
@@ -328,12 +320,10 @@ export default function RepositoryManagement() {
       elementData,
       newElementAvailableToAll,
       rid,
+      editingElement?.version,
     );
     if (result) {
-      reloadBuiltins();
-      if (rid) {
-        validateResources([rid]);
-      }
+      await reloadBuiltins();
     }
     return result;
   };
@@ -362,7 +352,7 @@ export default function RepositoryManagement() {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
-      const success = await deleteBuiltinElement(deleteTarget.rid);
+      const success = await deleteBuiltinElement(deleteTarget.rid, deleteTarget.version);
       if (success) {
         reloadBuiltins();
       }
@@ -379,7 +369,9 @@ export default function RepositoryManagement() {
       // because a public agent still uses this resource, or a 409 because
       // another admin holds the edit lock) and surfaces an error toast
       // internally, returning null rather than rejecting.
-      const result = await toggleBuiltinStatus(rid, newValue);
+      const resource = Object.values(categoryResources).flat().find(item => item.rid === rid);
+      if (!resource) return;
+      const result = await toggleBuiltinStatus(rid, newValue, resource.version);
       if (result) {
         if (result.cascaded_resources?.length) {
           // Aggregated elements (LLMs, providers, tools, etc.) were swept
@@ -393,7 +385,7 @@ export default function RepositoryManagement() {
             const next: Record<string, ResourceItem[]> = {};
             for (const [cat, items] of Object.entries(prev)) {
               next[cat] = items.map((item) =>
-                item.rid === rid ? { ...item, visibility: nextVisibility } : item,
+                item.rid === rid ? { ...item, visibility: nextVisibility, version: result.version } : item,
               );
             }
             return next;
@@ -403,7 +395,7 @@ export default function RepositoryManagement() {
     } finally {
       setIsTogglingStatus(null);
     }
-  }, [toggleBuiltinStatus, reloadBuiltins]);
+  }, [toggleBuiltinStatus, reloadBuiltins, categoryResources]);
 
   const toggleAvailableToAll = useCallback(async (rid: string) => {
     const currentValue = availableToAll[rid] ?? false;
@@ -504,6 +496,9 @@ export default function RepositoryManagement() {
         onCancel={handleFormClose}
       />
 
+      <p className="text-sm text-muted-foreground">
+        Provider checks here use shared defaults. Inventory checks use your personal or team configuration.
+      </p>
       <BuiltinResourceTable
         isLoading={isLoading}
         availableCategories={availableCategories}

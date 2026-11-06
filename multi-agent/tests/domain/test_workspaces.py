@@ -1,6 +1,6 @@
 """Persisted workspace values retain typed results, artifacts, variables and retry limits."""
 
-from mas.domain.workloads import AgentResult, ArtifactRef, WorkItem, Workspace
+from mas.domain.workloads import AgentResult, WorkItem, Workspace, WorkspaceArtifact
 
 
 def test_workspace_roundtrip_preserves_the_context_used_by_all_accessors():
@@ -15,7 +15,7 @@ def test_workspace_roundtrip_preserves_the_context_used_by_all_accessors():
     assert restored.get_latest_result() == result
     assert restored.get_results_by_agent("researcher") == [result]
     artifacts = restored.get_artifact_by_type("document")
-    assert len(artifacts) == 1 and isinstance(artifacts[0], ArtifactRef)
+    assert len(artifacts) == 1 and isinstance(artifacts[0], WorkspaceArtifact)
     assert artifacts[0].location == "reports/result.txt"
     assert restored.get_context_summary()["variables_count"] == 1
     assert Workspace.create("empty").get_latest_result() is None

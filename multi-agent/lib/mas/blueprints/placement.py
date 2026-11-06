@@ -2,12 +2,13 @@
 
 from uuid import uuid4
 
+from mas.application.execution.placement import GraphPlacementPreviewer
+from mas.application.programs.blueprints import BlueprintProgramImporter
 from mas.blueprints.authoring import BlueprintAuthoringService
 from mas.blueprints.contracts import BlueprintData, BlueprintResolutionSource
 from mas.blueprints.resolution import resolve_blueprint
 from mas.core.identity import Identity
-from mas.execution.placement import GraphPlacementPlan, GraphPlacementPreviewer
-from mas.programs.blueprints import BlueprintProgramImporter
+from mas.domain.execution.placement import GraphPlacementPlan
 
 
 class BlueprintPlacementService:

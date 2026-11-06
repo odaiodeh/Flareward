@@ -54,7 +54,9 @@ async def test_http_authoring_preserves_editing_semantics_and_protects_configura
             "/api/programs/authored/blueprint", json={"blueprint_id": blueprint_id}
         )
         assert imported.status_code == 200, imported.text
-        published = await http.post("/api/programs/authored/revisions")
+        published = await http.post(
+            "/api/programs/authored/revisions", json={"expected_version": 1}
+        )
         assert published.status_code == 201, published.text
         removed = await http.delete(f"/api/blueprints/{blueprint_id}?expected_version=4")
         assert removed.status_code == 204, removed.text

@@ -4,12 +4,13 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import AsyncExitStack, asynccontextmanager
 from importlib import import_module
+from typing import Any
 
 from inbound.run_engine.settings import load_receiver_settings
 from mas.application.elements.construction.runtime import ElementRuntime
+from mas.application.execution.context import ExecutionContextHolder
 from mas.core.async_work import await_owned
 from mas.core.element_deps import ElementBuildContext
-from mas.core.execution_context import ExecutionContextHolder
 from mas.core.hitl.models import HITLConfig, ToolApprovalPolicy
 from mas.core.platform_config import PlatformConfig
 from mas.core.runtime_binder import NodeRuntimeBindings
@@ -21,6 +22,7 @@ from outbound.interactions.redis_store import RedisInteractionStore
 from outbound.interactions.wire import canonical, root_key
 from outbound.mongo.configuration_secrets import MongoConfigurationSecrets
 from outbound.redis_client import owned_redis
+from pydantic import JsonValue
 from pymongo import AsyncMongoClient
 
 from bootstrap.tracing import receiver_tracing
@@ -37,8 +39,12 @@ async def element_runtime(holder: ExecutionContextHolder) -> AsyncIterator[Eleme
             tracing_service=await resources.enter_async_context(receiver_tracing(settings)),
             platform_config=PlatformConfig(shared_storage=settings.shared_storage),
         )
+        if settings.workflow_credential_directory is not None:
+            build.workflow_credentials = import_module(
+                "outbound.workflow_credentials"
+            ).FileWorkflowCredentials(settings.workflow_credential_directory)
         if settings.configuration_secrets:
-            mongo = AsyncMongoClient(
+            mongo: AsyncMongoClient[dict[str, Any]] = AsyncMongoClient(
                 settings.mongo_uri.get_secret_value(), serverSelectionTimeoutMS=5000
             )
             resources.push_async_callback(mongo.close)
@@ -71,7 +77,7 @@ async def element_runtime(holder: ExecutionContextHolder) -> AsyncIterator[Eleme
             nx=True,
         )
 
-        async def publish(data):
+        async def publish(data: dict[str, JsonValue]) -> None:
             await store.publish(context.root_execution_id, context.execution_id, data)
 
         channel = BufferedChannel(context, publish, capacity=settings.stream_buffer_capacity)

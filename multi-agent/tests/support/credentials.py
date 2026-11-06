@@ -3,7 +3,7 @@
 import json
 
 from mas.application.elements.factory import BaseFactory
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.auth.credentials.credential import AuthCredential
 from mas.core.element_deps import ElementBuildContext
 from mas.core.enums import ResourceCategory
@@ -42,7 +42,7 @@ class CredentialFactory(BaseFactory):
         return CredentialNode(dependencies["auth_credential"], dependencies["deps"])
 
 
-class CredentialSpec(BaseElementSpec):
+class CredentialSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_credential"
     name = "Credential fixture"

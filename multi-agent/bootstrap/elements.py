@@ -9,7 +9,16 @@ from outbound.elements.discovery import SpecDiscoverer
 
 def installed_elements(modules: Iterable[str] = ()) -> ElementRegistry:
     registry = ElementRegistry()
-    for specification in SpecDiscoverer().discover():
+    discovery = SpecDiscoverer()
+    for specification in (
+        *discovery.discover_modules(
+            (
+                "mas_plugins.coding.codex.specification",
+                "mas_plugins.artifacts.specification",
+            )
+        ),
+        *discovery.discover(),
+    ):
         registry.register_spec_class(specification)
     for name in modules:
         for specification in import_module(name).ELEMENT_SPECIFICATIONS:

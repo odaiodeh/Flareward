@@ -13,6 +13,7 @@ from mas.resources.authoring import ResourceAuthoringService
 class EditEntityKind(StrEnum):
     RESOURCE = "resource"
     BLUEPRINT = "blueprint"
+    BUILTIN = "builtin"
 
 
 class EditLockScope(BaseModel):
@@ -56,7 +57,7 @@ class TeamEditService:
 
     @staticmethod
     def scope(owner: Identity, kind: EditEntityKind, entity_id: str) -> EditLockScope:
-        if not owner.is_team:
+        if not owner.is_team or kind == EditEntityKind.BUILTIN:
             raise PermissionError("Editing leases require an authorized team workspace")
         return EditLockScope(team_id=owner.id, kind=kind, entity_id=entity_id)
 

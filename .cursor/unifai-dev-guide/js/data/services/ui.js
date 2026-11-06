@@ -193,8 +193,8 @@ SERVICES.ui = {
       <details>
         <summary>Statistics — /api2 <span class="ep-count">3</span></summary>
         <div class="endpoint-list">
-          <div class="endpoint"><span class="method get">GET</span><span class="path">/statistics/stats.get — user dashboard</span></div>
-          <div class="endpoint"><span class="method get">GET</span><span class="path">/statistics/stats.system.get — admin analytics</span></div>
+          <div class="endpoint"><span class="method get">GET</span><span class="path">/reporting/overview — user dashboard</span></div>
+          <div class="endpoint"><span class="method get">GET</span><span class="path">/reporting/system — admin analytics</span></div>
           <div class="endpoint"><span class="method get">GET</span><span class="path">/sessions/session.user.blueprints.get</span></div>
         </div>
       </details>
@@ -375,8 +375,8 @@ SERVICES.ui = {
     { method: 'POST', path: '/collaboration/session.typing', group: 'Shares & Collaboration — /api2' },
     { method: 'POST', path: '/collaboration/edit_lock.acquire / release / heartbeat', group: 'Shares & Collaboration — /api2' },
     { method: 'POST', path: '/collaboration/edit_lock.statuses', summary: 'batch status check', group: 'Shares & Collaboration — /api2' },
-    { method: 'GET', path: '/statistics/stats.get', summary: 'user dashboard', group: 'Statistics — /api2' },
-    { method: 'GET', path: '/statistics/stats.system.get', summary: 'admin analytics', group: 'Statistics — /api2' },
+    { method: 'GET', path: '/reporting/overview', summary: 'user dashboard', group: 'Statistics — /api2' },
+    { method: 'GET', path: '/reporting/system', summary: 'admin analytics', group: 'Statistics — /api2' },
     { method: 'GET', path: '/sessions/session.user.blueprints.get', group: 'Statistics — /api2' },
     { method: 'POST', path: '/graph/validation/all.validate', summary: 'full topology check', group: 'Graph Validation — /api2' },
     { method: 'GET', path: '/auth/user', summary: 'current session user', group: 'Auth & Teams — /api3' },

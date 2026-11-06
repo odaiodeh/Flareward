@@ -46,7 +46,6 @@ from mas.graph.service import GraphService
 from mas.graph.validation.service import GraphValidationService
 from mas.resources.admin_edit_lock_service import AdminEditLockService
 from mas.resources.builtin_aware_service import BuiltinAwareResourceService
-from mas.resources.builtin_service import BuiltinResourceService
 from mas.resources.field_encryption import ResourceFieldEncryption
 from mas.resources.registry import ResourcesRegistry
 from mas.resources.service import CoreResourceService
@@ -61,7 +60,6 @@ from mas.session.management.user_session_manager import UserSessionManager
 from mas.session.service import SessionService
 from mas.sharing.cloner import ShareCloner
 from mas.sharing.service import ShareService
-from mas.statistics.service import StatisticsService
 from mas.templates.service import TemplateService
 from mas.validation.service import ElementValidationService
 from outbound.auth.api_key_strategy import ApiKeyStrategy
@@ -230,17 +228,6 @@ class AppContainer(metaclass=SingletonMeta):
 
         field_encryption = ResourceFieldEncryption(self.element_registry, field_cipher)
 
-        # BuiltinResourceService is a first-class peer service (consumed
-        # directly by builtins.py/ShareCloner), constructed before
-        # ResourcesService so the latter can be handed the shared instance.
-        self.builtin_resource_service = BuiltinResourceService(
-            resource_registry=resource_registry,
-            element_registry=self.element_registry,
-            field_encryption=field_encryption,
-            descriptor_repo=self.builtin_resource_descriptor_repo,
-            builtin_user_config_repo=self.builtin_user_config_repo,
-        )
-
         self.admin_edit_lock_service = (
             AdminEditLockService(
                 store=self._collab_store,
@@ -370,16 +357,10 @@ class AppContainer(metaclass=SingletonMeta):
             resources_service=self.resources_service,
             blueprint_service=self.blueprint_service,
             element_registry=self.element_registry,
-            builtin_resource_service=self.builtin_resource_service,
+            builtin_descriptors=self.builtin_resource_descriptor_repo,
         )
         self.share_service = ShareService(
             share_repository=self.share_repo, cloner=self.share_cloner
-        )
-
-        self.statistics_service = StatisticsService(
-            blueprint_service=self.blueprint_service,
-            session_service=self.session_service,
-            resources_service=self.resources_service,
         )
 
         self.template_repo = MongoTemplateRepository(

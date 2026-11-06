@@ -15,6 +15,18 @@ class NetworkEndpoint:
 
 
 @dataclass(frozen=True)
+class ReceiverEvidence:
+    namespace: str
+    pod: str
+    image: str
+    image_id: str
+    non_root: bool
+    host_access: bool
+    mounted_secrets: bool
+    environment_names: frozenset[str]
+
+
+@dataclass(frozen=True)
 class DeploymentBackend:
     name: str
     target: ExecutorConfig
@@ -23,6 +35,7 @@ class DeploymentBackend:
         [dict[str, str], tuple[NetworkEndpoint, ...]], AbstractAsyncContextManager[ExecutorConfig]
     ]
     namespace: str | None = None
+    inspect_receiver: Callable[[], Awaitable[ReceiverEvidence]] | None = None
 
     def verify(self, proof: dict) -> None:
         assert proof["system"] == "Linux"

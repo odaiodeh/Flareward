@@ -34,9 +34,7 @@ from claude_agent_sdk import (
 
 from mas.application.agents.approvals import HITLToolGatekeeper
 from mas.application.capabilities.hitl_capable import HITLCapableMixin
-from mas.application.capabilities.iem_capable import IEMCapableMixin
 from mas.application.capabilities.retriever_capable import RetrieverCapableMixin
-from mas.application.capabilities.workload_capable import WorkloadCapableMixin
 from mas.application.elements.node import BaseNode
 from mas.application.ports.tool import BaseTool
 from mas.application.ports.tool_provider import ToolProvider
@@ -46,6 +44,8 @@ from mas.domain.messages import ChatMessage, Role
 from mas.domain.workloads import AgentResult, Task
 from mas.elements.nodes.claude_agent.identifiers import EffortLevel
 from mas.elements.tools.common.claude_sdk_converter import ClaudeSDKConverter
+from mas.graph.capabilities.messaging import GraphMessagingMixin
+from mas.graph.capabilities.workloads import GraphWorkloadMixin
 from mas.graph.state.state_view import StateView
 
 from .hitl_hook import CLAUDE_BUILTIN_ACCESS_MODES, HITLHook
@@ -54,8 +54,8 @@ logger = logging.getLogger(__name__)
 
 
 class ClaudeAgentNode(
-    WorkloadCapableMixin,
-    IEMCapableMixin,
+    GraphWorkloadMixin,
+    GraphMessagingMixin,
     RetrieverCapableMixin,
     HITLCapableMixin,
     BaseNode,
@@ -134,7 +134,7 @@ class ClaudeAgentNode(
     async def run(self, state: StateView) -> StateView:
         """Main entry point - process all incoming TaskPackets."""
 
-        await self.process_packets(state)
+        await self.process_packets()
         return state
 
     # ========== TASK PROCESSING ==========

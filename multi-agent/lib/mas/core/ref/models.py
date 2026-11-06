@@ -148,6 +148,18 @@ class NodeRef(Ref):
     }
 
 
+class OperationRef(Ref):
+    """Reference to a typed operation resource."""
+
+    _category: ClassVar[ResourceCategory] = ResourceCategory.OPERATION
+    model_config = {
+        "json_schema_extra": {
+            "category": ResourceCategory.OPERATION.value,
+            "description": "Reference to a typed operation resource",
+        }
+    }
+
+
 class RetrieverRef(Ref):
     """Reference to a Retriever resource."""
 

@@ -5,7 +5,7 @@ import json
 from mas.application.capabilities.hitl_capable import HITLCapableMixin
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.element_deps import ElementBuildContext
 from mas.core.enums import ResourceCategory
 from mas.core.hitl.models import (
@@ -76,7 +76,7 @@ class ApprovalFactory(BaseFactory):
         return ApprovalProbe(dependencies["deps"], cfg.requests, cfg.request_prefix)
 
 
-class ApprovalSpec(BaseElementSpec):
+class ApprovalSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_approval"
     name = "Approval probe"

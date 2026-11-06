@@ -15,6 +15,14 @@ class ResourceKey(BaseModel):
     rid: str = Field(min_length=1)
 
 
+class ResourceSourceRef(BaseModel):
+    """An owner-scoped revision of saved configuration, including its caller overlay."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+    key: ResourceKey
+    revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
 class ResourceDefinition(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     key: ResourceKey
@@ -54,13 +62,12 @@ class ElementBundle(BaseModel):
         by_key = {entry.resource.key: entry for entry in self.entries}
         reachable: set[ResourceKey] = set()
 
-        def visit(key: ResourceKey) -> None:
+        pending = [self.root]
+        while pending:
+            key = pending.pop()
             if key not in reachable:
                 reachable.add(key)
-                for dependency in by_key[key].dependencies:
-                    visit(dependency)
-
-        visit(self.root)
+                pending.extend(by_key[key].dependencies)
         if reachable != seen:
             raise ValueError("Bundle contains resources unrelated to its root")
         payload = self.model_dump(mode="json", exclude={"content_digest"})

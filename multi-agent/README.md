@@ -1,162 +1,143 @@
-# MAS — Multi-Agent System
+# UnifAI program platform
 
-A production-grade orchestration engine for building and executing multi-agent workflows. Define agent graphs as visual blueprints, run them locally or across distributed workers, and stream results to clients in real time.
+UnifAI composes reusable capabilities into graph and application-code programs.
+FastAPI exposes application use cases; Run Engine supplies execution infrastructure.
 
----
+## Architecture references
 
-## Features
+- [Target architecture and ASCII diagrams](../docs/architecture/README.md):
+  agreed components, contracts, repository structure, placement, and Human Review.
+- [Development guide](../docs/program-platform-development.md):
+  implemented behavior, setup, current APIs, and limitations.
+- [Current status](../docs/status.md) and [active plan](../docs/plan.md):
+  compact starting point, current milestone and remaining acceptance.
+- [Evidence index](../docs/evidence/README.md): focused milestone records and
+  opt-in historical lookup. Do not load archives/reference guides in full by default.
+- [Tests](tests/README.md) and [dedicated infrastructure](tests/infra/README.md).
 
-- **Blueprint-driven workflows** — Define agent graphs declaratively with nodes, edges, and conditional routing. Blueprints are portable, versionable, and shareable.
-- **Two execution modes** — Run graphs in-process (LangGraph) for development, or distribute them across Temporal workers for production.
-- **Real-time streaming** — Stream node output as NDJSON over HTTP. Supports both synchronous and fire-and-forget (Redis Streams) modes.
-- **Rich element catalog** — Built-in agents, tools (SSH, MCP, web fetch, OpenShift), LLM providers (OpenAI, Gemini), conditions, and RAG retrievers.
-- **Horizontal scaling** — Temporal workers scale across pods. Redis Streams enable cross-process event delivery. MongoDB provides persistence.
+The target is a fresh platform. Old Flask/LangGraph execution paths, worker
+contracts, storage formats, and forwarding aliases are removal targets. Preserve
+useful specifications, factories, builders, resources, and application behavior
+through the canonical new implementation.
 
----
+Program definitions and pure bindings are owned by `mas.domain.programs`.
+Program authoring, publication, registrations and runtime/repository ports are
+owned by `mas.application.programs`. Import placement and step metadata from their
+domain owners. Execution context/lifecycle/placement values live in
+`mas.domain.execution`; submission, control, prepared snapshots and mutable runtime
+context holders live in `mas.application.execution`. Replaced Program/execution
+packages and the old core context module have no compatibility facade; rebuild
+installed receivers after module changes using the test infrastructure guide.
 
-## Quick Start
+## Install
 
-### Prerequisites
+From the repository root with Python 3.14 or newer:
 
-- Python 3.11+
-- MongoDB
-- Redis *(optional — for background streaming)*
-- Temporal Server *(optional — for distributed execution)*
-
-### Install
-
-```bash
-cd multi-agent
-
-# Everything
-pip install -e ".[all]"
-
-# Or only what you need
-pip install -e ".[flask,mongo,langgraph]"       # Local-only
-pip install -e ".[flask,mongo,temporal,redis]"   # Distributed
+```sh
+python3.14 -m venv .venv
+.venv/bin/python -m pip install -e ../run-engine -e ./global_utils -e './multi-agent[dev]'
 ```
 
-### Configure
+Use the verified Run Engine source baseline identified in the development guide.
 
-Create a `.env` file (or export environment variables):
+## Local API development
 
-```bash
-# Server
-HOSTNAME=0.0.0.0
-PORT=8002
+This local development mode uses memory storage and the Local host. Its
+coordination does not survive process loss.
 
-# MongoDB
-MONGODB_IP=localhost
-MONGODB_PORT=27017
-MONGO_DB=UnifAI
-
-# Engine: "temporal" or "langgraph"
-ENGINE_NAME=temporal
-
-# Temporal (when using temporal engine)
-TEMPORAL_HOST=localhost:7233
-TEMPORAL_NAMESPACE=default
-TEMPORAL_TASK_QUEUE=graph-engine
-
-# Redis (enables background streaming)
-REDIS_URL=redis://localhost:6379
-REDIS_STREAM_TTL=3600          # Retention in seconds (0 = forever)
-
+```sh
+export UNIFAI_HOST='{"runner_type":"local"}'
+export UNIFAI_STORAGE=memory
+export UNIFAI_AUTHENTICATION=development
+export UNIFAI_DEVELOPMENT_USER=alice
+export UNIFAI_INTERACTIONS=disabled
+.venv/bin/mas-platform serve --host 127.0.0.1 --port 13457
 ```
 
-### Run
+For the normal authenticated UI, use session authentication and the shared
+Identity configuration described in the development guide.
 
-```bash
-# Development server
-mas api --dev
+## Durable execution
 
-# Production server
-mas api --workers 4
+Configure the API and a separate worker with the same Temporal endpoint,
+namespace, task queue, and receiver settings. The dedicated test stack uses
+localhost:7234; production/development service addresses are deployment inputs.
 
-# Temporal worker (one or more instances)
-mas worker --threads 20
+```sh
+export UNIFAI_HOST='{"runner_type":"temporal","endpoint":"127.0.0.1:7234","namespace":"default","task_queue":"unifai-programs-dev"}'
 ```
 
----
+Start the API and worker in separate terminals with the same configuration:
 
-## API
-
-All endpoints live under `/api/`. Session endpoints use RPC-style naming.
-
-### Sessions
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/sessions/user.session.create` | Create a session from a blueprint |
-| `POST` | `/sessions/user.session.execute` | Execute synchronously (supports streaming) |
-| `POST` | `/sessions/user.session.submit` | Submit for background execution (202) |
-| `GET` | `/sessions/session.state.get` | Get final graph state |
-| `GET` | `/sessions/session.status.get` | Get session status |
-| `DELETE` | `/sessions/session.delete` | Delete a session |
-
-### Streaming & Monitoring
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/sessions/session.subscribe?sessionId=ID` | NDJSON event stream (replays full history) |
-| `GET` | `/sessions/session.stream.status?sessionId=ID` | Stream metadata (event count, active flag) |
-| `GET` | `/sessions/session.stream.active` | List all running sessions |
-
-### Other
-
-Blueprints, catalog, resources, graph, templates, shares, statistics, actions, and health endpoints are also available.
-
----
-
-## Usage Examples
-
-### Synchronous execution with streaming
-
-```bash
-curl -N -X POST http://localhost:8002/api/sessions/user.session.execute \
-  -H 'Content-Type: application/json' \
-  -d '{"sessionId": "abc-123", "inputs": {"user_prompt": "hello"}, "stream": true}'
+```sh
+.venv/bin/mas-platform serve --host 127.0.0.1 --port 13457
 ```
 
-### Fire-and-forget with live subscription
-
-```bash
-# 1. Submit
-curl -X POST http://localhost:8002/api/sessions/user.session.submit \
-  -H 'Content-Type: application/json' \
-  -d '{"sessionId": "abc-123", "inputs": {"user_prompt": "hello"}}'
-
-# 2. Subscribe to events
-curl -N 'http://localhost:8002/api/sessions/session.subscribe?sessionId=abc-123'
+```sh
+.venv/bin/mas-platform worker
 ```
 
-### Polling
+Choose persistent storage, authentication, credentials, and interaction backends
+explicitly for the deployment. See the development guide for Mongo, Redis,
+configuration encryption, profiles, installed modules, and UI proxy settings.
 
-```bash
-# Check progress
-curl 'http://localhost:8002/api/sessions/session.stream.status?sessionId=abc-123'
-# → {"session_id": "abc-123", "event_count": 47, "is_active": false}
+Generic event-start sources are opt-in with `UNIFAI_EVENT_SOURCES_ENABLED=true`
+and Mongo storage. Human-managed sources pin a published Program and private
+execution template; deliveries use a separate source key and the normal execution
+service. Automatic workflow scopes require managed credential provisioning too.
+See [event contracts](../docs/program-platform-development.md#authenticated-event-driven-program-starts)
+for bounded consent, redelivery, revocation and Local/Temporal recovery scope.
+
+## Native service image
+
+Build from the repository root with the approved Run Engine source checkout:
+
+```sh
+docker build --build-context run_engine=../run-engine -f multi-agent/Dockerfile -t unifai-platform:local .
+.venv/bin/python multi-agent/tests/infra/verify_images.py --platform --image unifai-platform:local
+docker run --rm -i --entrypoint python unifai-platform:local - < multi-agent/tests/infra/smoke_platform.py
 ```
 
----
+The image uses Python 3.14, runs as UID/GID 1000 and has one entrypoint:
+`mas-platform`. Its default arguments serve FastAPI on port 13457. Pass `worker`
+to start native durable coordination. The old `mas` command, role-switching shell
+entrypoint, WSGI launcher and old worker module launcher are removed. Refresh an
+existing editable install to remove its obsolete console script.
 
-## Extras Reference
+The Dockerfile-specific context allowlist excludes local environments, test fixtures
+and private bindings. The separate Run Engine context must also contain only
+approved build source. The default `MAS_EXTRAS` installs API, credentials,
+blueprints, Temporal and telemetry; select provider/tool extras deliberately through
+that build argument. `RUN_ENGINE_EXTRAS` defaults to Temporal. Remote invocation
+backends and coding-agent images require their own installed capabilities and
+acceptance gates. Add required system tools and organization CA certificates through
+an explicit derived image/configuration, rather than downloading them implicitly.
 
-| Extra | Purpose |
-|-------|---------|
-| `flask` | HTTP API server |
-| `mongo` | Database persistence |
-| `temporal` | Distributed workflow engine |
-| `langgraph` | In-process graph execution |
-| `llms` | OpenAI, Google Gemini providers |
-| `tools` | SSH, MCP, web fetch, OpenShift tools |
-| `a2a` | Agent-to-Agent protocol |
-| `rag` | RAG retrievers |
-| `redis` | Distributed streaming |
-| `all` | Everything |
+Supply deployment settings and private bindings at runtime. API and worker must
+agree on host/namespace/queue, installed modules, approved profiles and relevant
+credential/environment policies. A Local host supports one API worker. The health
+path is `/api/health/health`. See [Helm guidance](../helm/multiagent/README.md) for
+service arguments, configuration and the remaining cluster acceptance limitations.
 
----
+## Components
 
-## License
+- Specifications, factories, category builders, and bundles own construction.
+- Typed operations validate input/result models independently of graph state.
+- Programs coordinate reusable calls through application-owned runtime ports.
+- Profiles and named environments select placement and explicit reuse.
+- Run Engine owns dispatch, durable waits, children, recovery, and compute cleanup.
+- Application services own authority, artifacts, decisions, and accepted outcomes.
 
-Proprietary.
+Typed-operation catalog, graph/code invocation, HTTP, thread/process delivery,
+and Temporal replay have tests. The full target is still in progress; production
+coding-operation conversion, visual typed-port composition, durable artifacts, and
+Human Review must be verified through their corresponding implementation slices.
+
+## Verify
+
+```sh
+.venv/bin/python -m pytest multi-agent/tests/application multi-agent/tests/architecture -q
+```
+
+Select real-service, UI-client, and remote cases using the test guide and explicit
+UnifAI infrastructure settings. Paid model tests remain opt-in.

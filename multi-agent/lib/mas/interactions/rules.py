@@ -6,7 +6,7 @@ from enum import StrEnum
 from pydantic import Field
 
 from mas.core.hitl.models import ApprovalOverrides, ApprovalRuleSet
-from mas.programs.models import Model
+from mas.domain.models import Model
 
 
 class ApprovalRuleAction(StrEnum):

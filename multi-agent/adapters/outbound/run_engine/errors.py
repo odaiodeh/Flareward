@@ -4,10 +4,15 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from functools import wraps
 
-from mas.execution.models import ExecutionFailure, FailureKind
-from mas.execution.ports import ExecutionError, ExecutionMissing
+from mas.application.execution.ports import ExecutionError, ExecutionMissing
+from mas.application.programs.state import StateContractError
+from mas.domain.execution.models import ExecutionFailure, FailureKind
+from mas.domain.programs.bindings import BindingError
+from pydantic import ValidationError
 from runengine.coordination.enums import RunFailureCode
 from runengine.coordination.errors import RunContractError
+from runengine.core.enums import FailureOrigin
+from runengine.core.failure import FailureDescriptor
 from runengine.invocation.errors import (
     InvocationApplicationError,
     InvocationContractError,
@@ -58,12 +63,29 @@ def application_errors[**P, R](operation: Callable[P, Awaitable[R]]) -> Callable
     async def translated(*args: P.args, **kwargs: P.kwargs) -> R:
         try:
             return await operation(*args, **kwargs)
+        except (BindingError, StateContractError) as error:
+            raise InvocationContractError(str(error)) from None
+        except ValidationError:
+            raise InvocationContractError("Execution violates a model contract") from None
         except ExecutionError as error:
+            failure = FailureDescriptor(
+                origin=FailureOrigin.CONTRACT
+                if error.failure.kind == FailureKind.CONTRACT
+                else FailureOrigin.INFRASTRUCTURE
+                if error.failure.kind == FailureKind.INFRASTRUCTURE
+                else FailureOrigin.APPLICATION,
+                error_type=type(error).__name__,
+                message=error.failure.message,
+                code=error.failure.code,
+                retryable=error.failure.retryable
+                if error.failure.kind == FailureKind.INFRASTRUCTURE
+                else None,
+            )
             if error.failure.kind == FailureKind.CONTRACT:
-                raise InvocationContractError(error.failure.message) from error
+                raise InvocationContractError(error.failure.message, failure=failure) from error
             if error.failure.kind == FailureKind.INFRASTRUCTURE:
                 raise InvocationInfrastructureError(
-                    error.failure.message, retryable=error.failure.retryable
+                    error.failure.message, retryable=error.failure.retryable, failure=failure
                 ) from error
             raise
 

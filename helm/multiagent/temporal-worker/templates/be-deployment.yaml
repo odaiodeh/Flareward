@@ -40,8 +40,7 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          stdin: true
-          tty: true
+          args: ["worker"]
           env:
           - name: POD_NAME
             valueFrom:
@@ -66,26 +65,6 @@ spec:
                 name: {{ .Values.globalSecretName }}
             - secretRef:
                 name: {{ .Values.MultiagentSecretName }}
-          ports:
-            - name: http
-              containerPort: {{ .Values.service.port }}
-              protocol: TCP
-
-          {{- if ne .Values.env.ROLE "debug"}}
-          livenessProbe:
-            exec:
-              command: ["pgrep", "-f", "temporal-worker"]
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
-            failureThreshold: 3
-          readinessProbe:
-            exec:
-              command: ["pgrep", "-f", "temporal-worker"]
-            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
-            failureThreshold: 3
-          {{- end }}
-
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

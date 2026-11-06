@@ -15,6 +15,7 @@ class ConditionResultError(ValueError):
 
 
 def normalize_condition_result(value: object, branches: Mapping[str, str]) -> str | list[str]:
+    result: str | list[str]
     if isinstance(value, bool):
         result = str(value).lower()
     elif isinstance(value, str):
@@ -24,7 +25,7 @@ def normalize_condition_result(value: object, branches: Mapping[str, str]) -> st
     else:
         raise ConditionResultError("Condition must return a boolean, string or sequence of strings")
     labels = [result] if isinstance(result, str) else result
-    if any(label not in branches and label != "END" for label in labels):
+    if any(label not in branches for label in labels):
         raise ConditionResultError("Condition returned an undeclared branch")
     return result
 
@@ -36,7 +37,9 @@ class BaseCondition(ABC):
     def __init__(self) -> None:
         self._ctx: StepContext | None = None
 
-    def __call__(self, state: GraphState, config: dict | None = None) -> ConditionResult:
+    def __call__(
+        self, state: GraphState, config: dict[str, object] | None = None
+    ) -> ConditionResult:
         return self.run(StateView(state, reads=self.read_channels(), writes=self.write_channels()))
 
     @abstractmethod

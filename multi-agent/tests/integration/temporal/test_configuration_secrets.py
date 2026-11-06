@@ -4,7 +4,8 @@ import asyncio
 import hashlib
 
 import pytest
-from mas.execution.models import ExecutionPhase, StartExecution
+from mas.application.execution.models import StartExecution
+from mas.domain.execution.models import ExecutionPhase
 from support.elements import element_registry
 from support.secrets import secret_definition
 from support.temporal import replay
@@ -24,7 +25,13 @@ async def test_temporal_history_excludes_secret_values_on_success_and_failure(
         async with compose_platform(settings, elements=element_registry()) as services:
             definition = secret_definition(profile, token, fail_on_run=fail)
             protected = await services.programs.save(definition, definition.owner)
-            revision = await services.programs.publish(definition.program_id, definition.owner)
+            revision = await services.programs.publish(
+                definition.program_id,
+                definition.owner,
+                expected_version=(
+                    await services.programs.draft(definition.program_id, definition.owner)
+                ).version,
+            )
             assert token not in protected.model_dump_json() + revision.model_dump_json()
             record = await services.executions.start(
                 StartExecution(program=revision.reference), definition.owner

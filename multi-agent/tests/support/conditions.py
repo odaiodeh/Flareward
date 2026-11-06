@@ -2,7 +2,7 @@
 
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.iem.models import ElementAddress
 from mas.core.iem.packets import SystemPacket
@@ -51,7 +51,7 @@ class OutputFactory(BaseFactory):
         return OutputNode(cfg.value, cfg.recipients)
 
 
-class OutputSpec(BaseElementSpec):
+class OutputSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "condition_output"
     name = "Condition output"

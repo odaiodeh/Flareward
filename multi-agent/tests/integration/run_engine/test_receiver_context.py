@@ -4,14 +4,15 @@ import json
 from dataclasses import replace
 
 import pytest
+from mas.application.execution.models import StartExecution
+from mas.application.execution.service import ExecutionService
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
-from mas.execution.models import ExecutionPhase, StartExecution
-from mas.execution.service import ExecutionService
-from mas.programs.models import (
+from mas.domain.execution.models import ExecutionPhase
+from mas.domain.execution_preferences import ExecutionSelection
+from mas.domain.programs.models import (
     ApplicationDefinition,
     ElementStep,
-    ExecutionSelection,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,

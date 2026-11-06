@@ -5,7 +5,7 @@ from typing import Any
 
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.node import BaseNode
-from mas.application.elements.specification import BaseElementSpec
+from mas.application.programs.graph_elements import GraphElementSpec
 from mas.core.enums import ResourceCategory
 from mas.core.tracing import TracingService
 from mas.graph.state.state_view import StateView
@@ -50,7 +50,7 @@ class TraceFactory(BaseFactory):
         return TraceNode(dependencies["deps"].tracing_service, cfg.fail)
 
 
-class TraceSpec(BaseElementSpec):
+class TraceSpec(GraphElementSpec):
     category = ResourceCategory.NODE
     type_key = "platform_trace"
     name = "Traced fixture"

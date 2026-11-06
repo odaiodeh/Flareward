@@ -1,0 +1,57 @@
+{
+  "scope": "Focused Engineering production-verifier integration and controlled actual-App journey; not a full dependency/image manifest",
+  "git_head": "d4573ddec20f2c5d9e3ef83106bd98baecc8b2c7",
+  "files": {
+    "docs/evidence/assets/2026-11-06-engineering-program-checks.png": "9800a695bcf22d3fb73a415b6146ac8833fc5e12ce56d2396d4f54f4ad1090fb",
+    "multi-agent/lib/mas/application/verification/program_checks.py": "74180e11524b14f459fa8f1ab0ce5a728bf29a7052cf4232dcab9cb5fa46de74",
+    "multi-agent/plugins/mas_plugins/engineering/coding.py": "b36da5c4aa36e0e763469a6c98610ac573c25ab5d93e5ecbf423a123d19843bc",
+    "multi-agent/plugins/mas_plugins/engineering/feature.py": "b6564ea3ec036ff63a92ebda51ac5ae0ad9e8b520cba8fd9ba4c80e0b025909c",
+    "multi-agent/plugins/mas_plugins/engineering/program.py": "d60e15bac9a978b3ce2378c692243bd556ad36cffd44373a33d70961bdfab334",
+    "multi-agent/plugins/mas_plugins/testing/contracts.py": "7da2a0c09f9b3abd4c8da0461f98a3d84b0af3f5813523c2b43f35c017b174dd",
+    "multi-agent/plugins/mas_plugins/testing/program.py": "20e42adaedb29c553aacb44582d01bff57c43e63d870948cda88e49e7801b35a",
+    "multi-agent/plugins/mas_plugins/testing/python_functions.py": "2a72653fcee847977c50dbfd893b9a9143f2655db179f6e8d8630ada426f3771",
+    "multi-agent/tests/integration/coding/test_feature_workflow.py": "09e747942768d0bbd333c08357de0a01edc53eafed4e2a484b8900701817e8a4",
+    "multi-agent/tests/integration/verification/test_program_checks.py": "b0e0b63fd668df5dda437eb28987ef530fe4f8b97fb833a92028971d8d4477ae",
+    "multi-agent/tests/support/check_program_publication.py": "8797aad9ebb14ab72fb20e471dd93345e9ed54dc3f283e517cc1cb312aa85564",
+    "multi-agent/tests/support/coding_cli.py": "e8a88d6e59f67a93972be40d2e5202c983de9e685e72ee89d80eec3f7e922683",
+    "multi-agent/tests/support/engineering_api.py": "110133d7cec63a3f03b76b5a0b2bfa5816f87af2d9f9c4ed0c2a408b8f4f217e",
+    "multi-agent/tests/support/feature_api.py": "66a289a97cbe33586a24d9b017988723c997bebf595d853fa53c2dae9cfd432f",
+    "multi-agent/tests/support/feature_browser.py": "541f3c32507eb4e8b70c7aae213c311911f4c6604ded2fd1feb947e9b441464f",
+    "multi-agent/tests/support/program_check_api.py": "e6f3caa585001f4ff8c9f8fb97836755157776fc4f5514bb0575d134bc580b55",
+    "multi-agent/tests/support/python_checks.py": "874c3c1ceee1048ff91df7f821a348c586ba28adce098091973e7b95d9669764",
+    "ui/client/src/components/executions/ExecutionWorkbench.tsx": "bdfe6c7f831b51ce7f2f30f982a1f09fefd6177ad3bd3fe9134e0a252d6c94d1",
+    "ui/client/src/components/executions/ProgramInvocation.tsx": "24165e341060a2aee88e36f09798cfe16f196c018c67df1802ea7fa163bf09b5",
+    "ui/client/src/pages/Execution.tsx": "4e1436f47f864ec9348485cf63defa0fb7b3604c54c1d3d8856731260f61d27b"
+  },
+  "aggregate_encoding": "SHA-256 of compact sorted-key UTF-8 JSON files map",
+  "aggregate_sha256": "2c0640b488c004bb6385ed78e6995390f34061202fa785a32a098d7486354848",
+  "removed_files": [
+    "multi-agent/tests/support/python_check_api.py"
+  ],
+  "browser": {
+    "root_execution_id": "b2da919b-bdf6-4d49-a3f4-db2327a58300",
+    "workspace_script": "workspace-browser-CdfussQQ.js",
+    "workspace_script_sha256": "d775edf9f1d43552734c6452c523147a6bdd6ff1fdb85f5f7bbaafb7c19fc8c2",
+    "build_seconds": 4.89,
+    "model_calls": false,
+    "production_verifier": true,
+    "coding_attempts": 2,
+    "check_verdicts": [
+      "failed",
+      "passed"
+    ],
+    "retained_artifact_retrieval_after_workspace_deletion": true
+  },
+  "gates": [
+    {
+      "scope": "native feature flow and standalone Program checks",
+      "passed": 14,
+      "seconds": 135.55
+    },
+    {
+      "scope": "application/domain/architecture and execution policy adapter",
+      "passed": 776,
+      "seconds": 7.33
+    }
+  ]
+}
