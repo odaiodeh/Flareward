@@ -267,23 +267,15 @@ export default function Sidebar() {
           />
           <NavItem 
               icon={<FaFile className="sidebar-icon" />} 
-              label="Agentic Inventory" 
+              label="Resources"
               to="/inventory"
               isActive={location === '/inventory'}
               status={null}
               isCollapsed={isCollapsed}
           />
           <NavItem 
-            icon={<FaRobot className="sidebar-icon" />} 
-            label="Agentic AI Workflows" 
-            to="/agentic-ai"
-            isActive={location === '/agentic-ai'}
-            status={null}
-            isCollapsed={isCollapsed}
-          />
-          <NavItem 
             icon={<FaComment className="sidebar-icon" />} 
-            label={viewMode === 'team' ? 'Collaboration Hub' : 'Agentic Chats'}
+            label="Sessions"
             to="/agentic-chats"
             isActive={location === '/agentic-chats' || location.startsWith('/agentic-chats/')}
             status={null}

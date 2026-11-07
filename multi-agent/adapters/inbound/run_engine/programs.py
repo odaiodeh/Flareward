@@ -22,7 +22,7 @@ from runengine.invocation.errors import InvocationContractError
 from runengine.programs.graph.entrypoint import run_graph
 from runengine.programs.graph.inputs import GraphProgramInput
 
-__runengine_contract__ = "unifai-program-v5"
+__runengine_contract__ = "unifai-program-v6"
 
 
 @application_errors
@@ -43,7 +43,10 @@ async def execute_program(operations: CoordinationOperations, data: JsonValue) -
     if payload.graph_request is not None:
         request = RunRequest.model_validate(payload.graph_request)
         specification = graph_context(GraphProgramInput.model_validate(request.input), context)
-        initial = ProgramGraphState.model_validate(
+        state_type = specification.state.resolve()
+        if not issubclass(state_type, ProgramGraphState):
+            raise InvocationContractError("Graph state requires an installed Program state adapter")
+        initial = state_type.model_validate(
             {**project(payload.graph_inputs, payload.inputs), "input": payload.inputs}
         )
         specification = specification.model_copy(

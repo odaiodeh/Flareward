@@ -12,7 +12,7 @@ from mas.domain.execution.budgets import WorkLimits
 from mas.domain.execution.context import ExecutionContext
 from mas.domain.execution.models import ExecutionPhase, SubmissionState
 from mas.domain.execution_preferences import ExecutionProfileCatalog
-from mas.domain.programs.models import ApplicationDefinition
+from mas.domain.programs.models import ApplicationDefinition, ProgramRef
 from mas.scheduling.admission import ScheduledAdmission, scheduled_execution_id
 from mas.scheduling.models import ScheduleDefinition, ScheduleStatus
 from mas.scheduling.programs import (
@@ -23,6 +23,7 @@ from mas.scheduling.programs import (
     ProgramScheduleService,
     ProgramScheduleView,
     program_schedule_id,
+    stage_schedule,
 )
 from mas.session.execution.session_store import SessionStore
 from outbound.memory.execution_repository import MemoryExecutionRepository
@@ -247,3 +248,24 @@ async def test_schedule_update_snapshots_mutable_inputs_before_awaiting_storage(
         await update
     assert gateway.prepare.await_args.args[1] == {"name": "scheduled"}
     assert backend.replace.await_args.args[0].definition.request.inputs == {"name": "scheduled"}
+
+
+@pytest.mark.parametrize("interaction", ["data", "conversation"])
+def test_scheduled_turn_uses_the_same_explicit_interaction_projection(application, interaction):
+    request = schedule_request(ProgramRef(program_id="scheduled", revision=1))
+    request = request.model_copy(
+        update={
+            "session": request.session.model_copy(update={"interaction": interaction}),
+            "inputs": {"name": "scheduled", "user_prompt": "review task"},
+        }
+    )
+    definition = ProgramSchedule(schedule_id="projected", owner=application.owner, request=request)
+    record, inputs = stage_schedule(
+        definition, ExecutionContext(identity=application.owner, session_id="tick"), "human"
+    )
+    assert inputs == request.inputs
+    assert record.state["name"] == "scheduled"
+    if interaction == "data":
+        assert record.graph_state is None
+    else:
+        assert record.graph_state.messages[0].content == "review task"

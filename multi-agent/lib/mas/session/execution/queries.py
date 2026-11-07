@@ -12,6 +12,7 @@ from mas.session.domain.dto import (
 from mas.session.domain.models import SessionChat
 from mas.session.domain.session_record import SessionRecord
 from mas.session.execution.program_sessions import ProgramSessionService
+from mas.session.execution.projection import SessionProjection
 
 
 class SessionQueryService:
@@ -30,9 +31,10 @@ class SessionQueryService:
 
     async def chat(self, session_id: str, caller: Identity) -> SessionChat:
         record = await self._sessions.refresh(session_id, caller)
+        state = SessionProjection.conversation(record)
         return SessionChat(
-            messages=record.graph_state.messages,
-            output=record.graph_state.output,
+            messages=state.messages,
+            output=state.output,
             status=record.status.value,
             status_message=record.metadata.status_message,
             blueprint_id=record.blueprint_id,

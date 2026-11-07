@@ -20,9 +20,9 @@ type AcceptanceCriteria = Annotated[
 ]
 
 
-class FeatureRequest(BaseModel):
+class FeatureRequest[Task = JsonValue](BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
-    task: JsonValue
+    task: Task
     acceptance_criteria: AcceptanceCriteria
 
 
@@ -45,9 +45,9 @@ class DesignFeedback(BaseModel):
     response: ReviewResponse
 
 
-class DesignWork(BaseModel):
+class DesignWork[Task = JsonValue](BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
-    request: FeatureRequest
+    request: FeatureRequest[Task]
     attempt: int = Field(ge=0)
     feedback: DesignFeedback | None = None
 

@@ -1,8 +1,9 @@
 # Bounded live feature acceptance
 
-Use this for the integrated real Codex/production-verifier HTTP journey. It uses
-controlled design generation and review responses. For the actual-App variant below,
-enter review decisions through the UI. Full authoring/canvas acceptance, live Git/CI
+Use this for integrated real Codex/production-verifier journeys. The current fixture
+uses `coding_designer@1` for real planning and a separate saved coding resource for
+implementation; identity and automated HTTP review responses remain controlled.
+For the actual-App variant below, enter review decisions through the UI. Full authoring/canvas acceptance, live Git/CI
 delivery, Temporal/recovery and automatic remote private provisioning remain distinct
 requirements. Follow existing user authorization and keep paid calls
 explicit; availability of a credential does not authorize its use.
@@ -40,9 +41,15 @@ UNIFAI_TEST_OPENSHELL_IMAGE=unifai-codex:content-handoff-20261106 \
 ```
 
 The shared fixture selects `gpt-5.4-nano`, 60 seconds and four command events per
-coding attempt; Engineering permits one repair. These are finite execution bounds,
+design/coding invocation; Feature Design permits one revision and Engineering one repair. These are finite execution bounds,
 not a strict spending guarantee. Do not force extra paid repair attempts to duplicate
 already-covered controlled failure scenarios. Record whether a live repair occurred.
+The maintained HTTP test now runs Engineering revision 1 independently, then calls
+that same unchanged revision through Feature. It permits two implementation tasks
+(each with at most one repair) plus Feature's bounded planning, retires six
+capabilities and retains both source/report pairs.
+Keep the two roots' checks/reviews separate; successful reuse is not a reliability
+rate. See [the reuse checkpoint](../../../../docs/evidence/2026-11-06-engineering-reuse.md).
 
 Before design approval, only the design child should be observed. Inspect exact
 source and the canonical `details` report before final acceptance. A candidate owner
@@ -84,5 +91,8 @@ verify database/cookie/API/receiver cleanup. Never delete shared Docker services
 
 Record UI steps, source/image identity, scopes and a saved screenshot as in
 [the live browser checkpoint](../../../../docs/evidence/2026-11-06-live-feature-ui.md).
-Prepublished Programs and controlled identity/design do not establish complete
-resource authoring, live planning or Git/CI delivery.
+Prepublished Programs and controlled identity do not establish complete resource
+authoring or Git/CI delivery. The [configured designer checkpoint](../../../../docs/evidence/2026-11-07-configurable-designer.md)
+proves live planning and records the pending-review report-visibility gap: inspect
+the trusted report through authenticated HTTP before acceptance until that UI gap
+is fixed, and do not describe this fallback as pre-approval UI evidence proof.

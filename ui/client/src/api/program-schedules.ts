@@ -9,7 +9,7 @@ export interface WorkflowConsent extends WorkflowConsentRequest {
   definition_sha256: string; prepared_sha256: string; revoked: boolean;
 }
 export interface CreateProgramSchedule {
-  session: { program: ProgramRef; metadata?: Record<string, JsonValue>; input_bindings?: ProgramBindings; output_bindings?: ProgramBindings };
+  session: { program: ProgramRef; interaction?: 'data' | 'conversation'; metadata?: Record<string, JsonValue>; input_bindings?: ProgramBindings; output_bindings?: ProgramBindings };
   inputs?: Record<string, JsonValue>; source?: 'manual' | 'shortcut_copy';
   schedule: {
     interval?: string | null; cron_expression?: string | null; enabled?: boolean; timezone?: string;

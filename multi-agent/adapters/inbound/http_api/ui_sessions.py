@@ -11,6 +11,7 @@ from mas.session.domain.models import SessionChat, SessionMeta
 from mas.session.domain.status import SessionStatus
 from mas.session.execution.blueprint_sessions import BlueprintSessionService
 from mas.session.execution.program_sessions import ProgramSessionService, StartSessionTurn
+from mas.session.execution.projection import SessionProjection
 from mas.session.execution.queries import SessionQueryService
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
@@ -99,7 +100,7 @@ async def chat(session_id: SessionId, caller: Caller, queries: Queries) -> Sessi
 
 @router.get("/session.state.get", response_model=GraphState)
 async def state(session_id: SessionId, caller: Caller, sessions: Sessions) -> GraphState:
-    return (await sessions.refresh(session_id, caller)).graph_state
+    return SessionProjection.conversation(await sessions.refresh(session_id, caller))
 
 
 @router.get("/session.status.get", response_model=SessionStatus)

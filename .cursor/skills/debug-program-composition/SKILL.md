@@ -82,7 +82,7 @@ selections carry the graph scope's `body_path`. Inline profile defaults inherit,
 published defaults remain independent, and environment imports stay explicit.
 Compilation uses the existing native child/runtime path. Keep prepared payloads
 scope-local instead of copying the enclosing revision into every child. Current
-entrypoint/prepared formats are `unifai-program-v5` / `runengine/request-v10`.
+entrypoint/prepared formats are `unifai-program-v6` / `runengine/request-v10`.
 Exercise `application/test_owned_programs.py`, `domain/test_program_bodies.py`,
 `domain/test_execution_source.py`, `adapters/run_engine/test_owned_compilation.py`
 and shared Local composition/client scenarios. UI inline authoring and remote
@@ -105,10 +105,12 @@ Call inputs and graph return values support arrays/scalars/null; named graph cha
 updates remain objects. `input` is the original graph invocation JSON. `results[uid]`
 is the latest actual typed-operation/Program result, not occurrence history. Parallel
 keys merge independently. Mapping/resume writes to these scopes reject. State-based
-nodes do not index their entire state. Graph-state contract is `unifai-graph-state-v3`.
+nodes do not index their entire state. Graph-state contract is `unifai-graph-state-v4`.
 Use domain binding, application literal/read-only, adapter scope and Local value-binding
 tests, shared `support/value_operations.py` factories and the production array journey.
-Application `ProgramState` owns existing channel schemas and safe updates.
+Application `ProgramState` owns portable input/results/values/output channels.
+`AgentProgramState` adds MAS channels only for state-based nodes/conditions.
+Use input/results bindings for ordinary operations; do not stage them through chat.
 `StateContracts` checks graph initialization, output targets, installed channel
 access and overlapping declared writers. Ordered writers require acyclic ordering;
 explicit reduce uses existing reducers, some with overwrite semantics. Conditions

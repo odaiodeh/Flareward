@@ -51,16 +51,16 @@ async def test_dynamic_channel_contract_errors_hide_values_and_preserve_effect_o
             ProgramCallStep(
                 uid="identity",
                 program=body,
-                inputs=PathBinding(path=("input",)),
-                outputs={"output": PathBinding(path=())} if boundary == "output" else {},
+                inputs=PathBinding(path=("input", "prompt")),
+                outputs={"values": PathBinding(path=())} if boundary == "output" else {},
             ),
         ),
         entry="identity",
         exit="identity",
-        inputs={"user_prompt": PathBinding(path=("prompt",))} if boundary == "initial" else {},
+        inputs={"values": PathBinding(path=("prompt",))} if boundary == "initial" else {},
     )
     revision = await publish(platform, boundary, graph)
-    execution = await run(platform, revision, {"prompt": {"private": "invalid-channel-value"}})
+    execution = await run(platform, revision, {"prompt": "private-invalid-channel-value"})
     assert execution.phase == ExecutionPhase.FAILED and execution.failure.kind == "contract"
     assert (
         "private" not in execution.failure.message

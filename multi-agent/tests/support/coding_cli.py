@@ -56,9 +56,22 @@ if prompt == 'commands':
 if prompt == 'overflow':
     print('x' * 2048)
     sys.exit(0)
+if prompt == 'malformed':
+    print('private-test-token')
+    sys.exit(1)
 if prompt == 'incomplete':
     sys.exit(0)
-if sys.argv[sys.argv.index('--model') + 1] == 'engineering-fixture':
+answer_text = 'done'
+if sys.argv[sys.argv.index('--model') + 1] == 'designer-fixture':
+    request, _ = json.JSONDecoder().raw_decode(
+        prompt.split('Feature design request:' + chr(10), 1)[1]
+    )
+    plan = 'Implement and independently test: ' + request['acceptance_criteria'][0]
+    if request['feedback'] is not None:
+        plan += ' Address reviewer feedback: ' + json.dumps(request['feedback']['review']['data'])
+    answer_text = json.dumps({'plan': plan, 'references': []})
+    (workspace / 'design-request.json').write_text(json.dumps(request))
+elif sys.argv[sys.argv.index('--model') + 1] == 'engineering-fixture':
     bad = 'def add(a, b):' + chr(10) + '    return a - b' + chr(10)
     good = bad.replace('a - b', 'a + b')
     answer = workspace / 'answer.py'
@@ -74,7 +87,7 @@ if sys.argv[sys.argv.index('--model') + 1] == 'engineering-fixture':
 else:
     (workspace / 'answer.txt').write_text(prompt)
 print(json.dumps({'type':'item.started','item':{'type':'command_execution'}}))
-print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':'done'}}))
+print(json.dumps({'type':'item.completed','item':{'type':'agent_message','text':answer_text}}))
 print(json.dumps({'type':'turn.completed','usage':{'input_tokens':12,'output_tokens':2}}))
 """
     )

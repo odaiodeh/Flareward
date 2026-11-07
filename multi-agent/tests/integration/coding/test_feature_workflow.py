@@ -10,19 +10,23 @@ from uuid import uuid4
 import pytest
 from mas.core.identity import Identity
 from mas.domain.check_runs import CheckRun
+from mas.domain.files import InlineFile
 from mas.domain.programs.models import ApplicationDefinition, ProgramBody
 from mas.domain.verification import CheckRequirement
 from mas_plugins.artifacts.specification import ELEMENT_SPECIFICATIONS as ARTIFACTS
 from mas_plugins.coding.codex.config import CodexConfig
 from mas_plugins.coding.codex.specification import CodexSpec
 from mas_plugins.engineering.coding import CodingFileWork
+from mas_plugins.engineering.design import DesignProposal
+from mas_plugins.engineering.designer import CodingDesignerConfig, CodingDesignWork
 from mas_plugins.engineering.feature import CodingFeatureResult
 from mas_plugins.engineering.program import EngineeringCandidate
 from mas_plugins.reviews.specification import ELEMENT_SPECIFICATIONS as REVIEWS
 from mas_plugins.verification.specification import ELEMENT_SPECIFICATIONS as CHECKS
 from pydantic import SecretStr
+from support.artifacts import inline_content
 from support.check_program_publication import CheckProgramSetup
-from support.coding_resources import saved_coding_candidate
+from support.coding_resources import CodingResourceLibrary, saved_coding_candidate
 from support.engineering_api import engineering_api, policies
 from support.feature_api import feature_workflow_access, publish_feature
 from support.python_checks import python_verifier_definition
@@ -53,7 +57,7 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             "mas_plugins.engineering.design",
             "mas_plugins.engineering.feature",
             "mas_plugins.engineering.coding",
-            "support.feature_design",
+            "mas_plugins.engineering.designer",
             "mas_plugins.testing.program",
         ),
         element_modules=(
@@ -106,6 +110,25 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             input_schema=CodingFileWork.model_json_schema(),
             output_schema=EngineeringCandidate.model_json_schema(),
         )
+        design_coding = await CodingResourceLibrary(api.http, api.human).coding(
+            CodexConfig(model="designer-fixture", api_key=SecretStr("private-test-token")),
+            profile,
+            name="Feature designer",
+        )
+        designer = ProgramBody(
+            implementation=ApplicationDefinition(
+                implementation="coding_designer",
+                version="1",
+                config=CodingDesignerConfig(
+                    coding=design_coding,
+                    loader=config.loader,
+                    execution=config.execution,
+                    artifact_execution=config.artifact_execution,
+                ).model_dump(mode="json"),
+            ),
+            input_schema=CodingDesignWork.model_json_schema(),
+            output_schema=DesignProposal.model_json_schema(),
+        )
         programs = await publish_feature(
             api.http,
             api.human,
@@ -114,6 +137,7 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             body,
             profile,
             runners=("program@1",),
+            designer=designer,
         )
         root = uuid4().hex
         started = await api.http.post(
@@ -125,6 +149,11 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
                 "inputs": {
                     "prompt": "Implement add(a, b) in answer.py",
                     "acceptance_criteria": ["Returns a + b for positive and negative inputs"],
+                    "files": [
+                        InlineFile(
+                            path="README.txt", content=inline_content(b"Interface: add(a, b)")
+                        ).model_dump(mode="json")
+                    ],
                 },
                 "workflow_access": [
                     access.model_dump(mode="json") for access in feature_workflow_access()
@@ -132,21 +161,29 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             },
         )
         assert started.status_code == 202, started.text
-        design = await pending_review(api.http, root, api.human, api.reviewer, design_number=1)
-        assert not list(api.workspace.rglob("started")) and not list(
-            (tmp_path / "artifacts").glob("*/metadata.json")
-        )
-        approved = await api.http.post(
-            f"/api/reviews/{design.review_id}/responses",
-            headers=api.reviewer,
-            json={
-                "key": "design-approval",
-                "expected_revision": design.revision,
-                "decision": "approve",
-                "data": {"feedback": "Implement this exact design"},
-            },
-        )
-        assert approved.status_code == 200, approved.text
+        for number, decision in ((1, "reject"), (2, "approve")):
+            design = await pending_review(
+                api.http, root, api.human, api.reviewer, design_number=number
+            )
+            assert not list(api.workspace.rglob("answer.py")) and not list(
+                (tmp_path / "artifacts").glob("*/metadata.json")
+            )
+            assert "Returns a + b" in design.specification.subject["proposal"]["plan"]
+            if number == 2:
+                assert "Add a failure case" in design.specification.subject["proposal"]["plan"]
+            response = await api.http.post(
+                f"/api/reviews/{design.review_id}/responses",
+                headers=api.reviewer,
+                json={
+                    "key": "design-response",
+                    "expected_revision": design.revision,
+                    "decision": decision,
+                    "data": {
+                        "feedback": "Add a failure case" if number == 1 else "Implement this design"
+                    },
+                },
+            )
+            assert response.status_code == 200, response.text
         review = await pending_review(api.http, root, api.human, api.reviewer)
         assert review.specification.subject["kind"] == "blob-artifact@1"
         checks = [
@@ -175,14 +212,20 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             headers=api.human,
         )
         assert report.status_code == 200 and report.json()["details"]["failures"]
-        workspaces = [path.parent for path in api.workspace.rglob("started")]
+        all_workspaces = [path.parent for path in api.workspace.rglob("started")]
+        planners = [path for path in all_workspaces if (path / "design-request.json").exists()]
+        assert len(planners) == 2
+        assert all(
+            (path / "README.txt").read_bytes() == b"Interface: add(a, b)" for path in planners
+        )
+        workspaces = [path for path in all_workspaces if (path / "answer.py").exists()]
         assert len(workspaces) == 2 and workspaces[0] != workspaces[1]
         restored = [path for path in workspaces if (path / ".unifai/reports").is_dir()]
         assert len(restored) == 1
         assert (
             restored[0] / ".unifai/reports" / failed.reports[0].content.artifact_id
         ).read_bytes() == report.content
-        assert all(not Path((path / "home").read_text()).exists() for path in workspaces)
+        assert all(not Path((path / "home").read_text()).exists() for path in all_workspaces)
         accepted = await api.http.post(
             f"/api/reviews/{review.review_id}/responses",
             headers=api.reviewer,
@@ -200,6 +243,7 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
         )
         result = CodingFeatureResult.model_validate(observed.json()["result"])
         assert result.outcome == "verified" and result.engineering.attempts == 2
+        assert result.design.design.number == 2
         shutil.rmtree(api.workspace)
         downloaded = await api.http.get(
             "/api/artifacts/" + result.engineering.candidate.identity["artifact_id"] + "/content",

@@ -1,6 +1,7 @@
 """Real thread/process execution of one operation from graphs and application programs."""
 
 import pytest
+from mas.application.programs.service import ProgramContractError
 from mas.domain.execution.models import ExecutionPhase
 from mas.domain.programs.models import (
     ApplicationDefinition,
@@ -49,13 +50,12 @@ async def test_same_operation_runs_from_code_program_nested_in_graph(
                 ProgramCallStep(
                     uid="child",
                     program=child.reference,
-                    inputs={"name": PathBinding(path=("user_prompt",))},
+                    inputs={"name": PathBinding(path=("input", "name"))},
                     outputs={"output": PathBinding(path=("answer",))},
                 ),
             ),
             entry="child",
             exit="child",
-            inputs={"user_prompt": PathBinding(path=("name",))},
             outputs={"answer": PathBinding(path=("output",))},
         ),
     )
@@ -88,11 +88,8 @@ async def test_operation_request_contract_failure_is_a_failed_execution(platform
 async def test_operation_binding_cannot_write_an_unknown_graph_channel(platform):
     graph = operation_graph()
     step = graph.steps[0].model_copy(update={"outputs": {"unknown": PathBinding(path=())}})
-    revision = await publish(
-        platform, "invalid-binding", graph.model_copy(update={"steps": (step,)})
-    )
-    with pytest.raises(ValueError, match="unknown state channels"):
-        await run(platform, revision, {"name": "request"})
+    with pytest.raises(ProgramContractError, match="unknown state channels"):
+        await publish(platform, "invalid-binding", graph.model_copy(update={"steps": (step,)}))
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -108,7 +105,7 @@ async def test_binding_admission_preserves_real_operation_input_aliases(
             "inputs": {
                 alias: PathBinding(path=("values",))
                 if alias == "payload"
-                else PathBinding(path=("user_prompt",))
+                else PathBinding(path=("input", "name"))
             }
         }
     )
@@ -117,7 +114,6 @@ async def test_binding_admission_preserves_real_operation_input_aliases(
             "resources": (operation, *graph.resources[1:]),
             "steps": (step,),
             "inputs": {
-                "user_prompt": PathBinding(path=("name",)),
                 "values": PathBinding(path=("payload",)),
             },
         }

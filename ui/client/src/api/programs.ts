@@ -146,3 +146,8 @@ export async function listProgramExecutionChildren(id: string, teamId?: string, 
 export async function cancelProgramExecution(id: string, teamId?: string, signal?: AbortSignal): Promise<void> {
   await api.post(`/executions/${encodeURIComponent(id)}/cancel`, undefined, { params: { teamId }, signal });
 }
+
+/** Convert an existing workflow template into an ordinary editable Program draft. */
+export async function importProgramTemplate(programId: string, blueprintId: string, teamId?: string, signal?: AbortSignal): Promise<ProgramDraft> {
+  return (await api.put<ProgramDraft>(`/programs/${encodeURIComponent(programId)}/blueprint`, { blueprint_id: blueprintId }, { params: { teamId }, signal })).data;
+}

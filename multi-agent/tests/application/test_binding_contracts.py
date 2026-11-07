@@ -222,7 +222,7 @@ async def test_program_calls_use_owned_or_pinned_input_contracts(application, ow
                         ProgramCallStep(
                             uid="call",
                             program=target,
-                            inputs={"name": PathBinding(path=("user_prompt",))},
+                            inputs={"name": PathBinding(path=("input", "name"))},
                         ),
                     )
                 }

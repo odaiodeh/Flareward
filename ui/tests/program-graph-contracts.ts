@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
+import { emptyGraphDefinition } from '../client/src/features/programs/authoring';
 import type { GraphDefinition, ResourceSelection } from '../client/src/api/programs';
 import { activeResourceSelections, branchEdgeId, conditionLabels, orderingEdgeId, removeGraphEdges, removeGraphStep } from '../client/src/features/programs/graph-authoring';
 
 export function verifyProgramGraphEditing() {
+  const fresh = emptyGraphDefinition();
+  assert.equal(fresh.kind, 'graph');
+  fresh.edges.start = ['finish'];
+  assert.deepEqual(emptyGraphDefinition().edges, {});
   const graph: GraphDefinition = {
     kind: 'graph', steps: ['start', 'yes', 'no', 'finish'].map(uid => ({ kind: 'operation', uid, element: { category: 'operations', rid: 'work' }, metadata: {}, max_attempts: 1, execution: {}, inputs: {}, outputs: {} })),
     resources: [], edges: { start: ['yes'], yes: ['finish'], no: ['finish'] },

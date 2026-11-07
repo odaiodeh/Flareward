@@ -31,7 +31,7 @@ from mas.graph.state.graph_state import GraphState
 from outbound.run_engine.errors import application_errors
 from pydantic import JsonValue, ValidationError
 from run_engine.models import ElementCall, MappingConfiguration, ProjectionConfiguration
-from run_engine.state import ProgramGraphState
+from run_engine.state import AgentProgramGraphState, ProgramGraphState
 from runengine.core.failure import FailureDescriptor
 from runengine.invocation.errors import (
     InvocationApplicationError,
@@ -39,7 +39,7 @@ from runengine.invocation.errors import (
     InvocationInfrastructureError,
 )
 
-__runengine_contract__ = "unifai-elements-v3"
+__runengine_contract__ = "unifai-elements-v4"
 
 
 @asynccontextmanager
@@ -161,7 +161,7 @@ async def invoke_element(*, inputs: JsonValue, call: dict[str, JsonValue]) -> Js
     request = ElementCall.model_validate(call)
     if request.bundle.root.category == ResourceCategory.OPERATION:
         return await invoke_operation(inputs=inputs, call=call)
-    result = await execute_element(ProgramGraphState.model_validate(inputs), call=call)
+    result = await execute_element(AgentProgramGraphState.model_validate(inputs), call=call)
     return result.serialize()
 
 
@@ -208,11 +208,13 @@ async def execute_element(
     request = ElementCall.model_validate(call)
     async with constructed_element(request) as (built, runtime):
         result = await call_element(
-            built.element, runtime.cancel, state.model_copy(deep=True), config={}
+            built.element, runtime.cancel, GraphState.model_validate(state.serialize()), config={}
         )
         if not isinstance(result, GraphState):
             raise InvocationContractError("Element must return application graph state")
         writes = GraphElementSpec.require(built.specification).writes
+        if not isinstance(state, AgentProgramGraphState):
+            raise InvocationContractError("State-based nodes require the agent state adapter")
         return state.accept_node(result, writes=writes)
 
 
@@ -224,7 +226,9 @@ async def evaluate_condition(
 ) -> str | list[str]:
     request = ElementCall.model_validate(call)
     async with constructed_element(request) as (built, runtime):
-        result = await call_element(built.element, runtime.cancel, state.model_copy(deep=True))
+        result = await call_element(
+            built.element, runtime.cancel, GraphState.model_validate(state.serialize())
+        )
     try:
         return normalize_condition_result(result, request.graph_step.branches)
     except ConditionResultError as error:

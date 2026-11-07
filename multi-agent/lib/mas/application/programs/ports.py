@@ -65,9 +65,9 @@ class ChildContracts(Protocol):
     def child_contracts(self) -> dict[str, ChildContract]: ...
 
 
-class ProgramRuntime(Protocol):
-    @property
-    def execution_id(self) -> str: ...
+class ElementCalls(Protocol):
+    """The element-call portion of a Program runtime, without coordination methods."""
+
     async def invoke_element(
         self,
         bundle: ElementBundle,
@@ -78,6 +78,11 @@ class ProgramRuntime(Protocol):
     ) -> JsonValue:
         """Invoke a configured element; operations return their typed JSON result."""
         ...
+
+
+class ProgramRuntime(ElementCalls, Protocol):
+    @property
+    def execution_id(self) -> str: ...
 
     async def start_child(
         self,

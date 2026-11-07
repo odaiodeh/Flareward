@@ -25,7 +25,8 @@ async def test_fastapi_session_turn_uses_application_services_and_enforces_owner
         base_url="http://platform",
     ) as client:
         response = await client.post(
-            "/api/sessions", json={"program": revision.reference.model_dump()}
+            "/api/sessions",
+            json={"program": revision.reference.model_dump(), "interaction": "conversation"},
         )
         assert response.status_code == 201
         session_id = response.json()["run_id"]

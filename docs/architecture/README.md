@@ -158,6 +158,63 @@ outcomes. Run Engine owns execution mechanics. ADLC-specific work management and
 acceptance sit above generic program composition. Other kinds of programs must
 not be forced to adopt software-engineering concepts.
 
+## Canonical public model
+
+The public terms are **Element -> Resource -> Program -> Execution**. A graph is
+an implementation of a Program, never another executable product or lifecycle.
+A registered backend coordinator implements the same Program contract. Preserve
+implementation-specific validation and editing internally; never create separate
+publication, invocation, review, placement or observation APIs for these variants.
+
+- **Element:** installed specification, configuration schema, factory and dependency
+  requirements. **Operation** is an executable Element with typed input/output.
+  Model/tool/provider Elements can instead supply construction dependencies.
+- **Resource:** saved Element configuration, captured with its transitive dependency
+  closure before execution. Factories/builders own constructed instances and cleanup.
+- **Program:** configured coordination with public input/output schemas, owned or
+  pinned child Programs, execution settings, a draft and published revisions.
+  Graph composition and registered coordination are internal implementations.
+- **Execution:** one invocation of one published revision. Root/child is an execution
+  relationship; a reusable Program can run independently or nested without changes.
+- **Session:** optional retained interaction around Executions. Structured data is
+  the default; conversation is an explicit projection, not the universal input model.
+- **Blueprint:** existing authoring/template data imported into a Program draft.
+  It has no separate runtime. New work is authored in the Programs library/canvas.
+
+```text
++--------------------- CONSTRUCTION ----------------------+
+| Element specification -> saved Resource                 |
+|   configuration references -> dependency bundle         |
+|   factories/builders -> owned capability instances       |
++---------------------------+-----------------------------+
+                            | invoke configured Operation
+                            v
++------------------------- PROGRAM -----------------------+
+| One definition, configuration, contracts and revisions   |
+|                                                         |
+| Graph composition          Registered coordinator       |
+| operations, Program calls  operations, Program calls    |
+| routes and joins           bounded loops and waits      |
+|                                                         |
+| Same publication -> admission -> execution -> inspection |
++---------------------------+-----------------------------+
+                            |
+                            v
++------------------------ EXECUTION ----------------------+
+| Inputs/results | children | reviews | artifacts          |
+| Profile/environment bindings -> Run Engine infrastructure|
++---------------------------------------------------------+
+```
+
+Construction references specify what must be built; execution edges/calls specify
+what must run. They are different dependencies with different lifetimes. Keep both
+explicit instead of making a scheduler responsible for constructing provider clients.
+Ordinary graph Programs use portable data channels (`input`, `results`, `values`,
+`output`). State-based MAS node/condition capabilities select an agent-state adapter
+with their typed conversation/workload channels; those channels do not belong to
+generic operation or backend Program contracts. Inline bodies are owned Program
+composition, not independently published resources or additional product types.
+
 ## Fundamental components
 
 | Component | Responsibility | Examples |
@@ -167,7 +224,7 @@ not be forced to adopt software-engineering concepts.
 | Dependency capability | Supplies behavior inside a constructed scope | LLM client, retriever, provider |
 | Operation | Bounded work with typed input and output | Fetch ticket, coding attempt, execute tests |
 | Program | Coordinates operations and other programs | Repair loop, review, CI/CD, delivery |
-| Workflow/blueprint | User-facing authoring/template representation of a program | Visual workflow or declarative document |
+| Workflow template | Authoring data imported into a Program draft | Existing blueprint document |
 | Execution | One running instance of a program revision | Root or child execution |
 | Occurrence and attempt | A particular call/iteration/item and an execution attempt | Map item 7, iteration 2, retry 3 |
 | Artifact | Durable output with identity, authorization, integrity and provenance | Change set, test report, build |

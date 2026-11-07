@@ -151,6 +151,8 @@ from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.elements.construction.builder import ElementBundleBuilder
 from mas.application.elements.factory import BaseFactory
 from mas.application.elements.operation import BaseOperation, OperationContext, OperationInvoker
+from mas.application.programs.state import ProgramState
+assert set(ProgramState.model_fields) == {"input", "results", "values", "output"}
 from mas.application.elements.specification import BaseElementSpec
 ElementBundleBuilder(ElementRegistry())
 assert not hasattr(BaseElementSpec, 'reads') and not hasattr(BaseElementSpec, 'writes')

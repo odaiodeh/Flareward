@@ -5,11 +5,11 @@ Records describe their tested snapshot; they are not live plans or authorization
 
 ## Latest checkpoint
 
-- [2026-11-06: live feature UI](2026-11-06-live-feature-ui.md): real OpenShell Codex/checks, actual browser approvals and fresh output retrieval after compute removal; full authoring/canvas remains open.
+- [2026-11-07: unified Program model](2026-11-07-unified-program-model.md): generic data state, explicit conversation, one authoring path; 1,047 tests and UI gates pass.
+- [2026-11-07: configurable designer](2026-11-07-configurable-designer.md): real planning/coding App, native revision/repair and shared file loading; extends [live UI](2026-11-06-live-feature-ui.md) and [unchanged reuse](2026-11-06-engineering-reuse.md). Pending-review evidence/full authoring/canvas remain open.
 - [2026-11-06: content handoff](2026-11-06-content-handoff.md): real Codex/isolated checks/final review via HTTP; extends [normal OpenShell](2026-11-06-normal-openshell.md), [strict profile](2026-11-05-candidate-profile.md), [checker boundary](2026-11-05-checker-boundary.md), [placement](2026-11-05-checker-placement.md) and [retirement](2026-11-05-check-lifecycle.md).
 - [2026-11-05: Python checks](2026-11-05-python-checks.md): bounded credential-free candidate transport and controlled source checks.
-- [2026-11-05: Program checks](2026-11-05-program-checks.md): operator-pinned verifier execution, separate authority and durable reports.
-- [2026-11-06: Engineering production checks](2026-11-06-engineering-program-checks.md): pinned private verifier, repair and actual App; extends [feature UI](2026-11-05-feature-ui.md).
+- [2026-11-05: Program checks](2026-11-05-program-checks.md): operator-pinned verifier execution, separate authority and durable reports. Also [2026-11-06: Engineering production checks](2026-11-06-engineering-program-checks.md): pinned private verifier, repair and actual App; extends [feature UI](2026-11-05-feature-ui.md).
 - [2026-11-05: shared execution](2026-11-05-execution-workbench.md): pinned inputs, owner review queries, shared reviews and browser continuation/cancellation.
 - [2026-11-05: configuration UI](2026-11-05-program-configuration.md): nested fields, saved capture, placement and actual browser execution.
 - [2026-11-05: coding repair/capture](2026-11-05-coding-repair.md): encrypted resources, preparation and restored CLI repairs.

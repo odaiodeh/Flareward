@@ -9,6 +9,7 @@ from pydantic import AliasChoices, AliasPath, BaseModel, JsonValue
 from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.programs.graph_data import GraphDataScope
 from mas.application.programs.graph_flow import GraphFlow
+from mas.application.programs.graph_state import graph_state_type
 from mas.application.programs.interfaces import (
     BindingContractError,
     BindingSource,
@@ -17,7 +18,6 @@ from mas.application.programs.interfaces import (
 )
 from mas.application.programs.ports import ChildContracts
 from mas.application.programs.registry import ApplicationRegistry
-from mas.application.programs.state import ProgramState
 from mas.application.programs.state_contracts import StateContracts
 from mas.domain.element_bundles import ResourceDefinition, ResourceKey
 from mas.domain.programs.models import (
@@ -169,7 +169,8 @@ class ProgramContracts:
             raise BindingContractError(
                 "Graph input and result scopes are read-only", ("implementation", "inputs")
             )
-        writable = InterfaceContract.root(ProgramState.writable_schema())
+        state = graph_state_type(graph)
+        writable = InterfaceContract.root(state.writable_schema())
         self._check(
             graph.inputs,
             ("implementation", "inputs"),
@@ -188,9 +189,7 @@ class ProgramContracts:
             flow,
             InterfaceContract.root(body.input_schema),
             {uid: interface.outputs for uid, interface in calls.items()},
-            InterfaceContract.root(
-                ProgramState.model_json_schema(mode="serialization", by_alias=False)
-            ),
+            InterfaceContract.root(state.model_json_schema(mode="serialization", by_alias=False)),
         )
         self._check(
             graph.outputs,

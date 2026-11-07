@@ -1,0 +1,137 @@
+{
+  "scope": "Bounded same-publication Engineering reuse through real Local/OpenShell HTTP execution, with safe CLI error translation; controlled identity/design/review peers",
+  "files": {
+    "multi-agent/lib/mas/application/artifacts/content_operations.py": "e46efa33f3e31a1e30ba533dc5179f04f809f45c57b93ef7f19c3efb28bae5c8",
+    "multi-agent/lib/mas/application/artifacts/inline_content.py": "38c987fda40418a0be913397f7e9e712bfa5beea1b34c8bc3861be2eb56cc555",
+    "multi-agent/lib/mas/application/artifacts/operations.py": "03d70b449109ead5e62da0390f71198ee7c86d38b5ef71c91039ddefb32fd0c4",
+    "multi-agent/lib/mas/application/artifacts/ports.py": "407b00ca6c54e7633114bffc7e5bbf1ae9fed62665e095815418f6d93b6f2ff7",
+    "multi-agent/lib/mas/application/artifacts/preparation.py": "2838122412da1c8f59c36b4c3876d69646a43305e6917c46b295d7cc6297baaa",
+    "multi-agent/lib/mas/application/coding/contracts.py": "2d536eb2c33dd3f4340cc0a611c6b146a629a2d43d90c5abfa4be0595fc30008",
+    "multi-agent/lib/mas/domain/artifacts.py": "2c102fb07d2e6813dbfffde78818a121de79e604c0ffae9ba1b998ac0b63a467",
+    "multi-agent/lib/mas/domain/files.py": "16440966f5649bcb7e1f2f182adcc97bd15d9602e930631330658e161252ab92",
+    "multi-agent/plugins/mas_plugins/artifacts/filesystem.py": "67a51132ebc228948ebc67005b7d8bdf7baf5658bf57f6c7d9c1e5a17be06875",
+    "multi-agent/plugins/mas_plugins/artifacts/specification.py": "7f21eb608b6f518ce83a410ce24c056163e94307f8ce3a8812406551222e6b79",
+    "multi-agent/plugins/mas_plugins/coding/codex/adapter.py": "23c2e75321d170ac318176d26c9ae622d4097dcd1cb52be9daa97e43f221eda5",
+    "multi-agent/plugins/mas_plugins/coding/codex/config.py": "2f8b2c8f52a22dc61fa6535705d235f795003cb424ddddf9ac90e7ddb04cca85",
+    "multi-agent/plugins/mas_plugins/engineering/coding.py": "61c063ec3028bab5c5d69e530e11f70ca0f883327f82af6e41ab0f233f4f17ba",
+    "multi-agent/plugins/mas_plugins/engineering/feature.py": "b6564ea3ec036ff63a92ebda51ac5ae0ad9e8b520cba8fd9ba4c80e0b025909c",
+    "multi-agent/plugins/mas_plugins/engineering/program.py": "d60e15bac9a978b3ce2378c692243bd556ad36cffd44373a33d70961bdfab334",
+    "multi-agent/tests/application/test_coding_file_candidate.py": "2ea80e768da58285bccb8290fb15ea8171c521cd59cbdd10f2b6484ff0e91bba",
+    "multi-agent/tests/application/test_coding_operation.py": "cc739a7876416df2b3b8c1e8c66578a4bf2055954653f312ddb717458c62c89b",
+    "multi-agent/tests/application/test_content_transfer.py": "baae675f9a9bccaa721fefd0b61735ddb1e42774fbc7f442e93efdcca8ca1cf5",
+    "multi-agent/tests/domain/test_artifacts.py": "87089758a0ff14ea445611d656aac305345a7cd3c4b33efeb8ca1c0dbfbf216c",
+    "multi-agent/tests/infra/Dockerfile.codex": "9d8b8cf43f4433b1456ba379f8e601d2b25c1323fff72b50a7c0d77a3dd1206b",
+    "multi-agent/tests/infra/Dockerfile.receiver": "02003e1ca425f7ac164b59732ccc4d785bfdac2bb83449b5a441b784e5fa146b",
+    "multi-agent/tests/infra/verify_images.py": "b7d73915bbdea045e280f0d0692bc7cffa7d3d7b1d24531f6ded0e273a3e5fe6",
+    "multi-agent/tests/integration/coding/test_artifact_handoff.py": "90330ad742df04a0b0dd760bdaa931516cc74226259aa4e13a754e058fd12d0e",
+    "multi-agent/tests/integration/coding/test_codex_cli.py": "7da7fb6bc622daca15d5b3b1a1b2850fc8951930ecd10e749866b1e368896f81",
+    "multi-agent/tests/integration/coding/test_feature_workflow.py": "5db8625c76925c9d31e79d41cab6e31285e500acc963bcae49b5bddd6be6654e",
+    "multi-agent/tests/integration/deployment/test_live_feature.py": "59c9b51fefb2830e96ed9936310df63f75966afd7af86746b59019d778814a3e",
+    "multi-agent/tests/support/artifacts.py": "f301419b21acc39a80bd280b4f2ef3ca63d3371823d78c43dfdf506f3d9b2697",
+    "multi-agent/tests/support/check_program_publication.py": "8797aad9ebb14ab72fb20e471dd93345e9ed54dc3f283e517cc1cb312aa85564",
+    "multi-agent/tests/support/coding_cli.py": "f2490f13f153f8488587c2e5d33196f1f8ed65e0a51d9c25f806bd317c4aed50",
+    "multi-agent/tests/support/coding_resources.py": "b8fa0cd705ba0c22662a5518bea38f277cb597a25306d1e9dd90b80031b60f01",
+    "multi-agent/tests/support/databases.py": "560192f6ced434e5b60000739287c772d36562cac83f89c46742bfa8e4767a90",
+    "multi-agent/tests/support/engineering_api.py": "e51bcd1d2ae62a99471e98ed528159b59abdab285dead73ad5c40b1f4f92b04f",
+    "multi-agent/tests/support/engineering_programs.py": "4df8d893336e9bd52a170dc37cbe3ec55aad416f4ec06d2e746e005a208382c1",
+    "multi-agent/tests/support/feature_api.py": "56e109c55f7bf11860c723a97e74a78cffc5c4fbce7fd8ffe4ab30f30941d0d1",
+    "multi-agent/tests/support/feature_design.py": "a7ad170ec08cc92f0530e8fd0600788c948c9c61b7bd0d91db80d9d443df1f08",
+    "multi-agent/tests/support/live_feature.py": "e2b7cccbf517a9553c0e8c8129d6f55b99e3fa312af3f5142e701a64b18e6b69",
+    "multi-agent/tests/support/openshell_deployment.py": "e9c5914d00f73b60e34e5269fb921fd4d67a2d81b077ee9328c5a37c4e660b73",
+    "multi-agent/tests/support/operations.py": "4e0d5d5757397792c01c9b52445e73d15662d6171f3422c0b0afba7192778e77",
+    "multi-agent/tests/support/python_checks.py": "874c3c1ceee1048ff91df7f821a348c586ba28adce098091973e7b95d9669764",
+    "multi-agent/tests/support/review_api.py": "0bf5c7bceb76846ceed8df8327aca416d9fada6832834eb20890ee9bfa2ebe17"
+  },
+  "aggregate_algorithm": "sha256 of compact sorted-key JSON files map",
+  "aggregate_sha256": "24a0e95106e5bb86ba5fdeb8ec639c7256b5251f084aa6bf62e76b21e8d2bcb6",
+  "native_cli_tests": {
+    "passed": 15,
+    "seconds": 8.26
+  },
+  "live_gate": {
+    "passed": 1,
+    "seconds": 43.81,
+    "independent_and_nested_publication_identical": true,
+    "provider_credential_audit_passed": true,
+    "managed_capabilities_retired": 6,
+    "fresh_retrieval_after_compute_removal": true,
+    "results": [
+      {
+        "execution_id": "3aa6fb7d12e142c38fee5ea388686760",
+        "entry_point": {
+          "program_id": "engineering",
+          "revision": 1
+        },
+        "outcome": "verified",
+        "engineering_revision": {
+          "program_id": "engineering",
+          "revision": 1
+        },
+        "engineering_attempts": 1,
+        "candidate": {
+          "kind": "blob-artifact@1",
+          "identity": {
+            "sha256": "4ba6c8881970c15c36e02f5784c3ea2713b519d51b02afdaf39c13e3e95189da",
+            "size_bytes": 33,
+            "artifact_id": "7f7730dd778519438c5149422a0f3cb5841ab0807587e41871d2ab72219b6784"
+          }
+        },
+        "verification_plan_id": "6050417f56d8cb49a363e1339969564651700e24c10de7c3ec59d138ac96c084",
+        "verification_outcome": "accepted",
+        "reports": [
+          {
+            "sha256": "a83afa911ab5935a0dcf75b4d09f5a99920156e26a4adc62150b91e5730b9d73",
+            "size_bytes": 145,
+            "artifact_id": "72b4542bd26c3a61506510300d406b9f6a8bbde3b018a4e3406566b1d4f97c1a"
+          }
+        ],
+        "review_root": "3aa6fb7d12e142c38fee5ea388686760"
+      },
+      {
+        "execution_id": "70e11be0865f43ab84c2f7d0a1c58310",
+        "entry_point": {
+          "program_id": "feature",
+          "revision": 1
+        },
+        "outcome": "verified",
+        "engineering_revision": {
+          "program_id": "engineering",
+          "revision": 1
+        },
+        "engineering_attempts": 1,
+        "candidate": {
+          "kind": "blob-artifact@1",
+          "identity": {
+            "sha256": "4ba6c8881970c15c36e02f5784c3ea2713b519d51b02afdaf39c13e3e95189da",
+            "size_bytes": 33,
+            "artifact_id": "89e77e5dfbf91c8af7f62ba972eecf75bb2388edbc67675d95f5a483f80288db"
+          }
+        },
+        "verification_plan_id": "36358f1e65f3afb54f30fce49803f4d6f52a2f45d8477bbf6dd956d3bf784fd3",
+        "verification_outcome": "accepted",
+        "reports": [
+          {
+            "sha256": "a5a2234cce588e9d93e595aaaa699bff605ce1b60eb4dd824415d843b945a7f5",
+            "size_bytes": 145,
+            "artifact_id": "03c08b88bd1ea5a853075b2a845408e8dea60a278f093c2f055142d00d8b33ca"
+          }
+        ],
+        "review_root": "70e11be0865f43ab84c2f7d0a1c58310"
+      }
+    ]
+  },
+  "prior_failed_gate": {
+    "seconds": 44.89,
+    "failed_root": "07a2acc4b4764b32b7ead82f59a302a7",
+    "safe_failure_message": "Coding agent could not execute its CLI protocol",
+    "underlying_cause": "unknown; raw CLI output intentionally discarded"
+  },
+  "images": {
+    "unifai-sandbox:engineering-reuse-20261106": "sha256:8bac75472f77a1577f4529e4426a60d69cc91b27d85d185d913023f91bac3556",
+    "unifai-codex:engineering-reuse-20261106": "sha256:8910693cf8e01eb2b1f8abbe7fce93fc2b519c5f0a02ace015f9367663361d6f"
+  },
+  "matched_python_files_per_image": 1398,
+  "run_engine_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "model": "gpt-5.4-nano",
+  "codex_version": "0.166.0"
+}

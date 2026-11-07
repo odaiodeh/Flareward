@@ -1,15 +1,11 @@
-"""
-Lightweight, persistable representation of a session.
+"""Persisted interaction around published Program executions.
 
-Contains only the data needed for storage and retrieval —
-no runtime artifacts (no graph plan, no executable graph, no node instances).
-
-Used by:
-  - create_session: build a record cheaply without compiling a graph
-  - SessionRepository: typed save/fetch interface
-  - SessionLifecycle: mutate status/state and persist
-  - BackgroundLifecycleHandler: avoid expensive full-session hydration
+Structured state is independent of graph channels. The optional graph_state is
+owned by the conversation projection and is absent for ordinary data Sessions.
+No executable graph, provider client or constructed element is stored here.
 """
+
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
@@ -23,6 +19,11 @@ from mas.session.domain.models import SessionMeta
 from mas.session.domain.status import SessionStatus
 
 
+class SessionInteraction(StrEnum):
+    DATA = "data"
+    CONVERSATION = "conversation"
+
+
 class SessionRecord(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -31,7 +32,9 @@ class SessionRecord(BaseModel):
     blueprint_id: str = ""
     run_context: ExecutionContext
     metadata: SessionMeta = Field(default_factory=SessionMeta)
-    graph_state: GraphState = Field(default_factory=GraphState)
+    interaction: SessionInteraction = SessionInteraction.DATA
+    state: dict[str, JsonValue] = Field(default_factory=dict)
+    graph_state: GraphState | None = None
     status: SessionStatus = SessionStatus.PENDING
     program: ProgramRef | None = None
     version: int = Field(default=0, ge=0)

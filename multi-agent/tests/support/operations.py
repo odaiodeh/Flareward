@@ -138,12 +138,11 @@ def operation_graph(profile: str = "thread") -> GraphDefinition:
                 uid="typed-work",
                 element=ResourceKey(category=ResourceCategory.OPERATION, rid="work"),
                 execution=ExecutionSelection(profile=profile),
-                inputs={"text": PathBinding(path=("user_prompt",))},
+                inputs={"text": PathBinding(path=("input", "name"))},
                 outputs={"values": PathBinding(path=())},
             ),
         ),
         entry="typed-work",
         exit="typed-work",
-        inputs={"user_prompt": PathBinding(path=("name",))},
         outputs={"answer": PathBinding(path=("values", "text"))},
     )

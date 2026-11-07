@@ -40,7 +40,7 @@ def design_definition(
     registry: ElementRegistry,
     profile: str = "thread",
     *,
-    designer: ProgramRef | None = None,
+    designer: ProgramRef | ProgramBody | None = None,
     review_timeout_seconds: int = 60,
 ) -> ApplicationDefinition:
     config = FeatureDesignConfig(

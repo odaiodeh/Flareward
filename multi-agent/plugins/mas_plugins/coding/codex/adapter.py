@@ -75,7 +75,13 @@ class CodexCodingAgent:
                     )
             except TimeoutError:
                 raise CodingAgentError("Coding agent exceeded its time limit") from None
-            except OSError, ValueError, TypeError, KeyError, AttributeError, ExceptionGroup:
+            except ExceptionGroup as failure:
+                if len(failure.exceptions) == 1 and isinstance(
+                    failure.exceptions[0], CodingAgentError
+                ):
+                    raise failure.exceptions[0] from None
+                raise CodingAgentError("Coding agent could not execute its CLI protocol") from None
+            except OSError, ValueError, TypeError, KeyError, AttributeError:
                 raise CodingAgentError("Coding agent could not execute its CLI protocol") from None
 
     def _api_key(self) -> str:

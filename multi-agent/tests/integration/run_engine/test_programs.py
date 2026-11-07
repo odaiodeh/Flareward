@@ -51,13 +51,12 @@ async def test_graph_calls_another_graph_through_explicit_bindings(platform):
                 ProgramCallStep(
                     uid="child",
                     program=child.reference,
-                    inputs={"name": PathBinding(path=("user_prompt",))},
+                    inputs={"name": PathBinding(path=("input", "name"))},
                     outputs={"output": PathBinding(path=("answer",))},
                 ),
             ),
             entry="child",
             exit="child",
-            inputs={"user_prompt": PathBinding(path=("name",))},
             outputs={"answer": PathBinding(path=("output",))},
         ),
     )
@@ -86,13 +85,12 @@ async def test_application_program_runs_independently_and_as_graph_step(platform
                 ProgramCallStep(
                     uid="app",
                     program=child.reference,
-                    inputs={"name": PathBinding(path=("user_prompt",))},
+                    inputs={"name": PathBinding(path=("input", "name"))},
                     outputs={"output": PathBinding(path=("answer",))},
                 ),
             ),
             entry="app",
             exit="app",
-            inputs={"user_prompt": PathBinding(path=("name",))},
             outputs={"answer": PathBinding(path=("output",))},
         ),
     )

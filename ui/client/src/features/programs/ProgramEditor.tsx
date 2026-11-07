@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { WorkspaceIdentity } from '@/hooks/use-workspace-identity';
 import type { JsonObject } from '@shared/json';
-import { configurationDefaults, programError } from './authoring';
+import { configurationDefaults, emptyGraphDefinition, programError } from './authoring';
 import JsonField from '@/components/schema/JsonField';
 import ProgramConfiguration from './ProgramConfiguration';
 import ProgramDependencies from './ProgramDependencies';
@@ -17,7 +17,7 @@ import { activeResourceSelections } from './graph-authoring';
 function emptyDefinition(id: string, owner: WorkspaceIdentity): ProgramDefinition {
   return {
     program_id: id, name: '', owner: { type: owner.isTeam ? 'team' : 'user', id: owner.userId, display_name: owner.displayName },
-    implementation: { kind: 'application', implementation: '', version: '', config: {}, children: {}, environments: {}, child_environment_imports: {} },
+    implementation: emptyGraphDefinition(),
     input_schema: { type: 'object' }, output_schema: { type: 'object' }, execution_profile: null,
   };
 }
@@ -82,7 +82,7 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
   const chooseSource = (selected: string) => {
     setResourceSelections([]);
     if (selected === 'composition') {
-      changeImplementation({ kind: 'graph', steps: [], resources: [], edges: {}, conditions: [], entry: '', exit: '', inputs: {}, outputs: {}, environments: {}, recursion_limit: 100 });
+      changeImplementation(emptyGraphDefinition());
     } else {
       const selectedDescriptor = catalog.find(value => JSON.stringify([value.key, value.version]) === selected);
       if (selectedDescriptor) setDefinition(previous => ({ ...previous,
@@ -101,7 +101,7 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
       <fieldset disabled={busy || configurationBusy} className="space-y-4">
         <label className="block space-y-1 text-sm"><span>Program name</span><Input className="text-inherit" aria-label="Program name" required value={definition.name} onChange={event => setDefinition({ ...definition, name: event.target.value })} /></label>
         <label className="block space-y-1 text-sm"><span>Start from</span><select aria-label="Program source" className="block w-full rounded border bg-background p-2" value={selectedSource} disabled={busy || version > 0} required onChange={event => chooseSource(event.target.value)}>
-          <option value="">Choose how to define the work</option><option value="composition">Build a workflow</option>
+          <option value="">Choose how to define the work</option><option value="composition">Compose on canvas</option>
           {catalog.map(value => <option key={JSON.stringify([value.key, value.version])} value={JSON.stringify([value.key, value.version])}>{value.name}</option>)}
         </select></label>
         {descriptor && implementation.kind === 'application' && <><p className="text-sm text-muted-foreground">{descriptor.description}</p>
@@ -115,7 +115,7 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
             <option value="">Platform default</option>{definition.execution_profile && !profiles.includes(definition.execution_profile) && <option value={definition.execution_profile}>{definition.execution_profile} (unavailable)</option>}{profiles.map(profile => <option key={profile}>{profile}</option>)}
           </select></label>
           <JsonField label="Named environments" value={implementation.environments} objectOnly disabled={busy} onChange={value => changeImplementation({ ...implementation, environments: value as Record<string, string> })} />
-          {implementation.kind === 'application' && <JsonField label="Dependency environment imports" value={implementation.child_environment_imports} objectOnly disabled={busy} onChange={value => changeImplementation({ ...implementation, child_environment_imports: value as Record<string, Record<string, string>> })} />}
+          {implementation.kind === 'application' && <JsonField label="Child Program environment imports" value={implementation.child_environment_imports} objectOnly disabled={busy} onChange={value => changeImplementation({ ...implementation, child_environment_imports: value as Record<string, Record<string, string>> })} />}
         </details>
         <details className="space-y-3"><summary>Public input and output contracts</summary>
           <JsonField label="Input schema" value={definition.input_schema} objectOnly disabled={busy} onChange={value => setDefinition({ ...definition, input_schema: value as JsonObject })} />

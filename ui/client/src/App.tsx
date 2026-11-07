@@ -4,7 +4,6 @@ import RagOverview from "@/pages/RagOverview";
 import AgenticOverview from "@/pages/AgenticOverview";
 import Configuration from "@/pages/Configuration";
 import JiraIntegration from "@/pages/JiraIntegration";
-import AgenticWorkflows from "@/pages/AgenticWorkflows";
 import AgentRepository from "@/pages/AgentRepository";
 import AgenticChats from "@/pages/AgenticChats";
 
@@ -38,7 +37,6 @@ function AppRoutes() {
   const { viewMode } = useView();
   const [isChat] = useRoute("/chat/:token");
   const [isAgenticOverview] = useRoute("/agentic-overview");
-  const [isAgenticAI] = useRoute("/agentic-ai");
   const [isInventory] = useRoute("/inventory");
   const [isAgenticChats] = useRoute("/agentic-chats");
   const [isAgenticChatsSession] = useRoute("/agentic-chats/:sessionId");
@@ -53,7 +51,7 @@ function AppRoutes() {
   const [isDocuments] = useRoute("/documents");
   const [isSlackAddSource] = useRoute("/slack/add-source");
 
-  const isAgenticRoute = isAgenticOverview || isAgenticAI || isInventory || isAgenticChats || isAgenticChatsSession || isTemplates || isScheduledWorkflows || isReviews || isReview || isPrograms || isExecution;
+  const isAgenticRoute = isAgenticOverview || isInventory || isAgenticChats || isAgenticChatsSession || isTemplates || isScheduledWorkflows || isReviews || isReview || isPrograms || isExecution;
   const isTeamBlockedRagRoute =
     viewMode === "team" &&
     (isRagOverview || isSlack || isDocuments || isSlackAddSource);
@@ -72,7 +70,6 @@ function AppRoutes() {
         <AgenticAIProvider>
           <Switch>
             <Route path="/agentic-overview" component={AgenticOverview} />
-            <Route path="/agentic-ai" component={AgenticWorkflows} />
             <Route path="/inventory" component={AgentRepository} />
             <Route path="/agentic-chats/:sessionId" component={AgenticChats} />
             <Route path="/agentic-chats" component={AgenticChats} />

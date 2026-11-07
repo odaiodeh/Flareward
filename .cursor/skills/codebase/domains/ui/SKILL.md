@@ -19,7 +19,7 @@ requiring the frontend to mirror the backend's directory names.
 | Path prefix | Module | Files | Description |
 |-------------|--------|-------|-------------|
 | `api/` | API Layer | ~19 | Typed API modules, one per backend target service |
-| `components/agentic-ai/` | Agentic AI | ~51 | Graph builder, chat, templates, inventory |
+| `components/agentic-ai/` | Agentic AI | ~51 | MAS graph display, chat, templates, inventory |
 | `components/ui/` | shadcn/ui | ~51 | Radix-based UI primitives (Button, Dialog, Select, etc.) |
 | `components/shared/` | Shared | ~22 | FieldRenderer, ShareWorkflow, common widgets |
 | `hooks/` | Custom Hooks | ~23 | Domain hooks (sessions, graphs, workspace, etc.) |
@@ -63,8 +63,6 @@ QueryClientProvider → ThemeProvider → AuthProvider → SharedProvider
 | `useWorkspaceIdentity` | Identity | Single source of truth for userId, identityType, displayName |
 | `useSessionStream` | Streaming | NDJSON Redis stream: submit → subscribe → reconnect |
 | `useSessionHub` | Sessions | Shared session list/CRUD/execution |
-| `useGraphCreationLogic` | Graph | Canvas state, YAML, validation, save/update (~1471 LOC) |
-| `useGraphCreationCanvas` | Graph | JointJS paper sync for creation canvas |
 | `useGraphDisplay` | Graph | Read-only JointJS + live status overlays |
 | `useTemplates` | Templates | List, detail, schema, validate, materialize |
 | `useWorkspaceData` | Inventory | Category-based element CRUD |
@@ -156,100 +154,11 @@ NDJSON streaming via native `fetch` + `ReadableStream` (not axios).
 
 ### 7. Graph Builder (JointJS)
 
-Two modes: Creation (`useGraphCreationLogic` + `useGraphCreationCanvas`) and
-Display (`useGraphDisplay`). YAML-backed with dagre auto-layout.
-Team mode adds edit locks — one editor per blueprint at a time.
-
----
-
-### 8. Admin Edit Locks (Repository Management)
-
-The Repository Management panel (built-in resource admin) uses **on-demand** lock
-checking: when an admin clicks Edit, `acquireBuiltinEditLock` attempts to take the
-lock — if another admin holds it, a toast is shown and editing is blocked.
-`useBuiltinEditLockSession` manages the heartbeat/release lifecycle for the held lock.
-Unlike team edit-locks (#7), there is no continuous polling for admin built-in locks;
-conflict detection happens only at the moment of interaction. The mutating endpoints
-also reject with 409 if another admin holds the lock, so it is a real server-enforced
-guard.
-
----
-
-### 9. Built-in vs. Custom Resources (Ownership Model)
-
-Every `ElementInstance` (`types/workspace.ts`) carries `ownership?: 'builtin' | 'custom'`,
-`visibility?: 'draft' | 'public'`, and `userConfigured?: boolean`, mirroring the
-backend's `ResourceOwnership`/`ResourceVisibility` (see
-docs/program-platform-development.md). Two pages consume this:
-
-- **Agent Repository** (`pages/AgentRepository.tsx`) — end-user view, filterable
-  All / Built-in / Personal; configuring a built-in (`BuiltinConfigureModal`) writes
-  a per-identity overlay (`userConfigured=true`), never the shared base.
-- **Configuration → Repository Management** (`features/configuration/RepositoryManagement.tsx`
-  + `repository-management/`) — admin-only: create/edit/delete built-ins, toggle
-  "available to all" (`draft`↔`public`, with `CascadeConfirmDialog` for dependent
-  resources), promote a custom resource to built-in.
-
-`useWorkspaceData` is the shared hook for both — routing built-in-specific calls
-(`configureBuiltin`, `saveBuiltinElement`, `toggleBuiltinStatus`, schema/user-config
-fetch) through `api/resources.ts`'s `builtins.*` methods alongside the plain CRUD
-methods it already had.
-
----
-
-### 10. OAuth Popup Message Validation
-
-Any UI flow that opens an OAuth "sign in" popup and relays the result back via
-`window.opener.postMessage()` MUST validate the incoming message with
-`isTrustedCredentialsCallback()` (`lib/oauthPopupSecurity.ts`) — checking both
-`event.source === popup` and `event.origin` against the callback origin recovered
-from the authorization URL's `redirect_uri`. Do not add a bare `message` event
-listener for a new OAuth flow without this check (a same-object-different-origin
-popup navigation could otherwise spoof the callback).
-
-### 11. Programs library and canonical authoring
-
-`pages/Programs.tsx` composes `features/programs/`: saved-library queries, versioned
-editing, schema configuration, pinned dependencies, graph projection and execution
-observation. There is one public Programs library; graph/registered implementation
-differences are internal editing/validation concerns. `api/programs.ts` owns the
-transport contract. Saves carry `{definition, expected_version, presentation?, resource_selections?}`;
-publication carries the observed source version. Never silently upgrade child pins.
-Canvas positions are presentation data, not another executable graph model.
-
-`ResourcePicker` lists native saved resources and sends only their source markers.
-The server resolves authorized dependency snapshots and protects private fields;
-never build portable resources from display/redacted `cfg_dict`. Pending selections
-participate in dirty/discard state and clear only after a confirmed save. Resource
-adoption explicitly changes shared construction snapshots; per-block profile or
-environment choices remain separate. Catalog contracts are metadata, not authority.
-Conditional routes use the same source-capture path and their own execution
-selection. Pure graph-edit helpers preserve label-specific connections and clear
-removed entry/exit choices. Keep the selected-block section's React lifetime
-scoped by UID; siblings must not reuse that key. Check repeated edits in the actual
-browser because transport tests cannot detect duplicated/stale controls.
-
-Scope query keys by owner and authenticated human. Mutable drafts reload explicitly
-rather than replacing unsaved edits during focus refetches. Invalid JSON must block
-submission and participate in the discard guard. Unknown start delivery retries the
-same execution identity and input. Use the existing `dark-inputs` parent convention
-and check actual browser contrast. The older blueprint builder remains pending
-convergence; neither current view is evidence that the full target editor is done.
-
----
-
-### Existing patterns and refactoring guidance
-
-Assess existing patterns against the target architecture. File size and historical
-usage are not architectural exemptions. Preserve useful behavior while extracting
-cohesive responsibilities when a concrete boundary or lifecycle justifies it.
-
-| Pattern | Where it exists | Why it's acceptable |
-|---------|-----------------|---------------------|
-| Feature-oriented presentation layout | Entire `ui/client/src/` | Keep typed transport boundaries, pure models/helpers and explicit state ownership; do not add backend-shaped folders without a purpose |
-| `AgenticAIContext` calls API/axios directly (bypasses hook layer) | `contexts/AgenticAIContext.tsx` | Resource maps and validation caches require batch fetching at context init; hook indirection adds no value |
-| `AuthContext` uses `http/authClient` directly | `contexts/AuthContext.tsx` | Auth is the boundary — session management can't go through a domain API layer |
-| Some components import `@/api/*` without hook wrappers | `TeamSettingsModal`, `SharedPanel`, etc. | Simple one-off API calls where a hook would be trivial; TanStack React Query adoption is partial |
-| Nested provider tree (7–8 contexts deep) | `App.tsx` | Standard React cross-cutting state; each context has a clear single responsibility |
-| Streaming via native `fetch` (not Axios) | `useSessionStream` | NDJSON streaming requires `ReadableStream` API; Axios doesn't support streaming reads |
-| Card fields driven generically by server-side schema hints (`hints.card`, `hints.secret`, `hints.hidden`, `hints.conditional`) instead of per-element-type switch statements | `lib/cardFields.ts#getCardFields()`, consumed by `BuiltInElementCard`, `ElementGrid` | Mirrors the backend `field_hints.py` contract (see docs/program-platform-development.md) — adding a new element type never requires touching card-rendering code, only its config schema |
+Authoring uses `features/programs/ProgramEditor.tsx` and `ProgramGraphEditor.tsx`
+with canonical Program definitions and separate presentation positions. New Programs
+start with visual composition; installed coordinators use schema configuration in
+that same editor. `/programs` is the single library and authoring route. The old
+workflow authoring page, NewGraph, GraphCreation and their private hooks are removed.
+Existing blueprints enter through `ProgramTemplateImport` as ordinary Program drafts.
+Read-only MAS graph views still use their existing display/layout components; do not
+reintroduce a second authoring state model or execution experience.

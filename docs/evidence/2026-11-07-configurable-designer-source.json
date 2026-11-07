@@ -1,0 +1,142 @@
+{
+  "scope": "Configured production designer, shared bounded file inputs, native revision/repair and actual-App real OpenShell planning/coding; not full authoring or pre-approval UI evidence acceptance",
+  "worktree_base": "cb44452da301396f67cc48d4cfc00638a4c8a092",
+  "files": {
+    "docs/evidence/assets/2026-11-07-designer-artifacts.png": "d7e2cfd4671d0f522859a9e027734f8e2d8478d149f7125195880b9906e0a1e3",
+    "docs/evidence/assets/2026-11-07-designer-status.png": "b00a8343d15cb2fcb85342d9bd5ebdbe23ab25bc914791d10542ee9046af0901",
+    "multi-agent/lib/mas/application/artifacts/content_operations.py": "e46efa33f3e31a1e30ba533dc5179f04f809f45c57b93ef7f19c3efb28bae5c8",
+    "multi-agent/lib/mas/application/artifacts/inline_content.py": "38c987fda40418a0be913397f7e9e712bfa5beea1b34c8bc3861be2eb56cc555",
+    "multi-agent/lib/mas/application/artifacts/operations.py": "03d70b449109ead5e62da0390f71198ee7c86d38b5ef71c91039ddefb32fd0c4",
+    "multi-agent/lib/mas/application/artifacts/ports.py": "407b00ca6c54e7633114bffc7e5bbf1ae9fed62665e095815418f6d93b6f2ff7",
+    "multi-agent/lib/mas/application/artifacts/preparation.py": "2838122412da1c8f59c36b4c3876d69646a43305e6917c46b295d7cc6297baaa",
+    "multi-agent/lib/mas/application/artifacts/program_inputs.py": "2e21da16f3b5487e80709fd3d5a51d1e89fce08f1b68e8ad9a8428971d2c732f",
+    "multi-agent/lib/mas/application/coding/contracts.py": "2d536eb2c33dd3f4340cc0a611c6b146a629a2d43d90c5abfa4be0595fc30008",
+    "multi-agent/lib/mas/application/programs/ports.py": "6ce5ef461734b9700d5a293c58a813cc5ecd33a151b200ddf27cc16bc2c5f7a6",
+    "multi-agent/lib/mas/domain/artifacts.py": "2c102fb07d2e6813dbfffde78818a121de79e604c0ffae9ba1b998ac0b63a467",
+    "multi-agent/lib/mas/domain/files.py": "16440966f5649bcb7e1f2f182adcc97bd15d9602e930631330658e161252ab92",
+    "multi-agent/plugins/mas_plugins/artifacts/filesystem.py": "67a51132ebc228948ebc67005b7d8bdf7baf5658bf57f6c7d9c1e5a17be06875",
+    "multi-agent/plugins/mas_plugins/artifacts/specification.py": "7f21eb608b6f518ce83a410ce24c056163e94307f8ce3a8812406551222e6b79",
+    "multi-agent/plugins/mas_plugins/coding/codex/adapter.py": "23c2e75321d170ac318176d26c9ae622d4097dcd1cb52be9daa97e43f221eda5",
+    "multi-agent/plugins/mas_plugins/engineering/coding.py": "c3423617db717b6bf848d3f6fd5db1a55f140f7ac2f23d8274e8b59bd3cd0bc6",
+    "multi-agent/plugins/mas_plugins/engineering/design.py": "29cdeca918f1bc6700247b3c9733f50610facdffc119c139c058e5ce23c0a8bc",
+    "multi-agent/plugins/mas_plugins/engineering/designer.py": "e8586907c62e67467318edc439db7d56c2dd5b38f6d244774a718d24add4c782",
+    "multi-agent/plugins/mas_plugins/engineering/feature.py": "b6564ea3ec036ff63a92ebda51ac5ae0ad9e8b520cba8fd9ba4c80e0b025909c",
+    "multi-agent/plugins/mas_plugins/engineering/program.py": "d60e15bac9a978b3ce2378c692243bd556ad36cffd44373a33d70961bdfab334",
+    "multi-agent/tests/adapters/test_candidate_profiles.py": "9f25035b477e8889e20f9cccfc4bffc311bb764fcf17d96373b5d3adb51b4ec8",
+    "multi-agent/tests/adapters/test_live_browser_lifetime.py": "8f7a74629aff37dc5851d47d42ce037e879fc875f26b0189e5c0ab0245ca38ad",
+    "multi-agent/tests/application/test_coding_designer.py": "3b3f2932f21c7886598d37b7de454b73dee13daaff39232bfa1698b0fd069032",
+    "multi-agent/tests/application/test_coding_file_candidate.py": "2ea80e768da58285bccb8290fb15ea8171c521cd59cbdd10f2b6484ff0e91bba",
+    "multi-agent/tests/application/test_coding_operation.py": "cc739a7876416df2b3b8c1e8c66578a4bf2055954653f312ddb717458c62c89b",
+    "multi-agent/tests/application/test_content_transfer.py": "baae675f9a9bccaa721fefd0b61735ddb1e42774fbc7f442e93efdcca8ca1cf5",
+    "multi-agent/tests/conftest.py": "e468e0004803d0eae32e8c531acbeaf2da3aa0f565cdb8a512e0ab396bdc8b67",
+    "multi-agent/tests/domain/test_artifacts.py": "87089758a0ff14ea445611d656aac305345a7cd3c4b33efeb8ca1c0dbfbf216c",
+    "multi-agent/tests/infra/Dockerfile.codex": "9d8b8cf43f4433b1456ba379f8e601d2b25c1323fff72b50a7c0d77a3dd1206b",
+    "multi-agent/tests/infra/Dockerfile.receiver": "02003e1ca425f7ac164b59732ccc4d785bfdac2bb83449b5a441b784e5fa146b",
+    "multi-agent/tests/infra/verify_images.py": "b7d73915bbdea045e280f0d0692bc7cffa7d3d7b1d24531f6ded0e273a3e5fe6",
+    "multi-agent/tests/integration/coding/test_artifact_handoff.py": "90330ad742df04a0b0dd760bdaa931516cc74226259aa4e13a754e058fd12d0e",
+    "multi-agent/tests/integration/coding/test_feature_workflow.py": "22ce7a0817e8c8e8c70f316216bf83d97c8072380acb0d07b2a645a75f0ef632",
+    "multi-agent/tests/integration/deployment/test_live_feature.py": "59c9b51fefb2830e96ed9936310df63f75966afd7af86746b59019d778814a3e",
+    "multi-agent/tests/support/artifacts.py": "f301419b21acc39a80bd280b4f2ef3ca63d3371823d78c43dfdf506f3d9b2697",
+    "multi-agent/tests/support/coding_cli.py": "163d904422eb5aa397a1d838c00611884c7e341f64bc0ef503d0b4e4ee62cfee",
+    "multi-agent/tests/support/coding_resources.py": "26eea1abab3f8e5186b28cccec950c40b6ac29bf8c12eba0990051bb50b6a5bf",
+    "multi-agent/tests/support/engineering_api.py": "e51bcd1d2ae62a99471e98ed528159b59abdab285dead73ad5c40b1f4f92b04f",
+    "multi-agent/tests/support/feature_api.py": "53e3345d569dbb1969edaa023396fb5e5cf88b3c34671146ce6bb36dfbe01897",
+    "multi-agent/tests/support/feature_browser.py": "3d307bf828479b9f3672313cb51a520edd7227e9337d1516f9fee500d2914abc",
+    "multi-agent/tests/support/feature_browser_session.py": "cf9e25207b1c971fd929503ad26ab3c557e7e6087cb5524d508275276310ad89",
+    "multi-agent/tests/support/feature_design.py": "a01617a88d287562ffff80e39f8b7b6bd73acdd4eeb529ec9e80137c2f61086e",
+    "multi-agent/tests/support/live_coding.py": "d946f7e517b8567123ccc282c25a076631154bde39eeeabc239be6c93e0b0af2",
+    "multi-agent/tests/support/live_feature.py": "87065b3a41500e47fba20d7e14ebb39fd273dd73d8767d525a5c806807b296ae",
+    "multi-agent/tests/support/live_feature_browser.py": "12ee6289ab18917298fd602a49b26397be5e17fa3eeff37af6f0d2f1cdf6f66d",
+    "multi-agent/tests/support/openshell_deployment.py": "e9c5914d00f73b60e34e5269fb921fd4d67a2d81b077ee9328c5a37c4e660b73",
+    "multi-agent/tests/support/operations.py": "4e0d5d5757397792c01c9b52445e73d15662d6171f3422c0b0afba7192778e77",
+    "multi-agent/tests/support/python_checks.py": "874c3c1ceee1048ff91df7f821a348c586ba28adce098091973e7b95d9669764",
+    "multi-agent/tests/support/review_api.py": "0bf5c7bceb76846ceed8df8327aca416d9fada6832834eb20890ee9bfa2ebe17",
+    "ui/client/src/api/artifacts.ts": "6d2e28542ec94b9d772dbfe7366f9cb302929f800e8b37e2e4e9342856386fbd",
+    "ui/client/src/api/programs.ts": "9f4119f3a4d578c22e0e2eb6a879c8259b595bdfb41d88a83307b912a4f17d83",
+    "ui/client/src/api/reviews.ts": "9a8974b7d8cb6bf5d8ee06b040d3d9bf55de55a3f2500cb5289c034101cc2aa8",
+    "ui/client/src/components/artifacts/ArtifactReferences.tsx": "87521708fb1030a8d32b7bbfd7350e529a5e016d565e71fc03925c8f42c7dc43",
+    "ui/client/src/components/executions/ExecutionWorkbench.tsx": "bdfe6c7f831b51ce7f2f30f982a1f09fefd6177ad3bd3fe9134e0a252d6c94d1",
+    "ui/client/src/components/executions/ProgramInvocation.tsx": "24165e341060a2aee88e36f09798cfe16f196c018c67df1802ea7fa163bf09b5",
+    "ui/client/src/components/reviews/ExecutionReviews.tsx": "868f4b26d7bb3f4930ffa96d69ca7b7509ee495dd36bb3206d4da8aeaf37d0e2",
+    "ui/client/src/components/reviews/ReviewDetail.tsx": "522b9585ab506b444d13d638222c422cd1625b7552ceff3010fc45f752074c1b",
+    "ui/client/src/features/programs/ProgramConfiguration.tsx": "8acc650353a168411d86a9c96f7b0100791e6de566de97109450d1883e758808",
+    "ui/client/src/features/programs/ProgramDependencies.tsx": "e0ad099651cdf25ccfc5773481ffa59373c350b2577ec881fa814c2daacc0711",
+    "ui/client/src/features/programs/ProgramEditor.tsx": "5ff624fe294ede9cace1d8134e716ef69a7e0ccc8ebb7a30f9c165216c5fa630",
+    "ui/client/src/pages/Execution.tsx": "4e1436f47f864ec9348485cf63defa0fb7b3604c54c1d3d8856731260f61d27b",
+    "ui/client/src/pages/Programs.tsx": "3025ee7a81f24a00316626c4ac664841a6ff94c3a2ab1e112740714b685f0f37",
+    "ui/tests/build-placement-browser.mjs": "2e160c196f6e6c3266eb78a8261e90dfe69742df303f5507271da3e4f4ff2e8c"
+  },
+  "aggregate_algorithm": "sha256 of compact sorted-key JSON files map",
+  "aggregate_sha256": "be31b989aff44961d0c17bf9b6b429edf252df549304edaf33c9c4f95353c485",
+  "verification": {
+    "shared_passed": 786,
+    "shared_seconds": 7.14,
+    "native_revision_repair_passed": 2,
+    "native_seconds": 28.47,
+    "cli_profile_lifetime_passed": 23,
+    "cli_profile_lifetime_seconds": 8.11,
+    "strict_mypy_modules": 5
+  },
+  "images": {
+    "unifai-sandbox:feature-designer-20261107": "sha256:8207b6568a3961c66eb5100ac0b9755d3ddcac8c72406981139da5188edd71f2",
+    "unifai-codex:feature-designer-20261107": "sha256:67b31ac3b24c93b7360be746ad3fd94d59b5293e489947ea612e11e5a53d3b84"
+  },
+  "matched_python_files_per_image": 1400,
+  "built_assets": {
+    "assets/workspace-browser-CdfussQQ.js": "d775edf9f1d43552734c6452c523147a6bdd6ff1fdb85f5f7bbaafb7c19fc8c2"
+  },
+  "ui_rebuilt": false,
+  "run_engine_head": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "model": "gpt-5.4-nano",
+  "codex_version": "0.166.0",
+  "live": {
+    "database": "unifai_feature_browser_cb50d331c4234f15a6e7f1c4b7b7bb31",
+    "execution_id": "0344c3dd-c448-4d55-8e57-271cfc346a53",
+    "candidate": {
+      "sha256": "4ba6c8881970c15c36e02f5784c3ea2713b519d51b02afdaf39c13e3e95189da",
+      "size_bytes": 33,
+      "artifact_id": "6aba9a38b9ff5b5c2e9f0c60924bd8f530d94decc6ae777bfdb69ff62a60da7f"
+    },
+    "report": {
+      "sha256": "bf3283fe59d88cd0a5d864a80b0426f71c1feb3f5ba9bd9f8d4b35894026a6cc",
+      "size_bytes": 145,
+      "artifact_id": "8a6f26223982eeb3aba77de2e18a81dc42964171577be03239bf81e5420e7057"
+    },
+    "details": {
+      "cases": 3,
+      "failures": []
+    },
+    "private_verifier_owner_status": 403,
+    "published_designer": "coding_designer@1",
+    "report_inspected_before_approval": true,
+    "outcome": "verified",
+    "design_revision": 1,
+    "design_plan_sha256": "4df4330aeda78c2cc9984714b2de9e9478ec9fb6f59c6021bfe27045fea7d123",
+    "design_plan_characters": 1338,
+    "engineering_attempts": 1,
+    "retired_capabilities": 3,
+    "private_material_files": 0,
+    "public_data_secret_audit_passed": true,
+    "api_host_source_workspace_absent": true,
+    "live_designer_child_completed": true,
+    "proposal": {
+      "plan": "Goal: Implement `add(a, b)` in `answer.py` so it returns `a + b` for positive, negative, and zero inputs.\n\nImplementation proposal:\n- Create a new file `answer.py` at the workspace root.\n- Define a function `def add(a, b):`.\n- Implement it as a pure function returning the sum of the two parameters: `return a + b`.\n- Keep the implementation minimal and deterministic (no side effects, no I/O).\n- If the repository\u2019s test harness expects a specific export name, ensure the function name is exactly `add`.\n\nVerification plan:\n- Add/execute unit-style checks (via the existing test runner or by adding a small local test if tests are absent).\n- Verify correctness with explicit input cases covering:\n  - Positive + positive: `add(2, 3) == 5`\n  - Negative + negative: `add(-2, -3) == -5`\n  - Mixed signs: `add(2, -3) == -1` and `add(-2, 3) == 1`\n  - Zero cases: `add(0, 5) == 5`, `add(5, 0) == 5`, `add(0, 0) == 0`\n- (Optional) Type handling assumptions:\n  - If the harness may pass integers only, ensure behavior matches integer addition.\n  - If floats could be passed, confirm `a + b` works for numeric types without extra casting.\n- Ensure the function returns a numeric value (no string conversion).\n\nOut of scope:\n- No changes to README or other files beyond adding `answer.py` (unless the test harness requires additional integration).",
+      "references": [
+        {
+          "kind": "file",
+          "identity": {
+            "path": "README.txt"
+          }
+        }
+      ]
+    },
+    "fresh_browser_retrieval_after_compute_removal": true,
+    "owned_database_cookie_api_identity_compute_cleanup_verified": true,
+    "pending_review_ui_report_visible": false,
+    "prepublished_resources_and_programs": true,
+    "controlled_external_identity": true,
+    "real_design_and_coding": true,
+    "manual_ui_reviews": true,
+    "live_revision_or_repair": false
+  }
+}

@@ -1,6 +1,8 @@
 # UnifAI program platform
 
-UnifAI composes reusable capabilities into graph and application-code programs.
+UnifAI builds reusable Programs from configured Elements and other Programs.
+A graph and a registered backend coordinator are implementations of the same
+Program model, publication process and execution lifecycle.
 FastAPI exposes application use cases; Run Engine supplies execution infrastructure.
 
 ## Architecture references
@@ -28,6 +30,21 @@ domain owners. Execution context/lifecycle/placement values live in
 context holders live in `mas.application.execution`. Replaced Program/execution
 packages and the old core context module have no compatibility facade; rebuild
 installed receivers after module changes using the test infrastructure guide.
+
+## One capability and execution model
+
+- Element: specification, schema, factory and construction dependencies.
+- Resource: saved Element configuration; captured as a protected dependency bundle.
+- Operation: executable Element with typed input/output, independent of graph state.
+- Program: configured coordination, represented by a graph or registered coordinator.
+- Execution: one invocation of a published Program revision; may contain children.
+- Session: optional structured interaction; conversation is selected explicitly.
+
+New authoring uses `/programs` and its canvas/configuration editor. Existing
+blueprints are workflow templates imported into ordinary Program drafts. There
+is no second graph runtime or graph publication path. Generic graph state contains
+portable input/results/values/output; MAS channels belong to the agent-state adapter.
+A node/condition graph selects that adapter because those capabilities require it.
 
 ## Install
 

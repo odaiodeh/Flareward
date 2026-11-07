@@ -91,7 +91,7 @@ export default function AgenticTemplates() {
 
   const handleNavigateToWorkflow = useCallback(() => {
     resetInstantiation();
-    navigate('/agentic-ai');
+    navigate('/programs');
   }, [resetInstantiation, navigate]);
 
   const handleNavigateToChat = useCallback(async () => {

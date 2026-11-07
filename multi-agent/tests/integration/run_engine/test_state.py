@@ -3,7 +3,7 @@
 from mas.core.iem.models import ElementAddress
 from mas.core.iem.packets import TaskPacket
 from mas.domain.messages import ChatMessage, Role
-from run_engine.state import ProgramGraphState
+from run_engine.state import AgentProgramGraphState
 from runengine import GraphBuilder
 from runengine.adapters.coordination.config import LocalHostConfig
 from runengine.bootstrap.hosts import RunHostBuilder
@@ -11,14 +11,14 @@ from support.engine_functions import contribute_state, state_identity
 
 
 async def test_parallel_state_keeps_messages_acknowledgments_threads_and_workspaces():
-    original = ProgramGraphState(
+    original = AgentProgramGraphState(
         messages=[ChatMessage(role=Role.USER, content="request")],
         inter_packets=[
             TaskPacket(src=ElementAddress(uid="source"), dst=ElementAddress(uid="team"), payload={})
         ],
     )
     graph = (
-        GraphBuilder(ProgramGraphState)
+        GraphBuilder(AgentProgramGraphState)
         .add_node("start", state_identity)
         .add_node("a", contribute_state, kwargs={"uid": "a"})
         .add_node("b", contribute_state, kwargs={"uid": "b"})

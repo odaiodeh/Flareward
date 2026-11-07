@@ -6,6 +6,7 @@ import pytest
 from mas.application.execution.ports import ExecutionMissing
 from mas.domain.execution.models import ExecutionPhase
 from mas.domain.programs.models import ApplicationDefinition, PathBinding
+from mas.session.domain.session_record import SessionInteraction
 from mas.session.domain.status import SessionStatus
 from mas.session.execution.program_sessions import (
     CreateProgramSession,
@@ -13,6 +14,32 @@ from mas.session.execution.program_sessions import (
 )
 from mas.session.execution.session_store import SessionConflict
 from support.scenarios import echo_graph, finish_session, publish
+
+
+async def test_structured_session_reuses_arbitrary_data_bindings_without_chat(platform, sessions):
+    revision = await publish(
+        platform, "data-session", ApplicationDefinition(implementation="greeting", version="1")
+    )
+    record = await sessions.create(
+        CreateProgramSession(
+            program=revision.reference,
+            input_bindings={"name": PathBinding(path=("customer",))},
+            output_bindings={"customer": PathBinding(path=("answer",))},
+        ),
+        platform.owner,
+    )
+    for key, inputs, expected in (
+        ("data-first", {"customer": "Ada"}, "hello Ada"),
+        ("data-second", {}, "hello hello Ada"),
+    ):
+        record = await sessions.start(
+            record.run_id, StartSessionTurn(execution_id=key, inputs=inputs), platform.owner
+        )
+        record = await finish_session(platform.executions, sessions, record)
+        assert record.status == SessionStatus.COMPLETED
+        assert record.state["customer"] == expected
+        assert record.graph_state is None
+        assert record.interaction == SessionInteraction.DATA
 
 
 async def test_graph_session_keeps_history_across_distinct_root_executions(platform, sessions):
@@ -31,6 +58,7 @@ async def test_graph_session_keeps_history_across_distinct_root_executions(platf
     revision = await publish(platform, "session-graph", graph)
     record = await sessions.create(
         CreateProgramSession(
+            interaction=SessionInteraction.CONVERSATION,
             program=revision.reference,
             input_bindings={"history": PathBinding(path=("messages",))},
             output_bindings={
@@ -68,7 +96,10 @@ async def test_concurrent_turns_admit_one_and_idempotent_retry_does_not_stage_ag
         platform, "session-wait", ApplicationDefinition(implementation="waiting", version="1")
     )
     session = await sessions.create(
-        CreateProgramSession(program=revision.reference), platform.owner
+        CreateProgramSession(
+            interaction=SessionInteraction.CONVERSATION, program=revision.reference
+        ),
+        platform.owner,
     )
     turns = [
         StartSessionTurn(inputs={"user_prompt": "once"}, execution_id=f"try-{i}") for i in range(2)
@@ -99,7 +130,10 @@ async def test_cancel_during_preparation_prevents_late_submission(platform, sess
         ApplicationDefinition(implementation="greeting", version="1"),
     )
     session = await sessions.create(
-        CreateProgramSession(program=revision.reference), platform.owner
+        CreateProgramSession(
+            interaction=SessionInteraction.CONVERSATION, program=revision.reference
+        ),
+        platform.owner,
     )
     preparing, release = asyncio.Event(), asyncio.Event()
     gateway = platform.gateway
@@ -136,7 +170,10 @@ async def test_concurrent_identical_submissions_recover_the_same_admitted_turn(
         platform, "same-turn", ApplicationDefinition(implementation="waiting", version="1")
     )
     session = await sessions.create(
-        CreateProgramSession(program=revision.reference), platform.owner
+        CreateProgramSession(
+            interaction=SessionInteraction.CONVERSATION, program=revision.reference
+        ),
+        platform.owner,
     )
     turn = StartSessionTurn(execution_id="same-turn", inputs={"user_prompt": "Only once"})
     barrier = asyncio.Barrier(2)
@@ -167,7 +204,10 @@ async def test_old_execution_projection_cannot_overwrite_new_turn(platform, sess
         ApplicationDefinition(implementation="waiting", version="1"),
     )
     session = await sessions.create(
-        CreateProgramSession(program=revision.reference), platform.owner
+        CreateProgramSession(
+            interaction=SessionInteraction.CONVERSATION, program=revision.reference
+        ),
+        platform.owner,
     )
     await sessions.start(session.run_id, StartSessionTurn(execution_id="old"), platform.owner)
     await platform.executions.send("old", "answer", "old result", platform.owner)
@@ -203,6 +243,7 @@ async def test_invalid_output_binding_finishes_session_with_actionable_error(pla
     )
     record = await sessions.create(
         CreateProgramSession(
+            interaction=SessionInteraction.CONVERSATION,
             program=revision.reference,
             output_bindings={"output": PathBinding(path=("missing",))},
         ),

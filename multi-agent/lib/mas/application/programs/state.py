@@ -1,9 +1,10 @@
 """Application-owned graph channels, portable updates and safe state-contract failures."""
 
-from collections.abc import Mapping, Set
+from collections.abc import Callable, Mapping
 from typing import Annotated, Any, Self
 
 from pydantic import (
+    BaseModel,
     ConfigDict,
     Field,
     JsonValue,
@@ -14,7 +15,6 @@ from pydantic import (
 
 from mas.domain.json_values import portable_json
 from mas.domain.programs.models import GraphDefinition
-from mas.graph.state.graph_state import GraphState
 
 
 class StateContractError(Exception):
@@ -25,11 +25,31 @@ def merge_values(old: dict[str, JsonValue], new: dict[str, JsonValue]) -> dict[s
     return {**old, **new}
 
 
-class ProgramState(GraphState):
-    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
+def replace_value(old: JsonValue, new: JsonValue) -> JsonValue:
+    return new
+
+
+class ProgramState(BaseModel):
+    """Portable data channels; conversation and agent channels are opt-in adapters."""
+
+    model_config = ConfigDict(extra="forbid")
     input: JsonValue = Field(default=None, frozen=True)
     results: Annotated[dict[str, JsonValue], merge_values] = Field(default_factory=dict)
     values: Annotated[dict[str, JsonValue], merge_values] = Field(default_factory=dict)
+    output: Annotated[JsonValue, replace_value] = None
+
+    @classmethod
+    def deserialize(cls, data: dict[str, Any]) -> Self:
+        return cls.model_validate(data)
+
+    @classmethod
+    def get_merge_strategies(cls) -> dict[str, Callable[..., Any]]:
+        return {
+            name: reducer
+            for name, field in cls.model_fields.items()
+            for reducer in field.metadata
+            if callable(reducer)
+        }
 
     @model_validator(mode="wrap")
     @classmethod
@@ -74,19 +94,3 @@ class ProgramState(GraphState):
                 "results": {**self.results, key: result},
             }
         )
-
-    def accept_node(self, result: GraphState, *, writes: Set[str]) -> Self:
-        original = self.serialize()
-        try:
-            returned = result.serialize()
-        except ValueError, TypeError:
-            raise StateContractError("Node state must contain portable channel values") from None
-        changed = {
-            name
-            for name, value in returned.items()
-            if name not in original or value != original[name]
-        }
-        self._writable({name: returned[name] for name in changed})
-        if changed - writes:
-            raise StateContractError("Node returned changes outside its declared write contract")
-        return type(self).model_validate({**original, **returned})

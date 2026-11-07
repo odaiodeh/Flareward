@@ -12,6 +12,11 @@ It exercises the production CLI adapter with a controlled executable, not a live
 For bounded real-agent HTTP or actual-App journeys with independent remote
 evaluation, use [the live feature procedure](references/live-feature.md). Keep
 live browser execution proof distinct from full authoring/canvas acceptance.
+For production planning, install `mas_plugins.engineering.designer` and configure
+`coding_designer@1` through saved operation/loader bundles and explicit placement.
+It validates JSON proposals; the existing Design coordinator owns review/revision.
+The [designer checkpoint](../../../docs/evidence/2026-11-07-configurable-designer.md)
+records native and actual-App proof, including remaining pending-review evidence work.
 
 Keep coding work behind `mas.application.coding.contracts.CodingAgent`; `CodingOperation` owns typed input/result translation, and the outer
 `mas_plugins.coding.codex` adapter owns subprocess details. Register `CodexSpec`
@@ -88,7 +93,9 @@ CLI diagnostic in results. Generated shell environments must exclude the API key
 That exclusion does not isolate arbitrary hostile same-user processes; do not
 claim it does. An interrupted subprocess acquisition must finish assigning the
 owned handle before cleanup; terminate the process group and reap it before
-propagating cancellation. TaskGroup errors need deliberate adapter translation.
+propagating cancellation. TaskGroup errors need deliberate adapter translation:
+preserve a single adapter-owned safe coding error; unknown/mixed failures must not
+expose raw events or stderr. Native CLI tests check the reason as well as redaction.
 
 The CLI can repair unsuccessful commands; a completed coding turn should not fail
 merely because an intermediate command returned nonzero. Reject failed turns,

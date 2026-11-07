@@ -16,6 +16,8 @@ from mas_plugins.artifacts.specification import ELEMENT_SPECIFICATIONS as ARTIFA
 from mas_plugins.coding.codex.config import CodexConfig
 from mas_plugins.coding.codex.specification import CodexSpec
 from mas_plugins.engineering.coding import CodingFileWork
+from mas_plugins.engineering.design import DesignProposal
+from mas_plugins.engineering.designer import CodingDesignerConfig, CodingDesignWork
 from mas_plugins.engineering.program import EngineeringCandidate
 from mas_plugins.reviews.specification import ELEMENT_SPECIFICATIONS as REVIEWS
 from mas_plugins.verification.specification import ELEMENT_SPECIFICATIONS as CHECKS
@@ -23,7 +25,7 @@ from pydantic import SecretStr
 from runengine.invocation.config import ExecutorConfig, K8sRunnerConfig, OpenShellRunnerConfig
 
 from support.check_program_publication import CheckProgramSetup
-from support.coding_resources import saved_coding_candidate
+from support.coding_resources import CodingResourceLibrary, saved_coding_candidate
 from support.deployment_backend import DeploymentBackend, NetworkEndpoint
 from support.engineering_api import EngineeringAPI, engineering_api, policies
 from support.feature_api import FeaturePrograms, publish_feature
@@ -118,7 +120,7 @@ async def live_feature(
                     "mas_plugins.engineering.design",
                     "mas_plugins.engineering.feature",
                     "mas_plugins.engineering.coding",
-                    "support.feature_design",
+                    "mas_plugins.engineering.designer",
                     "mas_plugins.testing.program",
                 ),
                 element_modules=(
@@ -174,6 +176,34 @@ async def live_feature(
             input_schema=CodingFileWork.model_json_schema(),
             output_schema=EngineeringCandidate.model_json_schema(),
         )
+        design_coding = await CodingResourceLibrary(api.http, api.human).coding(
+            CodexConfig(
+                model="gpt-5.4-nano",
+                timeout_seconds=60,
+                max_commands=4,
+                instructions=(
+                    "Prepare a concise design proposal from the supplied task, files and criteria. "
+                    "Do not implement or modify the feature. Do not inspect parent directories. "
+                    "Return only the requested JSON proposal without Markdown fences."
+                ),
+            ),
+            "coding",
+            name="Feature designer",
+        )
+        designer = ProgramBody(
+            implementation=ApplicationDefinition(
+                implementation="coding_designer",
+                version="1",
+                config=CodingDesignerConfig(
+                    coding=design_coding,
+                    loader=configuration.loader,
+                    execution=ExecutionSelection(profile="coding"),
+                    artifact_execution=configuration.artifact_execution,
+                ).model_dump(mode="json"),
+            ),
+            input_schema=CodingDesignWork.model_json_schema(),
+            output_schema=DesignProposal.model_json_schema(),
+        )
         programs = await publish_feature(
             api.http,
             api.human,
@@ -185,6 +215,7 @@ async def live_feature(
             review_timeout_seconds=review_timeout_seconds,
             max_check_polls=300,
             check_poll_interval_seconds=0.5,
+            designer=designer,
         )
         yield LiveFeature(api, programs, key, compute, backend)
     await backend.assert_clean()

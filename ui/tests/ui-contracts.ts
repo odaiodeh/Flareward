@@ -4,6 +4,7 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import SchemaValue from '../client/src/components/schema/SchemaValue';
 import axios from '../client/src/http/axiosAgentConfig';
+import { importProgramTemplate } from '../client/src/api/programs';
 import { acquireTeamEditLock, heartbeatTeamEditLock, releaseTeamEditLock } from '../client/src/api/collaborationEditLock';
 import { getSessionState } from '../client/src/api/sessions';
 import { readSessionEvents } from '../client/src/api/session-stream';
@@ -16,7 +17,6 @@ import type { ApprovalEntry, NodeEntry } from '../client/src/components/agentic-
 import { elementFormSchema, toElementInstance } from '../client/src/lib/resource-editor';
 import type { ElementSchema } from '../client/src/types/workspace';
 import { applyWorkflowPlacement, workflowPlacement } from '../client/src/lib/workflow-placement';
-import { reconstructBlueprintGraph } from '../client/src/hooks/use-load-blueprint';
 import type { YamlFlowState } from '../client/src/types/graph';
 import type { JsonObject } from '../shared/json';
 import { configurationDefaults } from '../client/src/features/programs/authoring';
@@ -87,7 +87,6 @@ function verifyWorkflowPlacement() {
   assert.equal(updated.execution_profile, 'isolated');
   assert.deepEqual(updated.environments, { coding: 'isolated' });
   assert.equal(JSON.stringify(flow), saved);
-  assert.deepEqual(reconstructBlueprintGraph(flow, [], []).yamlFlow, { ...flow, description: '', conditions: [] });
 }
 
 function verifyResourceEditorBoundaries() {
@@ -192,7 +191,26 @@ async function verifySessionOutputContract() {
   }
 }
 
+async function verifyTemplateUsesProgramAuthoring() {
+  const previous = axios.defaults.adapter;
+  const signal = new AbortController().signal;
+  try {
+    axios.defaults.adapter = async config => {
+      assert.equal(config.method, 'put');
+      assert.equal(config.url, '/programs/program%2Fone/blueprint');
+      assert.deepEqual(JSON.parse(config.data), { blueprint_id: 'template' });
+      assert.equal(config.params.teamId, 'team');
+      assert.equal(config.signal, signal);
+      return { data: { version: 1, definition: { program_id: 'program/one' } }, status: 200, statusText: 'OK', headers: {}, config };
+    };
+    assert.equal((await importProgramTemplate('program/one', 'template', 'team', signal)).definition.program_id, 'program/one');
+  } finally {
+    axios.defaults.adapter = previous;
+  }
+}
+
 export default async function verifyUiContracts() {
+  await verifyTemplateUsesProgramAuthoring();
   await verifyArtifactContracts();
   verifyProgramConfigurationSchemas();
   verifyProgramGraphEditing();

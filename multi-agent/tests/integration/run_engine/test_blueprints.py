@@ -125,6 +125,7 @@ async def test_existing_blueprint_runs_with_factories_and_session_state(platform
     bindings = {name: PathBinding(path=(name,)) for name in GraphState.model_fields}
     record = await sessions.create(
         CreateProgramSession(
+            interaction="conversation",
             program=revision.reference,
             blueprint_id="legacy-blueprint",
             input_bindings=bindings,
@@ -306,7 +307,7 @@ async def test_unapproved_resource_preference_fails_before_dispatch(platform, bl
         platform.owner,
         expected_version=(await platform.programs.draft("denied", platform.owner)).version,
     )
-    with pytest.raises(ValueError, match="not approved: unapproved"):
+    with pytest.raises(ValueError, match="not approved"):
         await platform.compiler.compile(
             revision, platform.owner, ExecutionContext(identity=platform.owner)
         )

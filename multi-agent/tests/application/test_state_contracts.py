@@ -34,7 +34,7 @@ async def test_state_mapping_errors_are_saveable_but_not_publishable(application
         outputs = (
             {"missing": LiteralBinding(value="value")}
             if problem == "unknown_output"
-            else {"output": LiteralBinding(value={"private": "output"})}
+            else {"values": LiteralBinding(value="private-output")}
             if problem == "invalid_output"
             else {"messages": PathBinding(path=("text",))}
         )

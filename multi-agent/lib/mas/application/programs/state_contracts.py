@@ -5,6 +5,7 @@ from collections.abc import Mapping, Set
 from mas.application.elements.catalog.element_registry import ElementRegistry
 from mas.application.programs.graph_elements import GraphElementSpec
 from mas.application.programs.graph_flow import GraphFlow
+from mas.application.programs.graph_state import graph_state_type
 from mas.application.programs.interfaces import BindingContractError, IssuePath
 from mas.application.programs.state import ProgramState
 from mas.domain.element_bundles import ResourceDefinition, ResourceKey
@@ -26,8 +27,10 @@ class StateContracts:
             raise BindingContractError("Graph work requires a graph specification", path) from None
 
     @staticmethod
-    def _access(reads: Set[str], writes: Set[str], path: IssuePath) -> None:
-        channels = ProgramState.model_fields.keys()
+    def _access(
+        state: type[ProgramState], reads: Set[str], writes: Set[str], path: IssuePath
+    ) -> None:
+        channels = state.model_fields.keys()
         if (reads | writes) - channels:
             raise BindingContractError("Graph specification refers to unknown state channels", path)
         if writes & GraphDefinition.READ_ONLY_CHANNELS:
@@ -36,16 +39,17 @@ class StateContracts:
     def validate(self, graph: GraphDefinition, flow: GraphFlow) -> None:
         resources = {resource.key: resource for resource in graph.resources}
         writers: dict[str, list[str]] = {}
-        reducers = ProgramState.get_merge_strategies().keys()
+        state = graph_state_type(graph)
+        reducers = state.get_merge_strategies().keys()
         for index, step in enumerate(graph.steps):
             path: IssuePath = ("implementation", "steps", index)
             if isinstance(step, ElementStep):
                 spec = self._spec(step.element, resources, path)
-                self._access(spec.reads, spec.writes, path)
+                self._access(state, spec.reads, spec.writes, path)
                 writes = spec.writes
             else:
                 writes = set(step.outputs)
-                self._access(set(), writes, (*path, "outputs"))
+                self._access(state, set(), writes, (*path, "outputs"))
             for channel in sorted(writes):
                 if graph.write_policy == GraphWritePolicy.REDUCE:
                     if channel not in reducers:
@@ -60,7 +64,7 @@ class StateContracts:
         for index, route in enumerate(graph.conditions):
             path = ("implementation", "conditions", index)
             spec = self._spec(route.condition, resources, path)
-            self._access(spec.reads, spec.writes, path)
+            self._access(state, spec.reads, spec.writes, path)
             if spec.writes:
                 raise BindingContractError(
                     "Conditions return routing outcomes and cannot write graph state", path

@@ -3,7 +3,7 @@
 ## Target experience
 
 The [target UI design](../docs/architecture/README.md#unified-ui-and-live-execution-experience)
-evolves the existing resource library, blueprint builder and session experience
+unifies the resource library, Program builder and optional Session experience
 into one Program-authoring workspace and shared execution workbench. Programs are
 reusable library/canvas components. Structured inputs and optional conversation
 use the same execution contracts. Preserve and improve live visualization of
@@ -11,8 +11,10 @@ active work, nested Programs, iterations, retries and waits, using authoritative
 execution state and exact published revisions.
 
 Reuse useful existing components and patterns while allowing substantial
-improvements to layout, navigation, accessibility and visual presentation. The
-current Workflows, Chats and Programs routes have not yet completed convergence.
+improvements to layout, navigation, accessibility and visual presentation. New authoring uses one Programs library and canvas/configuration editor. The
+superseded Workflows page and its private authoring implementation are removed.
+Existing blueprints can be imported as Program drafts. Sessions remain an optional
+interaction view; full live occurrence/attempt visualization remains unfinished.
 Program invocation now opens the shared `/executions/:id` route; the embedded
 Program runner was removed. Session/review links use the same execution view.
 See the [development guide](../docs/program-platform-development.md#program-discovery-saved-library-and-authoring)
@@ -28,7 +30,10 @@ invocation and shared execution/review now have their own
 permissions and verified text previews now support a [controlled Engineering journey](../docs/evidence/2026-11-05-feature-ui.md),
 including approval, repair and durable artifact retrieval. A [live OpenShell browser
 checkpoint](../docs/evidence/2026-11-06-live-feature-ui.md) now joins real Codex,
-production checks and fresh output retrieval after compute removal. Complete
+production checks and fresh output retrieval after compute removal. The newer
+[configured-designer checkpoint](../docs/evidence/2026-11-07-configurable-designer.md)
+adds real planning before design approval. Pending reviews still need their trusted
+reports before the decision; completed-root report previews do not satisfy that gap. Complete
 authoring and Session browser journeys, occurrence views, workspace convergence
 and later visual refinement remain required. The existing JointJS builder and
 newer React Flow Program editor are temporary coexistence; the form-heavy Programs

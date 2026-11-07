@@ -1,5 +1,5 @@
 import type { JsonObject, JsonValue } from '@shared/json';
-import type { ProgramDescriptor, ProgramSummary, ProgramTarget } from '@/api/programs';
+import type { GraphDefinition, ProgramDescriptor, ProgramSummary, ProgramTarget } from '@/api/programs';
 import { isRecord } from '@/lib/json';
 import { resolveSchema } from '@/components/schema/schema';
 
@@ -23,4 +23,9 @@ export function configurationDefaults(descriptor: ProgramDescriptor): JsonObject
 export function programError(value: unknown): string {
   if (isRecord(value) && isRecord(value.response) && isRecord(value.response.data) && typeof value.response.data.detail === 'string') return value.response.data.detail;
   return value instanceof Error ? value.message : 'The request could not be confirmed. Reload before changing the saved draft.';
+}
+
+/** Visual composition is an implementation of the same Program lifecycle. */
+export function emptyGraphDefinition(): GraphDefinition {
+  return { kind: 'graph', steps: [], resources: [], edges: {}, conditions: [], entry: '', exit: '', inputs: {}, outputs: {}, environments: {}, recursion_limit: 100 };
 }

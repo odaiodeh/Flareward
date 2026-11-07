@@ -101,13 +101,12 @@ async def test_published_boundary_resets_owned_source_address(platform):
                 ProgramCallStep(
                     uid="greet",
                     program=greeting,
-                    inputs={"name": PathBinding(path=("user_prompt",))},
+                    inputs={"name": PathBinding(path=("input", "name"))},
                     outputs={"values": PathBinding(path=())},
                 ),
             ),
             entry="greet",
             exit="greet",
-            inputs={"user_prompt": PathBinding(path=("name",))},
             outputs={"answer": PathBinding(path=("values",))},
         ),
     )

@@ -3,10 +3,11 @@
 from pathlib import PurePosixPath
 
 from mas.application.artifacts.operations import PublishedArtifact
+from mas.application.artifacts.program_inputs import ProgramFileInputs
 from mas.application.coding.contracts import CodingInput, CodingOutcome
 from mas.application.programs.ports import ProgramRuntime
 from mas.application.programs.registry import ApplicationRegistration
-from mas.domain.artifacts import BlobArtifactRef, InlineContent
+from mas.domain.artifacts import BlobArtifactRef
 from mas.domain.element_bundles import ElementBundle
 from mas.domain.execution_preferences import ExecutionSelection
 from mas.domain.files import ArtifactFile, InlineFile, InputFile, WorkspaceFile
@@ -41,6 +42,7 @@ class CodingFileCandidate:
 
     def __init__(self, runtime: ProgramRuntime, config: CodingFileCandidateConfig) -> None:
         self._runtime, self._config = runtime, config
+        self._files = ProgramFileInputs(runtime, config.loader, config.artifact_execution)
 
     def _inputs(self, work: EngineeringWork[CodingInput]) -> tuple[InputFile, ...]:
         files = {str(PurePosixPath(file.path)): file for file in work.task.files}
@@ -64,40 +66,9 @@ class CodingFileCandidate:
                     files[source.path] = source
         return tuple(files.values())
 
-    async def _prepare(self, files: tuple[InputFile, ...]) -> tuple[InlineFile, ...]:
-        size = sum(
-            file.artifact.size_bytes
-            if isinstance(file, ArtifactFile)
-            else file.content.identity.size_bytes
-            for file in files
-        )
-        if size > 1_048_576:
-            raise ValueError("File candidate inputs exceed their inline transfer limit")
-        prepared = []
-        for index, file in enumerate(files):
-            if isinstance(file, InlineFile):
-                prepared.append(file)
-                continue
-            content = validate_result(
-                InlineContent,
-                await self._runtime.invoke_element(
-                    self._config.loader,
-                    file.artifact.model_dump(mode="json"),
-                    key=f"load-{index}",
-                    execution=self._config.artifact_execution,
-                ),
-            )
-            if (
-                content.identity.sha256 != file.artifact.sha256
-                or content.identity.size_bytes != file.artifact.size_bytes
-            ):
-                raise ValueError("Loaded file content does not match the requested artifact")
-            prepared.append(InlineFile(path=file.path, content=content))
-        return tuple(prepared)
-
     async def run(self, work: EngineeringWork[CodingInput]) -> EngineeringCandidate:
         request = work.task
-        files = await self._prepare(self._inputs(work))
+        files = await self._files.prepare(self._inputs(work))
         context = [request.context, f"Write the deliverable to workspace path: {self._config.path}"]
         if work.feedback is not None:
             context.append("Previous attempt feedback:\n" + work.feedback.model_dump_json())

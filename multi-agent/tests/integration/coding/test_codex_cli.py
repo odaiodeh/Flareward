@@ -36,9 +36,18 @@ async def test_protocol_edits_workspace_and_cleans_private_home(codex_cli, tmp_p
     assert (workspace / "answer.txt").read_text() == "second step"
 
 
-@pytest.mark.parametrize("prompt", ["failure", "overflow", "incomplete", "commands"])
-async def test_failure_is_sanitized_and_reaped(codex_cli, tmp_path, prompt):
-    with pytest.raises(CodingAgentError) as caught:
+@pytest.mark.parametrize(
+    ("prompt", "reason"),
+    [
+        ("failure", "reported a failed turn"),
+        ("overflow", "exceeded its output limit"),
+        ("incomplete", "returned no completed answer"),
+        ("commands", "exceeded its command limit"),
+        ("malformed", "could not execute its CLI protocol"),
+    ],
+)
+async def test_failure_is_sanitized_and_reaped(codex_cli, tmp_path, prompt, reason):
+    with pytest.raises(CodingAgentError, match=reason) as caught:
         await agent(codex_cli, tmp_path, max_output_bytes=1024, max_commands=1).execute(
             CodingRequest(prompt=prompt, workspace="run/work")
         )

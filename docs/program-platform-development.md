@@ -6,7 +6,7 @@ search headings and read the relevant guide sections. Detailed verification live
 in [focused evidence records](evidence/README.md); archives are opt-in reference.
 Do not load this entire guide or historical records into routine working context.
 The [target architecture](architecture/README.md) defines the agreed destination,
-including typed operations, composable graph/code programs, UI contracts, plugin
+including typed operations, one composable Program model, UI contracts, plugin
 boundaries, and engine-backed human review. Proposed capabilities there must not
 be read as already implemented behavior here.
 
@@ -44,6 +44,37 @@ contract. Rebuild matched coordinator/receiver images
 before remote deployment; historical remote test results do not validate new SDK
 source. See [integration status and recovery notes](../integrations/README.md).
 
+## Canonical model and current consolidation
+
+The [public model](architecture/README.md#canonical-public-model) is Element,
+Resource, Program and Execution. Operation is an executable Element. Graph and
+registered backend coordination are internal Program implementations. Both use
+ProgramService, ExecutionService, the engine adapter and the shared execution view.
+
+`mas.application.programs.state.ProgramState` owns generic data channels, including
+structured JSON output. `graph_state.AgentProgramState` adds MAS channels only when
+node/condition capabilities require them. Engine state binding uses corresponding
+`ProgramGraphState` and `AgentProgramGraphState` adapters. Operation-only graphs do
+not acquire chat/workspace/branch state. Bind operation requests directly from
+`input` or prior `results`, rather than staging everything through `user_prompt`.
+
+Sessions default to `interaction: "data"`, retain a portable `state` mapping and
+allow arbitrary input/output bindings. `interaction: "conversation"` selects the
+MAS conversation projection (`graph_state`, absent for ordinary data Sessions).
+`SessionProjection` owns that mapping; the Session execution facade does not own
+MAS channel validation. Existing blueprint-to-chat creation selects conversation
+explicitly; all turns still invoke published Programs through ExecutionService.
+
+The UI's single Programs library opens a canvas for a new visual composition or
+schema configuration for an installed implementation. Import an existing blueprint
+using **Import a workflow template**; it becomes a normal editable Program draft.
+The superseded workflow authoring page/canvas and its private hooks are removed.
+Read-only MAS flow views and template-backed chat/schedule integrations remain;
+the complete live occurrence/attempt workspace remains a later UI milestone.
+
+Receiver contracts are Program v6, graph state v4 and elements v4. Rebuild installed
+receivers before remote gates; old prepared requests/workers are not migrated.
+
 ## Typed operations: first implemented slice
 
 An operation is registered in the existing element catalog with category
@@ -64,7 +95,7 @@ Portable invocation payloads have an explicit `key`. Typed operations carry no
 graph step context and never receive automatic `set_context` graph injection.
 Graph calls require explicit step context matching their key. The graph adapter
 owns input/output mappings; backend Programs no longer fabricate graph context
-for typed operations. Receiver contract is `unifai-elements-v3`, with prepared
+for typed operations. Receiver contract is `unifai-elements-v4`, with prepared
 format `runengine/request-v10`; earlier prototype snapshots are not migrated.
 
 The existing `ElementBundleResolver` and `ElementBundleBuilder` construct its
@@ -184,7 +215,7 @@ not. Root submissions invoke published references, not arbitrary body paths.
 Private prepared requests carry selected-scope contracts, mappings/configuration,
 compiled child requests and source addresses instead of copying the entire source
 revision into every child payload. Installed entrypoint contract is
-`unifai-program-v5`; prepared format is `runengine/request-v10`. There is no old
+`unifai-program-v6`; prepared format is `runengine/request-v10`. There is no old
 prototype-payload migration. Rebuild matched images at the next remote milestone.
 
 Local thread/process and production TypeScript→FastAPI→Mongo checks prove this
@@ -487,7 +518,7 @@ Whole-value literal requests/results use the same publication checks as named
 mappings. Dynamic values still validate at invocation. Richer schema compatibility,
 cyclic/complex-flow availability, arbitrary per-graph state schemas, indexed-result retention/
 payload limits and authoritative occurrence inspection remain unfinished.
-Current graph-state contract is `unifai-graph-state-v3`. Matched images and Temporal/
+Current graph-state contract is `unifai-graph-state-v4`. Matched images and Temporal/
 remote/replay evidence remain queued for the execution milestone.
 
 ### Graph-local interfaces and join policies
@@ -3061,6 +3092,20 @@ exhaustion, pending observation and closed review remain explicit unsatisfied
 outcomes. A design result cannot substitute a different subject or relabel rejection
 as approval. Revision numbers are local to this execution, not Programs library
 publication revisions. The durable review occurrence identifies the accepted version.
+
+Install `mas_plugins.engineering.designer` to register `coding_designer@1`, a normal
+designer child for coding tasks. Its concrete `CodingDesignWork` contract specializes
+generic `DesignWork` / `FeatureRequest` with `CodingInput`, preserving generic task
+contracts for other designers. Configure a captured coding-operation bundle, loader,
+coding `execution` and separate `artifact_execution`. The shared application-owned
+`ProgramFileInputs` loader supplies bounded verified inline files, also used by the
+file candidate. Reviewer feedback includes the previous proposal and recorded response;
+input bytes are staged rather than duplicated into the prompt's structured context.
+The agent's JSON is validated as `DesignProposal`. Invalid proposals fail safely
+before review; the designer neither approves work nor produces completion evidence.
+Planning instructions do not enforce a read-only filesystem. The [designer checkpoint](evidence/2026-11-07-configurable-designer.md)
+records native revision/repair and real OpenShell browser proof, including remaining
+pre-approval evidence and authoring gaps.
 
 Install `mas_plugins.engineering.feature` to register `coding_feature@1`. Its input
 has a coding prompt, optional context and acceptance criteria. It composes declared

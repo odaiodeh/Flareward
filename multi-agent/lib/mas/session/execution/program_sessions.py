@@ -19,15 +19,15 @@ from mas.domain.execution.models import TERMINAL_PHASES, ExecutionPhase, Executi
 from mas.domain.models import Model
 from mas.domain.programs.bindings import BindingError, project
 from mas.domain.programs.models import Bindings, ProgramRef
-from mas.graph.state.graph_state import GraphState
 from mas.interactions.models import parse_approval_rules
 from mas.interactions.ports import ApprovalRulesPublisher
 from mas.interactions.rules import ApprovalRuleChange
 from mas.session.domain.constants import CANCELLED_STATUS_MESSAGE, CANCELLED_TAG
 from mas.session.domain.dto import SessionListFilter
 from mas.session.domain.models import SessionMeta
-from mas.session.domain.session_record import SessionRecord
+from mas.session.domain.session_record import SessionInteraction, SessionRecord
 from mas.session.domain.status import SessionStatus
+from mas.session.execution.projection import SessionProjection
 from mas.session.execution.session_store import SessionConflict, SessionPage, SessionStore
 from mas.session.execution.staging import stage_inputs
 
@@ -56,6 +56,7 @@ class CreateProgramSession(Model):
     input_bindings: Bindings = Field(default_factory=dict)
     output_bindings: Bindings = Field(default_factory=dict)
     blueprint_id: str = ""
+    interaction: SessionInteraction = SessionInteraction.DATA
 
 
 class StartSessionTurn(Model):
@@ -82,14 +83,14 @@ class ProgramSessionService:
     async def create(self, request: CreateProgramSession, caller: Identity) -> SessionRecord:
         await self._programs.revision(request.program, caller)
         parse_approval_rules(getattr(request.metadata, "hitl_overrides", None))
-        if not request.output_bindings.keys() <= GraphState.model_fields.keys():
-            raise ValueError("Session output bindings target unknown graph state channels")
+        SessionProjection.validate(request.interaction, set(request.output_bindings))
         session_id = str(uuid4())
         record = SessionRecord(
             run_id=session_id,
             identity=caller,
             blueprint_id=request.blueprint_id,
             program=request.program,
+            interaction=request.interaction,
             metadata=request.metadata.model_copy(deep=True),
             input_bindings=request.input_bindings,
             output_bindings=request.output_bindings,
@@ -183,7 +184,7 @@ class ProgramSessionService:
         staged = record.model_copy(deep=True)
         staged.run_context = staged.run_context.with_scope(turn.scope)
         stage_inputs(staged, turn.inputs, credential_user_id)
-        inputs = {**project(staged.input_bindings, staged.graph_state.serialize()), **turn.inputs}
+        inputs = {**project(staged.input_bindings, SessionProjection.source(staged)), **turn.inputs}
         revision = await self._programs.revision(program, caller)
         Draft202012Validator(revision.definition.input_schema).validate(inputs)
         staged.active_execution_id = turn.execution_id
@@ -342,12 +343,12 @@ class ProgramSessionService:
             record.last_result = execution.result
             try:
                 changes = project(record.output_bindings, execution.result)
-                record.graph_state = GraphState.model_validate(
-                    {**record.graph_state.serialize(), **changes}
-                )
-            except (BindingError, ValidationError) as error:
+                SessionProjection.accept(record, changes)
+            except BindingError, ValidationError:
                 record.status = SessionStatus.FAILED
-                record.metadata.status_message = f"Session result binding failed: {error}"
+                record.metadata.status_message = (
+                    "Session result binding failed: output violates its contract"
+                )
         elif execution.phase == ExecutionPhase.CANCELLED:
             self._mark_cancelled(record)
         elif execution.phase == ExecutionPhase.FAILED and execution.failure:
@@ -365,11 +366,7 @@ class ProgramSessionService:
         record.run_context = record.run_context.mark_finished()
         record.metadata.tags[CANCELLED_TAG] = "true"
         record.metadata.status_message = CANCELLED_STATUS_MESSAGE
-        if record.graph_state.messages:
-            last = record.graph_state.messages[-1]
-            record.graph_state.messages[-1] = last.model_copy(
-                update={"metadata": {**last.metadata, "is_cancelled": True}}
-            )
+        SessionProjection.cancel(record)
 
     async def cancel(self, session_id: str, caller: Identity) -> SessionRecord:
         record = await self.get(session_id, caller)

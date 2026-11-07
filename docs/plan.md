@@ -1,16 +1,20 @@
 # Program platform: active plan
 
-Updated 2026-11-06 against the revised active goal. Read [status](status.md), then
-relevant source. The [target checklist](architecture/README.md#architecture-acceptance-checklist)
-and full goal define completion; this plan changes sequencing, not scope.
+Updated 2026-11-07. Read [status](status.md) and relevant source; the
+[target checklist](architecture/README.md#architecture-acceptance-checklist) defines completion.
 
-## Active milestone: complete feature-delivery journey
+## Completed prerequisite: unified Program model
+
+Generic data state, explicit conversation projection and one Programs library/canvas
+are implemented; factories/resources and template import remain.
+[Native and UI gates pass](evidence/2026-11-07-unified-program-model.md); the broader goal remains paused.
+
+## Next milestone: complete feature-delivery journey
 
 **Outcome:** a user configures reusable resources and publishes a Program, supplies
 feature requirements and criteria, reviews a versioned design, observes real coding,
 trusted checks and bounded repair, then reviews and retrieves the delivered work.
-Connect the existing UI as each required contract stabilizes. The standalone
-Programs runner is interim, not a second product to expand permanently.
+Connect the existing UI as each required contract stabilizes. One Programs library and shared execution workbench own this journey.
 
 ### Reconciled checkpoint and immediate work
 
@@ -24,7 +28,7 @@ Programs runner is interim, not a second product to expand permanently.
 - [Content handoff](evidence/2026-11-06-content-handoff.md) reconciles paused work:
   native repair plus real Codex/isolated checks/final review pass through HTTP.
   Storage authority stays outside the coding receiver; output survives compute deletion.
-  [Live browser execution](evidence/2026-11-06-live-feature-ui.md) now passes; full authoring, completion alternatives and delivery remain open.
+  [Real designer/browser proof](evidence/2026-11-07-configurable-designer.md) now passes; pending-review evidence, full authoring, completion alternatives and delivery remain open.
 
 ### Delivery sequence within this milestone
 
@@ -35,7 +39,7 @@ Programs runner is interim, not a second product to expand permanently.
    Owner-filtered capability consent and verified source/report previews now have
    a [controlled Engineering browser checkpoint](evidence/2026-11-05-feature-ui.md),
    including repair, final review, retirement and retrieval after compute deletion.
-   [Live browser proof](evidence/2026-11-06-live-feature-ui.md) now joins real sandbox coding/checks and post-cleanup retrieval; full resource/Program creation in that live journey remains open.
+   [Live designer proof](evidence/2026-11-07-configurable-designer.md) adds real planning/coding and output survival. Next freeze candidate/check snapshots in the ADLC review subject to expose reports before approval; full user-created authoring remains open.
    Session browser proof, occurrence/attempt views and canvas convergence follow.
 2. Prove bounded live coding with appropriate trusted/isolated verification. The
    [Program-check bridge](evidence/2026-11-05-program-checks.md) dispatches a pinned
@@ -52,8 +56,8 @@ Programs runner is interim, not a second product to expand permanently.
    file bindings and final evidence. Exercise relevant missing cancellation/recovery
    windows at the milestone; shared-existing-file conflicts must not become silent
    overwrites. Verify resulting UI/API/worker behavior, safe cleanup and output survival.
-4. Demonstrate the same published Engineering revision unchanged independently and nested,
-   then progress through the remaining milestones and final acceptance below.
+4. [Unchanged independent/nested live reuse](evidence/2026-11-06-engineering-reuse.md) now passes for Engineering revision 1.
+   Close pending-review evidence and user-created resource/Program authoring, then progress below.
 
 ### Acceptance and verification
 
@@ -74,16 +78,13 @@ Programs runner is interim, not a second product to expand permanently.
 
 | Order | Outcome | Remaining acceptance |
 | --- | --- | --- |
-| 1 | Feature journey above | Versioned design/HITL, actual coding, trusted bounded repair, final review and thin UI; not yet accepted. |
-| 2 | Unchanged independent/nested reuse and delivery integrations | Prove the same published Engineering revision in both contexts; real Jira/CI/CD/deployment contracts and external-effect reconciliation. |
+| 1 | Feature journey above | Live execution works; pending-review report visibility and user-created resource/Program authoring still prevent full acceptance. |
+| 2 | Completion alternatives and delivery integrations | Live unchanged reuse is proven; complete configurable deliverable/acceptance/delivery capabilities, Jira/CI/CD and external-effect reconciliation. |
 | 3 | Broader composition, observation and unified authoring | Complete library/workspace/workbench convergence, inline controls/bindings, revision adoption, occurrence/attempt hierarchy, gaps/disconnection and pagination. |
 | 4 | Remaining controls, service migration and remote operation | Credential recovery/rotation/isolated delivery, stale-attempt fencing, tenant capacity/fairness, admitted dynamic work, remaining admin/sharing/templates and old-runtime retirement. |
 | 5 | Operational and final acceptance | Required host/backend/load/recovery/cleanup matrices, packaging/deployment/docs/skills and requirement-by-requirement current-source audit. |
 
-Dependencies may bring a specific later item forward when the active journey needs
-it. Do not turn that into a requirement to finish the entire later milestone first.
-Required controls and deferred acceptance are retained in the full goal and target
-checklist. Important carry-over obligations include:
+Bring later items forward only for concrete dependencies. Required carry-over obligations in the full goal/target checklist include:
 
 - Private isolated receiver delivery: inspect the documented SDK request; never
   expose all-root material or a vault key to a sandbox, or fall back to broad keys.
@@ -114,6 +115,5 @@ checklist. Important carry-over obligations include:
 ## Maintaining this plan
 
 Keep one active milestone and this file within 120 lines. Rewrite changed facts;
-move completed detail into focused evidence rather than appending a diary. Read
-reference sections on demand. Audit every full-goal/target requirement at completion;
+move completed detail into focused evidence rather than appending a diary. Read reference sections on demand. Audit every full-goal/target requirement at completion;
 compact status and planning summaries never substitute for missing acceptance.

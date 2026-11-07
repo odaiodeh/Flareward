@@ -40,6 +40,7 @@ async def publish_feature(
     runners: tuple[str, ...] = ("fixture@1",),
     max_check_polls: int = 20,
     check_poll_interval_seconds: float = 0.1,
+    designer: ProgramRef | ProgramBody | None = None,
 ) -> FeaturePrograms:
     design = await publish_program(
         http,
@@ -48,7 +49,7 @@ async def publish_feature(
             name="Design",
             owner=owner,
             implementation=design_definition(
-                registry, profile, review_timeout_seconds=review_timeout_seconds
+                registry, profile, designer=designer, review_timeout_seconds=review_timeout_seconds
             ),
             input_schema=FeatureRequest.model_json_schema(),
             output_schema=DesignResult.model_json_schema(),

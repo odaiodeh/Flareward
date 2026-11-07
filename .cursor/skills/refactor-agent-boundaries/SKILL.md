@@ -72,14 +72,14 @@ out of discovery and registration, while concrete descendants validate normally.
 Operations use their invocation key and typed context, never a fabricated
 `StepContext` or automatic graph `set_context` injection. Test coincidentally named
 methods: structural protocol matching alone does not authorize graph binding.
-Current receiver/prepared formats are `unifai-elements-v3` and `runengine/request-v10`;
+Current receiver/prepared formats are `unifai-elements-v4` and `runengine/request-v10`;
 old prototype payloads have no compatibility promise. Rebuild matched images at
 the next relevant milestone after these installed-source changes.
 
 Backend Program invocation/model enforcement belongs to application `ApplicationInvoker`.
 Adapter `ApplicationCall` only captures/resolves installed references and translates
 boundary errors; it must not become another validation service or implementation
-registry. Program entrypoint contract is `unifai-program-v5`. Keep validators/defaults/
+registry. Program entrypoint contract is `unifai-program-v6`. Keep validators/defaults/
 serializers deterministic and runtime effects behind application ports. Registration
 already serves the installed specification role; introduce implementation classes or
 factories for real cohesive behavior/construction needs, not structural symmetry.
@@ -95,7 +95,7 @@ Whole-value `Projection` is portable domain data. Typed operation/Program inputs
 may be any JSON shape; graph input and output channel writes remain named mappings.
 Application `ProgramState` owns read-only `input`, indexed `results`, writable channel
 schemas and safe update validation. The thin engine adapter binds native reducer
-behavior (`unifai-graph-state-v3`). `StateContracts` admits declared channel access
+behavior (`unifai-graph-state-v4`). `StateContracts` admits declared channel access
 and graph-wide ordered/reduce writer policies; receiving adapters check actual
 returned changes against declared writes. Reduce uses existing reducers, including
 overwrite; it is not a general concurrency guarantee. Installed operations still receive

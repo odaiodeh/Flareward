@@ -23,10 +23,10 @@ from mas.domain.execution.consent import WorkflowConsent
 from mas.domain.execution.context import ExecutionContext
 from mas.domain.models import Model
 from mas.domain.programs.bindings import project
-from mas.graph.state.graph_state import GraphState
 from mas.scheduling.models import PromptSource, ScheduleDefinition, ScheduleStatus
 from mas.session.domain.session_record import SessionRecord
 from mas.session.execution.program_sessions import CreateProgramSession
+from mas.session.execution.projection import SessionProjection
 from mas.session.execution.staging import stage_inputs
 
 
@@ -116,8 +116,7 @@ class ProgramScheduleService:
             engine_handle=template_handle,
         )
         staged, inputs = stage_schedule(definition, context, credential_user_id)
-        if not staged.output_bindings.keys() <= GraphState.model_fields.keys():
-            raise ValueError("Session output bindings target unknown graph state channels")
+        SessionProjection.validate(staged.interaction, set(staged.output_bindings))
         revision = await self._programs.revision(
             definition.request.session.program, definition.owner
         )
@@ -307,13 +306,14 @@ def stage_schedule(
         identity=definition.owner,
         blueprint_id=session.blueprint_id,
         program=session.program,
+        interaction=session.interaction,
         metadata=metadata,
         input_bindings=session.input_bindings,
         output_bindings=session.output_bindings,
         run_context=context,
     )
     stage_inputs(record, request.inputs, credential_user_id)
-    inputs = {**project(record.input_bindings, record.graph_state.serialize()), **request.inputs}
+    inputs = {**project(record.input_bindings, SessionProjection.source(record)), **request.inputs}
     return record, inputs
 
 

@@ -10,9 +10,9 @@ from mas.application.execution.placement import ProfileAccess
 from mas.application.execution.profile_access import ExecutionProfileAccess
 from mas.application.programs.graph_context import step_contexts
 from mas.application.programs.graph_elements import GraphElementSpec
+from mas.application.programs.graph_state import graph_state_type
 from mas.application.programs.registry import ApplicationRegistry
 from mas.application.programs.service import ProgramService
-from mas.application.programs.state import ProgramState
 from mas.core.enums import ResourceCategory
 from mas.core.identity import Identity
 from mas.domain.execution.budgets import WorkLimits
@@ -45,7 +45,7 @@ from run_engine.models import (
     ProgramPlacement,
     WorkBudgetBinding,
 )
-from run_engine.state import ProgramGraphState
+from run_engine.state import engine_state_type
 from runengine import GraphBuilder, JoinPolicy, UnknownLabelPolicy
 from runengine.coordination.environment_models import BorrowedEnvironment, OwnedEnvironment
 from runengine.coordination.models import RunRequest
@@ -148,7 +148,7 @@ class ProgramCompiler:
             raise ValueError("Blueprint placement preview requires element graph steps")
         self._programs.authorize(definition, caller)
         approved = self._access.catalog(caller)
-        if not graph.inputs.keys() <= set(ProgramState.model_fields):
+        if not graph.inputs.keys() <= set(graph_state_type(graph).model_fields):
             raise ValueError("Graph input bindings target unknown state channels")
         step_contexts(graph, self._elements)
         for profile in graph.environments.values():
@@ -286,12 +286,13 @@ class ProgramCompiler:
         }
         if isinstance(implementation, GraphDefinition):
             self._bundles.validate_snapshot(implementation.resources)
-            channels = set(ProgramState.model_fields)
+            state_type = engine_state_type(implementation)
+            channels = set(state_type.model_fields)
             if not implementation.inputs.keys() <= channels:
                 raise ValueError("Graph input bindings target unknown state channels")
             contexts = step_contexts(implementation, self._elements)
             builder = GraphBuilder(
-                ProgramGraphState,
+                state_type,
                 recursion_limit=implementation.recursion_limit,
                 join_policy=JoinPolicy(implementation.join_policy.value),
                 unknown_label_policy=UnknownLabelPolicy.ERROR,
@@ -413,7 +414,7 @@ class ProgramCompiler:
                     runner=self._target(route.execution, execution_profile, approved),
                 )
             builder.set_entry(implementation.entry).set_exit(implementation.exit)
-            graph_request = builder.compile().request(ProgramGraphState()).model_dump(mode="json")
+            graph_request = builder.compile().request(state_type()).model_dump(mode="json")
         else:
             registration = self._applications.get(
                 implementation.implementation, implementation.version

@@ -108,12 +108,12 @@ export async function fetchBlueprints(teamId?: string): Promise<WorkflowBlueprin
  * Fetch lightweight blueprint summaries (name, description, metadata only - no spec_dict).
  * Use this for listing blueprints when the full spec is not needed.
  */
-export async function fetchBlueprintSummaries(teamId?: string): Promise<BlueprintSummary[]> {
+export async function fetchBlueprintSummaries(teamId?: string, signal?: AbortSignal): Promise<BlueprintSummary[]> {
   const query = new URLSearchParams();
   if (teamId) query.set('teamId', teamId);
   const qs = query.toString();
   const response = await axios.get<BlueprintSummary[]>(
-    `/blueprints/available.blueprints.summary.get${qs ? `?${qs}` : ''}`
+    `/blueprints/available.blueprints.summary.get${qs ? `?${qs}` : ''}`, { signal }
   );
   return response.data || [];
 }
