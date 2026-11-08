@@ -514,12 +514,12 @@ semantics. The backend owns validation and execution policy for every client.
 
 ### Unified program builder and reusable libraries
 
-Evolve the existing blueprint builder into one program-authoring workspace. A
-blueprint is the user-facing authoring/view representation of a program draft;
-publication produces the canonical program revision. Preserve separate presentation
-metadata without maintaining independent executable blueprint and program models.
-The initial standalone **Compose a Program** screen is an interim implementation
-view whose useful behavior should be folded into this workspace.
+Evolve the current Programs library and workspace. A graph is a Program's
+composition definition; its canvas layout is separate presentation metadata.
+Existing blueprint documents are templates imported into Program drafts, not
+another executable model or authoring product. Preserve useful patterns without
+restoring the removed blueprint builder. Registered implementations use their
+configuration/interfaces inside the same Program lifecycle.
 
 Keep these reusable definitions distinct, while making both discoverable from the
 builder's libraries:
@@ -557,6 +557,28 @@ Provide two explicitly different forms of expansion:
   operation invocations, nested calls, map items, iterations and attempts. Distinguish
   one authored block from its many runtime occurrences. Code-program execution
   inspection uses observed calls/events even when no editable internal graph exists.
+
+### Root overview and nested execution navigation
+
+Execution opens with the selected root Program's published composition and observed
+status. The root is the Program invoked for this run, not necessarily the largest
+Program in the library. A reusable Program can also run independently as a root.
+
+Support both inline expansion, preserving surrounding workflow context, and a
+focused view of an actual child execution. Breadcrumbs provide parent/root return
+and retain the exact revision, child occurrence, map item/iteration and attempt:
+
+```text
+Delivery execution > Engineering child > Iteration 2 > Coding attempt 1
+```
+
+One authored call can have many runtime occurrences; select the relevant occurrence
+before drilling into it rather than silently choosing an unrelated or latest run.
+Parent blocks summarize authoritative child states and waits. Backend implementations
+show their observed calls without fabricating editable graphs from arbitrary code.
+Inspection does not edit a definition, change revision pins or mutate running work.
+Definition expansion follows the pinned source; execution expansion follows the
+particular run. The full nested live canvas is a target, not current acceptance.
 
 The same workspace must preserve element configuration, program configuration and
 execution inputs as distinct lifecycles. Keep construction references, runtime data
@@ -612,8 +634,8 @@ Using a published Program pins a revision; creating from a template makes an
 independent draft. Repeated calls can reuse one resource while retaining distinct
 block and execution identities.
 
-Converge the existing blueprint builder and interim Programs screen into one
-authoring workspace. Reuse useful canvas, form, dependency-selection, validation,
+Evolve the current Program canvas and configuration editor in one authoring
+workspace. Reuse useful canvas, form, dependency-selection, validation,
 placement, theme and personal/team patterns. Keep one canonical draft document;
 derive canvas/YAML views and store presentation separately. The renderer is a
 replaceable presentation adapter. Reusing the existing graph surface is preferred
@@ -1107,6 +1129,12 @@ do not establish completion. Independently inspect references where required and
 bind verification and review to the exact candidate. Changed candidates require
 appropriate new evidence. Retain the deliverable before deleting temporary compute.
 
+An ADLC final-review subject captures the exact candidate and accepted verification
+snapshot, including check/configuration identities and durable reports, before a
+human decides. The resulting acceptance must preserve that same snapshot. This is
+an ADLC-owned contract; generic review remains schema-defined and generic artifact
+inspection discovers references without Engineering-specific paths or authority.
+
 Freeze configured contracts and completion policy in the published definition,
 with any permitted invocation selections validated and recorded in admitted
 execution settings. Runtime selection remains within declared alternatives. Any
@@ -1403,6 +1431,8 @@ justify them. These are not prerequisites for the agreed composition model.
 - [ ] Definition expansion preserves pinned revisions and explicit caller upgrades;
       execution drill-down targets actual children/items/iterations/attempts, including
       observed calls from code programs without inventing an editable source graph.
+- [ ] The root execution overview supports contextual inline expansion, focused
+      child inspection, explicit occurrence selection and parent/root breadcrumbs.
 - [ ] Conditions, loop bounds, parallel joins, and result bindings are validated.
 - [ ] Runtime occurrences distinguish iterations, map items, children, and retries.
 - [ ] Human Review works from graph and code programs; typed/authorized decisions

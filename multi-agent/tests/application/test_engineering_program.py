@@ -1,9 +1,11 @@
 """Engineering coordinates real application services through the runtime port."""
 
 import asyncio
+from copy import deepcopy
 
 import pytest
 from mas.application.verification.check_service import CheckRunService
+from mas.core.identity import Identity
 from mas.domain.programs.models import ApplicationDefinition, ProgramBody
 from mas.domain.reviews import ReviewDecision
 from mas.domain.verification import CheckVerdict
@@ -17,6 +19,7 @@ from mas_plugins.engineering.program import (
     EngineeringWork,
     engineering,
 )
+from mas_plugins.engineering.review import EngineeringReviewSubject
 from mas_plugins.reviews.specification import ELEMENT_SPECIFICATIONS as REVIEW_SPECS
 from mas_plugins.verification.specification import ELEMENT_SPECIFICATIONS as VERIFICATION_SPECS
 from pydantic import ValidationError
@@ -75,6 +78,75 @@ async def test_engineering_checks_exact_candidates_and_bounds_repairs(
             assert feedback["review"]["data"] == {"feedback": "checked"}
     if expected == EngineeringOutcome.VERIFIED:
         assert result["review"]["review"]["response"]["decision"] == "approve"
+        subject = EngineeringReviewSubject.model_validate(
+            result["review"]["review"]["specification"]["subject"]
+        )
+        assert subject.candidate.model_dump(mode="json") == result["candidate"]
+        assert subject.verification.model_dump(mode="json") == result["verification"]
+
+
+async def test_pending_review_captures_accepted_evidence_before_a_human_decides(configuration):
+    runtime = ServiceRuntime([CheckVerdict.PASSED], [ReviewDecision.APPROVE])
+    respond = runtime.receive
+
+    async def inspect_before_response(name, *, timeout=None):
+        record = await runtime.reviews.for_reviewer(
+            name.removeprefix("unifai.review."), Identity.user("reviewer")
+        )
+        assert record.status == "pending" and record.response is None
+        subject = EngineeringReviewSubject.model_validate(record.specification.subject)
+        observed = await runtime.verification.inspect(
+            subject.verification.state.plan.plan_id, runtime.actor
+        )
+        assert subject.verification == observed
+        assert observed.state.evidence[0].subject_fingerprint == subject.candidate.fingerprint
+        return await respond(name, timeout=timeout)
+
+    runtime.receive = inspect_before_response
+    result = await engineering(runtime, {"task": "implement"}, configuration)
+    assert result["outcome"] == "verified"
+
+
+@pytest.mark.parametrize(
+    "changed", ["candidate", "plan", "receipt", "revision", "result", "missing_evidence"]
+)
+async def test_accepted_result_cannot_substitute_the_reviewed_candidate_or_evidence(
+    configuration, changed
+):
+    result = await engineering(
+        ServiceRuntime([CheckVerdict.PASSED], [ReviewDecision.APPROVE]),
+        {"task": "implement"},
+        configuration,
+    )
+    altered = deepcopy(result)
+    subject = altered["review"]["review"]["specification"]["subject"]
+    if changed == "candidate":
+        subject["candidate"]["identity"]["version"] = "private-substitute"
+    elif changed == "plan":
+        subject["verification"]["state"]["plan"]["plan_id"] = "a" * 64
+    elif changed == "receipt":
+        subject["verification"]["state"]["evidence"][0]["run_id"] = "private-substitute"
+    elif changed == "revision":
+        subject["verification"]["state"]["revision"] += 1
+    elif changed == "result":
+        altered["verification"]["state"]["evidence"][0]["run_id"] = "private-substitute"
+    else:
+        subject.pop("verification")
+    with pytest.raises(ValidationError, match="exact reviewed evidence") as failed:
+        EngineeringResult.model_validate(altered)
+    assert "private-substitute" not in str(failed.value)
+
+
+async def test_rejected_checks_cannot_be_presented_as_an_acceptance_review(configuration):
+    result = await engineering(
+        ServiceRuntime([CheckVerdict.FAILED], []),
+        {"task": "implement"},
+        configuration.model_copy(update={"max_repairs": 0}),
+    )
+    with pytest.raises(ValidationError, match="accepted verification"):
+        EngineeringReviewSubject.model_validate(
+            {"candidate": result["candidate"], "verification": result["verification"]}
+        )
 
 
 async def test_uncertain_check_does_not_start_repair_or_fake_acceptance(configuration):
@@ -169,7 +241,7 @@ async def test_engineering_is_published_through_the_canonical_program_registry(
     )
     definition = ApplicationDefinition(
         implementation="engineering",
-        version="1",
+        version="2",
         config=configuration.model_dump(mode="json"),
         children={"implementation": body, "repair": body},
     )

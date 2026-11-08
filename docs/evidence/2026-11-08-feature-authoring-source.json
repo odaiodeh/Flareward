@@ -1,0 +1,126 @@
+{
+  "base_commit": "f8469f88d8c803c5f4450450eea7d0d416bfa92e",
+  "engine_commit": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "bundle_format": 2,
+  "digest_algorithm": "sorted relative path + NUL + raw SHA256(content), concatenated then SHA256",
+  "source": {
+    "platform": {
+      "files": 1079,
+      "sha256": "081c154362620a1c70903b0179ab1d0e9a33b7b86a1477a9dd7d9a69239e274f"
+    },
+    "ui": {
+      "files": 386,
+      "sha256": "11ad99c465a3af4d078eaa0c897d4b758dcee67beca756fc4ae633b46d9702fa"
+    },
+    "support": {
+      "files": 115,
+      "sha256": "21da309aa8810fccf8f98f54c3b2a36160120729f2b8c420d2fd3ab149d2692e"
+    },
+    "python_tests": {
+      "files": 387,
+      "sha256": "58cc4f7ca9d9bdc680bd3d4e27a1ee64305b08d03592be194853f6ecf10e041c"
+    }
+  },
+  "browser_assets": {
+    "assets/react-vendor-DYPZNrFI.js": "089687b9b90427d782b90ac6448ec3db4b4ab90ea440ac828f18e6cfcea6ea76",
+    "assets/vendor-6WbyGgZk.js": "c6a2104763d846651c7446bd0bfe2b29a2c2bddcbe47fb639ef77af9a8037a73",
+    "assets/workspace-browser-B62pc7_q.js": "9363550084635c57e6d0e8ae365f3c663ee01672512abe47d42877d87df2860e",
+    "assets/workspace-browser-DtRDaEWd.css": "abb3f702fcb65e310209bf1b094bbaef4c0b27e654cdec292a0f229ccd65f047",
+    "workspace-browser.html": "9f36c068573f590b39eca1b209201f847462f612164f5559792814ae4fc76cc4"
+  },
+  "browser_proof": {
+    "root": "346e21b5-41b6-4c99-abe4-b425ceb124f6",
+    "program": {
+      "program_id": "ebe45804-df3e-4b31-b343-a9eed688be7d",
+      "revision": 1
+    },
+    "database": "unifai_feature_browser_aa67a06020d44bd6ba320bdd2d9cea5c",
+    "outcome": "verified",
+    "design_revision": 2,
+    "coding_attempts": 2,
+    "children": [
+      {
+        "execution_id": "child-b613c0230b30930d820a5882c34a512d5f1b519eb35f8b8191df90dbec3de0f3",
+        "program": {
+          "program_id": "design",
+          "revision": 2
+        },
+        "content_digest": "865435a501f90554476579cdff1da6617f08956fd0c80fc1de7f299b079c3583"
+      },
+      {
+        "execution_id": "child-ba17ffee9485d45fe15698e2e0cb140f4350b3574efaf720f0cdee8a3c26a8ce",
+        "program": {
+          "program_id": "engineering",
+          "revision": 2
+        },
+        "content_digest": "a08612306b7cd02d319da067a18fc7648c77d15028e273cd5da4531102a0a356"
+      }
+    ],
+    "nested_pins": {
+      "design": [
+        {
+          "program_id": "32812074-2258-4e34-8da6-7edc775e0c0c",
+          "revision": 1
+        },
+        {
+          "program_id": "32812074-2258-4e34-8da6-7edc775e0c0c",
+          "revision": 1
+        }
+      ],
+      "engineering": [
+        {
+          "program_id": "a97ecd2a-e06f-44b3-bd33-85748b29315b",
+          "revision": 1
+        },
+        {
+          "program_id": "a97ecd2a-e06f-44b3-bd33-85748b29315b",
+          "revision": 1
+        }
+      ]
+    },
+    "coding_resource": "4c527bf628334749b2c4aabfeaa5f7d0",
+    "retired_capabilities": 3,
+    "artifacts": [
+      {
+        "sha256": "ba1a531f581d2e6094e978ed6f7aca7a8d92eeb62c6e7ad73ee692f7f18bc772",
+        "size_bytes": 32,
+        "artifact_id": "db3e09920740aca2a4f6d7f0e14e23ae974cb7912e5a2ff1eeef218705034020"
+      },
+      {
+        "sha256": "31ce13e25927e3a3001ab7a194a2666454d65cc8b0c10be014da9d49ff92faf8",
+        "size_bytes": 145,
+        "artifact_id": "5c8cdea2f430d82591b5e07a659237aa0757e713a4f39dd4fdfb4aa55f14d7c5"
+      }
+    ],
+    "workspaces_removed": true,
+    "nonterminal_executions": 0
+  },
+  "screenshots": {
+    "2026-11-08-authored-feature-retained.png": "258b4580ef635a0c272c7f9333ec27f758d16a57a1b4e4933d6123c48a0b6a5a"
+  },
+  "verification": {
+    "shared_and_boundaries": 810,
+    "native_typescript_program_suite": 1,
+    "native_thread_process_feature_cases": 2,
+    "ui_typecheck": "passed",
+    "ui_contracts": "passed",
+    "domain_strict_typing": "passed",
+    "affected_python_lint": "passed",
+    "actual_app_authoring": "passed with controlled executable",
+    "paid_provider": false,
+    "current_image_remote": false
+  },
+  "cleanup": {
+    "fixture_exit_codes": [
+      0,
+      0
+    ],
+    "owned_databases_absent": true,
+    "owned_api_listeners_closed": [
+      60249,
+      61456
+    ],
+    "private_cookie_files_removed": true,
+    "fresh_browser_retrieval_after_compute_deletion": true
+  }
+}

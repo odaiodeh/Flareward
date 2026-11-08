@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import api from '../client/src/http/axiosAgentConfig';
 import { cancelProgramExecution, getProgramDraft, getProgramRevision, inspectProgramExecution, listProgramExecutionChildren, listProgramRevisions, listPrograms, programImplementations, publishProgram, saveProgram, startProgram, validateProgramDraft, type ProgramBody, type ProgramDefinition } from '../client/src/api/programs';
-import { createResource, listResourcePage, updateResource } from '../client/src/api/resources';
+import { captureResourceSnapshot, createResource, listResourcePage, updateResource } from '../client/src/api/resources';
+import type { JsonValue } from '../shared/json';
 import { catalogService } from '../client/src/api/catalog';
 import { removeGraphEdges, orderingEdgeId } from '../client/src/features/programs/graph-authoring';
 import { isRecord } from '../client/src/lib/json';
@@ -167,9 +168,9 @@ async function verifyOwnedBodies(base: Pick<ProgramDefinition, 'owner' | 'input_
   const operation = (await listResourcePage({ category: 'operations' })).resources.find(value => value.name === 'Client operation')!;
   assert.ok(operation.source);
   const body: ProgramBody = { input_schema: { type: 'object' }, output_schema: { type: 'object' }, execution_profile: null, implementation: {
-    kind: 'graph', resources: [], steps: [{ kind: 'operation', uid: 'work', element: operation.source.key, execution: { profile: 'process' }, inputs: { text: { kind: 'path', path: ['user_prompt'] } }, outputs: { values: { kind: 'path', path: [] } }, max_attempts: 1, metadata: {} }],
+    kind: 'graph', resources: [], steps: [{ kind: 'operation', uid: 'work', element: operation.source.key, execution: { profile: 'process' }, inputs: { text: { kind: 'path', path: ['input', 'name'] } }, outputs: { values: { kind: 'path', path: [] } }, max_attempts: 1, metadata: {} }],
     edges: {}, conditions: [], entry: 'work', exit: 'work', environments: {}, recursion_limit: 100,
-    inputs: { user_prompt: { kind: 'path', path: ['name'] } }, outputs: { answer: { kind: 'path', path: ['values', 'text'] } },
+    inputs: {}, outputs: { answer: { kind: 'path', path: ['values', 'text'] } },
   } };
   const definition: ProgramDefinition = { ...base, program_id: 'client-owned', name: 'Owned composition', implementation: {
     kind: 'application', implementation: 'map', version: '1', config: { concurrency: 2, max_items: 3, inputs: { name: { kind: 'path', path: ['item'] } } },
@@ -200,6 +201,25 @@ async function verifyOwnedBodies(base: Pick<ProgramDefinition, 'owner' | 'input_
 }
 
 async function verifySavedResources(base: Pick<ProgramDefinition, 'owner' | 'input_schema' | 'output_schema' | 'execution_profile'>) {
+  const coding = await createResource({ category: 'operations', type: 'codex_coding', name: 'Numeric snapshot', config: { model: 'capture-only', timeout_seconds: 120 } });
+  assert.ok(coding.source);
+  const snapshot = await captureResourceSnapshot(coding.source);
+  assert.equal(snapshot.schema_version, 2);
+  const numeric: ProgramDefinition = { ...base, program_id: 'numeric-snapshot', name: 'Numeric snapshot', implementation: {
+    kind: 'application', implementation: 'placed_operation', version: '1', config: { bundle: snapshot as unknown as JsonValue, execution: { profile: 'process' } }, children: {}, environments: {}, child_environment_imports: {},
+  } };
+  const numericDraft = await saveProgram({ definition: numeric, expected_version: 0 });
+  assert.ok(numericDraft.definition.implementation.kind === 'application');
+  const retainedBundle = numericDraft.definition.implementation.config.bundle;
+  assert.ok(isRecord(retainedBundle));
+  assert.equal(retainedBundle.content_digest, snapshot.content_digest);
+  const revisionWithNumbers = await publishProgram(numeric.program_id, numericDraft.version);
+  assert.equal(revisionWithNumbers.definition.program_id, numeric.program_id);
+  const changedSnapshot = structuredClone(snapshot);
+  changedSnapshot.entries[0].resource.config.timeout_seconds = 121;
+  assert.ok(numeric.implementation.kind === 'application');
+  numeric.implementation.config.bundle = changedSnapshot as unknown as JsonValue;
+  await assert.rejects(saveProgram({ definition: numeric, expected_version: numericDraft.version }));
   const leaf = await createResource({ category: 'tools', type: 'platform_dependency', name: 'Client leaf', config: {} });
   const middle = await createResource({ category: 'tools', type: 'platform_dependency', name: 'Client middle', config: { value: 'client-middle', dependency: '$ref:' + leaf.rid } });
   const root = await createResource({ category: 'operations', type: 'platform_text_operation', name: 'Client operation', config: { dependency: '$ref:' + middle.rid }, execution: { profile: 'process' } });
@@ -210,9 +230,9 @@ async function verifySavedResources(base: Pick<ProgramDefinition, 'owner' | 'inp
   assert.deepEqual(Object.keys(contracts).sort(), ['input_schema', 'output_schema']);
   assert.deepEqual(contracts.input_schema?.required, ['text']);
   const definition: ProgramDefinition = { ...base, program_id: 'saved-operation', name: 'Saved operation', implementation: {
-    kind: 'graph', resources: [], steps: [{ kind: 'operation', uid: 'work', element: selected.source.key, execution: { profile: selected.execution?.profile }, inputs: { text: { kind: 'path', path: ['user_prompt'] } }, outputs: { values: { kind: 'path', path: [] } }, max_attempts: 1, metadata: {} }],
+    kind: 'graph', resources: [], steps: [{ kind: 'operation', uid: 'work', element: selected.source.key, execution: { profile: selected.execution?.profile }, inputs: { text: { kind: 'path', path: ['input', 'name'] } }, outputs: { values: { kind: 'path', path: [] } }, max_attempts: 1, metadata: {} }],
     edges: {}, conditions: [], entry: 'work', exit: 'work', environments: {}, recursion_limit: 100,
-    inputs: { user_prompt: { kind: 'path', path: ['name'] } }, outputs: { answer: { kind: 'path', path: ['values', 'text'] } },
+    inputs: {}, outputs: { answer: { kind: 'path', path: ['values', 'text'] } },
   } };
   const draft = await saveProgram({ definition, expected_version: 0, resource_selections: [{ source: selected.source, adoption: 'reject' }] });
   assert.ok(draft.definition.implementation.kind === 'graph');

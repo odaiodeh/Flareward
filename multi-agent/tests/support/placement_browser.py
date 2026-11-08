@@ -39,11 +39,7 @@ def add_browser_routes(app: FastAPI) -> FastAPI:
 
     @app.get("/fixture/login")
     async def login():
-        response = RedirectResponse(
-            "/inventory"
-            if os.environ.get("BROWSER_WORKSPACE")
-            else "/fixture/ui/placement-browser.html"
-        )
+        response = RedirectResponse("/inventory")
         response.set_cookie(
             "session", os.environ["PLACEMENT_BROWSER_COOKIE"], httponly=True, samesite="strict"
         )
@@ -87,7 +83,7 @@ async def team_leases(redis: Redis, team_ids: tuple[str, ...]):
                 await await_owned(redis.delete(*keys))
 
 
-async def serve(assets: Path, log: Path, *, workspace: bool = False) -> None:
+async def serve(assets: Path, log: Path) -> None:
     mongo_uri = os.environ["UNIFAI_TEST_MONGO_URI"]
     redis_uri = os.environ["UNIFAI_TEST_REDIS_URI"]
     database_name = "unifai_browser_test_" + uuid4().hex
@@ -105,7 +101,7 @@ async def serve(assets: Path, log: Path, *, workspace: bool = False) -> None:
         configuration_secrets=True,
         credential_encryption_key=SecretStr(Fernet.generate_key().decode()),
         library=True,
-        edit_locks=workspace,
+        edit_locks=True,
         execution_profiles={
             "thread": ThreadRunnerConfig(),
             "process": ProcessRunnerConfig(max_workers=1),
@@ -127,35 +123,32 @@ async def serve(assets: Path, log: Path, *, workspace: bool = False) -> None:
                     },
                 }
             )
-            team_ids = ()
-            if workspace:
-                os.environ["BROWSER_WORKSPACE"] = "1"
-                os.environ["BROWSER_TEAM_PREFIX"] = "ub-" + uuid4().hex
-                identity = await owned.enter_async_context(
-                    api_process(
-                        settings,
-                        log.with_suffix(".identity.log"),
-                        factory="support.browser_identity:create_app",
-                        health_path="/health",
-                    )
+            os.environ["BROWSER_TEAM_PREFIX"] = "ub-" + uuid4().hex
+            identity = await owned.enter_async_context(
+                api_process(
+                    settings,
+                    log.with_suffix(".identity.log"),
+                    factory="support.browser_identity:create_app",
+                    health_path="/health",
                 )
-                settings = settings.model_copy(
-                    update={"identity_url": str(identity.base_url).rstrip("/")}
+            )
+            settings = settings.model_copy(
+                update={"identity_url": str(identity.base_url).rstrip("/")}
+            )
+            team_ids = tuple(team["team_id"] for team in teams())
+            for name, owner, label in (
+                ("personal", Identity.user("browser-owner"), "Personal sharing fixture"),
+                ("first", Identity.team(team_ids[0]), "First team sharing fixture"),
+                ("second", Identity.team(team_ids[1]), "Second team sharing fixture"),
+            ):
+                await mongo[database_name].shares.insert_one(
+                    invitation(
+                        "browser-" + name,
+                        sender_identity=Identity.user("fixture-sender", "Fixture sender"),
+                        recipient_identity=owner,
+                        item_name=label,
+                    ).model_dump(mode="json")
                 )
-                team_ids = tuple(team["team_id"] for team in teams())
-                for name, owner, label in (
-                    ("personal", Identity.user("browser-owner"), "Personal sharing fixture"),
-                    ("first", Identity.team(team_ids[0]), "First team sharing fixture"),
-                    ("second", Identity.team(team_ids[1]), "Second team sharing fixture"),
-                ):
-                    await mongo[database_name].shares.insert_one(
-                        invitation(
-                            "browser-" + name,
-                            sender_identity=Identity.user("fixture-sender", "Fixture sender"),
-                            recipient_identity=owner,
-                            item_name=label,
-                        ).model_dump(mode="json")
-                    )
             redis = await owned.enter_async_context(owned_redis(redis_uri, decode_responses=True))
             cookie = await owned.enter_async_context(
                 authenticated_cookie(redis, "browser-owner", secret, ttl=1800)
@@ -167,9 +160,7 @@ async def serve(assets: Path, log: Path, *, workspace: bool = False) -> None:
                 api_process(
                     settings,
                     log,
-                    factory="support.workspace_browser:create_app"
-                    if workspace
-                    else "support.placement_browser:create_app",
+                    factory="support.workspace_browser:create_app",
                 )
             )
             assert (await http.get("/api/catalog/execution-profiles")).status_code == 401
@@ -225,7 +216,6 @@ async def serve(assets: Path, log: Path, *, workspace: bool = False) -> None:
         for name in (
             "PLACEMENT_BROWSER_COOKIE",
             "PLACEMENT_BROWSER_ASSETS",
-            "BROWSER_WORKSPACE",
             "BROWSER_TEAM_PREFIX",
         ):
             os.environ.pop(name, None)
@@ -240,9 +230,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--assets", type=Path, required=True)
     parser.add_argument("--log", type=Path, required=True)
-    parser.add_argument("--workspace", action="store_true")
     options = parser.parse_args()
     try:
-        asyncio.run(serve(options.assets, options.log, workspace=options.workspace))
+        asyncio.run(serve(options.assets, options.log))
     except KeyboardInterrupt:
         pass

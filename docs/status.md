@@ -1,11 +1,8 @@
 # Program platform: current status
 
-Snapshot: 2026-11-07. Broader goal paused; Program-model consolidation complete. Priority is one useful feature-delivery
-journey through the UI with architectural quality and safeguards throughout.
-Peripheral migration and broad hardening remain required later work.
+Snapshot: 2026-11-08. Goal active; consolidation complete. Priority is the feature-delivery UI journey with quality and safeguards; broader migration/hardening remain required.
 
 Start here and in [the active plan](plan.md); the full objective and [target architecture](architecture/README.md) define completion.
-Verify relevant source; this summary is not proof of acceptance.
 
 ## Implemented foundation
 
@@ -29,7 +26,8 @@ normal saved resources and production Programs for both planning and implementat
 Native thread/process proof covers rejected/revised design, failed coding and repair;
 the live OpenShell App proves actual planning/coding, checks, review and retained work.
 Shared bounded file loading keeps storage authority outside the coding receiver.
-Pending final reviews still need report visibility; full authoring remains open.
+[Exact review evidence](evidence/2026-11-07-review-evidence.md) now has native and actual-App proof;
+[Feature authoring](evidence/2026-11-08-feature-authoring.md) now proves UI-created coder/designer/candidate/root, explicit Design/Engineering adoption, revision/repair/review and retained work with controlled coding. Matched-image real-agent acceptance and full UX remain open.
 
 A [live browser feature journey](evidence/2026-11-06-live-feature-ui.md) now joins real Codex, isolated checks, final review and retained output.
 Full authoring/canvas acceptance remains open; the optional file Program does not restrict Git or other completion contracts.
@@ -43,7 +41,7 @@ capability consent and verified artifact/report previews. Its actual App journey
 completed design approval, two controlled coding attempts, checks and final review;
 source/report retrieval survived compute deletion. The [Program-check bridge](evidence/2026-11-05-program-checks.md)
 dispatches pinned verifiers; [Engineering integration](evidence/2026-11-06-engineering-program-checks.md) now proves the production checker, repair and shared UI together.
-[Live unchanged reuse](evidence/2026-11-06-engineering-reuse.md) proves its recorded revision independently and nested. Next: evidence before approval, full authoring and completion/delivery; strict Landlock remains optional.
+[Live unchanged reuse](evidence/2026-11-06-engineering-reuse.md) proves its recorded revision independently and nested. Next: full authoring and completion/delivery; strict Landlock remains optional.
 
 ## Reconciled paused work
 
@@ -62,7 +60,8 @@ open, but are no longer prerequisites for unrelated product work.
 
 ## Latest verified checkpoints
 
-- [Unified model](evidence/2026-11-07-unified-program-model.md): 1,047 native/shared/HTTP checks pass, 30 skip; UI contracts/typecheck/build pass. Remote receivers need rebuilding.
+- [Feature authoring](evidence/2026-11-08-feature-authoring.md): 810 shared/boundary cases, native TypeScript Program suite and two thread/process feature cases pass; actual App completes the authored controlled flow. Bundle v2 fixes browser numeric identity; readiness stays separate from admission.
+- [Unified model](evidence/2026-11-07-unified-program-model.md): 1,047 native/shared/HTTP checks pass, 30 skip; UI gates pass. Remote receivers need rebuilding.
 - [Configured designer](evidence/2026-11-07-configurable-designer.md): 786 shared, two native revision/repair and 23 CLI/profile/lifetime checks pass; matched-image live planning/coding App proof passes. Earlier [handoff](evidence/2026-11-06-content-handoff.md): 778 shared, 14 native,
   two post-helper and three profile checks pass; real Local/OpenShell HTTP journey
   passes. [Live browser proof](evidence/2026-11-06-live-feature-ui.md) adds approval, real sandbox coding/checks, post-cleanup retrieval and eight fixture checks; earlier [shared execution](evidence/2026-11-05-execution-workbench.md)
@@ -93,8 +92,9 @@ Run Engine baseline: `60393440efd3876cd6c81e0b013e8bf6d9167659`; no companion-pr
 changes were made here. Focused Kubernetes and normal OpenShell gates pass; the wider remote/recovery matrix remains open. Strict filesystem tests are optional.
 The earlier matrix had 35 passes, an OpenShell/Temporal setup timeout and four unreached child-owned
 cases. Diagnose those first at the rebuilt-image milestone; full acceptance is required.
-Current formats: request v10, Program v6, state v4, elements v4, scheduled admission v2.
+Current formats: request v10, Program v6, state v4, elements v4, scheduled admission v2, bundle v2. Recreate old bundles; remote images need rebuilding.
 
 ## Reading and maintenance
+
 Read relevant sections and focused evidence. Keep status within 100 lines and plan within 120; rewrite facts, not diaries.
 Completion requires every goal/checklist item, including deferred controls, UI, remote/load/recovery and retirement.

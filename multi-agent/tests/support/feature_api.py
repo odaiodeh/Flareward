@@ -73,7 +73,7 @@ async def publish_feature(
             owner=owner,
             implementation=ApplicationDefinition(
                 implementation="engineering",
-                version="1",
+                version="2",
                 config=config.model_dump(mode="json"),
                 children={"implementation": body, "repair": body},
             ),

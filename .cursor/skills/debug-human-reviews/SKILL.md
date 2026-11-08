@@ -123,7 +123,7 @@ an observed native timer, accepts a decision, restarts the API/worker, and repla
 both histories. The unique-database finalizer cleans accepted test-owned native
 identities after worker contexts exit. Do not terminate unrelated workflows.
 
-For an actual App check, build `ui/tests/build-placement-browser.mjs` as described
+For an actual App check, build `ui/tests/build-workspace-browser.mjs` as described
 in [session UI diagnostics](../debug-session-ui/SKILL.md), then use a fresh directory:
 
 ```sh

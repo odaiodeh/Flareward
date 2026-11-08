@@ -155,8 +155,16 @@ canonical names after alias normalization. Use `test_configuration_drafts.py` in
 application/Local integration, shared `support/draft_configuration.py`, Mongo secret
 contracts and the production client journey. An in-memory authoring secret store
 does not supply credentials to a separate process receiver: use the normal encrypted
-Mongo/receiver fixture for that proof. The interim editor still requires entry/exit;
-do not grow another editor merely to expose this backend slice.
+Mongo/receiver fixture for that proof. Named incomplete drafts can be saved in the
+current Program editor; publication still requires complete validity. Malformed
+JSON and numeric edits must block saving, not silently preserve prior values.
+`Check readiness` saves well-formed drafts and displays the application assessment
+for that version. Edits withdraw the assessment; this is not execution admission.
+Bundle format 2 normalizes whole-valued numbers only in hash input. Test actual
+capture → browser JSON → save/publication, not merely snapshot inspection: Codex's
+`120.0` timeout previously became `120` and invalidated an otherwise unchanged bundle.
+Keep tamper/precision-loss refusal. Old format 1 is rejected; recreate development
+data and rebuild installed receivers before remote gates.
 
 Use `domain/test_program_publication.py`, `application/test_draft_validation.py`
 and the shared memory/Mongo store contracts. `support/program_authoring.py` owns
@@ -224,7 +232,7 @@ input ordering and actual observed child IDs. The Temporal suite also checks
 nested Map/Repeat, Wait worker restart and root/descendant native replay. It does
 not establish Map worker-loss, remote cleanup or production-scale behavior.
 
-For the actual App, build `ui/tests/build-placement-browser.mjs` using
+For the actual App, build `ui/tests/build-workspace-browser.mjs` using
 [the existing browser workflow](../debug-session-ui/SKILL.md), then run:
 
 ```sh
@@ -234,12 +242,11 @@ UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 UNIFAI_TEST_REDIS_URI=redis://12
 Use a fresh directory and the printed test login URL. The fixture installs the
 shared deterministic backend programs and a published graph body. In Programs,
 create from `greeting`, configure Prefix, save, reopen from the library, publish
-and run `{"name":"standalone"}`. Create another program with `Build a workflow`,
+and run `{"name":"standalone"}`. Create another program with `Compose on canvas`,
 select that saved program by name and choose its explicit published revision.
 
-Add a program block; bind its `name` from state `user_prompt`, its whole output to
-state `values`, program `user_prompt` from public input `name`, and public result
-from state `values`. Publish/run. Publish a new greeting revision and require the
+Add a program block; bind its `name` from `input.name`, its whole output to
+`values`, and public result from `values`. Publish/run. Publish a new greeting revision and require the
 unchanged caller to retain its earlier pin/result. Inspect actual native results.
 For Map, bind `body` to `browser-map-body` using the named picker and select revision
 1; configure child `name` from `item` and run three items with explicit bounds.
@@ -258,9 +265,8 @@ The workbench supports actual child/root/parent links and cancellation; test a
 acceptance from a completed engine phase or add a second result panel to the editor.
 
 The same fixture seeds a saved operation with a transitive dependency and process
-preference. Add it from the saved-element palette, bind `text` from state
-`user_prompt`, map its whole result to `values`, bind program `user_prompt` from
-public `name`, and return `values.text`. Save/reopen/publish/run and check the
+preference. Add it from the saved-element palette, bind `text` from `input.name`,
+map its whole result to `values`, and return `values.text`. Save/reopen/publish/run and check the
 dependency-derived result and retained process placement. Later source changes
 must leave the old revision unchanged; adoption is explicit. Production TypeScript
 client tests exercise source conflicts/replacement independently of the browser.
@@ -291,7 +297,7 @@ the completed result visits score/yes/finish, never no. Remove/re-add a branch a
 check exactly two configuration-adoption controls remain (work + condition).
 The selected-block section owns the React key/lifetime; duplicate sibling keys
 previously accumulated stale controls despite green transport contracts.
-Removing the entry clears its selection and blocks save until replaced. Discard
+Removing the entry clears its selection and blocks publication until replaced. Discard
 must restore the saved graph without modifying its published revision.
 
 `features/programs/graph-authoring.ts` owns pure graph-edit transformations. Edge
@@ -301,7 +307,15 @@ rewires paths. Drop unreferenced pending source selections, but do not reconstru
 or prune dependency snapshots from browser configuration. The production UI
 contracts check these edits against both plain data and actual branch execution.
 
-Check invalid JSON blocks save and still triggers the unsaved-changes guard.
+Check invalid JSON and unfinished numeric text block save and retain the unsaved
+guard. `NumberField` retains raw text separately from portable data; numeric errors
+must also block invocation and switching to JSON inputs. Empty required fields
+may remain absent in a draft; name/source and all supplied invalid values still reject.
+Reproduce cached navigation by save/publish/run/reopen/edit/save/run/reopen within
+five minutes. `Programs` overrides the discovery cache with `staleTime: 0` and
+waits for `isFetchedAfterMount`; editor identity excludes observed draft versions.
+Do not replace dirty editors on later observations. Read the
+[authoring checkpoint](../../../docs/evidence/2026-11-08-program-authoring.md).
 Mutable drafts must not be replaced by background focus refetches. Scope all
 query keys by owner and authenticated human; abort requests on view replacement.
 Use the existing `dark-inputs` parent class for this workspace: global theme CSS
@@ -315,8 +329,9 @@ attempt inspection remain open. Advanced bindings/environments use JSON. Snapsho
 polling must be authoritative; uncertain starts retain the same identity/input,
 and unmounted or previous-workspace requests cannot update the new view.
 
-The target evolves the existing blueprint builder into one program workspace;
-incorporate this interim screen rather than preserving a separate workflow UI.
+Evolve the current Program workspace and reuse useful historical canvas patterns;
+do not restore the removed parallel blueprint builder. React Flow owns current
+authoring presentation; retained JointJS views are read-only MAS inspection.
 Expose controls inline and keep element resources/program revisions distinct.
 Definition expansion inspects a pinned revision; editing publishes a new revision
 for explicit caller adoption. Runtime drill-down follows actual occurrences and

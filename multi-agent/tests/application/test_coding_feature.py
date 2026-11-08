@@ -178,7 +178,7 @@ async def test_feature_publication_checks_consumed_results_without_requiring_opt
     engineering_body = ProgramBody(
         implementation=ApplicationDefinition(
             implementation="engineering",
-            version="1",
+            version="2",
             config=config.model_dump(mode="json"),
             children={"implementation": candidate, "repair": candidate},
         ),

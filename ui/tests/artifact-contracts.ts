@@ -10,6 +10,18 @@ export async function verifyArtifactContracts() {
   assert.equal(artifactReferences([{ ...reference, size_bytes: -1 }]).references.length, 0);
   assert.equal(artifactReferences([reference, { ...reference, sha256: 'b'.repeat(64) }]).references.length, 2);
   assert.equal(artifactReferences([Array.from({ length: 4096 }, () => ({}))]).truncated, true);
+  const report = { artifact_id: 'b'.repeat(64), sha256: 'c'.repeat(64), size_bytes: 42 };
+  const pendingSubject = {
+    kind: 'engineering-review@1',
+    candidate: { kind: 'blob-artifact@1', identity: reference },
+    verification: { outcome: 'accepted', state: {
+      plan: { subject: { kind: 'blob-artifact@1', identity: reference } },
+      evidence: [{ reports: [{ content: report }] }],
+    } },
+  };
+  const discovered = artifactReferences([pendingSubject]);
+  assert.equal(discovered.truncated, false);
+  assert.deepEqual(new Set(discovered.references.map(value => value.artifact_id)), new Set([reference.artifact_id, report.artifact_id]));
   const original = globalThis.fetch;
   let body: ReadableStream<Uint8Array>;
   let cancelled = false;

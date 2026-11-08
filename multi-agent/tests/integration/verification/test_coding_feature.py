@@ -109,9 +109,9 @@ async def test_native_coding_feature_starts_engineering_only_after_exact_design_
             assert response.status_code == 200, response.text
         if approved:
             final = await pending_review(api.http, root, api.human, api.reviewer)
-            assert final.specification.subject["kind"] == "blob-artifact@1"
+            assert final.specification.subject["candidate"]["kind"] == "blob-artifact@1"
             assert (
-                final.specification.subject["identity"]["sha256"]
+                final.specification.subject["candidate"]["identity"]["sha256"]
                 == hashlib.sha256(b"candidate verified\n").hexdigest()
             )
             response = await api.http.post(

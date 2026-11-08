@@ -60,7 +60,7 @@ MYPYPATH=multi-agent/lib:multi-agent/adapters:multi-agent .venv/bin/python -m my
 ```
 
 For a visible form failure use the actual full App fixture in
-[session UI diagnostics](../debug-session-ui/SKILL.md), with `--workspace`.
+[session UI diagnostics](../debug-session-ui/SKILL.md).
 Model/reasoning discovery uses synthetic Mongo capabilities and no provider call.
 Keep browser, HTTP protocol, typing and deployment evidence distinct. After
 installed-module changes, rebuild/verify both receivers and run the selected

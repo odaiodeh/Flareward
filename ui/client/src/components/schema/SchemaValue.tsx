@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { isRecord } from '@/lib/json';
 import JsonField from './JsonField';
+import NumberField from './NumberField';
 import { resolveSchema } from './schema';
 
 export interface SchemaField {
@@ -43,16 +44,12 @@ export default function SchemaValue({ schema: raw, root = raw, value, onChange, 
   } else if (schema.type === 'boolean') editor = <label className="block text-sm">{fieldLabel}<select aria-label={fieldLabel} className="block w-full rounded border bg-background p-2" disabled={disabled} required={required} value={typeof value === 'boolean' ? String(value) : ''} onChange={event => onChange(event.target.value === '' ? undefined : event.target.value === 'true')}>
     <option value="">Select a value</option><option value="true">Yes</option><option value="false">No</option>
   </select></label>;
-  else if (['string', 'integer', 'number'].includes(String(schema.type))) editor = <label className="block space-y-1 text-sm"><span>{fieldLabel}</span><Input aria-label={fieldLabel} disabled={disabled} required={required}
-    type={schema.type === 'string' ? schema.writeOnly === true || schema.format === 'password' ? 'password' : 'text' : 'number'}
-    autoComplete={schema.writeOnly === true ? 'off' : undefined} value={typeof value === 'string' || typeof value === 'number' ? value : ''}
-    min={typeof schema.minimum === 'number' ? schema.minimum : undefined} max={typeof schema.maximum === 'number' ? schema.maximum : undefined}
+  else if (schema.type === 'integer' || schema.type === 'number') editor = <NumberField label={fieldLabel} schema={schema} value={value} onChange={onChange} disabled={disabled} required={required} />;
+  else if (schema.type === 'string') editor = <label className="block space-y-1 text-sm"><span>{fieldLabel}</span><Input aria-label={fieldLabel} disabled={disabled} required={required}
+    type={schema.writeOnly === true || schema.format === 'password' ? 'password' : 'text'}
+    autoComplete={schema.writeOnly === true ? 'off' : undefined} value={typeof value === 'string' ? value : ''}
     minLength={typeof schema.minLength === 'number' ? schema.minLength : undefined} maxLength={typeof schema.maxLength === 'number' ? schema.maxLength : undefined}
-    step={schema.type === 'integer' ? 1 : 'any'} onChange={event => {
-      if (schema.type === 'string') onChange(event.target.value);
-      else if (event.target.value === '') onChange(undefined);
-      else if (Number.isFinite(event.target.valueAsNumber)) onChange(event.target.valueAsNumber);
-    }} /></label>;
+    onChange={event => onChange(event.target.value)} /></label>;
   else editor = <JsonField label={fieldLabel} value={value ?? null} objectOnly={depth === 0 && schema?.type === 'object' && !raw.anyOf && !raw.oneOf} disabled={disabled} onChange={onChange} />;
   return <div className="space-y-1">{editor}
     {description && !custom && <p className="text-xs text-muted-foreground">{description}</p>}

@@ -1,0 +1,59 @@
+{
+  "base_commit": "f8469f88d8c803c5f4450450eea7d0d416bfa92e",
+  "engine_commit": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "source": {
+    "platform": {
+      "files": 1079,
+      "sha256": "308010c8ee4743942beb82b21a310093ddb56730b0a56027e702fb7c7b29ab74"
+    },
+    "ui": {
+      "files": 365,
+      "sha256": "e65a7a9d5db371bbd2f965955b9921bede1d0b8b10049266751cfda8f7a3c83b"
+    },
+    "support": {
+      "files": 115,
+      "sha256": "d115647c9a516ab97a0c5db6c3a9cfb4aea388e406ba4407d69af28389217703"
+    },
+    "python_tests": {
+      "files": 386,
+      "sha256": "3149824770f161738c96d9e3cae8a9aff5abf31fcd667624b0da85403d925c12"
+    }
+  },
+  "browser_assets": {
+    "assets/react-vendor-DYPZNrFI.js": "089687b9b90427d782b90ac6448ec3db4b4ab90ea440ac828f18e6cfcea6ea76",
+    "assets/vendor-6WbyGgZk.js": "c6a2104763d846651c7446bd0bfe2b29a2c2bddcbe47fb639ef77af9a8037a73",
+    "assets/workspace-browser-CcsMonAS.js": "76bc3a81d9b4f7013c31ab23e3c9b8983381790e2298f01cfa79f15f9a5c82c7",
+    "assets/workspace-browser-fmcyWIQw.css": "f008aeb04b018cbddb6f0251ae374995aca117cf120025d66c70952c22e6689a",
+    "workspace-browser.html": "e2a3dc7f4d756a35899954e4936ea913b6b62469aa9eeaaeeb3603efe73f51d5"
+  },
+  "browser_proof": {
+    "root": "6a1e9610-a8b0-401f-a235-4e08eaf65ee3",
+    "outcome": "verified",
+    "attempts": 2,
+    "database": "unifai_feature_browser_e2124bfa05b44faea256b79d9e1074b2",
+    "retired_capabilities": 3,
+    "references": [
+      {
+        "sha256": "ba1a531f581d2e6094e978ed6f7aca7a8d92eeb62c6e7ad73ee692f7f18bc772",
+        "size_bytes": 32,
+        "artifact_id": "d7b4a155810b32671c74d9f98c8593529ea990867d2a2580c383d4a5790c52bc"
+      },
+      {
+        "sha256": "594070cbb1b1228e45681db92c842d23953189af2d4a83d917ed7e2cd4abab19",
+        "size_bytes": 145,
+        "artifact_id": "00908ac1564ca5e2c4a1239a5d997d527dc84a71d84205c5f6058075a49d8efe"
+      }
+    ],
+    "workspaces_removed": true
+  },
+  "screenshots": {
+    "2026-11-07-pending-review-evidence.png": "de1d3a68aaee75df16d639898f81ec1e16c4f0ad883170c4e98c74872f42160a",
+    "2026-11-07-review-retained-evidence.png": "895c87a2f806514b8e33808b9c27f02de298c3cfaf0e63806016d028421691eb"
+  },
+  "fixture_smoke": {
+    "login": "full App at /inventory",
+    "profile_catalog": "authenticated",
+    "database": "unifai_browser_test_f1c09e752f484c0c9f84a0a94cade193",
+    "shutdown": "normal callback completed"
+  }
+}

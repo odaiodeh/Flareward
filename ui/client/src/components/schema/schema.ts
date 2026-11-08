@@ -1,6 +1,19 @@
 import type { JsonObject, JsonValue } from '@shared/json';
 import { isRecord } from '@/lib/json';
 
+/** An unfinished numeric edit is not an absent setting or the previous valid number. */
+export function parseSchemaNumber(text: string, schema: JsonObject): number | undefined {
+  if (!text.trim()) return undefined;
+  let value: unknown;
+  try { value = JSON.parse(text); }
+  catch { throw new Error('Enter a valid number.'); }
+  if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error('Enter a finite number.');
+  if (schema.type === 'integer' && !Number.isInteger(value)) throw new Error('Enter a whole number.');
+  if (typeof schema.minimum === 'number' && value < schema.minimum || typeof schema.maximum === 'number' && value > schema.maximum
+    || typeof schema.exclusiveMinimum === 'number' && value <= schema.exclusiveMinimum || typeof schema.exclusiveMaximum === 'number' && value >= schema.exclusiveMaximum) throw new Error('Enter a number within the allowed range.');
+  return value;
+}
+
 /** Only local schema references are resolved; rendering never fetches remote URLs. */
 export function resolveSchema(root: JsonObject, field: JsonValue, seen = new Set<string>()): JsonObject | null {
   if (!isRecord(field)) return null;

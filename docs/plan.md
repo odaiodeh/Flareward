@@ -1,15 +1,15 @@
 # Program platform: active plan
 
-Updated 2026-11-07. Read [status](status.md) and relevant source; the
+Updated 2026-11-08. Read [status](status.md) and relevant source; the
 [target checklist](architecture/README.md#architecture-acceptance-checklist) defines completion.
 
 ## Completed prerequisite: unified Program model
 
 Generic data state, explicit conversation projection and one Programs library/canvas
 are implemented; factories/resources and template import remain.
-[Native and UI gates pass](evidence/2026-11-07-unified-program-model.md); the broader goal remains paused.
+[Native and UI gates pass](evidence/2026-11-07-unified-program-model.md); the feature journey is now active.
 
-## Next milestone: complete feature-delivery journey
+## Active milestone: complete feature-delivery journey
 
 **Outcome:** a user configures reusable resources and publishes a Program, supplies
 feature requirements and criteria, reviews a versioned design, observes real coding,
@@ -28,7 +28,7 @@ Connect the existing UI as each required contract stabilizes. One Programs libra
 - [Content handoff](evidence/2026-11-06-content-handoff.md) reconciles paused work:
   native repair plus real Codex/isolated checks/final review pass through HTTP.
   Storage authority stays outside the coding receiver; output survives compute deletion.
-  [Real designer/browser proof](evidence/2026-11-07-configurable-designer.md) now passes; pending-review evidence, full authoring, completion alternatives and delivery remain open.
+  [Controlled feature authoring](evidence/2026-11-08-feature-authoring.md) now passes; matched-image real-agent acceptance, completion alternatives and delivery remain open.
 
 ### Delivery sequence within this milestone
 
@@ -39,7 +39,7 @@ Connect the existing UI as each required contract stabilizes. One Programs libra
    Owner-filtered capability consent and verified source/report previews now have
    a [controlled Engineering browser checkpoint](evidence/2026-11-05-feature-ui.md),
    including repair, final review, retirement and retrieval after compute deletion.
-   [Live designer proof](evidence/2026-11-07-configurable-designer.md) adds real planning/coding and output survival. Next freeze candidate/check snapshots in the ADLC review subject to expose reports before approval; full user-created authoring remains open.
+   [Feature authoring](evidence/2026-11-08-feature-authoring.md) now joins UI-created coder/designer/candidate/root and explicit Design/Engineering adoption through controlled revision, repair, review and retained work. Bundle v2 fixes numeric capture/save integrity. Next: rebuild matched images and accept this authored path with bounded real-agent execution; preserve earlier unchanged reuse and exact review proof.
    Session browser proof, occurrence/attempt views and canvas convergence follow.
 2. Prove bounded live coding with appropriate trusted/isolated verification. The
    [Program-check bridge](evidence/2026-11-05-program-checks.md) dispatches a pinned
@@ -57,7 +57,7 @@ Connect the existing UI as each required contract stabilizes. One Programs libra
    windows at the milestone; shared-existing-file conflicts must not become silent
    overwrites. Verify resulting UI/API/worker behavior, safe cleanup and output survival.
 4. [Unchanged independent/nested live reuse](evidence/2026-11-06-engineering-reuse.md) now passes for Engineering revision 1.
-   Close pending-review evidence and user-created resource/Program authoring, then progress below.
+   Controlled feature authoring and retained evidence are verified; complete matched-image real-agent acceptance, then progress below.
 
 ### Acceptance and verification
 
@@ -78,7 +78,7 @@ Connect the existing UI as each required contract stabilizes. One Programs libra
 
 | Order | Outcome | Remaining acceptance |
 | --- | --- | --- |
-| 1 | Feature journey above | Live execution works; pending-review report visibility and user-created resource/Program authoring still prevent full acceptance. |
+| 1 | Feature journey above | Controlled authored flow passes; current-image real-agent acceptance of that path remains. Full UX follows in its dedicated milestone. |
 | 2 | Completion alternatives and delivery integrations | Live unchanged reuse is proven; complete configurable deliverable/acceptance/delivery capabilities, Jira/CI/CD and external-effect reconciliation. |
 | 3 | Broader composition, observation and unified authoring | Complete library/workspace/workbench convergence, inline controls/bindings, revision adoption, occurrence/attempt hierarchy, gaps/disconnection and pagination. |
 | 4 | Remaining controls, service migration and remote operation | Credential recovery/rotation/isolated delivery, stale-attempt fencing, tenant capacity/fairness, admitted dynamic work, remaining admin/sharing/templates and old-runtime retirement. |

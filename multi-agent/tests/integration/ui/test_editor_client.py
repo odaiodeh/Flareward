@@ -234,6 +234,7 @@ async def test_existing_typescript_editor_clients_use_native_services(
                     "support.conditions",
                     "support.draft_configuration",
                     "support.value_operations",
+                    "mas_plugins.coding.codex.specification",
                 ),
                 "application_modules": (
                     "support.programs",

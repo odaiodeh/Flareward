@@ -53,51 +53,39 @@ guard. Mongo preview tests assert unchanged records and safe response fields.
 The UI hides previous results as soon as the draft changes, uses abort signals,
 and keeps authored configuration out of query keys.
 
-### Isolated placement browser check
+### Actual workspace browser check
 
-The maintained fixture renders the actual save dialog, auth provider and API
-clients. It issues a synthetic test identity through the existing signed-cookie
-helper; the native API still uses its production session authenticator against
-real isolated Redis. It is not an OAuth or full-application-navigation test.
+The maintained fixture renders the production App and provider tree. It uses the
+production signed-cookie authenticator against real Mongo/Redis, with an owned
+synthetic membership service, unique teams and a personal workspace. External
+identity, terms/settings and analytics are fixtures; MAS routes are not stubbed.
+The superseded isolated blueprint-dialog harness and mode are removed.
 
 Build from `ui/`:
 
 ```sh
-NODE_ENV=production node tests/build-placement-browser.mjs /tmp/unifai-placement-browser
+NODE_ENV=production node tests/build-workspace-browser.mjs /tmp/unifai-workspace-browser
 ```
 
-Start from the repository root, using the already-running own test services:
+Start from the repository root with the existing own test services:
 
 ```sh
 UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
 UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
 PYTHONPATH=multi-agent/tests:multi-agent/lib:multi-agent/adapters:multi-agent \
 .venv/bin/python -m support.placement_browser \
-  --assets /tmp/unifai-placement-browser --log /tmp/unifai-placement-browser-api.log
+  --assets /tmp/unifai-workspace-browser --log /tmp/unifai-workspace-browser-api.log
 ```
 
-Keep the live process handle and open its printed loopback URL. Check inherited
-resource placement, workflow defaults, independent condition placement, named
-environment creation/use, disabled removal while in use, save/update/reopen, and
-canceling unsaved changes. The isolated profile is for preview only: do not start
-a remote run with its placeholder image. Observe server results instead of
-injecting application state. Save a screenshot of the verified dialog.
+Keep the live handle and open the printed login URL. It opens `/inventory`;
+use `/programs` for canonical composition, placement and saved revision inspection.
+The isolated profile has a preview-only placeholder image; do not execute it.
+Observe real server responses instead of injecting application state. This does
+not certify OAuth, remote isolation or complete product acceptance.
 
-Close the test tab and stop the owned process with Ctrl-C once. The fixture drains
-the API, removes its unique database and signed-cookie Redis session, and prints
-the removed database identity. Confirm API shutdown and cleanup. Do not flush Redis
-or remove unrelated databases. Do not deploy the test-only fixture/login adapter
-as the production ASGI factory.
-
-### Full workspace browser check
-
-The same build now includes `workspace-browser.html`, which renders the actual
-production `App` and provider tree. Start the maintained runner above with
-`--workspace`; its printed login URL opens `/inventory`. It owns a separate local
-synthetic membership HTTP service, two unique teams, a personal workspace, real
-Mongo/Redis and the production signed-cookie authenticator. Only external identity,
-terms/settings and analytics responses are fixtures. MAS routes are not stubbed.
-This is not an OAuth/login-provider or complete product-parity certification.
+Close the test tab, stop the owned runner with Ctrl-C once and poll that handle.
+Confirm API/identity shutdown, unique database and cookie/lease retirement. Leave
+shared services and unrelated databases intact. Never deploy the fixture ASGI app.
 
 Check personal and team node/condition profile save/reload, transitive reference
 selection, resource versions, closing a pending lease and switching teams. A team

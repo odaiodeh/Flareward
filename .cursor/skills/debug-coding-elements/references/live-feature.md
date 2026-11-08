@@ -66,7 +66,7 @@ in [the content-handoff evidence](../../../../docs/evidence/2026-11-06-content-h
 
 ## Actual-App live journey
 
-Build App assets with `ui/tests/build-placement-browser.mjs`, then use the same
+Build App assets with `ui/tests/build-workspace-browser.mjs`, then use the same
 service/image variables above and the repository's test import paths:
 
 ```sh

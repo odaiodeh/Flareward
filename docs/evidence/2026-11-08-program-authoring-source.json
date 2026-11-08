@@ -1,0 +1,105 @@
+{
+  "base_commit": "f8469f88d8c803c5f4450450eea7d0d416bfa92e",
+  "engine_commit": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "digest_algorithm": "sorted relative path + NUL + raw SHA256(content), concatenated then SHA256",
+  "source": {
+    "ui": {
+      "files": 385,
+      "sha256": "6d1c50a5950accb4791b2abb556110b6eb61c51d3ed7a0204f827cc87c95ec48"
+    },
+    "platform": {
+      "files": 1079,
+      "sha256": "a50361dbab2c91af09ab1a8f8ebadf9ddcc789ce609e5dc593a51a2ef114a3b6"
+    },
+    "support": {
+      "files": 115,
+      "sha256": "47b8062d7159b63e71191ae297da3c12b2deab2152550ee205644a288f921db4"
+    }
+  },
+  "final_browser_assets": {
+    "assets/react-vendor-DYPZNrFI.js": "089687b9b90427d782b90ac6448ec3db4b4ab90ea440ac828f18e6cfcea6ea76",
+    "assets/vendor-6WbyGgZk.js": "c6a2104763d846651c7446bd0bfe2b29a2c2bddcbe47fb639ef77af9a8037a73",
+    "assets/workspace-browser-Dd4eocIB.js": "809e6885be5b775ac13e9f68880aebef4ed5708e2bd8e5a7ae35c2d986dfbf34",
+    "assets/workspace-browser-fmcyWIQw.css": "f008aeb04b018cbddb6f0251ae374995aca117cf120025d66c70952c22e6689a",
+    "workspace-browser.html": "b534fe7aac0e2c16807692d2cb70d688efba123dce23c512192ff93302bfbbc4"
+  },
+  "browser_proof": {
+    "database": "unifai_program_browser_47727240da31477082a17432fc73e645",
+    "program": {
+      "program_id": "a8e3dabd-fbcd-4ba7-95d7-da2f52f34c3c",
+      "revision": 1
+    },
+    "content_digest": "0286a1371c0c4a4d1ae601cc175f96774e558f9b877e7749ed11120f94dfdaaf",
+    "resource_id": "d3d1275ecd6f4490b3052f3f39a9fa73",
+    "captured_resources": 3,
+    "profile": "process",
+    "incomplete_draft_version": 4,
+    "runs": {
+      "standalone": {
+        "execution_id": "151eb2f6-4df4-403c-995c-298ea6d505fa",
+        "program": {
+          "program_id": "a8e3dabd-fbcd-4ba7-95d7-da2f52f34c3c",
+          "revision": 1
+        },
+        "content_digest": "0286a1371c0c4a4d1ae601cc175f96774e558f9b877e7749ed11120f94dfdaaf"
+      },
+      "parent": {
+        "execution_id": "b4e3350a-d4e4-494b-b1aa-649e1435882d",
+        "program": {
+          "program_id": "f253292f-0a11-4fbd-8a51-b4c523941d0c",
+          "revision": 1
+        },
+        "content_digest": "0bab5e3c3e8161bc9b45cdb0b71a986808b03f4cf76e29f22e3d49779e982065"
+      },
+      "after_incomplete_edit": {
+        "execution_id": "11e72a9c-6e73-4028-a004-c3ace35f4b20",
+        "program": {
+          "program_id": "a8e3dabd-fbcd-4ba7-95d7-da2f52f34c3c",
+          "revision": 1
+        },
+        "content_digest": "0286a1371c0c4a4d1ae601cc175f96774e558f9b877e7749ed11120f94dfdaaf"
+      },
+      "cached_reopen": {
+        "execution_id": "e1677316-9327-4b99-8fd0-68afb772c0f2",
+        "program": {
+          "program_id": "a8e3dabd-fbcd-4ba7-95d7-da2f52f34c3c",
+          "revision": 1
+        },
+        "content_digest": "0286a1371c0c4a4d1ae601cc175f96774e558f9b877e7749ed11120f94dfdaaf"
+      }
+    },
+    "child": "child-06001910474df775906c182d14a36c0b32134fc7735d7e4cd1b9a1acf68d49eb",
+    "nonterminal_executions": 0
+  },
+  "screenshots": {
+    "2026-11-08-authored-nested-result.png": "ff27e4d06160cdb94bddaa97c2a75f45b03346c164aadecabfd9e27808b5b8e4",
+    "2026-11-08-number-edit-guard.png": "72ae667326073984c3c7ef0d9404f5022698ff09c30d39bd71dd55e3585a99c9"
+  },
+  "verification_scope": {
+    "backend_draft_tests": 8,
+    "ui_typecheck": "passed",
+    "ui_contracts": "passed",
+    "app_bundle": "built with existing warnings",
+    "live_provider": false,
+    "remote_backends": false
+  },
+  "renderer_phases": {
+    "resource_creation_numeric_and_initial_nested_run": "workspace-browser-BajAfqFx.js",
+    "first_cache_fix": "workspace-browser-DIrlVvaW.js",
+    "final_cached_reopen_and_observation": "workspace-browser-Dd4eocIB.js"
+  },
+  "cleanup": {
+    "owned_databases_absent": true,
+    "owned_api_listeners_closed": [
+      56336,
+      57350,
+      57967
+    ],
+    "fixture_exit_codes": [
+      0,
+      0,
+      0
+    ],
+    "nonterminal_executions_before_cleanup": 0
+  }
+}

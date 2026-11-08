@@ -3,7 +3,7 @@ import { ElementSchema, ResourceExecutionDefaults, ResourceKey, ResourceSourceRe
 import type { ResourceDefinition } from '@/api/programs';
 
 export interface ElementBundle {
-  schema_version: 1;
+  schema_version: 2;
   root: ResourceKey;
   entries: { resource: ResourceDefinition; dependencies: ResourceKey[] }[];
   content_digest: string;

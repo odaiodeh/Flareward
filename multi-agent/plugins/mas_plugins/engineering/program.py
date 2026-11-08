@@ -19,6 +19,10 @@ from mas.domain.reviews import ReviewDecision, ReviewResponse, ReviewStatus
 from mas.domain.verification import CheckEvidence, VerificationOutcome, VerificationSubject
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, model_validator
 
+from .review import EngineeringReviewSubject
+
+__runengine_contract__ = "unifai-engineering-v2"
+
 
 class EngineeringInput(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
@@ -56,7 +60,7 @@ class EngineeringOutcome(StrEnum):
 
 
 class EngineeringResult(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, hide_input_in_errors=True)
     outcome: EngineeringOutcome
     candidate: VerificationSubject
     attempts: int = Field(ge=1)
@@ -68,10 +72,12 @@ class EngineeringResult(BaseModel):
         if self.verification.state.plan.subject.fingerprint != self.candidate.fingerprint:
             raise ValueError("Engineering result must identify the exact verified candidate")
         record = self.review.review if self.review is not None else None
-        if record is not None and record.specification.subject != self.candidate.model_dump(
-            mode="json"
-        ):
-            raise ValueError("Engineering result must identify the exact reviewed candidate")
+        if record is not None:
+            subject = EngineeringReviewSubject(
+                candidate=self.candidate, verification=self.verification
+            )
+            if record.specification.subject != subject.model_dump(mode="json"):
+                raise ValueError("Engineering result must preserve the exact reviewed evidence")
         if self.outcome == EngineeringOutcome.VERIFIED and (
             self.verification.outcome != VerificationOutcome.ACCEPTED
             or record is None
@@ -294,7 +300,9 @@ class EngineeringCoordinator:
                         HumanReviewResult,
                         await human_review(
                             AttemptRuntime(self._runtime, attempt),
-                            candidate.model_dump(mode="json"),
+                            EngineeringReviewSubject(
+                                candidate=candidate, verification=view
+                            ).model_dump(mode="json"),
                             self._config.review,
                         ),
                     )
@@ -341,7 +349,7 @@ async def engineering(runtime: ProgramRuntime, inputs: JsonValue, config: BaseMo
 APPLICATION_PROGRAMS = (
     ApplicationRegistration(
         "engineering",
-        "1",
+        "2",
         EngineeringConfig,
         engineering,
         input_model=EngineeringInput,

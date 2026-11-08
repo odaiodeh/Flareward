@@ -11,6 +11,7 @@ from mas.domain.check_runs import CheckRun
 from mas.domain.reviews import ReviewRecord
 from mas_plugins.engineering.feature import CodingFeatureResult
 from mas_plugins.engineering.program import EngineeringResult
+from mas_plugins.engineering.review import EngineeringReviewSubject
 from support.engineering_api import EngineeringAPI
 from support.feature_api import feature_workflow_access
 from support.live_feature import live_feature
@@ -100,8 +101,8 @@ async def test_live_engineering_revision_runs_unchanged_independently_and_nested
                 assert set((tmp_path / "artifacts").glob("*/metadata.json")) == artifacts_before
                 await approve(api, design, "design-approval", "Implement this exact design")
             final = await pending_review(api.http, root, api.human, api.reviewer, timeout=240)
-            assert final.specification.subject["kind"] == "blob-artifact@1"
-            candidate = final.specification.subject["identity"]
+            assert final.specification.subject["candidate"]["kind"] == "blob-artifact@1"
+            candidate = final.specification.subject["candidate"]["identity"]
             source = await api.http.get(
                 f"/api/artifacts/{candidate['artifact_id']}/content", headers=api.human
             )
@@ -129,7 +130,10 @@ async def test_live_engineering_revision_runs_unchanged_independently_and_nested
                 )
                 assert observed.json()["phase"] == "completed"
             plan_ids.update(check.plan.plan_id for check in checks)
-            report_ref = passed[0].reports[0].content
+            reviewed = EngineeringReviewSubject.model_validate(final.specification.subject)
+            assert reviewed.verification.outcome == "accepted"
+            assert reviewed.verification.state.evidence[0].reports == passed[0].reports
+            report_ref = reviewed.verification.state.evidence[0].reports[0].content
             report = await api.http.get(
                 "/api/artifacts/" + report_ref.artifact_id + "/content", headers=api.human
             )

@@ -20,11 +20,31 @@ import { applyWorkflowPlacement, workflowPlacement } from '../client/src/lib/wor
 import type { YamlFlowState } from '../client/src/types/graph';
 import type { JsonObject } from '../shared/json';
 import { configurationDefaults } from '../client/src/features/programs/authoring';
-import { initialSchemaInput, resolveSchema } from '../client/src/components/schema/schema';
+import { initialSchemaInput, parseSchemaNumber, resolveSchema } from '../client/src/components/schema/schema';
 import { verifyProgramGraphEditing } from './program-graph-contracts';
 import { verifyArtifactContracts } from './artifact-contracts';
+import ProgramReadiness from '../client/src/features/programs/ProgramReadiness';
 
 function verifyProgramConfigurationSchemas() {
+  const report = { version: 4, valid: false, issues: [{ code: 'INVALID_CONFIGURATION' as const, severity: 'error' as const, path: ['implementation', 'config'], message: 'Missing required configuration' }] };
+  const current = renderToStaticMarkup(React.createElement(ProgramReadiness, { report, current: true }));
+  assert.ok(current.includes('Missing required configuration'));
+  assert.ok(current.includes('draft version 4'));
+  const stale = renderToStaticMarkup(React.createElement(ProgramReadiness, { report, current: false }));
+  assert.ok(stale.includes('changed since this check'));
+  assert.ok(!stale.includes('Missing required configuration'));
+  const valid = renderToStaticMarkup(React.createElement(ProgramReadiness, { report: { version: 5, valid: true, issues: [] }, current: true }));
+  assert.ok(valid.includes('Definition ready to publish'));
+  assert.ok(valid.includes('checked when you run'));
+  assert.equal(parseSchemaNumber('', { type: 'number' }), undefined);
+  assert.equal(parseSchemaNumber('2.5e2', { type: 'number' }), 250);
+  assert.equal(parseSchemaNumber('-2', { type: 'integer', minimum: -2 }), -2);
+  for (const value of ['-', '1e', '1.', '1e999', 'null', '"3"', '{}', 'true']) {
+    assert.throws(() => parseSchemaNumber(value, { type: 'number' }));
+  }
+  assert.throws(() => parseSchemaNumber('2.5', { type: 'integer' }), /whole number/);
+  assert.throws(() => parseSchemaNumber('0', { type: 'number', exclusiveMinimum: 0 }), /allowed range/);
+  assert.throws(() => parseSchemaNumber('3', { type: 'number', maximum: 2 }), /allowed range/);
   assert.deepEqual(initialSchemaInput({ type: 'array' }), []);
   assert.equal(initialSchemaInput({ type: 'boolean' }), null);
   const defaultInput: JsonObject = { $defs: { Input: { type: 'object', default: { criteria: ['test'] } } }, $ref: '#/$defs/Input' };

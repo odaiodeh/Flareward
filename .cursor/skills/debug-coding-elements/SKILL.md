@@ -16,7 +16,12 @@ For production planning, install `mas_plugins.engineering.designer` and configur
 `coding_designer@1` through saved operation/loader bundles and explicit placement.
 It validates JSON proposals; the existing Design coordinator owns review/revision.
 The [designer checkpoint](../../../docs/evidence/2026-11-07-configurable-designer.md)
-records native and actual-App proof, including remaining pending-review evidence work.
+records native and actual-App designer proof. The
+[review-evidence checkpoint](../../../docs/evidence/2026-11-07-review-evidence.md)
+adds source/report inspection before approval. `engineering@2` uses the ADLC-owned
+`EngineeringReviewSubject`; preserve exact snapshot validation and substitution tests.
+Keep generic review/inspection independent of Engineering; reviewer assignment is
+not another owner's artifact authority.
 
 Keep coding work behind `mas.application.coding.contracts.CodingAgent`; `CodingOperation` owns typed input/result translation, and the outer
 `mas_plugins.coding.codex` adapter owns subprocess details. Register `CodexSpec`

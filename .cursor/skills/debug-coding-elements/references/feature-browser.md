@@ -8,7 +8,7 @@ complete authoring acceptance.
 Build assets from `ui/` before starting the runner:
 
 ```sh
-NODE_ENV=production node tests/build-placement-browser.mjs /tmp/unifai-feature-browser-assets
+NODE_ENV=production node tests/build-workspace-browser.mjs /tmp/unifai-feature-browser-assets
 ```
 
 Start from the repository root with dedicated services and a fresh owned directory:
@@ -32,7 +32,37 @@ peers. The normal API dispatches `program@1` to a separately owned, digest-pinne
 the coordinator retains expected answers. Local evaluation is explicitly enabled
 for controlled fixture code and is not a hostile-code sandbox.
 
-Open Feature revision 1. Enter a small addition task and acceptance criterion.
+## Authoring journey
+
+The fixture also installs `coding_designer@1` and saves **Design coding agent**
+with the controlled planning model. Use the same workspace to create a designer:
+capture that operation and `load_artifact_content`; select process for both
+execution fields, check readiness and publish. Reopen Design, explicitly replace
+its inline `design` body with the new pinned revision, then publish Design revision 2.
+
+In Resources create a Codex operation with model `engineering-fixture`, the fixture
+token from `support.coding_cli`, saved `inline_workspace` preparation and process
+placement. This synthetic token is only for the controlled executable; use the
+private live binding workflow for real providers. Refresh the saved-element picker
+after creating a resource if its discovery cache still shows an older list.
+
+Create `coding_file_candidate`: capture the new coder, loader, reader and publisher;
+set `answer.py` and process execution/artifact profiles. Check readiness/publish.
+In Engineering adopt that same pinned Program for `implementation` and `repair`
+and publish revision 2, preserving its platform verification/review configuration.
+Create a new **Design and deliver a feature** Program; checking readiness first
+should report missing dependencies. Bind `design` and `engineering` to revision 2,
+check again, publish and run with the permissions below. This authors new behavior
+using provided service capabilities; it does not create every operator policy.
+
+Request one design revision, then approve its exact replacement. Planning may
+create `started` markers before approval; implementation must not create `answer.py`.
+The [feature-authoring evidence](../../../../docs/evidence/2026-11-08-feature-authoring.md)
+records this controlled journey and the remaining real-agent/UX acceptance.
+
+## Execution and evidence
+
+Run the authored root, or open Feature revision 1 for the seeded path. Enter a small addition task and acceptance criterion.
 Explicitly select these workflow permissions through the shared schema fields:
 
 | Capability | Scope | Lease |
@@ -43,14 +73,16 @@ Explicitly select these workflow permissions through the shared schema fields:
 
 The catalog describes owner-filtered scopes; it grants nothing. Verify approval is
 required and editing scopes resets it. Approve and start. The shared execution URL
-must show the actual root and observed children. Verify no `workspaces/**/started`
-marker exists before design approval. Inspect the exact versioned design and approve.
+must show the actual root and observed children. Verify no implementation candidate
+exists before design approval. Inspect the exact versioned design and approve.
 
 The first controlled coding attempt fails the independent check. Repair restores
 source and reports into a fresh workspace; expect two coding `started` markers.
 Reports use `details.failures`, not the removed test peer's top-level `failures`.
-The final review identifies an exact blob reference. Inspect it and preview verified
-text before approving. Completion must report `verified`, two attempts, accepted
+The final review is `engineering-review@1` and contains the exact candidate and
+accepted verification snapshot. Inspect both source and the admitted report through
+the existing artifact cards before approving. The report must identify the same
+candidate fingerprint and three passing cases. Completion must report `verified`, two attempts, accepted
 verification with report references and persisted final human approval.
 
 After confirmed completion, remove only this fixture's `workspaces` directory while

@@ -288,15 +288,27 @@ Advanced bindings/imports remain JSON rather than visual ports. Graph join polic
 is configurable and persists with the published definition.
 
 Block removal deletes incident ordering/conditional connections without inventing
-replacement flow. Removing the entry or exit requires an explicit replacement
-before saving. Removed roots no longer retain pending source selections; existing
+replacement flow. Removing the entry or exit permits saving an unfinished draft;
+publication requires an explicit replacement. Removed roots no longer retain pending source selections; existing
 frozen construction snapshots are preserved rather than pruning dependencies from
 browser display data. Selection-scoped panels own their component lifetime so
 switches and repeated edits cannot accumulate stale resource controls.
 
+Named drafts may omit graph endpoints, required configuration and child bindings.
+Save validates supplied fields, while publication requires complete validity;
+server authorization, secret protection and revision fences remain authoritative.
+`NumberField` retains unfinished numeric text instead of removing an optional field
+or reusing its previous value. JSON/numeric errors block save, publication,
+invocation and invocation view-switching. The [authoring checkpoint](evidence/2026-11-08-program-authoring.md)
+proves UI-created operation resources, captured dependencies, process execution,
+unchanged nested reuse and incomplete edits preserving published revisions.
+
 Invalid JSON remains editable and blocks form submission. Switching programs or
 reloading requires explicit discard of unsaved edits. Mutable drafts load afresh on
-explicit open/reload rather than replacing edits on window focus. Query caches and
+explicit open/reload rather than replacing edits on window focus. `Programs` bypasses
+the shared five-minute cache and waits for a fresh draft before mounting its editor.
+The editor lifetime follows explicit selection/reload, not observed version changes.
+Query caches and
 request lifetimes are scoped by owner and authenticated human. Publication retries
 retain the observed source version. Unknown run delivery retains the same execution
 identity/input; authoritative snapshot polling observes completion and cancellation.
@@ -403,6 +415,11 @@ Concrete malformed root inputs are rejected before creating an execution record;
 bad values arriving dynamically still fail at the ordinary operation boundary.
 Production client checks cover invalid draft readiness, refused publication,
 correction, publication and actual execution through the same API.
+
+The Program editor exposes **Check readiness** through that same version-fenced
+endpoint. It saves unfinished but well-formed work, displays the application's
+issues, and withdraws the assessment when the definition changes. Readiness is
+not placement admission, permission approval or evidence of successful execution.
 
 Graph-local input/result checks and explicit graph join policies are described below.
 Existing writable-channel contracts and writer policies are described below.
@@ -3040,16 +3057,29 @@ remote private delivery and full trigger UI remain separate work. Do not call th
 live Jira integration or massive-scale acceptance. Existing authorized review and
 runtime-message contracts still own continuation of their particular waits.
 
-The optional Engineering implementation is registered by installing the
-`mas_plugins.engineering.program` application module in both API and worker
-configuration. Its implementation and repair are declared child Programs;
-verification and review use scoped service operation bundles. This is an initial
-application slice. Local thread/process API tests exercise the same published
-revision independently and within a deterministic delivery graph. The test now
-verifies published fixture bytes with automatically provisioned `artifact@1`,
-review and verification capabilities and terminal retirement. See
-[managed artifact evidence](evidence/2026-11-05-managed-artifacts.md) for the scoped
-proof and outstanding coding-agent, remote and recovery acceptance.
+The Engineering implementation is registered as `engineering@2` by installing
+`mas_plugins.engineering.program` in both API and worker configuration. Candidate
+production/repair are declared child Programs; verification/review use scoped
+service-operation bundles. Version 2 presents `EngineeringReviewSubject` from
+`mas_plugins.engineering.review`: `engineering-review@1`, exact candidate, and
+accepted verification snapshot including plan, receipt/configuration identities
+and durable report references. The subject rejects mismatched/unaccepted evidence.
+`EngineeringResult` requires the reviewed snapshot to equal its candidate and
+verification result; an approval for another snapshot cannot establish completion.
+
+The generic review service persists/authorizes this JSON subject and handles native
+waiting unchanged. The existing generic artifact inspector discovers source and
+report references before approval. Reviewer assignment does not confer another
+owner's artifact access. No private verifier-run access or credential is attached.
+This replaces the candidate-only review contract; earlier implementation version 1
+is not installed as a compatibility path. The module contract is
+`unifai-engineering-v2`; rebuild receiving images before remote acceptance.
+
+The [review-evidence checkpoint](evidence/2026-11-07-review-evidence.md) proves native
+thread/process repair plus actual-App source/report previews before final approval,
+retained retrieval and owned cleanup. Planning/coding in this browser gate use
+controlled peers; previous live checkpoints retain their own source scope. Full
+user-created authoring, live current-image remote and recovery acceptance remain.
 
 Install `mas_plugins.engineering.coding` alongside that module to register
 `coding_file_candidate@1`. This backend Program consumes `EngineeringWork` whose
@@ -3184,6 +3214,13 @@ catalog selection; graph adoption remains a separate wrapper. Configuration capt
 never copies redacted catalog fields, and pending capture locks editing/publication
 to avoid applying a response to newer edits. Unmount aborts the request and guards
 its completion; this does not undo a server-side capture that already committed.
+Bundle format **2** hashes equivalent whole-valued JSON numbers identically:
+`120.0` and `120` survive browser capture/save without changing their identity.
+Normalization applies only to hash input, preserving authored configuration types.
+Changed values, precision loss and nonfinite numbers still fail integrity checks.
+Format 1 is rejected rather than silently reinterpreted; recreate old development
+bundles and rebuild receivers/images before using the new format remotely. The
+production TypeScript client tests capture, save, publish and tamper refusal.
 The existing placement controls render `ExecutionSelection` with approved profiles
 and named environments. Local schema references, nested objects, arrays, scalar
 fields and optional omission are supported; unresolved, recursive or complex schemas

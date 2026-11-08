@@ -62,7 +62,7 @@ async def test_engineering_repair_and_review_standalone_and_embedded(
         output_schema=EngineeringResult.model_json_schema(),
         implementation=ApplicationDefinition(
             implementation="engineering",
-            version="1",
+            version="2",
             config=config.model_dump(mode="json"),
             children={"implementation": body, "repair": body},
         ),
@@ -187,7 +187,7 @@ async def test_engineering_repair_and_review_standalone_and_embedded(
                     await asyncio.sleep(0.05)
                 review = pending[0]
                 assert (
-                    review.specification.subject["identity"]["sha256"]
+                    review.specification.subject["candidate"]["identity"]["sha256"]
                     == hashlib.sha256(repaired).hexdigest()
                 )
                 decision = await http.post(

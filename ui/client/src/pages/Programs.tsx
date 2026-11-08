@@ -26,7 +26,9 @@ function ProgramWorkspace({ owner, scope }: { owner: WorkspaceIdentity; scope: s
   const draft = useQuery({
     queryKey: ['program-draft', scope, selected?.id, generation], enabled: !!selected?.existing,
     queryFn: ({ signal }) => getProgramDraft(selected!.id, owner.teamId, signal),
-    refetchOnWindowFocus: false, refetchOnReconnect: false,
+    // Mutable authoring must bypass the shared five-minute discovery cache.
+    staleTime: 0,
+    refetchOnMount: 'always', refetchOnWindowFocus: false, refetchOnReconnect: false,
   });
   const programs = library.data?.pages.flatMap(page => page.programs) ?? [];
   const error = library.error ?? catalog.error ?? placement.error ?? draft.error;
@@ -54,9 +56,9 @@ function ProgramWorkspace({ owner, scope }: { owner: WorkspaceIdentity; scope: s
       <Button variant="ghost" onClick={() => void library.refetch()}>Refresh library</Button>
       <ProgramTemplateImport scope={scope} teamId={owner.teamId} disabled={editorState.busy || importBusy} onBusy={setImportBusy} onImported={id => { void library.refetch(); requestView({ id, existing: true }); }} />
     </aside><section className="min-w-0 rounded border p-4">
-      {selected ? catalog.data && placement.data && (!selected.existing || draft.data) ?
-        <ProgramEditor key={JSON.stringify([selected.id, selected.existing, draft.data?.version, generation])} id={selected.id} initial={selected.existing ? draft.data : undefined} owner={owner} scope={scope} catalog={catalog.data} profiles={placement.data.profiles} programs={programs} onState={editorChanged} /> :
-        <p role="status">Loading program...</p> : <p className="text-muted-foreground">Open a saved program or create one. Programs can run on their own and be reused inside larger workflows.</p>}
+      {selected ? catalog.data && placement.data && (!selected.existing || draft.isFetchedAfterMount && !draft.isError && draft.data) ?
+        <ProgramEditor key={JSON.stringify([selected.id, selected.existing, generation])} id={selected.id} initial={selected.existing ? draft.data : undefined} owner={owner} scope={scope} catalog={catalog.data} profiles={placement.data.profiles} programs={programs} onState={editorChanged} /> :
+        <p role="status">{draft.isError ? 'The current draft could not be loaded. Reload before editing.' : 'Loading program...'}</p> : <p className="text-muted-foreground">Open a saved program or create one. Programs can run on their own and be reused inside larger workflows.</p>}
       {selected?.existing && <Button disabled={editorState.busy || importBusy} className="mt-5" variant="ghost" onClick={() => requestView('reload')}>Reload saved draft</Button>}
     </section></div>
     <AlertDialog open={pending !== undefined} onOpenChange={open => { if (!open) setPending(undefined); }}><AlertDialogContent>

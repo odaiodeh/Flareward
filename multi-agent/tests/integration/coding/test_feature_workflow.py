@@ -1,6 +1,7 @@
 """Saved production coding restores failed work/reports through the approved feature flow."""
 
 import asyncio
+import hashlib
 import json
 import os
 import shutil
@@ -21,6 +22,7 @@ from mas_plugins.engineering.design import DesignProposal
 from mas_plugins.engineering.designer import CodingDesignerConfig, CodingDesignWork
 from mas_plugins.engineering.feature import CodingFeatureResult
 from mas_plugins.engineering.program import EngineeringCandidate
+from mas_plugins.engineering.review import EngineeringReviewSubject
 from mas_plugins.reviews.specification import ELEMENT_SPECIFICATIONS as REVIEWS
 from mas_plugins.verification.specification import ELEMENT_SPECIFICATIONS as CHECKS
 from pydantic import SecretStr
@@ -185,7 +187,10 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             )
             assert response.status_code == 200, response.text
         review = await pending_review(api.http, root, api.human, api.reviewer)
-        assert review.specification.subject["kind"] == "blob-artifact@1"
+        reviewed = EngineeringReviewSubject.model_validate(review.specification.subject)
+        assert review.status == "pending" and review.response is None
+        assert reviewed.candidate.kind == "blob-artifact@1"
+        assert reviewed.verification.outcome == "accepted"
         checks = [
             CheckRun.model_validate_json(row["data"])
             async for row in mongo_database.verification_check_runs.find({})
@@ -195,6 +200,18 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             "passed",
         }
         assert all(run.evidence_recorded and len(run.reports) == 1 for run in checks)
+        admitted = reviewed.verification.state.evidence
+        passed = next(run for run in checks if run.observation.verdict == "passed")
+        assert len(admitted) == 1 and admitted[0].reports == passed.reports
+        assert admitted[0].subject_fingerprint == reviewed.candidate.fingerprint
+        reference = admitted[0].reports[0].content
+        before_approval = await api.http.get(
+            "/api/artifacts/" + reference.artifact_id + "/content", headers=api.human
+        )
+        assert before_approval.status_code == 200
+        assert hashlib.sha256(before_approval.content).hexdigest() == reference.sha256
+        assert len(before_approval.content) == reference.size_bytes
+        assert before_approval.json()["verdict"] == "passed"
         assert api.verifier is not None and api.check_binding is not None
         for run in checks:
             assert run.plan.root_execution_id == root

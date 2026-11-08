@@ -22,7 +22,7 @@ from pydantic import SecretStr
 from bootstrap.asgi import create_app as platform_app
 from support.check_program_publication import CheckProgramSetup
 from support.coding_cli import write_codex_cli
-from support.coding_resources import saved_coding_candidate
+from support.coding_resources import CodingResourceLibrary, saved_coding_candidate
 from support.engineering_api import engineering_api, policies
 from support.feature_api import publish_feature
 from support.feature_browser_session import feature_browser_session
@@ -72,6 +72,7 @@ async def serve(assets: Path, directory: Path) -> None:
                 "mas_plugins.engineering.design",
                 "mas_plugins.engineering.feature",
                 "mas_plugins.engineering.coding",
+                "mas_plugins.engineering.designer",
                 "support.feature_design",
                 "mas_plugins.testing.program",
             ),
@@ -101,6 +102,11 @@ async def serve(assets: Path, directory: Path) -> None:
                     model="engineering-fixture", api_key=SecretStr("private-test-token")
                 ),
                 profile="process",
+            )
+            await CodingResourceLibrary(api.http, api.human).coding(
+                CodexConfig(model="designer-fixture", api_key=SecretStr("private-test-token")),
+                "process",
+                name="Design coding agent",
             )
             body = ProgramBody(
                 implementation=ApplicationDefinition(

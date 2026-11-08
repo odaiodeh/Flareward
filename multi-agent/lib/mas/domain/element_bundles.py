@@ -9,6 +9,17 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 from mas.core.enums import ResourceCategory
 
 
+def _identity_numbers(value: JsonValue) -> JsonValue:
+    """Hash equivalent JSON numbers alike without changing authored configuration."""
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, list):
+        return [_identity_numbers(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _identity_numbers(item) for key, item in value.items()}
+    return value
+
+
 class ResourceKey(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
     category: ResourceCategory
@@ -42,7 +53,7 @@ class ElementBundle(BaseModel):
     """Entries are in construction order, with a digest checked at every boundary."""
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     root: ResourceKey
     entries: tuple[BundleEntry, ...]
     content_digest: str = ""
@@ -71,7 +82,9 @@ class ElementBundle(BaseModel):
         if reachable != seen:
             raise ValueError("Bundle contains resources unrelated to its root")
         payload = self.model_dump(mode="json", exclude={"content_digest"})
-        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        encoded = json.dumps(
+            _identity_numbers(payload), sort_keys=True, separators=(",", ":"), allow_nan=False
+        )
         digest = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
         if self.content_digest and self.content_digest != digest:
             raise ValueError("Element bundle digest does not match its contents")

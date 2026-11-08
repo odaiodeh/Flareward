@@ -1,6 +1,29 @@
 # UnifAI UI
 
+The [review-evidence checkpoint](../docs/evidence/2026-11-07-review-evidence.md)
+verifies source and admitted report previews before final approval in the actual
+App, using controlled planning/coding and production checks. The
+[authoring checkpoint](../docs/evidence/2026-11-08-program-authoring.md) adds UI-created
+operation resources, dependency capture, incomplete drafts, process execution and
+unchanged nested reuse. The [feature-authoring checkpoint](../docs/evidence/2026-11-08-feature-authoring.md)
+adds a UI-created coder/designer/candidate/root and explicit Design/Engineering
+revision adoption through controlled design revision, repair, final review and
+retained evidence. Matched-image real-agent acceptance and the full UX redesign
+remain open. Browser gates build the production App
+with `node tests/build-workspace-browser.mjs <temporary-directory>`; the superseded
+isolated blueprint-dialog harness is removed.
+
 ## Target experience
+
+Build on the current React Flow authoring canvas and existing design system,
+resource pickers, inspectors and execution indicators. Retained JointJS surfaces
+serve read-only MAS views; do not restore a competing authoring product. Aim for
+a spacious canvas, clear hierarchy, restrained color/motion and readable status,
+with configuration details revealed in context. Judge this through rendered
+browser journeys, including keyboard use and reduced motion, not library choice alone.
+Current forms/workbench are an intermediate functional experience. The dedicated
+UX milestone must reduce exposed configuration clutter and deliver coherent canvas,
+contextual inspectors and nested execution navigation; readiness checks do not fulfill it.
 
 The [target UI design](../docs/architecture/README.md#unified-ui-and-live-execution-experience)
 unifies the resource library, Program builder and optional Session experience
@@ -9,6 +32,16 @@ reusable library/canvas components. Structured inputs and optional conversation
 use the same execution contracts. Preserve and improve live visualization of
 active work, nested Programs, iterations, retries and waits, using authoritative
 execution state and exact published revisions.
+
+The canvas belongs to the Program being composed; called Programs appear as reusable
+blocks. In execution mode, start at the selected root Program and support both
+inline expansion and focused child inspection with parent/root breadcrumbs. Choose
+the actual iteration/item/attempt when a block has multiple occurrences. Keep pinned
+definition inspection separate from execution drill-down; editing reusable work
+creates a draft/new revision and callers adopt it explicitly. Backend Programs expose
+configuration and observed calls without an invented editable graph. See
+[nested navigation](../docs/architecture/README.md#root-overview-and-nested-execution-navigation).
+This is target interaction design; current child links are not full live-canvas proof.
 
 Reuse useful existing components and patterns while allowing substantial
 improvements to layout, navigation, accessibility and visual presentation. New authoring uses one Programs library and canvas/configuration editor. The
@@ -32,12 +65,12 @@ including approval, repair and durable artifact retrieval. A [live OpenShell bro
 checkpoint](../docs/evidence/2026-11-06-live-feature-ui.md) now joins real Codex,
 production checks and fresh output retrieval after compute removal. The newer
 [configured-designer checkpoint](../docs/evidence/2026-11-07-configurable-designer.md)
-adds real planning before design approval. Pending reviews still need their trusted
-reports before the decision; completed-root report previews do not satisfy that gap. Complete
-authoring and Session browser journeys, occurrence views, workspace convergence
-and later visual refinement remain required. The existing JointJS builder and
-newer React Flow Program editor are temporary coexistence; the form-heavy Programs
-page and panel-based execution view do not yet satisfy the target visual workspace.
+adds real planning before design approval. The review-evidence checkpoint above
+proves source and admitted report previews before the decision. Complete authoring
+and Session browser journeys, occurrence views and later visual refinement remain
+required. The old authoring builder is removed; retained JointJS surfaces are
+read-only MAS views. The current React Flow editor and panel-based execution view
+still require the nested live-canvas experience described above.
 
 ## Building the UI
 

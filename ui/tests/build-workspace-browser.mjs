@@ -1,4 +1,4 @@
-/** Build the production placement dialog for the isolated signed-cookie browser fixture. */
+/** Build the production App for owned signed-cookie browser scenarios. */
 import { build } from 'vite';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,7 @@ await build({
   base: '/fixture/ui/', build: {
     outDir: resolve(process.argv[2]), emptyOutDir: true,
     rollupOptions: { input: [
-      resolve(root, 'tests/placement-browser.html'), resolve(root, 'tests/workspace-browser.html'),
+      resolve(root, 'tests/workspace-browser.html'),
     ] },
   },
 });

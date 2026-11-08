@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { publishProgram, saveProgram, type ApplicationDefinition, type GraphDefinition, type ProgramDefinition, type ProgramDescriptor, type ProgramDraft, type ProgramPresentation, type ProgramSummary, type ResourceSelection } from '@/api/programs';
+import { publishProgram, saveProgram, validateProgramDraft, type ApplicationDefinition, type GraphDefinition, type ProgramDefinition, type ProgramDescriptor, type ProgramDraft, type ProgramPresentation, type ProgramSummary, type ProgramValidation, type ResourceSelection } from '@/api/programs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { WorkspaceIdentity } from '@/hooks/use-workspace-identity';
@@ -13,6 +13,7 @@ import ProgramGraphEditor from './ProgramGraphEditor';
 import ProgramInvocation from '@/components/executions/ProgramInvocation';
 import { useProgramRevisions } from './queries';
 import { activeResourceSelections } from './graph-authoring';
+import ProgramReadiness from './ProgramReadiness';
 
 function emptyDefinition(id: string, owner: WorkspaceIdentity): ProgramDefinition {
   return {
@@ -20,6 +21,16 @@ function emptyDefinition(id: string, owner: WorkspaceIdentity): ProgramDefinitio
     implementation: emptyGraphDefinition(),
     input_schema: { type: 'object' }, output_schema: { type: 'object' }, execution_profile: null,
   };
+}
+
+/** Drafts may omit work, but must not silently save stale or malformed field values. */
+function reportValidity(form: HTMLFormElement | null, intent: 'save' | 'publish'): boolean {
+  if (!form) return false;
+  for (const field of form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('input, select, textarea')) {
+    const unfinished = intent === 'save' && field.validity.valueMissing && !field.validity.customError && !field.validity.badInput && !field.hasAttribute('data-draft-required');
+    if (field.willValidate && !unfinished && !field.reportValidity()) return false;
+  }
+  return true;
 }
 
 export default function ProgramEditor({ id, initial, owner, scope, catalog, programs, profiles, onState }: {
@@ -40,6 +51,7 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [runRevision, setRunRevision] = useState<number>();
+  const [readiness, setReadiness] = useState<ProgramValidation>();
   const form = useRef<HTMLFormElement>(null);
   const lifecycle = useRef(new AbortController());
   const action = useRef(false);
@@ -59,8 +71,8 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
     if (value.kind === 'graph') setResourceSelections(previous => activeResourceSelections(value, previous));
     setDefinition(previous => ({ ...previous, implementation: value }));
   };
-  const perform = async (operation: (signal: AbortSignal) => Promise<void>) => {
-    if (action.current || configurationBusy || !form.current?.reportValidity()) return;
+  const perform = async (intent: 'save' | 'publish', operation: (signal: AbortSignal) => Promise<void>) => {
+    if (action.current || configurationBusy || !reportValidity(form.current, intent)) return;
     const controller = lifecycle.current;
     action.current = true; setBusy(true); setError(''); setNotice('');
     try { await operation(controller.signal); }
@@ -97,10 +109,10 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
   return <div className="space-y-5">
     <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-semibold">{version ? definition.name : 'New program'}</h2><span className="text-sm text-muted-foreground">{version ? `Draft version ${version}${dirty ? ' / unsaved changes' : ''}` : 'Unsaved draft'}</span></div>
     {error && <p role="alert" className="text-destructive">{error}</p>}{notice && <p role="status">{notice}</p>}
-    <form ref={form} className="space-y-5" onChange={() => setEdited(true)} onSubmit={event => { event.preventDefault(); void perform(async signal => { await save(signal); }); }}>
+    <form ref={form} noValidate className="space-y-5" onChange={() => setEdited(true)} onSubmit={event => { event.preventDefault(); void perform('save', async signal => { await save(signal); }); }}>
       <fieldset disabled={busy || configurationBusy} className="space-y-4">
-        <label className="block space-y-1 text-sm"><span>Program name</span><Input className="text-inherit" aria-label="Program name" required value={definition.name} onChange={event => setDefinition({ ...definition, name: event.target.value })} /></label>
-        <label className="block space-y-1 text-sm"><span>Start from</span><select aria-label="Program source" className="block w-full rounded border bg-background p-2" value={selectedSource} disabled={busy || version > 0} required onChange={event => chooseSource(event.target.value)}>
+        <label className="block space-y-1 text-sm"><span>Program name</span><Input className="text-inherit" aria-label="Program name" required data-draft-required value={definition.name} onChange={event => setDefinition({ ...definition, name: event.target.value })} /></label>
+        <label className="block space-y-1 text-sm"><span>Start from</span><select aria-label="Program source" className="block w-full rounded border bg-background p-2" value={selectedSource} disabled={busy || version > 0} required data-draft-required onChange={event => chooseSource(event.target.value)}>
           <option value="">Choose how to define the work</option><option value="composition">Compose on canvas</option>
           {catalog.map(value => <option key={JSON.stringify([value.key, value.version])} value={JSON.stringify([value.key, value.version])}>{value.name}</option>)}
         </select></label>
@@ -123,7 +135,12 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
         </details>
       </fieldset>
       <div className="flex gap-3"><Button type="submit" variant="outline" disabled={busy || configurationBusy || !selectedSource}>Save draft</Button>
-        <Button type="button" disabled={busy || configurationBusy || !selectedSource} onClick={() => void perform(async signal => {
+        <Button type="button" variant="outline" disabled={busy || configurationBusy || !selectedSource} onClick={() => void perform('save', async signal => {
+          const draft = await save(signal);
+          const report = await validateProgramDraft(id, draft.version, owner.teamId, signal);
+          if (!signal.aborted) setReadiness(report);
+        })}>Check readiness</Button>
+        <Button type="button" disabled={busy || configurationBusy || !selectedSource} onClick={() => void perform('publish', async signal => {
           const draft = await save(signal);
           const revision = await publishProgram(id, draft.version, owner.teamId, signal);
           if (!signal.aborted) {
@@ -133,6 +150,7 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
         })}>Publish program</Button>
       </div>
     </form>
+    {readiness && <ProgramReadiness report={readiness} current={readiness.version === version && !dirty} />}
     {revisions.error && <p role="alert" className="text-destructive">{programError(revisions.error)}</p>}
     {(revisions.revisions.length || runnable) ? <section className="space-y-3">
       <label className="block text-sm">Published revision<select aria-label="Run revision" className="block w-full rounded border bg-background p-2" disabled={invocationBusy} value={runnable ?? ''} onChange={event => setRunRevision(Number(event.target.value))}>

@@ -66,8 +66,8 @@ function InvocationInputs({ revision, scope, teamId, onBusyChange }: {
   return <form className="space-y-4" onSubmit={event => { event.preventDefault(); void submit(); }}>
     <fieldset ref={fields} disabled={busy || !!intent && !rejected} className="space-y-3">
       <Button type="button" variant="ghost" onClick={() => {
-        // Do not silently discard an unparsed nested JSON edit when changing views.
-        if (Array.from(fields.current?.querySelectorAll('textarea') ?? []).every(input => input.reportValidity())) setAdvanced(value => !value);
+        // Changing views must not silently discard an unparsed JSON or numeric edit.
+        if (Array.from(fields.current?.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea') ?? []).every(input => !(input.validity.customError || input.validity.badInput) || input.reportValidity())) setAdvanced(value => !value);
       }}>{advanced ? 'Use structured inputs' : 'Use JSON inputs'}</Button>
       {advanced ? <JsonField label="Program inputs (JSON)" value={inputs} onChange={setInputs} disabled={busy || !!intent && !rejected} /> : <SchemaValue schema={schema} label="Program inputs" value={inputs} onChange={value => setInputs(value ?? null)} disabled={busy || !!intent && !rejected} />}
       <WorkflowAccessFields scope={scope} teamId={teamId} value={requirements} disabled={busy || !!intent && !rejected} onChange={next => { setRequirements(next); setApproved(false); }} />
