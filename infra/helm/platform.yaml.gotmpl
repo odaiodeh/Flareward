@@ -1,0 +1,55 @@
+environments:
+  default:
+    values:
+      - ./values/platform-resource-values.yaml
+---
+
+helmDefaults:
+  createNamespace: false
+  wait: false
+  historyMax: 1
+
+releases:
+
+  - name: flareward-platform-shared-storage
+    chart: ./platform/flareward-platform-shared-storage
+    wait: true
+    values:
+      - {{- toYaml .Values.storage | nindent 8 }}
+      - ./values/global-config.yaml
+
+  - name: flareward-platform-be
+    chart: ./platform/be
+    wait: true
+    #timeout: 300
+    values:
+      - ./values/global-config.yaml
+      - {{- toYaml .Values.platform_server | nindent 8 }}
+    hooks:
+      - events: ["presync"]
+        showlogs: true
+        command: bash
+        args:
+        - "./scripts/platform-presync.sh"
+
+  - name: flareward-platform-temporal-worker
+    chart: ./platform/temporal-worker
+    wait: true
+    needs:
+      - flareward-platform-shared-storage
+    values:
+      - ./values/global-config.yaml
+      - {{- toYaml .Values.platform_temporal_worker | nindent 8 }}
+
+
+  - name: platform-config
+    chart: ./platform/platform-config
+    wait: true
+    needs:
+      - flareward-platform-be
+    hooks:
+      - events: ["postsync"]
+        showlogs: true
+        command: bash
+        args:
+        - "./scripts/platform-postsync.sh"

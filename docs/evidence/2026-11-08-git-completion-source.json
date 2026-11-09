@@ -1,0 +1,241 @@
+{
+  "base_commit": "5ed1cdfa832f8779da96902f63d878e66fa8266a",
+  "engine_commit": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "digest_algorithm": "sorted relative path + NUL + raw SHA256(content), concatenated then SHA256",
+  "source": {
+    "platform": {
+      "roots": [
+        "multi-agent/lib/mas",
+        "multi-agent/adapters",
+        "multi-agent/bootstrap",
+        "multi-agent/config",
+        "multi-agent/plugins/mas_plugins"
+      ],
+      "files": 1081,
+      "sha256": "e90f2550a1dc36a4f2eaf19fbfaba4112c601afb459e889fde7306604031ecc0"
+    },
+    "support": {
+      "roots": [
+        "multi-agent/tests/support"
+      ],
+      "files": 117,
+      "sha256": "3d10eb7212a56162b0566e4c24b7b00e1c2232674a3cb9327e48b207e1b07acc"
+    },
+    "tests": {
+      "roots": [
+        "multi-agent/tests/domain",
+        "multi-agent/tests/application",
+        "multi-agent/tests/architecture",
+        "multi-agent/tests/integration",
+        "multi-agent/tests/adapters"
+      ],
+      "files": 272,
+      "sha256": "2898a7cb1bedd7d0f010d90545724dac8688f2b700eddb3ce996934d423623cf"
+    }
+  },
+  "formats": {
+    "engineering": "3",
+    "review_subject": "engineering-review@2",
+    "python_evaluator": "2.0.0",
+    "bundle": 2
+  },
+  "packaging": {
+    "build_verified": false,
+    "files": {
+      "multi-agent/Dockerfile": "d2ab864ed8dff64206a3de62f725917f12cf62f6274c9a338e96035bff027296",
+      "multi-agent/tests/infra/Dockerfile.receiver": "5a91287044a93b2c1715bf58c7b007641d783846359697189ca856d7c943acc8"
+    }
+  },
+  "gates": {
+    "focused": {
+      "passed": 46,
+      "seconds": 13.95
+    },
+    "shared": {
+      "passed": 858,
+      "seconds": 8.4
+    },
+    "native_completion": {
+      "passed": 2,
+      "seconds": 43.61
+    },
+    "native_regressions": {
+      "passed": 10,
+      "deselected": 4,
+      "seconds": 91.54
+    },
+    "mypy": {
+      "modules": 12,
+      "strict": true,
+      "follow_imports": "silent",
+      "ignore_missing_imports": true
+    },
+    "ruff": {
+      "python_files": 43,
+      "lint": true,
+      "format": true
+    }
+  },
+  "native": [
+    {
+      "profile": "thread",
+      "program": {
+        "program_id": "completion-choices",
+        "revision": 1
+      },
+      "content_digest": "4e598e45f2602c48266e10b8eecec345e9e6502eed79dd03cff3105991c7ecc9",
+      "git_composition": {
+        "program": {
+          "program_id": "feature-choices",
+          "revision": 1
+        },
+        "engineering": {
+          "program_id": "completion-choices",
+          "revision": 1
+        },
+        "design_approved": true
+      },
+      "results": {
+        "files": {
+          "root_execution_id": "44465e13ef7e420ab17075dc0a75a37b",
+          "engineering_execution_id": "44465e13ef7e420ab17075dc0a75a37b",
+          "outcome": "verified",
+          "completion": "files",
+          "attempts": 2,
+          "candidate": {
+            "kind": "blob-artifact@1",
+            "identity": {
+              "sha256": "ba1a531f581d2e6094e978ed6f7aca7a8d92eeb62c6e7ad73ee692f7f18bc772",
+              "size_bytes": 32,
+              "artifact_id": "dd4e82ec66f0a8f1f98bd0eea6cdd7a5ebda214207822cf389ceb80007a17e3b"
+            }
+          },
+          "verification_plan_id": "06cffa7a9aad2e05c6774201a94df835d236e31bf76c91a6d44e5431eba78042",
+          "reports": [
+            {
+              "sha256": "991674a9907d5b87f862512152810dc35f37bb06e8da7cc30cc82d43b9eea664",
+              "size_bytes": 145,
+              "artifact_id": "54329a4804034ad4151ede16576b5ae1923a6cd57ff69309694c6e0b395dcb0a"
+            }
+          ],
+          "review_id": "5e81abcb58b547966f016230a1d38362c970f8514adb27eff371d55c6a201396",
+          "review_status": "decided"
+        },
+        "git": {
+          "root_execution_id": "5642ec797b2f46568a14d27b2922acda",
+          "engineering_execution_id": "child-86256ff0575e44c0131eafddc8a94644319ff61c1ceefe3cb751b84b715762d0",
+          "outcome": "verified",
+          "completion": "git",
+          "attempts": 2,
+          "candidate": {
+            "kind": "git-revision@1",
+            "identity": {
+              "repository": "product",
+              "commit": "a886a35051ec63291532240bdaa6ed221c7e9660"
+            }
+          },
+          "verification_plan_id": "b96fa25c4628f7c670cd4fdbf305d6c9caba775e070ba2aa42b68a5bd212a245",
+          "reports": [
+            {
+              "sha256": "c01aca0db657fc6c4776e74c8c9298eef23ca4a6c91a278b71ef1c6a66afed9f",
+              "size_bytes": 145,
+              "artifact_id": "45fe6fd509422a897ef9bb055c046d61e68d3f0c83f2f042d78216c498c21481"
+            }
+          ],
+          "review_id": "8b310ac626500fc033a66c2ef87106ec0137485821f833478141603dd00a1a56",
+          "review_status": "decided"
+        }
+      },
+      "source_survived_compute_removal": true,
+      "retired_capabilities": 6
+    },
+    {
+      "profile": "process",
+      "program": {
+        "program_id": "completion-choices",
+        "revision": 1
+      },
+      "content_digest": "093b42417978071e16a84c1b5b4a39f2fc0c8201fbac09511595ddd7cb28fa00",
+      "git_composition": {
+        "program": {
+          "program_id": "feature-choices",
+          "revision": 1
+        },
+        "engineering": {
+          "program_id": "completion-choices",
+          "revision": 1
+        },
+        "design_approved": true
+      },
+      "results": {
+        "files": {
+          "root_execution_id": "1c8aad23e5b24549b470657619e6055b",
+          "engineering_execution_id": "1c8aad23e5b24549b470657619e6055b",
+          "outcome": "verified",
+          "completion": "files",
+          "attempts": 2,
+          "candidate": {
+            "kind": "blob-artifact@1",
+            "identity": {
+              "sha256": "ba1a531f581d2e6094e978ed6f7aca7a8d92eeb62c6e7ad73ee692f7f18bc772",
+              "size_bytes": 32,
+              "artifact_id": "06075427fd41af5c6f00ab066b576144a0e297d7761e26f2f3590e309629e739"
+            }
+          },
+          "verification_plan_id": "88c85f6c5a8b9ece06c2fe8bf82899237986a5799f1a8255bb0e8e8de36e947d",
+          "reports": [
+            {
+              "sha256": "21f9763ef0d8688bca9bab8896f7616aed23ae119127affaf7ad9fdaa30c1d5a",
+              "size_bytes": 145,
+              "artifact_id": "44b7ff6255b7a19587ba9ac1c508c04ad78f3a0d82bb09be60b474d6079428fa"
+            }
+          ],
+          "review_id": "a7e01634f171288c984568a6f366b2a3c309bbcd645e855f25040073d8e147ab",
+          "review_status": "decided"
+        },
+        "git": {
+          "root_execution_id": "304e622acfcb490687fa94e1cf1fbf06",
+          "engineering_execution_id": "child-becdeb6a11a6b4947db57c8c8cdcf3cdd5944101895872a7b583990712eba884",
+          "outcome": "verified",
+          "completion": "git",
+          "attempts": 2,
+          "candidate": {
+            "kind": "git-revision@1",
+            "identity": {
+              "repository": "product",
+              "commit": "cfa788343af951f88e5ebcd7f12dfde36c118281"
+            }
+          },
+          "verification_plan_id": "0bb0e18de9c28d7875d0e45f7596c66a7cd21719723216d459832e1ca04a53ee",
+          "reports": [
+            {
+              "sha256": "43bb994affe0f5840b83d2097979479a2a3e532efa0858bd4df2c78b308162b5",
+              "size_bytes": 145,
+              "artifact_id": "0a6528a9f1e7d6f2eb9eb9b03f2cd991ed0cd37cf06904ffc5f87062454d9759"
+            }
+          ],
+          "review_id": "04706ff39b4011345bf2f6f8e7ba08d4642c5c545997cc33248c6813883c5ba3",
+          "review_status": "decided"
+        }
+      },
+      "source_survived_compute_removal": true,
+      "retired_capabilities": 6
+    }
+  ],
+  "scope": [
+    "real HTTP/Mongo/Redis/Git/process workers and Python evaluation",
+    "controlled Codex protocol, design proposal and reviewer identity",
+    "same Engineering revision directly for files and pinned in Feature for Git after design approval",
+    "final shared/native gates cover Feature selection and Git transport; focused Git gate precedes unrelated Feature-only edit",
+    "native regressions precede Feature selection and Git transport changes",
+    "post-native source difference is one assertion whitespace format only"
+  ],
+  "not_accepted": [
+    "paid coding model",
+    "live Git publishing or provisioned write credentials",
+    "actual browser choices or Git source preview",
+    "remote isolation/recovery",
+    "permanent Git retention",
+    "Dockerfile build paths"
+  ]
+}

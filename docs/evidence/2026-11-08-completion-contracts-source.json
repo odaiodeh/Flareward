@@ -1,0 +1,76 @@
+{
+  "base_commit": "5ed1cdfa832f8779da96902f63d878e66fa8266a",
+  "engine_commit": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "engineering_implementation": "3",
+  "engineering_review_subject": "engineering-review@2",
+  "digest_algorithm": "sorted relative path + NUL + raw SHA256(content), concatenated then SHA256",
+  "source": {
+    "platform": {
+      "roots": [
+        "multi-agent/lib/mas",
+        "multi-agent/adapters",
+        "multi-agent/bootstrap",
+        "multi-agent/config",
+        "multi-agent/plugins/mas_plugins"
+      ],
+      "files": 1079,
+      "sha256": "ac8feedd36ac9c14e15a002aaba9a51655b958e49eeefe0f9ee48d55b891cbe5"
+    },
+    "support": {
+      "roots": [
+        "multi-agent/tests/support"
+      ],
+      "files": 116,
+      "sha256": "a077085973c2b14a9d8f444151cfb2e7581041dfde7c4eaaac0b359f6223bfa7"
+    },
+    "tests": {
+      "roots": [
+        "multi-agent/tests/domain",
+        "multi-agent/tests/application",
+        "multi-agent/tests/architecture",
+        "multi-agent/tests/integration"
+      ],
+      "files": 232,
+      "sha256": "a28161ef34bf7987f694d1454204715a24852523acd2258f7160bfb3dcb6ef1a"
+    }
+  },
+  "verification": {
+    "shared_domain_application_architecture": {
+      "passed": 837,
+      "seconds": 7.46
+    },
+    "native_thread_process_engineering_feature": {
+      "passed": 8,
+      "seconds": 77.97
+    },
+    "strict_mypy_modules": [
+      "mas.application.programs.ports",
+      "mas.application.programs.interfaces",
+      "mas.application.programs.contracts",
+      "mas_plugins.engineering.program",
+      "mas_plugins.engineering.review",
+      "mas_plugins.engineering.design"
+    ],
+    "mypy_import_scope": "silent imported dependencies; missing third-party stubs ignored",
+    "real_services": [
+      "HTTP",
+      "Mongo",
+      "Redis",
+      "Local thread/process execution"
+    ],
+    "controlled": [
+      "coding CLI executable",
+      "candidate/check port doubles in application tests",
+      "external identity/settings"
+    ],
+    "paid_provider": false,
+    "current_image_remote": false,
+    "actual_browser": false
+  },
+  "remaining": [
+    "Actual Git inspection/retention and file alternatives in one published revision",
+    "Jira/CI delivery and external-effect reconciliation",
+    "Choice authoring/invocation browser acceptance",
+    "Matched current images and remote/recovery matrices"
+  ]
+}

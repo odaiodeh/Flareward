@@ -1,0 +1,39 @@
+"""Project approved runner configuration into safe application placement metadata."""
+
+from collections.abc import Mapping
+
+from runengine.bootstrap.environments import EnvironmentFactory
+from runengine.bootstrap.executors import InvocationExecutorBuilder
+from runengine.invocation.config import ExecutorConfig
+
+from flareward.executions.adapters.run_engine.shared.models import ProgramPlacement
+from flareward.executions.domain.preferences import ExecutionProfileCatalog
+
+
+def supports_retained_environment(profile: ExecutorConfig) -> bool:
+    factory = InvocationExecutorBuilder.environment_factory(profile.runner_type)
+    return isinstance(factory, EnvironmentFactory)
+
+
+def profile_catalog(
+    profiles: Mapping[str, ExecutorConfig], default_profile: str
+) -> ExecutionProfileCatalog:
+    return ExecutionProfileCatalog(
+        profiles=tuple(sorted(profiles)),
+        default_profile=default_profile,
+        environment_profiles=tuple(
+            sorted(
+                name for name, profile in profiles.items() if supports_retained_environment(profile)
+            )
+        ),
+    )
+
+
+def placement_catalog(placement: ProgramPlacement) -> ExecutionProfileCatalog:
+    return profile_catalog(
+        {
+            name: ExecutorConfig.model_validate(config)
+            for name, config in placement.profiles.items()
+        },
+        placement.default_profile,
+    )

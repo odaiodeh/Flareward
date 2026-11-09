@@ -4,7 +4,7 @@ import type { ResourceExecutionDefaults } from "@/types/workspace";
 export const DROPDOWN_BG = "bg-[#1a1a2e] border-gray-700";
 
 // Kept in sync with the backend's builtin-disabled category list
-// (mas.core.enums.ResourceCategory.builtin_disabled_categories) — retrievers
+// (flareward.resources.domain.categories.ResourceCategory.builtin_disabled_categories) — retrievers
 // aren't currently supported as built-in resources.
 export const BUILTIN_DISABLED_CATEGORIES = new Set(["retrievers"]);
 

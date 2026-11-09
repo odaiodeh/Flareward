@@ -140,7 +140,7 @@ Using the Duplication Candidates from the evidence pack:
 
 - Risk of breaking existing modules, APIs, or integrations.
 - Hidden side effects on dependent services.
-- Removal of superseded paths and correctness of the target cutover. For the fresh multi-agent platform, older formats and workers are not preservation requirements.
+- Removal of superseded paths and correctness of the target cutover. For the fresh platform platform, older formats and workers are not preservation requirements.
 - Areas that will need regression testing.
 
 ### 9. Adversarial Challenge Techniques (STRICT)
@@ -320,7 +320,7 @@ Number findings sequentially within this section. Same block format. For multi-f
 **Fix →** {remediation}
 ```
 
-Example: `#### 🟡 1. [Duplication] Session cookie config duplicated across 4 services`
+Example: `#### 🟡 1. [Duplication] Session cookie flareward.bootstrap.settings duplicated across 4 services`
 
 Omit this section entirely if there are zero warnings.
 

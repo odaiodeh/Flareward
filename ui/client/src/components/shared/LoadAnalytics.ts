@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { api } from '@/http/queryClient';
 import { User } from '@/contexts/AuthContext';
 /**
  * Custom hook to load Umami analytics script after authentication
@@ -13,8 +12,8 @@ export const loadAnalytics = (isAuthenticated: boolean, user: User | null) => {
 
     const initAnalytics = async () => {
       try {
-        const response = await api.get('/settings/get.umami.settings');
-        const config = response.data;
+        const response = await fetch('/config.json');
+        const config = await response.json();
 
         if (config.website_id && config.umami_url) {
           scriptElement = document.createElement('script');

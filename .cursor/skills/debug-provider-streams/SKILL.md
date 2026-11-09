@@ -1,15 +1,15 @@
 ---
 name: debug-provider-streams
-description: Diagnose UnifAI async LLM stream ownership, early consumer exit, cancellation, and provider error translation using real SDK transports without live model calls.
+description: Diagnose Flareward async LLM stream ownership, early consumer exit, cancellation, and provider error translation using real SDK transports without live model calls.
 ---
 
 # Diagnose provider stream lifecycle
 
-Use the repository Python 3.14 environment and declared `mas[openai,gemini]`
+Use the repository Python 3.14 environment and declared `flareward[openai,gemini]`
 extras. Start with the actual SDK transports, not mocked model methods:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/adapters/test_async_llms.py multi-agent/tests/application/test_agent_execution.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
+.venv/bin/python -m pytest platform/tests/adapters/test_async_llms.py platform/tests/application/test_agent_execution.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
 ```
 
 `tests/support/llm_wire.py` supplies in-memory HTTP/SSE responses to the installed

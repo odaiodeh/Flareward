@@ -1,9 +1,7 @@
 import React, { useEffect } from "react";
 import { Route, Switch, useRoute } from "wouter";
-import RagOverview from "@/pages/RagOverview";
 import AgenticOverview from "@/pages/AgenticOverview";
 import Configuration from "@/pages/Configuration";
-import JiraIntegration from "@/pages/JiraIntegration";
 import AgentRepository from "@/pages/AgentRepository";
 import AgenticChats from "@/pages/AgenticChats";
 
@@ -21,14 +19,11 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { SharedProvider } from '@/contexts/SharedContext';
 import { ViewProvider, useView } from '@/contexts/ViewContext';
-import DocumentsPage from "./features/docs/DocumentsPage";
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { AgenticAIProvider } from '@/contexts/AgenticAIContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import TermsApproval from '@/components/auth/TermsApproval';
-import SlackIntegration from "./features/slack/SlackIntegration";
-import SlackAddSourcePage from "./features/slack/SlackAddSourcePage";
 import PublicChat from "./components/agentic-ai/chat/PublicChat";
 import AgenticLayout from "./components/layout/AgenticLayout";
 import { Toaster } from "./components/ui/toaster";
@@ -46,15 +41,8 @@ function AppRoutes() {
   const [isReview] = useRoute("/reviews/:reviewId");
   const [isPrograms] = useRoute("/programs");
   const [isExecution] = useRoute("/executions/:executionId");
-  const [isRagOverview] = useRoute("/rag-overview");
-  const [isSlack] = useRoute("/slack");
-  const [isDocuments] = useRoute("/documents");
-  const [isSlackAddSource] = useRoute("/slack/add-source");
 
   const isAgenticRoute = isAgenticOverview || isInventory || isAgenticChats || isAgenticChatsSession || isTemplates || isScheduledWorkflows || isReviews || isReview || isPrograms || isExecution;
-  const isTeamBlockedRagRoute =
-    viewMode === "team" &&
-    (isRagOverview || isSlack || isDocuments || isSlackAddSource);
 
   if (isChat) {
     return (
@@ -64,7 +52,7 @@ function AppRoutes() {
     );
   }
 
-  if (isAgenticRoute || isTeamBlockedRagRoute) {
+  if (isAgenticRoute) {
     return (
       <AgenticLayout>
         <AgenticAIProvider>
@@ -89,11 +77,6 @@ function AppRoutes() {
   return (
     <Switch>
       <Route path="/" component={GetToKnow} />
-      <Route path="/rag-overview" component={RagOverview} />
-      <Route path="/jira" component={JiraIntegration} />
-      <Route path="/slack" component={SlackIntegration} />
-      <Route path="/documents" component={DocumentsPage} />
-      <Route path="/slack/add-source" component={SlackAddSourcePage} />
       <Route path="/get-to-know" component={GetToKnow} />
       <Route path="/configuration" component={Configuration} />
       <Route path="/analytics" component={Analytics} />
@@ -167,7 +150,7 @@ function WorkspaceContent() {
 function App() {
   // Set document title
   useEffect(() => {
-    document.title = "UnifAI";
+    document.title = "Flareward";
   }, []);
 
   return (

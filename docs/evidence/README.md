@@ -2,11 +2,16 @@
 
 Start with [current status](../status.md) and [the active plan](../plan.md). Read evidence only for a specific verification question.
 Records describe their tested snapshot; they are not live plans or authorization.
-
 ## Latest checkpoint
 
-- [2026-11-08: feature authoring](2026-11-08-feature-authoring.md): readiness, bundle-v2 numeric integrity, UI-created coder/designer/candidate/root, controlled revision/repair/review and retained evidence; extends [generic authoring](2026-11-08-program-authoring.md).
-- [2026-11-07: review evidence](2026-11-07-review-evidence.md): exact accepted snapshot; native repair and actual-App source/report inspection before approval, retained retrieval and cleanup.
+- [2026-11-09: checkout and Git remote](2026-11-09-checkout-rename.md): `Flareward` folder, `origin`, retained tracking, environment repair and focused verification.
+
+- [2026-11-09: Flareward naming](2026-11-09-flareward-rename.md): product/core/plugin namespaces, configuration, CLI/UI and matched Local/Temporal/Kubernetes/OpenShell verification.
+
+- [2026-11-09: repository structure](2026-11-09-repository-structure.md): feature-owned core/plugins, retired unused apps, canonical UI/API paths and regression scope.
+
+- [2026-11-08: file/Git completion](2026-11-08-git-completion.md): one Engineering revision, direct file/nested Feature Git selection, repair/checks/review and retained source; 858 shared, 46 focused, two native compositions and ten earlier native regressions pass. Extends [completion contracts](2026-11-08-completion-contracts.md); live Git/UI/delivery remain open.
+- [2026-11-08: live authored feature](2026-11-08-live-feature-authoring.md): matched version-2 images, authored resources/Programs, real OpenShell planning/coding, offline checks, pre-approval previews and retained retrieval. Extends [controlled authoring](2026-11-08-feature-authoring.md), [generic authoring](2026-11-08-program-authoring.md) and [review evidence](2026-11-07-review-evidence.md).
 - [2026-11-07: unified Program model](2026-11-07-unified-program-model.md): generic data state, explicit conversation, one authoring path; 1,047 tests and UI gates pass.
 - [2026-11-07: configurable designer](2026-11-07-configurable-designer.md): real planning/coding App, native revision/repair and shared file loading; extends [live UI](2026-11-06-live-feature-ui.md) and [unchanged reuse](2026-11-06-engineering-reuse.md). Full authoring/canvas remain open; review evidence is covered above.
 - [2026-11-06: content handoff](2026-11-06-content-handoff.md): real Codex/isolated checks/final review via HTTP; extends [normal OpenShell](2026-11-06-normal-openshell.md), [strict profile](2026-11-05-candidate-profile.md), [checker boundary](2026-11-05-checker-boundary.md), [placement](2026-11-05-checker-placement.md) and [retirement](2026-11-05-check-lifecycle.md).
@@ -47,7 +52,6 @@ Records describe their tested snapshot; they are not live plans or authorization
   Later event/recovery records above extend it; remaining scope is in current status.
 - [2026-11-04: persisted workflow grant retirement](2026-11-04-credential-retirement.md)
   records the preceding grant-metadata checkpoint and its limitations.
-
 ## Historical lookup
 The [frozen historical record](archive/execution-platform-migration-2026-11-04.md)
 preserves the removed 4,386-line ledger. Do not read it in full during routine
@@ -67,7 +71,6 @@ not override the present goal, status, plan or target architecture.
 | Earlier remote images/strict routing | [Engine adoption](archive/execution-platform-migration-2026-11-04.md#committed-run-engine-adoption-2026-10-30), [strict-label remote evidence](archive/execution-platform-migration-2026-11-04.md#final-strict-label-remote-evidence) |
 | Latest recorded remote gap | [Execution ownership](archive/execution-platform-migration-2026-11-04.md#execution-domainapplication-ownership-2026-11-03): 35 passes, one OpenShell/Temporal setup error and four unreached child-owned environment cases; subsequent sources require rebuilt images |
 | Native async actions/invitations | [Async actions](archive/execution-platform-migration-2026-11-04.md#native-async-action-migration-2026-10-30), [invitation notifications](archive/execution-platform-migration-2026-11-04.md#native-invitation-notifications-2026-10-30) |
-
 ## New evidence records
 
 Write one focused `YYYY-MM-DD-<milestone>.md` record after a coherent milestone;

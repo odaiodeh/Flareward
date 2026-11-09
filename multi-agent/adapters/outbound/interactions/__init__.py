@@ -1,1 +1,0 @@
-"""Interaction transport adapters."""

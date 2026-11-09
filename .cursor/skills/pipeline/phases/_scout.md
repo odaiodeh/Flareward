@@ -29,7 +29,7 @@ Parse the output to build a **provenance map**: for each scoped file, record whi
 
 ### Fresh platform scope
 
-For multi-agent changes, use the target architecture and current native code.
+For platform changes, use the target architecture and current native code.
 Deleted MAS references/recipes are obsolete. Do not derive review suppressions
 from historical Flask/LangGraph patterns or demand old-worker/data compatibility.
 
@@ -39,23 +39,20 @@ Match each scoped file against this table (longest prefix first):
 
 | Path prefix | Domain key | Skill path |
 |-------------|------------|------------|
-| `multi-agent/` | `multi-agent` | `.cursor/skills/codebase/domains/multi-agent/SKILL.md` |
-| `rag/infrastructure/celery/` | `celery` | `.cursor/skills/codebase/domains/celery/SKILL.md` |
-| `rag/` | `rag` | `.cursor/skills/codebase/domains/rag/SKILL.md` |
-| `shared-resources/identity/` | `identity` | `.cursor/skills/codebase/domains/identity/SKILL.md` |
+| `platform/` | `platform` | `.cursor/skills/codebase/domains/platform/SKILL.md` |
+| `identity/` | `identity` | `.cursor/skills/codebase/domains/identity/SKILL.md` |
 | `ui/client/src/` | `ui` | `.cursor/skills/codebase/domains/ui/SKILL.md` |
-| `global_utils/` | `global-utils` | `.cursor/skills/codebase/domains/global-utils/SKILL.md` |
-| `backend/` | `backend` | `.cursor/skills/codebase/domains/backend/SKILL.md` |
+| `packages/service-support/` | `global-utils` | `.cursor/skills/codebase/domains/global-utils/SKILL.md` |
 | `helm/` | `helm` | `.cursor/skills/codebase/domains/helm/SKILL.md` |
 
-Files not matching any prefix (e.g. `.github/`, `docs/`, `local-development/`, `ci/`, `cli/`, `mcp_servers/`, `scripts/`, `tests/`) have no domain — skip domain resolution for them but still include them in the review scope.
+Files not matching any prefix (e.g. `.github/`, `docs/`, `tools/dev/`, `ci/`, `cli/`, `mcp_servers/`, `scripts/`, `tests/`) have no domain — skip domain resolution for them but still include them in the review scope.
 
 ### Step 3: Scope Expansion (Python files)
 
 For each Python file in scope:
 1. Read its import statements to find PORTS (ABCs it implements or depends on)
 2. Include port definition files in the review scope
-3. Include composition root wiring (`bootstrap/` or `container.py`)
+3. Include composition root wiring (`flareward.bootstrap/` or `container.py`)
 4. Re-resolve domains for newly added files
 
 ### Step 4: Load Domain Context
@@ -67,7 +64,7 @@ For each resolved domain, load ONLY that domain's skill and references:
    (contains: architecture, contracts, established patterns, cross-component relationships)
    - 2a. If any loaded component reference contains an **Established Patterns** table, extract it for the evidence pack suppression list.
    - 2b. If the component reference links to a **recipe** for this type of change (e.g. `add-new-node.md`), read the recipe's **Reviewer Checklist** — specifically any **"DO NOT flag"** rows. Include these as additional suppressions.
-3. (Optional) If baseline knowledge about existing endpoints, port wiring, or MongoDB collections is needed beyond what the domain SKILL.md provides, consult `.cursor/unifai-dev-guide/docs/services/<service>.md` at the specific section.
+3. (Optional) If baseline knowledge about existing endpoints, port wiring, or MongoDB collections is needed beyond what the domain SKILL.md provides, consult `.cursor/flareward-dev-guide/docs/services/<service>.md` at the specific section.
 
 Do NOT load domains that are not in the resolved list.
 
@@ -107,7 +104,7 @@ Use the import matrix from `.cursor/rules/engineering-standards.md` as the refer
 For each port (ABC/interface) referenced by scoped files:
 1. Identify the port definition file and its methods
 2. Find concrete adapter(s) that implement it
-3. Locate the injection site (composition root / bootstrap / container.py)
+3. Locate the injection site (composition root / flareward.bootstrap / container.py)
 
 ### Task 2b: Factory / Builder Call-Site Analysis
 
@@ -178,7 +175,7 @@ Report: file pairs, divergent field names, majority convention, and provenance.
 
 ### Task 6: Composition Root Extraction
 
-Read the composition root files relevant to the scoped domains (e.g. `bootstrap/`, `container.py`). Include the relevant bindings/wiring in the evidence pack so judges can verify injection correctness.
+Read the composition root files relevant to the scoped domains (e.g. `flareward.bootstrap/`, `container.py`). Include the relevant bindings/wiring in the evidence pack so judges can verify injection correctness.
 
 ### Task 7: Committed Artifacts Scan
 

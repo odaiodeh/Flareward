@@ -1,20 +1,20 @@
 ---
 name: debug-builtin-administration
-description: Diagnose or extend UnifAI curated resource publication, administration, dependency visibility, private configuration, version conflicts and editor leases.
+description: Diagnose or extend Flareward curated resource publication, administration, dependency visibility, private configuration, version conflicts and editor leases.
 ---
 
 # Diagnose curated resource administration
 
 Trace the Repository Management screen through `api/resources.ts`, native
-`inbound.http_api.builtin_administration`, application `BuiltinAdministration`
-and `outbound.mongo.builtin_administration`. Canonical administration routes are
+`flareward.api.builtin_administration`, application `BuiltinAdministration`
+and `flareward.resources.adapters.mongo.builtin_administration`. Canonical administration routes are
 `/api/administration/resources`; the old built-in Flask routes/service are removed.
 Ordinary resource reads and caller overlays still use the native resource service.
 
 Human authority is distinct from selected workspace ownership. Application
 `AdministratorAccess` decides authority through the persisted directory and explicit
-bootstrap policy. An empty persisted list denies everyone; directory failure cannot
-restore bootstrap access. Never derive human authority from `userId`, team selection
+flareward.bootstrap policy. An empty persisted list denies everyone; directory failure cannot
+restore flareward.bootstrap access. Never derive human authority from `userId`, team selection
 or workflow bearers. The inbound human principal rejects bearer-plus-cookie requests.
 
 Custom and curated saves share `ResourceConfiguration` and installed schemas,
@@ -42,13 +42,13 @@ both the stored revision check and transactional writes when changing this adapt
 The dedicated infrastructure has an optional `transactions` Compose profile on
 localhost 27019. Inspect its ownership before starting it; do not restart ordinary
 Mongo/Redis/Temporal or unrelated containers. See
-[the infrastructure guide](../../../multi-agent/tests/infra/README.md).
+[the infrastructure guide](../../../platform/tests/infra/README.md).
 
 Focused policy tests are `application/test_builtin_administration.py`, resource
 configuration/encryption tests and architecture guards. Native acceptance uses:
 
 ```sh
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 UNIFAI_TEST_MONGO_TRANSACTION_URI='mongodb://127.0.0.1:27019/?directConnection=true' UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest multi-agent/tests/integration/mongo/test_builtin_administration.py multi-agent/tests/integration/mongo/test_builtin_standalone.py multi-agent/tests/integration/http/test_builtin_administration.py --ui-clients -q
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_MONGO_TRANSACTION_URI='mongodb://127.0.0.1:27019/?directConnection=true' FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/mongo/test_builtin_administration.py platform/tests/integration/mongo/test_builtin_standalone.py platform/tests/integration/http/test_builtin_administration.py --ui-clients -q
 ```
 
 The actual-store cases cover rollback on an index failure and competing publication/

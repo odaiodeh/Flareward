@@ -1,4 +1,4 @@
-import { api } from '@/http/queryClient';
+import api from '@/http/axiosAgentConfig';
 
 export interface UserApprovalStatus {
   approved: boolean;
@@ -18,7 +18,7 @@ export interface ApproveUserResponse {
  */
 export async function checkUserApproval(): Promise<UserApprovalStatus> {
   const response = await api.get<UserApprovalStatus>(
-    'terms_approval/user.approval.status.get',
+    '/consents/ai-transparency',
   );
   return response.data;
 }
@@ -29,7 +29,7 @@ export async function checkUserApproval(): Promise<UserApprovalStatus> {
  */
 export async function approveUser(): Promise<ApproveUserResponse> {
   const response = await api.post<ApproveUserResponse>(
-    'terms_approval/user.approval.record.post',
+    '/consents/ai-transparency',
   );
   return response.data;
 }

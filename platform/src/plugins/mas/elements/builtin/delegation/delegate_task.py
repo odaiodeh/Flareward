@@ -1,0 +1,272 @@
+"""
+Tool for delegating tasks to other nodes.
+"""
+
+from collections.abc import Callable
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from flareward.elements.agents.constants import ToolNames
+from flareward.elements.ports.tool import BaseTool
+from flareward.elements.workloads.domain import (
+    DelegationExchange,
+    Task,
+    WorkItemKind,
+    WorkItemResult,
+    WorkItemStatus,
+)
+from flareward.services.interactions.tools.models import ToolAccessMode
+
+
+class DelegateTaskArgs(BaseModel):
+    """Simplified arguments for delegating a task to an adjacent node."""
+
+    dst_uid: str = Field(
+        ..., description="UID of the target adjacent node (check with ListAdjacentNodesTool first)"
+    )
+    content: str = Field(
+        ...,
+        description=(
+            "Clear, detailed description of what the target node should do. "
+            "Include context and expected deliverables."
+        ),
+    )
+    work_item_id: str = Field(
+        ...,
+        description=(
+            "ID of the work item being delegated (required for proper status "
+            "tracking and response correlation)"
+        ),
+    )
+    data: dict[str, Any] = Field(
+        default_factory=dict, description="Additional structured data the target node might need"
+    )
+
+
+class DelegateTaskTool(BaseTool):
+    """Delegate a task to an adjacent node via IEM."""
+
+    access_mode = ToolAccessMode.WRITE
+
+    name = ToolNames.IEM_DELEGATE_TASK
+    description = """Delegate work to specialized agents
+with automatic thread and context management.
+    
+    PRIMARY USES:
+    1. INITIAL DELEGATION: Send new work item to an agent
+    2. RE-DELEGATION (Follow-up): Continue conversation with same agent for same work item
+       - Thread context preserved automatically - agent sees previous conversation
+       - Perfect for: clarifications, more details, refinements, elaborations
+       - Example: "Please elaborate on point 3 from your previous response"
+    
+    WORKFLOW:
+    1. Use ListAdjacentNodesTool to find capable nodes
+    2. Use GetNodeCardTool to understand their capabilities  
+    3. Use this tool to delegate with clear, specific instructions
+    4. Thread automatically reused for same work_item_id (context preserved)
+    5. Work item status automatically updates to 'in_progress' (remote delegation)
+    
+    RE-DELEGATION BENEFITS:
+    ✅ Agent automatically sees previous responses (thread workspace)
+    ✅ No need to repeat context in your message
+    ✅ Enables iterative refinement and quality improvement
+    ✅ Supports multi-turn conversations for complex tasks
+    
+    IMPORTANT: 
+    - Be specific in 'content' - include requirements and expected deliverables
+    - Always provide work_item_id to ensure proper orchestration workflow
+    - For follow-ups: Just ask your question - agent has previous context
+    - Feel free to delegate multiple times to get the quality you need"""
+    args_schema = DelegateTaskArgs
+
+    def __init__(
+        self,
+        send_task: Callable[[str, Task], str],
+        get_owner_uid: Callable[[], str],
+        get_current_thread: Callable[[], Any],  # Returns Thread object
+        get_thread_service: Callable[[], Any],
+        get_workspace_service: Callable[[], Any],
+        check_adjacency: Callable[[str], bool] | None = None,
+    ):
+        """
+        Initialize with focused service dependencies.
+
+        Args:
+            send_task: Function to send task via IEM (dst_uid, task) -> packet_id
+            get_owner_uid: Function to get current node UID
+            get_current_thread: Function to get current Thread object
+            get_thread_service: Function to get thread service
+            get_workspace_service: Function to get workspace service
+            check_adjacency: Optional function to verify adjacency
+        """
+        self._send_task = send_task
+        self._get_owner_uid = get_owner_uid
+        self._get_current_thread = get_current_thread
+        self._get_thread_service = get_thread_service
+        self._get_workspace_service = get_workspace_service
+        self._check_adjacency = check_adjacency
+
+    async def run(self, **kwargs) -> dict[str, Any]:
+        """Delegate task to adjacent node with automatic thread and status management."""
+
+        args = DelegateTaskArgs(**kwargs)
+
+        # Get current thread context
+        current_thread = self._get_current_thread()
+
+        # Check adjacency if validator provided
+        if self._check_adjacency and not self._check_adjacency(args.dst_uid):
+            error_msg = (
+                f"Node {args.dst_uid} is not adjacent, or the uid is wrong, "
+                "check what it is really adjacent"
+            )
+            return {"success": False, "error": error_msg}
+
+        # Prevent circular delegation
+        if self._would_create_cycle(args.dst_uid, current_thread):
+            error_msg = (
+                f"Circular delegation detected: {args.dst_uid} is already in delegation chain"
+            )
+            return {"success": False, "error": error_msg}
+
+        # Use provided work_item_id (now required)
+        work_item_id = args.work_item_id
+
+        # ✅ Check if this work item already has a child thread (re-delegation)
+        workspace_service = self._get_workspace_service()
+        owner_uid = self._get_owner_uid()
+        plan = workspace_service.load_work_plan(current_thread.thread_id, owner_uid)
+        target_item = plan.items.get(work_item_id) if plan else None
+
+        # ✅ Validate that LOCAL items cannot be delegated (must be executed locally)
+        if target_item and target_item.kind == WorkItemKind.LOCAL:
+            error_msg = (
+                f"Cannot delegate LOCAL work item '{work_item_id}'. "
+                f"LOCAL items must be executed by the orchestrator, not delegated. "
+                f"Only REMOTE items can be delegated to other agents."
+            )
+            return {"success": False, "error": error_msg}
+
+        # ✅ Reuse existing child thread or create new one
+        child_thread = None
+        if target_item and target_item.child_thread_id:
+            # Re-delegation: attempt to reuse existing child thread
+            thread_service = self._get_thread_service()
+            child_thread = thread_service.get_thread(target_item.child_thread_id)
+
+            if not child_thread:
+                child_thread = None
+
+        # Create new child thread if not reusing
+        if not child_thread:
+            child_thread = current_thread.create_child(
+                title=f"Delegated: {args.content[:50]}...",
+                objective=args.content,
+                initiator=owner_uid,
+            )
+
+        # Create task with child thread context
+        task = Task.create(
+            content=args.content,
+            data=args.data,
+            should_respond=True,  # Always request response for delegation
+            thread_id=child_thread.thread_id,
+            created_by=self._get_owner_uid(),
+        )
+
+        # Add work item reference (always present now)
+        task.data["work_item_id"] = work_item_id
+
+        # Set response destination
+        task.response_to = self._get_owner_uid()
+
+        try:
+            # Send via IEM
+            packet_id = self._send_task(args.dst_uid, task)
+
+            # Save threads (parent and child)
+            thread_service = self._get_thread_service()
+            thread_service.save_thread(current_thread)  # Parent thread with updated children
+            thread_service.save_thread(child_thread)  # New child thread
+
+            # Update work item with new DelegationExchange
+            try:
+
+                def update_for_delegation(item, plan):
+                    """Create delegation exchange and update work item state."""
+                    # Initialize result if needed
+                    if not item.result:
+                        item.result = WorkItemResult()
+
+                    # A new delegation acknowledges previous exchanges.
+                    for exchange in item.result.delegations:
+                        exchange.processed = True
+
+                    # Calculate sequence number
+                    sequence = len(item.result.delegations)
+
+                    # Create new delegation exchange
+                    exchange = DelegationExchange(
+                        sequence=sequence,
+                        task_id=task.task_id,
+                        query=args.content or item.description,
+                        delegated_to=args.dst_uid,
+                    )
+
+                    item.result.delegations.append(exchange)
+                    item.status = WorkItemStatus.IN_PROGRESS
+                    item.kind = WorkItemKind.REMOTE
+                    item.assigned_uid = args.dst_uid
+                    item.child_thread_id = child_thread.thread_id
+
+                success = workspace_service.atomic_update_work_item(
+                    current_thread.thread_id, owner_uid, work_item_id, update_for_delegation
+                )
+
+                if not success:
+                    error_msg = f"Work item {work_item_id} not found in work plan"
+                    return {"success": False, "error": error_msg}
+
+            except Exception as e:
+                error_msg = f"Exception updating work item status: {e}"
+                return {"success": False, "error": error_msg}
+
+            result = {
+                "success": True,
+                "task_id": task.task_id,
+                "packet_id": packet_id,
+                "dst_uid": args.dst_uid,
+                "child_thread_id": child_thread.thread_id,
+                "parent_thread_id": current_thread.thread_id,
+                "correlation_info": {
+                    "task_id": task.task_id,
+                    "work_item_id": work_item_id,
+                    "child_thread_id": child_thread.thread_id,
+                },
+            }
+
+            return result
+
+        except Exception as e:
+            error_msg = f"Failed to send task: {str(e)}"
+            return {"success": False, "error": error_msg}
+
+    # ========== HELPER METHODS ==========
+
+    def _would_create_cycle(self, dst_uid: str, current_thread) -> bool:
+        """
+        Check if delegation would create a cycle using thread service.
+
+        Args:
+            dst_uid: Target node UID for delegation
+            current_thread: Current thread context
+
+        Returns:
+            True if delegation would create a cycle
+        """
+        try:
+            thread_service = self._get_thread_service()
+            return thread_service.detect_delegation_cycle(current_thread.thread_id, dst_uid)
+        except Exception:
+            return False  # Allow delegation if we can't check

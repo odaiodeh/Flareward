@@ -1,2 +1,0 @@
-# Infrastructure config module
-

@@ -1,6 +1,6 @@
 ---
 name: debug-session-ui
-description: Diagnose UnifAI session creation, chat state, turn-specific streaming, cancellation, and team scope across the existing UI and native FastAPI boundary.
+description: Diagnose Flareward session creation, chat state, turn-specific streaming, cancellation, and team scope across the existing UI and native FastAPI boundary.
 ---
 
 # Diagnose native UI sessions
@@ -32,7 +32,7 @@ approved names/default, never raw backend configuration. Preserve `execution`
 beside `cfg_dict`, the loaded version, and selected team scope. Omission preserves
 the preference; an explicit null profile clears it. An unavailable saved name
 must stay visible, including while discovery fails. The generic schema form merges
-only the editable resource name with element config; merging the whole resource
+only the editable resource name with element flareward.bootstrap.settings; merging the whole resource
 schema would leak execution/identity metadata into element configuration.
 Workflow authoring uses `WorkflowPlacementEditor` in the save dialog. Trace
 `workflowPlacement`/`applyWorkflowPlacement`, blueprint reconstruction, resolver and
@@ -64,17 +64,17 @@ The superseded isolated blueprint-dialog harness and mode are removed.
 Build from `ui/`:
 
 ```sh
-NODE_ENV=production node tests/build-workspace-browser.mjs /tmp/unifai-workspace-browser
+NODE_ENV=production node tests/build-workspace-browser.mjs /tmp/flareward-workspace-browser
 ```
 
 Start from the repository root with the existing own test services:
 
 ```sh
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
-UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
-PYTHONPATH=multi-agent/tests:multi-agent/lib:multi-agent/adapters:multi-agent \
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
+PYTHONPATH=platform/src:platform/tests \
 .venv/bin/python -m support.placement_browser \
-  --assets /tmp/unifai-workspace-browser --log /tmp/unifai-workspace-browser-api.log
+  --assets /tmp/flareward-workspace-browser --log /tmp/flareward-workspace-browser-api.log
 ```
 
 Keep the live handle and open the printed login URL. It opens `/inventory`;

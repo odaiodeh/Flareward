@@ -1,4 +1,0 @@
-# Development scripts - not for production
-scripts/development/*.sh
-scripts/development/*.txt
-scripts/development/temp_*

@@ -1,18 +1,18 @@
 ---
 name: run-platform-tests
-description: Run and diagnose UnifAI platform architecture, application, adapter, and deployment tests, including actual Temporal, Kubernetes, and OpenShell execution.
+description: Run and diagnose Flareward platform architecture, application, adapter, and deployment tests, including actual Temporal, Kubernetes, and OpenShell execution.
 ---
 
-# Test UnifAI's program platform
+# Test Flareward's program platform
 
-Read [the test layout](../../../multi-agent/tests/README.md) and the selected
+Read [the test layout](../../../platform/tests/README.md) and the selected
 suite's fixtures. Use the repository's Python 3.14 `.venv` and local Run Engine
 checkout at the committed baseline in [integration status](../../../integrations/README.md).
 Do not apply archived prototype patches. Tests from unrelated services remain outside
-the replaced multi-agent suite.
+the replaced platform suite.
 
 Start with the relevant application/adapter/architecture cases. For infrastructure
-or deployment changes, use [UnifAI's own infrastructure guide](../../../multi-agent/tests/infra/README.md).
+or deployment changes, use [Flareward's own infrastructure guide](../../../platform/tests/infra/README.md).
 Inspect existing services and use explicit service URIs; do not rely on another
 repository's infrastructure or silently reduce a requested backend matrix.
 
@@ -31,9 +31,9 @@ suites to their appropriate milestone while preserving required final coverage.
 The commands below are examples for those gates, not a per-edit checklist.
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/application multi-agent/tests/architecture -q
-.venv/bin/python -m pytest multi-agent/tests --ignore=multi-agent/tests/integration/deployment/test_remote_programs.py --ignore=multi-agent/tests/integration/deployment/test_openshell_policies.py --ignore=multi-agent/tests/integration/deployment/test_codex_agents.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
-.venv/bin/python -m pytest multi-agent/tests/integration/deployment/test_remote_programs.py --platform-hosts=local,temporal --platform-backends=k8s,openshell -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
+.venv/bin/python -m pytest platform/tests/application platform/tests/architecture -q
+.venv/bin/python -m pytest platform/tests --ignore=platform/tests/integration/deployment/test_remote_programs.py --ignore=platform/tests/integration/deployment/test_openshell_policies.py --ignore=platform/tests/integration/deployment/test_codex_agents.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
+.venv/bin/python -m pytest platform/tests/integration/deployment/test_remote_programs.py --platform-hosts=local,temporal --platform-backends=k8s,openshell -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
 ```
 
 Host selection and invocation backend selection are independent. Remote cases
@@ -42,9 +42,9 @@ For the production service image, use the package README's named Run Engine buil
 context and Dockerfile-specific allowlist. `verify_images.py --platform --image ...`
 checks installed packages without requiring test fixtures. Stream
 `tests/infra/smoke_platform.py` into the image's Python entrypoint for an isolated
-CLI/API/core-Wait/shutdown check. Its default mode is Local; `UNIFAI_SMOKE_HOST`
+CLI/API/core-Wait/shutdown check. Its default mode is Local; `FLAREWARD_SMOKE_HOST`
 selects a matching separately started Temporal worker and requires actual pollers
-plus Mongo (`UNIFAI_SMOKE_MONGO_URI`, default `mongodb://mongo:27017`). Use only the
+plus Mongo (`FLAREWARD_SMOKE_MONGO_URI`, default `mongodb://mongo:27017`). Use only the
 dedicated test network, unique queues and owned-container cleanup. No host ports,
 credentials or socket mounts are needed. This does not certify remote execution.
 A partial namespace dependency (for example `google` installed without
@@ -102,7 +102,7 @@ the real SDK fixtures and saved-session tests cover distinct layers.
 
 For editor action discovery, credential operations and provider probes, use
 [native action diagnostics](../debug-native-actions/SKILL.md). Those tests cover
-the application registry, signed-cookie human/team scope, actual MCP/RAG HTTP,
+the application registry, signed-cookie human/team scope, actual MCP/A2A HTTP,
 private failures and provider client cleanup; no paid call is needed.
 
 For invitation notification queries and decisions, use
@@ -112,7 +112,7 @@ Notification tests do not certify the still-unmigrated create/accept/copy flows.
 
 For curated-library transactions, dependency publication and admin edit leases,
 use [built-in administration diagnostics](../debug-builtin-administration/SKILL.md).
-Its replica-set fixture uses `UNIFAI_TEST_MONGO_TRANSACTION_URI`; the standalone
+Its replica-set fixture uses `FLAREWARD_TEST_MONGO_TRANSACTION_URI`; the standalone
 Mongo refusal check uses the ordinary Mongo URI. Do not silently replace atomic
 publication with separate writes to make a standalone service pass.
 
@@ -121,7 +121,7 @@ and HTTP `test_reporting.py --ui-clients`. The last gate runs the production
 dashboard/analytics clients against real signed sessions, Mongo and Redis. Count
 root records separately from nested children and conversation sessions; preserve
 user/team identity, pinned revision names, null completion and bounded UTC history.
-An empty persisted admin list revokes bootstrap authority; directory failure must
+An empty persisted admin list revokes flareward.bootstrap authority; directory failure must
 not restore it. Reports are stored projections, not live engine or acceptance proof.
 The old statistics service/routes are removed; verify their absence on the next
 coherent image rebuild, without rebuilding per reporting edit.
@@ -131,7 +131,7 @@ For tracing ownership and actual OTLP transport, use
 cases cover both hosts and thread/process receivers; a local protocol endpoint
 does not establish Langfuse server-side persistence or cost aggregation.
 
-For blueprint/plugin failures, check `mas.blueprints.schema.blueprint_schemas` and
+For blueprint/plugin failures, check `flareward.programs.templates.schema.blueprint_schemas` and
 the catalog supplied to library composition. Native authoring, inspection, and
 import share registry-generated schemas; changing legacy global type unions is
 not a plugin registration step. The resource's outer type key selects its schema,
@@ -200,15 +200,15 @@ adapters for integration evidence.
 
 For conditional rejoins, reuse `support/condition_scenarios.py` and installed
 `support.conditions` specs. Local factory/backend contracts live in
-`integration/run_engine/test_conditions.py`; `integration/temporal/test_conditions.py`
+`integration/flareward.executions.adapters.run_engine.shared/test_conditions.py`; `integration/temporal/test_conditions.py`
 uses separate worker processes and replays completed exclusive/fan-out histories.
 Its thread/process selection applies to condition invocation; work nodes use the
 thread default. These tests do not prove restore while a join is deferred, old
 history upgrades, or remote images. The committed SDK provides public ACTIVE joins. Consult `integrations/README.md`
 for exact source identity, owner-reported SDK coverage and incompatible unreleased
-prototype payloads. The fresh platform does not preserve earlier UnifAI workers,
+prototype payloads. The fresh platform does not preserve earlier Flareward workers,
 formats, or histories; test current-source execution and replay.
-The strict-label SDK commit now rejects unknown selections atomically. Retain UnifAI
+The strict-label SDK commit now rejects unknown selections atomically. Retain Flareward
 normalization/label validation for product semantics; verify strict ERROR routing,
 checkpoint consistency, and native replay. Diagnostics/events
 must not echo invalid labels; ordinary invocation histories still carry return data.

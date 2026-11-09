@@ -6,7 +6,7 @@ source change has been made. Checked SDK baseline: `60393440efd3876cd6c81e0b013e
 
 ## Current evidence
 
-UnifAI can publish and materialize managed blobs through registered operations.
+Flareward can publish and materialize managed blobs through registered operations.
 Application services enforce artifact ownership, capabilities, integrity and byte
 limits. Credentials use protected configuration or a receiver-private file; only
 portable blob references appear in program results. Local thread/process handoff
@@ -24,7 +24,7 @@ resolution and grant release; `BoundInvocationDispatcher` exposes bound invocati
 The checked public environment ports do not expose a portable streaming file I/O
 contract. Kubernetes/OpenShell drivers own their physical identities internally.
 We must not bypass those owners by reading private journals or inventing another
-environment manager in UnifAI.
+environment manager in Flareward.
 
 Sources: `runengine/invocation/environments.py`,
 `runengine/coordination/environments.py`, and each backend's
@@ -40,16 +40,16 @@ effects outside the untrusted workload:
   arbitrary backend resource IDs as authority.
 - Read or write an admitted relative workspace file through a bounded async stream.
   Keep bytes and private application credentials outside coordination histories;
-  the UnifAI effect returns a small application reference/receipt.
+  the Flareward effect returns a small application reference/receipt.
 - Verify the physical resource identity and grant before access. Preserve the
   borrower's lack of deletion authority.
 - Constrain roots, symlinks, special files, byte counts and write replacement.
   Define atomic completion, cancellation, timeout, uncertain acknowledgement and
   active-transfer behavior during owner cleanup.
 - Make the capability available through the public host/runtime composition. Avoid
-  asking UnifAI to instantiate private drivers or reconstruct environment records.
+  asking Flareward to instantiate private drivers or reconstruct environment records.
 
-UnifAI still owns artifact ACLs, storage, content identity, repository/candidate
+Flareward still owns artifact ACLs, storage, content identity, repository/candidate
 semantics, evidence and acceptance. The engine owns environment identity, grants,
 transport and lifetime. No ADLC classes or artifact-store service belong in the SDK.
 

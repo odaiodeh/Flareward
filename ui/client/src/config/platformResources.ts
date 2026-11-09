@@ -32,7 +32,7 @@ export interface PlatformResource {
     startTime: 0,
     endTime: 43,
     playbackRate: 2,
-    title: "See UnifAI in Action",
+    title: "See Flareward in Action",
     description: "Watch how workflows are created in our platform",
     label: "Platform Demo",
     showLoopBadge: true
@@ -57,7 +57,7 @@ export interface PlatformResource {
       id: "slides",
       icon: "slides",
       title: "Architecture & Platform Overview Slides",
-      description: "High-level explanation of unifAI's architecture, modules, and platform features.",
+      description: "High-level explanation of Flareward's architecture, modules, and platform features.",
       url: "https://drive.google.com/drive/folders/1ONMrhOCaPxJdn7Lm04NIkvYirJ4EyH8h?usp=drive_link"
     },
     {

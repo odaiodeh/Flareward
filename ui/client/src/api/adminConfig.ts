@@ -1,4 +1,4 @@
-import { backendApi } from '@/http/backendClient';
+import platformApi from '@/http/axiosAgentConfig';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Types
@@ -21,6 +21,7 @@ export interface SectionValue {
   fields: FieldValue[];
   on_update_action: string | null;
   updated_at: string | null;
+  revision: number;
 }
 
 export interface CategoryValue {
@@ -48,7 +49,7 @@ export interface UpdateSectionResponse {
  * Session cookie provides authentication automatically.
  */
 export async function getAdminConfig(): Promise<AdminConfigResponse> {
-  const response = await backendApi.get('/admin_config/config.get');
+  const response = await platformApi.get('/administration/configuration');
   return response.data;
 }
 
@@ -59,22 +60,19 @@ export async function getAdminConfig(): Promise<AdminConfigResponse> {
 export async function updateAdminConfigSection(
   sectionKey: string,
   values: Record<string, unknown>,
+  expectedRevision: number,
 ): Promise<UpdateSectionResponse> {
-  const response = await backendApi.put(
-    '/admin_config/config.section.update',
-    { sectionKey, values },
+  const response = await platformApi.put(
+    '/administration/configuration',
+    { section: sectionKey, values, expected_revision: expectedRevision },
   );
   return response.data;
 }
 
 /**
- * Check whether the given username has admin access.
+ * Check whether the authenticated human has administrator access.
  */
-export async function checkAdminAccess(
-  username: string,
-): Promise<{ is_admin: boolean }> {
-  const response = await backendApi.get('/admin_config/access.check', {
-    params: { username },
-  });
+export async function checkAdminAccess(): Promise<{ is_admin: boolean }> {
+  const response = await platformApi.get('/administration/access');
   return response.data;
 }

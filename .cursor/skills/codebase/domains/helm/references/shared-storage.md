@@ -1,6 +1,6 @@
 # Shared Storage (Helm)
 
-Cross-cutting PVC patterns used by UnifAI charts.
+Cross-cutting PVC patterns used by Flareward charts.
 
 ## Owns
 

@@ -1,12 +1,12 @@
 ---
 name: debug-program-schedules
-description: Diagnose UnifAI native program schedules, reused Temporal workflow IDs, stale calendar edits, tick admission, and schedule-history replay.
+description: Diagnose Flareward native program schedules, reused Temporal workflow IDs, stale calendar edits, tick admission, and schedule-history replay.
 ---
 
-# Diagnose native UnifAI schedules
+# Diagnose native Flareward schedules
 
 Read [the native schedule contract](../../../docs/program-platform-development.md#native-program-schedules)
-and [the test infrastructure guide](../../../multi-agent/tests/infra/README.md).
+and [the test infrastructure guide](../../../platform/tests/infra/README.md).
 Use this workflow for `/api/program-schedules`. Superseded `/schedule.*` routes
 and their old workers are removal targets; do not retain them for compatibility.
 
@@ -57,7 +57,7 @@ Check the boundary indicated by the evidence:
   root. Preserve the original human credential binding and immutable snapshot.
 - Replay failure: preload the same installed worker modules, use the original
   namespace, and select the exact native generation for current-source histories.
-  UnifAI's fresh formats have no old-worker compatibility promise. Do not weaken replay restrictions or
+  Flareward's fresh formats have no old-worker compatibility promise. Do not weaken replay restrictions or
   replace a generation pin with a latest-workflow lookup.
 - Timer budget changes: manual actions bypass the automatic budget. Metadata/input
   edits preserve its live remainder; rearming a completed series resets its counted
@@ -67,8 +67,8 @@ Check the boundary indicated by the evidence:
 Run from the repository root with the documented service URIs configured:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/application/test_program_schedules.py multi-agent/tests/adapters/test_program_calendar.py multi-agent/tests/architecture -q
-.venv/bin/python -m pytest multi-agent/tests/integration/deployment/test_schedules.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
+.venv/bin/python -m pytest platform/tests/application/test_program_schedules.py platform/tests/adapters/test_program_calendar.py platform/tests/architecture -q
+.venv/bin/python -m pytest platform/tests/integration/deployment/test_schedules.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
 ```
 
 After engine identity changes also run its native-identity, Temporal handle/message,

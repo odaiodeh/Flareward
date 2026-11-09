@@ -1,1 +1,0 @@
-"""Coding-provider plugins."""

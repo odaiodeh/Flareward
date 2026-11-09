@@ -1,0 +1,72 @@
+environments:
+  default:
+    values:
+      - ./values/shared-resource-values.yaml
+---
+
+helmDefaults:
+  createNamespace: false
+  wait: false
+  historyMax: 1
+
+releases:
+
+  - name: flareward-mongodb
+    chart: ./shared-resources/mongodb
+    wait: true
+    timeout: 300
+    values:
+      - {{- toYaml .Values.mongodb | nindent 8 }}
+
+  - name: flareward-redis-config
+    chart: ./shared-resources/redis-config
+    wait: true
+
+  - name: flareward-redis
+    chart: ./shared-resources/redis
+    needs:
+      - flareward-redis-config
+    wait: true
+    values:
+      - {{- toYaml .Values.redis | nindent 8 }}
+    hooks:
+      - events: ["presync"]
+        showlogs: true
+        command: bash
+        args:
+        - "./scripts/redis-presync.sh"
+
+  - name: flareward-redis-insight
+    chart: ./shared-resources/redis-insight
+    needs:
+      - flareward-redis
+    wait: true
+    values:
+     - {{- toYaml (index .Values "redis-insight") | nindent 8 }}
+
+  - name: flareward-temporal
+    chart: ./shared-resources/temporal
+    wait: true
+    values:
+     - {{- toYaml .Values.temporal | nindent 8 }}
+
+  - name: flareward-shared-config
+    chart: ./shared-resources/shared-config
+    wait: true
+    needs:
+      - flareward-mongodb
+      - flareward-redis
+      - flareward-redis-insight
+      - flareward-temporal
+    hooks:
+      - events: ["postsync"]
+        showlogs: true
+        command: bash
+        args:
+        - "./scripts/shared-resources-postsync.sh"
+
+  - name: flareward-logging
+    chart: ./shared-resources/logging
+    # currently wait: true is commentd out as the logging pod isn't implemented yet, this comment will stay here as a placeholder so we won't forget it.
+    values:
+     - {{- toYaml .Values.logging | nindent 8 }}

@@ -27,7 +27,7 @@ Evaluate the design across ALL of the following:
 ### 3. Impact on Existing Code
 - Risk of breaking existing modules, APIs, or integrations.
 - Hidden side effects on dependent services.
-- Removal of superseded paths and correctness of the target cutover. For the fresh multi-agent platform, older formats and workers are not preservation requirements.
+- Removal of superseded paths and correctness of the target cutover. For the fresh platform platform, older formats and workers are not preservation requirements.
 - Areas that will need regression testing.
 
 ### 4. Code Duplication & Reusability

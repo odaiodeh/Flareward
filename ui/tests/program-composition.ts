@@ -153,7 +153,7 @@ async function verifyIncompleteConfiguration(base: Pick<ProgramDefinition, 'owne
   const config = structuredClone(saved.definition.implementation.config);
   assert.ok(isRecord(config.providers) && isRecord(config.providers.primary) && isRecord(config.providers.primary.credential));
   assert.ok(Array.isArray(config.connections) && isRecord(config.connections[0]) && isRecord(config.private));
-  assert.match(String(config.connections[0].token), /^unifai-secret:v1:/);
+  assert.match(String(config.connections[0].token), /^flareward-secret:v1:/);
   config.title = 'Completed client configuration';
   config.providers.primary.credential.endpoint = 'provider';
   config.connections[0].endpoint = 'connection';
@@ -314,8 +314,8 @@ async function verifyUnfinishedDraft(base: Pick<ProgramDefinition, 'owner' | 'in
 }
 
 export default async function verifyComposition() {
-  assert.ok(process.env.UNIFAI_TEST_UI_API_URL);
-  api.defaults.baseURL = process.env.UNIFAI_TEST_UI_API_URL;
+  assert.ok(process.env.FLAREWARD_TEST_UI_API_URL);
+  api.defaults.baseURL = process.env.FLAREWARD_TEST_UI_API_URL;
   assert.deepEqual(await catalogService.fetchExecutionProfiles(), { profiles: ['process', 'thread'], default_profile: 'thread', environment_profiles: [] });
   const catalog = await programImplementations();
   for (const key of ['map', 'repeat', 'choose', 'wait']) assert.ok(catalog.some(value => value.key === key && value.version === '1'));

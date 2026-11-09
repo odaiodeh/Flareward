@@ -1,9 +1,9 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: unifai
-  title: UnifAI
-  description: RA platform for building and running multi-agent AI workflows over your enterprise knowledge.
+  name: flareward
+  title: Flareward
+  description: Composable platform for designing, executing, and verifying agentic development workflows.
   annotations:
     servicenow.com/appcode: UNI-001
   tags:
@@ -19,7 +19,7 @@ metadata:
       icon: chat
 spec:
   type: service
-  system: unifai
+  system: flareward
   lifecycle: implementation
   owner: group:redhat/automation-and-tools
   contacts:

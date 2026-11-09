@@ -1,0 +1,119 @@
+local_auth: true
+python:
+  min: '3.14'
+  max: '3.14'
+node:
+  min: '22'
+infrastructure:
+  mongo:
+    image: docker.io/library/mongo:latest
+    ports:
+    - 27017:27017
+    label: MongoDB
+    stop_timeout: 30
+  redis:
+    image: docker.io/library/redis:latest
+    ports:
+    - 6379:6379
+    label: Redis
+  temporal:
+    image: docker.io/temporalio/temporal:latest
+    ports:
+    - 7233:7233
+    - 8233:8233
+    label: Temporal
+    command: server start-dev --ip 0.0.0.0 --ui-port 8233
+services:
+  identity:
+    directory: identity
+    port: 13456
+    host: 127.0.0.1
+    type: python
+    health_endpoint: /api/health/
+    infrastructure:
+    - redis
+    env_file: .env
+    env_entries:
+      keycloak_base_url: https://auth.stage.redhat.com/auth
+      client_id: <REPLACE_WITH_YOUR_CLIENT_ID>
+      client_secret: <REPLACE_WITH_YOUR_CLIENT_SECRET>
+      keycloak_realm: EmployeeIDP
+      directory_ldap_bind_dn: <REPLACE_WITH_YOUR_LDAP_BIND_DN>
+      directory_ldap_bind_password: <REPLACE_WITH_YOUR_LDAP_BIND_PASSWORD>
+      hostname_local: 127.0.0.1
+      port: '13456'
+      frontend_url: http://127.0.0.1:5000
+      BACKEND_ENV: development
+      secret_key: <AUTO_GENERATE>
+    venv:
+      strategy: toml
+      global_utils_extra: identity
+    launch: python -m bootstrap.flask_app
+  ui:
+    directory: ui
+    port: 5000
+    host: 0.0.0.0
+    type: node
+    infrastructure: []
+    env_file: .env.local
+    env_entries:
+      DEV_PORT: '5000'
+      DEV_HOST: 127.0.0.1
+      PLATFORM_HOST: http://127.0.0.1:8002
+      IDENTITY_HOST: http://127.0.0.1:13456
+    venv:
+      strategy: node
+    launch: npm start
+  temporal-worker:
+    directory: platform
+    type: python
+    is_primary: false
+    infrastructure:
+    - mongo
+    - redis
+    - temporal
+    env_file: .env
+    venv:
+      strategy: none
+    launch: flareward-platform worker
+  platform:
+    directory: platform
+    port: 8002
+    host: 127.0.0.1
+    type: python
+    health_endpoint: /api/health/health
+    infrastructure:
+    - mongo
+    - redis
+    - temporal
+    env_file: .env
+    env_entries:
+      FLAREWARD_HOST: '{"runner_type":"local"}'
+      FLAREWARD_AUTHENTICATION: session
+      FLAREWARD_SECRET_KEY: <AUTO_GENERATE>
+      FLAREWARD_IDENTITY_URL: http://127.0.0.1:13456
+      FLAREWARD_REDIS_URI: redis://127.0.0.1:6379/0
+      FLAREWARD_FRONTEND_URL: http://127.0.0.1:5000
+    venv:
+      strategy: toml
+      pip_extras: dev
+      global_utils_extra: identity-client
+    launch: flareward-platform serve --host 127.0.0.1 --port 8002
+groups:
+  all:
+  - platform
+  - identity
+  - ui
+  services:
+  - platform
+  - identity
+  - ui
+  workers:
+  - temporal-worker
+  agents:
+  - platform
+  - temporal-worker
+  ui:
+  - ui
+logging:
+  directory: /tmp/flareward-dev/logs

@@ -22,8 +22,8 @@ From the repository root, use Python 3.14 or newer:
 
 ```sh
 python3.14 -m venv .venv
-.venv/bin/python -m pip install -e ../run-engine -e ./global_utils -e './multi-agent[dev]'
-.venv/bin/python -m pytest multi-agent/tests -q
+.venv/bin/python -m pip install -e ../run-engine -e ./packages/service-support -e './platform[dev]'
+.venv/bin/python -m pytest platform/tests -q
 ```
 
 Use the committed Run Engine baseline
@@ -33,13 +33,13 @@ native execution-generation identity, ACTIVE graph joins and strict unknown-labe
 are required. Verify the source commit: package version `0.2.0` alone is insufficient.
 The OpenShell extension requires SDK 0.0.104 or newer.
 
-UnifAI defaults to active-path joins; a graph may explicitly select all-predecessor
+Flareward defaults to active-path joins; a graph may explicitly select all-predecessor
 joins. The compiler lowers its application-owned `join_policy` to the engine's
 public policy. `UnknownLabelPolicy.ERROR` remains mandatory.
 Earlier serialized plans without these policies retain ALL/IGNORE behavior.
 Strict routing validates the entire result and fails with `UNKNOWN_CONDITION_LABEL`
 before scheduling successors. Safe diagnostics do not remove return values from
-native invocation histories; keep private values outside routing output. Older UnifAI prototype payloads and histories are outside the fresh-platform
+native invocation histories; keep private values outside routing output. Older Flareward prototype payloads and histories are outside the fresh-platform
 contract. Rebuild matched coordinator/receiver images
 before remote deployment; historical remote test results do not validate new SDK
 source. See [integration status and recovery notes](../integrations/README.md).
@@ -51,7 +51,7 @@ Resource, Program and Execution. Operation is an executable Element. Graph and
 registered backend coordination are internal Program implementations. Both use
 ProgramService, ExecutionService, the engine adapter and the shared execution view.
 
-`mas.application.programs.state.ProgramState` owns generic data channels, including
+`flareward.programs.state.ProgramState` owns generic data channels, including
 structured JSON output. `graph_state.AgentProgramState` adds MAS channels only when
 node/condition capabilities require them. Engine state binding uses corresponding
 `ProgramGraphState` and `AgentProgramGraphState` adapters. Operation-only graphs do
@@ -86,7 +86,7 @@ engine SDK handle.
 
 Generic `BaseElementSpec`, operation contracts, catalog and construction can be
 imported/initialized without loading graph state. State-based nodes/conditions
-specialize `GraphElementSpec` in `mas.application.programs.graph_elements`; channel
+specialize `GraphElementSpec` in `flareward.programs.graph_elements`; channel
 reads/writes and step/state protocols belong there, not to every element. Existing
 node/condition adapters still use graph state intentionally. Abstract specification
 bases are excluded from discovery/installation; concrete declarations are validated.
@@ -95,7 +95,7 @@ Portable invocation payloads have an explicit `key`. Typed operations carry no
 graph step context and never receive automatic `set_context` graph injection.
 Graph calls require explicit step context matching their key. The graph adapter
 owns input/output mappings; backend Programs no longer fabricate graph context
-for typed operations. Receiver contract is `unifai-elements-v4`, with prepared
+for typed operations. Receiver contract is `flareward-elements-v4`, with prepared
 format `runengine/request-v10`; earlier prototype snapshots are not migrated.
 
 The existing `ElementBundleResolver` and `ElementBundleBuilder` construct its
@@ -117,7 +117,7 @@ or a declared named environment. Existing node-style invocation still
 receives/returns application graph state and remains a conversion target.
 
 Both graph and custom program definitions declare owned environments. Custom
-programs declare `child_environment_imports` separately from behavioral config;
+programs declare `child_environment_imports` separately from behavioral flareward.bootstrap.settings;
 the compiler validates parent names and freezes these bindings into child
 requests. Runtime code cannot widen them. Children borrow the engine's environment
 grant; they do not acquire ownership or delete the parent's receiver. Concrete
@@ -145,7 +145,7 @@ and application. Static ordering, dependencies and parallel graph regions keep
 using `GraphDefinition` and Run Engine graph execution. There is no second
 scheduler, custom replay store or integration-specific compiler branch.
 
-`bootstrap.programs.installed_applications` composes the core registrations with
+`flareward.bootstrap.programs.installed_applications` composes the core registrations with
 explicit extension modules into one `ApplicationRegistry`. Workers preload the
 same core module before executing/replaying histories. Extensions still register
 installed async functions and Pydantic configuration through
@@ -215,7 +215,7 @@ not. Root submissions invoke published references, not arbitrary body paths.
 Private prepared requests carry selected-scope contracts, mappings/configuration,
 compiled child requests and source addresses instead of copying the entire source
 revision into every child payload. Installed entrypoint contract is
-`unifai-program-v6`; prepared format is `runengine/request-v10`. There is no old
+`flareward-program-v6`; prepared format is `runengine/request-v10`. There is no old
 prototype-payload migration. Rebuild matched images at the next remote milestone.
 
 Local thread/process and production TypeScript→FastAPI→Mongo checks prove this
@@ -535,7 +535,7 @@ Whole-value literal requests/results use the same publication checks as named
 mappings. Dynamic values still validate at invocation. Richer schema compatibility,
 cyclic/complex-flow availability, arbitrary per-graph state schemas, indexed-result retention/
 payload limits and authoritative occurrence inspection remain unfinished.
-Current graph-state contract is `unifai-graph-state-v4`. Matched images and Temporal/
+Current graph-state contract is `flareward-graph-state-v4`. Matched images and Temporal/
 remote/replay evidence remain queued for the execution milestone.
 
 ### Graph-local interfaces and join policies
@@ -548,7 +548,7 @@ reads without a producer-to-consumer ordering path reject readiness/publication.
 Whole graph state and the result index are objects; the root invocation value is
 selected through `input`. Named legacy state channels remain dynamically checked.
 
-`InterfaceContract` now lives in `mas.application.programs.interfaces`; graph scope
+`InterfaceContract` now lives in `flareward.programs.interfaces`; graph scope
 navigation lives in `graph_data`, while `ProgramContracts` composes call/catalog/
 publication checks. Current callers import those owners directly. The shared
 projection validator rejects provably disjoint public JSON types, preserving
@@ -607,7 +607,7 @@ plans. They do not establish Temporal/replay or current-image remote acceptance.
 
 Application `ProgramState` owns graph invocation/result scopes, existing writable
 channel schemas, portable updates and safe validation errors. It extends the shared
-UnifAI `GraphState`; the thin Run Engine state adapter combines it with native
+Flareward `GraphState`; the thin Run Engine state adapter combines it with native
 state/reducer integration. Generic operations continue to receive typed JSON and
 operation context, never graph state.
 
@@ -691,14 +691,14 @@ ADLC value (`repository`, full immutable `commit`), separate from `BlobArtifactR
 Generic program/runtime/compiler contracts do not import it.
 
 Enable the installed optional plugin on the API/coordinator using
-`UNIFAI_ELEMENT_MODULES='["mas_plugins.git.specification"]'`. Install the same
+`FLAREWARD_ELEMENT_MODULES='["plugins.git.specification"]'`. Install the same
 package and Git CLI on receivers that execute these operations. Operator settings
 bind logical repository IDs to transport locations and explicitly admitted owners:
 
 ```sh
-export UNIFAI_GIT_REPOSITORIES='{"product":{"location":"/srv/repositories/product","owners":[{"type":"user","id":"developer"}]}}'
-export UNIFAI_WORKSPACE_ROOT=/srv/unifai-workspaces
-export UNIFAI_GIT_TIMEOUT_SECONDS=120
+export FLAREWARD_GIT_REPOSITORIES='{"product":{"location":"/srv/repositories/product","owners":[{"type":"user","id":"developer"}]}}'
+export FLAREWARD_WORKSPACE_ROOT=/srv/flareward-workspaces
+export FLAREWARD_GIT_TIMEOUT_SECONDS=120
 ```
 
 Locations currently support an absolute local repository path or credential-free
@@ -716,6 +716,16 @@ Use these normal resource/specification contracts:
 | `providers/git_repository` | Logical `repository` ID | — | Constructed source capability |
 | `operations/resolve_git_revision` | `source: ProviderRef` | `reference` (default `HEAD`) | `GitRevision` |
 | `operations/checkout_git_revision` | `source: ProviderRef`, workspace name/mode | `revision: GitRevision` | `GitWorkspace` (initial revision and relative workspace) |
+| `operations/read_git_file` | `source: ProviderRef`, `max_bytes` (1–65,536) | `GitFile` (exact revision and contained path) | `GitFileContent` with verified inline bytes |
+
+File reads fetch the exact admitted revision into an owned temporary repository and
+read a regular Git blob, without installing a mutable checkout. Symlinks, directories,
+missing files and excessive content are refused. The response preserves revision/path
+and content identity. Git subprocesses use the shared approved proxy/TLS transport
+filter, without inheriting provider/application authority or host Git configuration.
+The standard production image can opt into Git with `--build-arg INSTALL_GIT=true`;
+the test receiver Dockerfile ensures Git is installed. These build changes await the
+next matched-image gate; native proof does not establish remote installation.
 
 Resolution accepts `HEAD`, a full `refs/heads/...` or `refs/tags/...` name, or a
 complete lowercase object ID. It fetches and peels annotated tags to a commit,
@@ -743,13 +753,13 @@ trusted verification receipt is implied by a successful checkout.
 
 ## Verification plans and trusted evidence admission
 
-Enable `UNIFAI_VERIFICATION_ENABLED=true` with `UNIFAI_STORAGE=mongo`. Verification
+Enable `FLAREWARD_VERIFICATION_ENABLED=true` with `FLAREWARD_STORAGE=mongo`. Verification
 uses the existing application database and native async Mongo connection; memory
 storage is rejected for this feature. `program_verifications` stores bounded
 whole-plan records with majority-acknowledged writes and revision-checked updates.
 There is no additional database, scheduler or operation registry.
 
-`UNIFAI_VERIFICATION_POLICIES` maps versioned policy IDs to admitted owners, a
+`FLAREWARD_VERIFICATION_POLICIES` maps versioned policy IDs to admitted owners, a
 `subject_kind`, required check IDs/allowed verifier IDs, and a deadline (60 seconds
 to 30 days). For example, the JSON value of a single policy can be:
 
@@ -762,7 +772,7 @@ to 30 days). For example, the JSON value of a single policy can be:
 }
 ```
 
-`UNIFAI_VERIFICATION_AUTHORITIES` maps verifier IDs to `credential_sha256` (the
+`FLAREWARD_VERIFICATION_AUTHORITIES` maps verifier IDs to `credential_sha256` (the
 lowercase SHA-256 digest of a separately provisioned high-entropy bearer credential)
 and explicit owner identities. The verifier retains the credential; the API
 configuration stores its digest. Distinct verifier identities require distinct
@@ -821,7 +831,7 @@ isolation from malicious code sharing their OS identity or database authority.
 
 ### Operator-pinned verifier Programs
 
-`UNIFAI_PROGRAM_CHECKS` registers a check runner backed by an ordinary published
+`FLAREWARD_PROGRAM_CHECKS` registers a check runner backed by an ordinary published
 Program. The private operator binding contains `policy`, `program_owner`, immutable
 `program` reference, exact `content_digest` and `max_result_bytes` (default 65,536).
 Program and GitHub runner names cannot collide. Internal verifier identities cannot
@@ -916,13 +926,14 @@ This optional transport puts bounded source data in the verifier execution's sto
 inputs/history. It is not suitable for large repositories; ordinary reference-based
 check Programs remain available. It grants the receiver no artifact credential.
 
-Install `mas_plugins.testing.specification` in the normal element catalog to expose
+Install `plugins.testing.specification` in the normal element catalog to expose
 `operations/python_function_evaluate`. Its resource specifies a function name and
 a 0.1–300-second timeout (default 10). Normal specs/factories/builders construct it.
-Its input is the exact inline artifact plus 1–32 argument sets. It returns bounded
+Its version **2.0.0** input is `source: InlineContent` plus 1–32 argument sets. The
+evaluator receives bytes/hash/size, without an artifact ID or Git connection. It returns bounded
 actual values or a typed evaluation failure, never a verification verdict.
 
-Install `mas_plugins.testing.program` in the application registry for the backend
+Install `plugins.testing.program` in the application registry for the backend
 `python_function_check@1` Program. Configuration contains the captured evaluator
 bundle, expected cases and an explicit execution selection. The coordinator keeps
 expected answers, validates the exact candidate fingerprint and invokes only that
@@ -930,6 +941,17 @@ evaluator bundle with source/arguments through `ProgramRuntime.invoke_element`.
 Check-plan metadata, verification capabilities and expected answers are not evaluator inputs.
 Comparison stays outside the candidate receiver when placed on an isolated profile.
 The former combined check operation was removed without compatibility aliases.
+Old evaluator-version-1 bundles and `artifact` invocation fields are not accepted;
+recapture resources and rebuild receivers for version 2. Blob verifier inputs still
+use `CheckProgramInput.artifact` at the trusted transport boundary described above.
+
+For a Git subject, install `plugins.testing.git_program` to register
+`git_python_function_check@1`. `GitPythonCheckConfig` captures a `read_git_file` bundle,
+relative source path, trusted `source_execution` and the normal Python comparison
+configuration. It reads exact admitted Git source, verifies returned revision/path,
+then reuses the same evaluator and comparator. Expected answers and Git access stay
+outside evaluation placement. The resulting verdict/report identifies the original
+Git subject fingerprint; it does not fabricate a managed-blob reference for Git bytes.
 The full controlled Engineering native/browser journey also uses this production
 checker through `program@1`, with a separately owned pinned verifier. Candidate
 owners inspect admitted reports, not the verifier's private execution. The old
@@ -951,13 +973,13 @@ Python `-I -S` isolates imports/configuration, not operating-system access.
 The evaluator retains only receiver-local proxy/certificate transport settings in
 addition to its minimal PATH. OpenShell's allowed traffic needs those injected
 settings; stripping them makes direct child networking unreachable. Coding and
-evaluation adapters share the outer `mas_plugins.subprocesses.network_environment`
+evaluation adapters share the outer `plugins.subprocesses.network_environment`
 helper. Provider keys, workflow settings and `RUNENGINE_PARAMS` are excluded from
 the evaluator child environment. Policy still belongs to the execution profile.
 
 Factory execution defaults to disabled. Only receiver/operator settings may enable
-`UNIFAI_PYTHON_CHECK_EXECUTION_ENABLED=true`; optional
-`UNIFAI_PYTHON_CHECK_DIRECTORY` must be absolute. Authored resource configuration
+`FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED=true`; optional
+`FLAREWARD_PYTHON_CHECK_DIRECTORY` must be absolute. Authored resource configuration
 cannot enable it or select a shell command. Enable only on an appropriately isolated
 profile for live/untrusted source. The flag declares operator authorization; it does
 not prove physical isolation. A same-UID subprocess on a trusted host is not a
@@ -1007,8 +1029,8 @@ enough to access it with a scoped grant. Native owners retain their authorized
 inspection/control. A shared opaque-credential helper supplies nonce/hash mechanics
 for artifact and verification capabilities; their scopes and policies stay separate.
 
-Install `mas_plugins.verification.specification` through `UNIFAI_ELEMENT_MODULES`
-and `mas.application.verification.program` through `UNIFAI_APPLICATION_MODULES`
+Install `plugins.verification.specification` through `FLAREWARD_ELEMENT_MODULES`
+and `flareward.services.verification.program` through `FLAREWARD_APPLICATION_MODULES`
 (append them to other required modules). Receivers need the same installed code.
 The plugin registers these normal resources through existing specifications,
 factories, provider references and the shared operation invoker:
@@ -1030,15 +1052,15 @@ infrastructure failures. Protected preparation redacts messages/codes while keep
 failure category and retryability. Artifact storage failures now use that same
 application-owned failure contract instead of losing their transport classification.
 
-Configure `UNIFAI_VERIFICATION_ENDPOINT` as an HTTPS origin. For operator-bound
-credentials, set an absolute `UNIFAI_VERIFICATION_ACCESS_DIRECTORY`. Provision a
+Configure `FLAREWARD_VERIFICATION_ENDPOINT` as an HTTPS origin. For operator-bound
+credentials, set an absolute `FLAREWARD_VERIFICATION_ACCESS_DIRECTORY`. Provision a
 private regular file named by `verification_credential_key(owner, root_execution_id)`
 with the capability for that owner/root. This permits concurrent roots using the
 same published resource without replacing one global token. Symlink/nonregular or
 nonprivate credential files are rejected. The alternative `access_token: SecretStr`
 uses the existing protected configuration/secret-reference path. Credentials are
 not program inputs, operation results or prepared engine payloads. Tests explicitly
-enable loopback HTTP with `UNIFAI_VERIFICATION_ALLOW_INSECURE=true`.
+enable loopback HTTP with `FLAREWARD_VERIFICATION_ALLOW_INSECURE=true`.
 
 The registered `await_verification@1` code program takes `plan_id`. Its configuration
 contains an inspection operation bundle, placement selection, polling interval and
@@ -1058,7 +1080,7 @@ uses the explicit cancel operation when appropriate.
 runner. The domain owns dispatch status and observations; the application owns
 authorization, one intent per plan/check, immutable configuration admission, and
 evidence submission. `MongoCheckRunRepository` reuses the native application
-database. `mas_plugins.ci.github` implements the external provider contract.
+database. `plugins.ci.github` implements the external provider contract.
 Run Engine still owns all scheduling and durable waiting.
 
 The workflow APIs are:
@@ -1076,7 +1098,7 @@ operator binding further restricts owner, verification policy, check and subject
 kind. The public operation does not accept a verdict, provider token, executable
 command, workflow URL or arbitrary dispatch parameters.
 
-Set `UNIFAI_VERIFICATION_ENABLED=true` and supply `UNIFAI_GITHUB_CHECKS` privately on
+Set `FLAREWARD_VERIFICATION_ENABLED=true` and supply `FLAREWARD_GITHUB_CHECKS` privately on
 the **API server only**. Its map keys are versioned runner IDs. Each binding has:
 
 | Field | Meaning |
@@ -1099,17 +1121,17 @@ the **API server only**. Its map keys are versioned runner IDs. Each binding has
 | `archive_hosts` | Explicit HTTPS download-host names or `*.suffix` patterns |
 
 The verifier must appear in the corresponding verification policy. It must not
-also appear in `UNIFAI_VERIFICATION_AUTHORITIES`: the internally admitted runner,
+also appear in `FLAREWARD_VERIFICATION_AUTHORITIES`: the internally admitted runner,
 rather than an external evidence bearer, owns this authority. Settings reject
 conflicting roles, missing policies and incompatible checks. Credential rotation
 preserves the configuration digest; changing the admitted workflow/policy binding
 requires restoring that binding to reconcile an existing run.
 
-Configure the trusted workflow to accept four string inputs: `unifai_intent`,
-`unifai_plan`, `unifai_check`, and `candidate_commit`. Its run name must be:
+Configure the trusted workflow to accept four string inputs: `flareward_intent`,
+`flareward_plan`, `flareward_check`, and `candidate_commit`. Its run name must be:
 
 ```yaml
-run-name: unifai-${{ inputs.unifai_intent }}-${{ inputs.candidate_commit }}
+run-name: flareward-${{ inputs.flareward_intent }}-${{ inputs.candidate_commit }}
 ```
 
 The workflow must materialize the exact full candidate commit from its fixed,
@@ -1156,7 +1178,7 @@ separate reusable Human Review business program.
 report evidence in the verification plan. It is optional: ordinary operation
 results and other checks need no blob wrapper. Server admission rejects a bound
 runner that cannot provide the required reports. Report-enabled bindings require
-`UNIFAI_ARTIFACT_DIRECTORY`; the existing artifact service owns publication,
+`FLAREWARD_ARTIFACT_DIRECTORY`; the existing artifact service owns publication,
 integrity, owner access and content streaming. No second blob store is introduced.
 
 `GitHubCheckReports` selects the configured names from the already validated,
@@ -1234,8 +1256,8 @@ operator/controller; reusable waits do not renew their own authority.
 
 ## Durable artifacts: implemented API/storage foundation
 
-Configure an absolute `UNIFAI_ARTIFACT_DIRECTORY` on the API server, outside worker
-or sandbox filesystems. `UNIFAI_ARTIFACT_MAX_BYTES` bounds each publication (default
+Configure an absolute `FLAREWARD_ARTIFACT_DIRECTORY` on the API server, outside worker
+or sandbox filesystems. `FLAREWARD_ARTIFACT_MAX_BYTES` bounds each publication (default
 64 MiB). The filesystem implementation targets durable POSIX storage. Application
 policy depends on the `ArtifactRepository` port; domain/application code imports
 no filesystem or HTTP integration.
@@ -1266,24 +1288,24 @@ are separate from the managed root-bound workflow capability below.
 Normal streaming transfer uses `providers/artifact_store`,
 `operations/publish_artifact`, and `operations/materialize_artifact`. Factories,
 provider dependency references, async preparation and receiver cleanup are shared
-with other elements. Configure receiver-only `UNIFAI_ARTIFACT_ENDPOINT` as the
+with other elements. Configure receiver-only `FLAREWARD_ARTIFACT_ENDPOINT` as the
 platform server origin and use a protected `access_token` resource field or a
-private absolute `UNIFAI_ARTIFACT_ACCESS_FILE` binding. Manual file bindings must be
+private absolute `FLAREWARD_ARTIFACT_ACCESS_FILE` binding. Manual file bindings must be
 regular, private, owned by the receiver OS user, and at most 4096 bytes; symlinks
 are refused. HTTPS is required by default;
-`UNIFAI_ARTIFACT_ALLOW_INSECURE=true` is an explicit local-test option. URLs and
+`FLAREWARD_ARTIFACT_ALLOW_INSECURE=true` is an explicit local-test option. URLs and
 credential-file paths stay outside behavioral resource configuration. The provider
 checks that its credential belongs to the invocation owner and does not follow
 redirects. Its HTTP client closes with the constructed element scope.
 
-For managed workflow transfer, enable `UNIFAI_ARTIFACT_WORKFLOW_ENABLED=true`
+For managed workflow transfer, enable `FLAREWARD_ARTIFACT_WORKFLOW_ENABLED=true`
 with artifact storage, Mongo, recoverable issuance/encryption and the existing
 private workflow credential directory. Use the same purpose settings on scheduled
 admission workers. Request `artifact@1` in normal `workflow_access`, for example
 `scope={"actions":["read","publish"],"namespaces":["project"]}` with a bounded TTL
 and optional renewal horizon. The submission derives the root and freezes human
 approval. The scope supports explicit blob IDs and a per-transfer `max_bytes`,
-which cannot exceed the operator's `UNIFAI_ARTIFACT_MAX_BYTES`.
+which cannot exceed the operator's `FLAREWARD_ARTIFACT_MAX_BYTES`.
 
 The shared reservation/delivery/retirement path provisions private material;
 Mongo purpose records retain hashes and use atomic renewal plus API/database-clock
@@ -1304,8 +1326,8 @@ This is trusted Local delivery. Isolated Kubernetes/OpenShell delivery, credenti
 rotation, full recovery combinations and atomic fencing of already admitted effects
 remain separate acceptance work. An active stream is not revoked transactionally.
 
-Workspace file access uses the receiver's `UNIFAI_WORKSPACE_ROOT`, default
-`/tmp/unifai-workspaces`. A shared domain layout gives coding and transfer the
+Workspace file access uses the receiver's `FLAREWARD_WORKSPACE_ROOT`, default
+`/tmp/flareward-workspaces`. A shared domain layout gives coding and transfer the
 same isolated/shared binding semantics. Transfer pins directory handles, rejects
 symlink escapes and special-file sources, and scopes paths to the root execution.
 Materialization verifies bytes in private staging, creates an atomic destination,
@@ -1446,9 +1468,9 @@ admission provisioning, managed private delivery and rotation remain unfinished.
 
 ## Recoverable human workflow credential issuance
 
-`UNIFAI_RECOVERABLE_CREDENTIAL_ISSUANCE=true` enables encrypted issuance reservations
+`FLAREWARD_RECOVERABLE_CREDENTIAL_ISSUANCE=true` enables encrypted issuance reservations
 for review/verification services. It requires Mongo, at least one enabled purpose
-service and a valid existing `UNIFAI_CREDENTIAL_ENCRYPTION_KEY` Fernet key. Key
+service and a valid existing `FLAREWARD_CREDENTIAL_ENCRYPTION_KEY` Fernet key. Key
 format is checked before client allocation. The private store is distinct from
 immutable reusable configuration secrets and is maintained while this feature is
 enabled; disabling it also stops its material-retirement reconciler.
@@ -1585,7 +1607,7 @@ trusted thread/process delivery, not remote sandbox or full ADLC acceptance. See
 
 ### Managed private workflow delivery
 
-Set `UNIFAI_WORKFLOW_CREDENTIAL_DIRECTORY` to an absolute private directory to
+Set `FLAREWARD_WORKFLOW_CREDENTIAL_DIRECTORY` to an absolute private directory to
 deliver keyed, human-approved review/verification grants to trusted local/shared
 filesystem receivers. On the API this requires recoverable issuance and its vault
 key. Receivers need the directory binding, not the vault key. This is a private
@@ -1627,7 +1649,7 @@ OpenShell require separately scoped receiver delivery and matched-image proof.
 
 ## Owner-scoped execution profiles
 
-`PlatformSettings.profile_access` (`UNIFAI_PROFILE_ACCESS`) configures which
+`PlatformSettings.profile_access` (`FLAREWARD_PROFILE_ACCESS`) configures which
 installed profiles each user/team owner can select. Application
 `ExecutionProfileAccess`, behind the `ProfileAccess` port, resolves one detached
 safe catalog for discovery, placement previews and compilation. Unconfigured
@@ -1686,7 +1708,7 @@ weakens distributed enforcement. It is currently opt-in deployment policy, not
 an authored Program configuration or a client-selected budget. For example:
 
 ```sh
-export UNIFAI_WORK_LIMITS='{"max_dispatches":1000,"max_children":100,"max_depth":8}'
+export FLAREWARD_WORK_LIMITS='{"max_dispatches":1000,"max_children":100,"max_depth":8}'
 ```
 
 The compiler freezes the limits and installed admission reference into every
@@ -1732,7 +1754,7 @@ worker restart and current-image Kubernetes/OpenShell acceptance remain queued.
 
 ```text
 +----------------------------------------------------------------------------+
-| UNIFAI APPLICATION                                                         |
+| FLAREWARD APPLICATION                                                      |
 +----------------------------------------------------------------------------+
 |  +----------------------------------------------------------------------+  |
 |  | Services and contracts                                               |  |
@@ -1745,7 +1767,7 @@ worker restart and current-image Kubernetes/OpenShell acceptance remain queued.
                                       |
                                       v
 +----------------------------------------------------------------------------+
-| UNIFAI ADAPTERS AND COMPOSITION                                            |
+| FLAREWARD ADAPTERS AND COMPOSITION                                         |
 +----------------------------------------------------------------------------+
 |  +----------------------------------------------------------------------+  |
 |  | Native API, execution adapters, and receiver services                |  |
@@ -1765,7 +1787,7 @@ worker restart and current-image Kubernetes/OpenShell acceptance remain queued.
 |  +----------------------------------------------------------------------+  |
 |  | Local host OR Temporal service and generic CoordinationWorker        |  |
 |  | Graph traversal | child runs | invocations | environments | recovery |  |
-|  | Selected backends execute installed UnifAI entrypoints               |  |
+|  | Selected backends execute installed Flareward entrypoints               |  |
 |  +----------------------------------------------------------------------+  |
 +----------------------------------------------------------------------------+
 ```
@@ -1775,7 +1797,7 @@ are async; synchronous legacy element calls and SDK construction run off-loop
 under explicit ownership. Cancellation drains owned work before resource cleanup.
 There is no request-side async bridge or nested event loop in this path.
 Native async element calls are awaited directly. State-based elements can return
-UnifAI's GraphState; application ProgramState validates their declared changes,
+Flareward's GraphState; application ProgramState validates their declared changes,
 and the receiver binds these channels to the native engine state contract.
 
 ### Execution sequence and ownership
@@ -1785,7 +1807,7 @@ the outbound adapter implements those ports and imports the engine SDK.
 
 ```text
 +-----------------+  +-----------------+  +-----------------+  +-----------------+
-| UNIFAI          |  | UNIFAI          |  | UNIFAI          |  | RUN ENGINE      |
+| FLAREWARD          |  | FLAREWARD          |  | FLAREWARD          |  | RUN ENGINE      |
 | FastAPI adapter |  | App services    |  | Engine adapter  |  | Infrastructure  |
 +--------+--------+  +--------+--------+  +--------+--------+  +--------+--------+
          |                    |                    |                    |
@@ -1807,13 +1829,13 @@ the outbound adapter implements those ports and imports the engine SDK.
          |<-- app response ---|                    |                    |
 ```
 
-The engine dispatches an installed UnifAI receiver into the selected environment.
+The engine dispatches an installed Flareward receiver into the selected environment.
 Being inside an engine-managed pod or sandbox does not transfer ownership of
-UnifAI's application behavior to Run Engine:
+Flareward's application behavior to Run Engine:
 
 ```text
 +-----------------+  +-----------------+  +-----------------+  +-----------------+
-| RUN ENGINE      |  | UNIFAI          |  | UNIFAI          |  | UNIFAI          |
+| RUN ENGINE      |  | FLAREWARD          |  | FLAREWARD          |  | FLAREWARD |
 | Infrastructure  |  | Receiver adapter|  | Application     |  | Codex adapter   |
 +--------+--------+  +--------+--------+  +--------+--------+  +--------+--------+
          |                    |                    |                    |
@@ -1853,7 +1875,7 @@ remaining legacy module has completed the migration.
 
 ### Profile persistence and authoring
 
-Execution metadata is separate from an element's `config`. The saved resource
+Execution metadata is separate from an element's `flareward.bootstrap.settings`. The saved resource
 shape is `execution: {profile: "approved-name"}` alongside its configuration.
 Nodes, conditions and operations accept that preference; a dependent LLM or tool is
 constructed inside the invoking node's environment.
@@ -1862,7 +1884,7 @@ constructed inside the invoking node's environment.
 | --- | --- | --- |
 | Operator platform settings | Approved name -> concrete backend/image/policy; platform default | Deployment configuration |
 | Library resource | Reusable `execution.profile` preference | Native resource API, persistence and resource-editor selector |
-| Blueprint resource/reference | Optional override of that resource's preference | Typed blueprint authoring API; not the element's config |
+| Blueprint resource/reference | Optional override of that resource's preference | Typed blueprint authoring API; not the element's flareward.bootstrap.settings |
 | Blueprint workflow and plan | `execution_profile`, named `environments`, per-step `execution` and `condition_execution` | Workflow save dialog and typed blueprint API |
 | Program definition/revision | Default `execution_profile`, step selections and named environments | Native program API; immutable revision on publication |
 | Prepared execution record | Resolved concrete backend configuration for this execution | Persisted before submission and reused during recovery |
@@ -1897,7 +1919,7 @@ attached exit condition. Shared resources are not edited by these local choices.
 
 Only profiles whose engine factory supports retained environments can be offered
 for named reuse. Compilation rejects an unsupported named-environment profile
-before dispatch. UnifAI does not implement environment provisioning or cleanup.
+before dispatch. Flareward does not implement environment provisioning or cleanup.
 The editor asks the server to resolve resource preferences and validate current
 placement. `POST /api/blueprints/draft/placement` inspects an unsaved draft;
 `GET /api/blueprints/{id}/placement` first authorizes the saved blueprint. The
@@ -1962,7 +1984,7 @@ not implied across session turns.
 
 | Value | Purpose | Transport/lifetime |
 | --- | --- | --- |
-| Graph state | Messages, outputs, IEM, threads and workspaces | Passed to invocations; UnifAI reducers merge changes through the engine |
+| Graph state | Messages, outputs, IEM, threads and workspaces | Passed to invocations; Flareward reducers merge changes through the engine |
 | Execution context | Owner identity, acting credential user, session/root/current/parent IDs, scope and supported tags | Serializable engine payload; rebound to the actual run at installed entrypoints |
 | Step context | Step UID, display metadata, neighboring element cards, branches and topology | Per-step invocation data; separate from reusable resource bundles |
 | Element bundle | Validated root plus complete dependency specifications/references | Portable reusable configuration; no current state or credential service objects |
@@ -2037,9 +2059,9 @@ Both endpoints reject bearer credentials, including bearer-plus-human-cookie req
 
 The Mongo administrator directory reads `admin_users.value.admin_usernames` in
 the configured admin database/collection on every authorization. Bootstrap
-`UNIFAI_ADMIN_ALLOWED_USERS` applies only when that policy document is absent;
+`FLAREWARD_ADMIN_ALLOWED_USERS` applies only when that policy document is absent;
 an empty persisted list explicitly denies everyone. Directory failure is unavailable,
-never permission to fall back to bootstrap users. Reporting itself requires native
+never permission to fall back to flareward.bootstrap users. Reporting itself requires native
 durable application storage; a memory-only deployment returns 503.
 
 `ReportingService` owns time scope, authorization, pinned revision labels and
@@ -2061,7 +2083,7 @@ eventually consistent observations, not refreshed engine state, verified accepta
 an atomic multi-query snapshot or a capacity-tested analytics warehouse.
 
 The existing dashboard/analytics clients now use these contracts. The old
-`mas.statistics` service, Flask statistics routes and duplicate activity table are
+`flareward.statistics` service, Flask statistics routes and duplicate activity table are
 retired. This slice does not complete the remaining admin/sharing/template migration.
 
 ## Curated resource administration
@@ -2076,11 +2098,11 @@ The normal resource service owns public reads, configuration schemas and persona
 team overlays. There is no second construction pipeline: both custom and curated
 saves use `ResourceConfiguration`, installed element schemas and field protection.
 
-Enable `UNIFAI_LIBRARY` and `UNIFAI_EDIT_LOCKS` with durable Mongo and Redis. Curated
+Enable `FLAREWARD_LIBRARY` and `FLAREWARD_EDIT_LOCKS` with durable Mongo and Redis. Curated
 mutations require transaction-capable Mongo (replica set/sharded deployment).
 Standalone storage returns unavailable, never partial-write fallback. Administrator
 authority uses the same application `AdministratorAccess` policy and persisted
-directory as reporting; the directory adapter is `outbound.mongo.administrators`.
+directory as reporting; the directory adapter is `flareward.services.administration.adapters.mongo.administrators`.
 Human authority remains separate from selected workspace ownership. Bearers,
 including bearer-plus-session requests, cannot manage the curated library.
 
@@ -2121,11 +2143,11 @@ input/output contracts, filters metadata and dispatches registered async instanc
 HTTP adapters translate missing actions, invalid input and execution failures
 without exposing provider values. Cancellation propagates.
 
-`mas.application.actions` owns contracts, metadata, dispatch and credential use
-cases. `outbound.actions` owns MCP/A2A/RAG/Vertex probes and OpenAI configuration
-discovery. `bootstrap.actions` explicitly composes these; missing optional external
+`flareward.services.actions` owns contracts, metadata, dispatch and credential use
+cases. `plugins.actions` owns MCP/A2A/RAG/Vertex probes and OpenAI configuration
+discovery. `flareward.bootstrap.actions` explicitly composes these; missing optional external
 SDKs omit their adapters. Internal import errors fail startup. There is no global
-action registry, capability cache or subclass discovery. The removed `mas.actions`
+action registry, capability cache or subclass discovery. The removed `flareward.actions`
 package has no forwarding alias; these action classes are authoring operations,
 not installed graph entrypoints or bundle references. The retained Flask endpoint
 adapts the same service through its old bridge until the separate cutover.
@@ -2139,11 +2161,11 @@ Native RAG probes own async HTTP clients per request and pass a per-request huma
 header; MCP uses async credential binding and A2A returns portable card data.
 
 OpenAI model/reasoning dropdowns use admin configuration, not generation calls.
-`UNIFAI_ADMIN_CONFIG_DATABASE` defaults to `config`,
-`UNIFAI_ADMIN_CONFIG_COLLECTION` to `admin_config`; its document has key
+`FLAREWARD_ADMIN_CONFIG_DATABASE` defaults to `flareward.bootstrap.settings`,
+`FLAREWARD_ADMIN_CONFIG_COLLECTION` to `admin_config`; its document has key
 `openai_model_capabilities` and a `value.capabilities` object. Both actions share
 an injected 30-second cache per composition and use longest-prefix model lookup.
-`UNIFAI_RAG_BASE_URL` defaults to the existing RAG service; `UNIFAI_HTTP_TIMEOUT`
+`FLAREWARD_RAG_BASE_URL` defaults to the existing RAG service; `FLAREWARD_HTTP_TIMEOUT`
 also bounds these RAG probes. The async Mongo reader borrows the composition's
 owned client; legacy composition uses its off-loop reader adapter.
 
@@ -2157,13 +2179,13 @@ does not complete share notifications, credential OAuth callbacks or all UI pari
 
 ## Invitation notifications
 
-`mas.domain.sharing` contains shared invitation/status/item/direction values.
-`mas.application.sharing.notifications.ShareNotifications` owns list/detail policy
+`flareward.services.sharing.domain.models` contains shared invitation/status/item/direction values.
+`flareward.services.sharing.notifications.ShareNotifications` owns list/detail policy
 and decline/cancel decisions through its narrow async repository port. Native
-Mongo borrows the composition's owned client and configured `UNIFAI_SHARES_COLLECTION`
+Mongo borrows the composition's owned client and configured `FLAREWARD_SHARES_COLLECTION`
 (default `shares`); memory composition owns independent snapshots. The retained
 legacy service uses the same domain models. Native imports do not initialize the
-legacy `mas.sharing` package or its synchronous cloner.
+legacy `flareward.services.sharing.library` package or its synchronous cloner.
 
 Native endpoints preserve existing UI transports:
 `GET /api/shares/shares.list`, `GET /api/shares/share.get`,
@@ -2194,24 +2216,26 @@ boundaries. No external invitation or paid model call is required.
 
 ## Package boundaries
 
-Status: the shared agent/domain extraction is implemented in `multi-agent`.
+Status: shared agent behavior and domain values live in feature-owned `platform/src/flareward`.
 Messages, tool definitions, element-card values, agent steps, tasks, workspaces and
-work-plan invariants live in `mas.domain`. Agent strategies, parsing, iteration,
+work-plan invariants live in their `flareward.elements.<feature>.domain` packages.
+Agent strategies, parsing, iteration,
 tool execution, approvals, node capabilities and workload services live in
-`mas.application`. LLM/tool/retrieval/tool-provider contracts live in
-`mas.application.ports`. These packages have enforced inward imports and cold-import
+`flareward.elements.agents`, `elements.tools`, `elements.behaviors` and `elements.workloads`.
+LLM/tool/retrieval/tool-provider contracts live in
+`flareward.elements.ports`. These packages have enforced inward imports and cold-import
 tests that reject plugins, SDK clients and global infrastructure configuration.
 
 Reusable agent strategies, workload services and shared capabilities now cold-import
 without graph state. `WorkloadStorage` is an application-owned synchronous state
 port; thread/workspace services receive it explicitly and do not construct concrete
-storage. `mas.graph.workloads.GraphWorkloadStorage` supplies the graph-backed
+storage. `flareward.programs.graph.workloads.GraphWorkloadStorage` supplies the graph-backed
 implementation. Generic delegation policy filters caller-supplied candidate mappings;
 the orchestrator plugin alone interprets finalizer topology.
 
-Graph node integration is explicit in `mas.graph.capabilities`: `GraphWorkloadMixin`
+Graph node integration is explicit in `flareward.programs.graph.capabilities`: `GraphWorkloadMixin`
 binds workload services and streaming hooks; `GraphMessagingMixin` binds portable
-IEM contracts to `mas.graph.messaging.GraphInterMessenger`. The old application
+IEM contracts to `flareward.programs.graph.messaging.GraphInterMessenger`. The old application
 capability namespaces, core messenger factories/utilities, unused memory factory
 and workload compatibility methods are removed. Packet/task values remain portable;
 workload task threads are not engine child runs. Core interfaces import no graph.
@@ -2226,11 +2250,11 @@ not an untrusted-code security boundary or a durable message broker. Program-lev
 waits/messages continue through `ProgramRuntime` and native Run Engine coordination.
 
 Specifications, factories, validation/card contracts, catalog services, category
-builders and owned construction now live in `mas.application.elements`. Portable
-bundle values live in `mas.domain.element_bundles`. `ElementInstances` indexes
+builders and owned construction now live in `flareward.elements`. Portable
+bundle values live in `flareward.resources.domain.bundles`. `ElementInstances` indexes
 instances within a construction scope, whose lifetime is separate from a chat
 session. The application registry has no discovery operation or global singleton;
-`bootstrap.elements` composes installed discovery and configured plugin modules.
+`flareward.bootstrap.elements` composes installed discovery and configured plugin modules.
 Discovery reads classes exported by actual modules. Missing optional dependencies
 leave adapters unavailable; broken internal imports, incompatible installed SDK
 imports and invalid declarations fail startup instead of silently removing plugins.
@@ -2239,7 +2263,7 @@ Current dependency direction (arrows show imports, not execution order):
 
 ```text
 +----------------------------------------------------------------------+
-| UNIFAI                                                               |
+| FLAREWARD                                                            |
 |                                                                      |
 |  +----------------------------------------------------------------+  |
 |  | ADAPTERS + COMPOSITION                                         |  |
@@ -2269,40 +2293,40 @@ Current dependency direction (arrows show imports, not execution order):
 ```
 
 Program definitions, revisions, composition values and pure binding projection now
-live in `mas.domain.programs`. SDK-free placement values live in
-`mas.domain.execution_preferences`; shared step metadata and frozen boundary values
-live in `mas.domain.metadata` and `mas.domain.models`. Authoring, publication,
+live in `flareward.programs.domain`. SDK-free placement values live in
+`flareward.executions.domain.preferences`; shared step metadata and frozen boundary values
+live in `flareward.programs.domain.metadata` and `flareward.models`. Authoring, publication,
 registration, repository/runtime ports, graph-context preparation and the existing
-blueprint importer live in `mas.application.programs`. The former `mas.programs`
-package and `mas.core.execution_preferences` module are removed without forwarding
+blueprint importer live in `flareward.programs`. The former `flareward.programs`
+package and `flareward.core.execution_preferences` module are removed without forwarding
 aliases. Domain imports do not initialize application services, plugins or SDKs;
 the cold-import and retired-namespace architecture checks enforce that boundary.
 The authoring DTOs reuse the shared strict frozen model rather than defining a
 second identical base class. Serialized definition/revision shapes are unchanged.
 
 Execution context, lifecycle records, request identity and safe placement values
-now live in `mas.domain.execution`. Submission requests, prepared snapshots,
+now live in `flareward.executions.domain`. Submission requests, prepared snapshots,
 delivery claims, execution services/ports and the mutable receiver-local context
-holder live in `mas.application.execution`. Portable context never imports its
+holder live in `flareward.executions`. Portable context never imports its
 mutable holder. The old execution package and core context module are removed
 without aliases. Context requires explicit identity, rejects unknown fields, and
 accepts JSON-only tags; missing identity no longer invents an `unknown` owner.
 Prepared adapter snapshots stay application-owned rather than becoming domain data.
 
 Further consolidation remains: session/resource services retain their existing
-`mas.session`, `mas.resources` and related paths.
-Concrete plugins and their schemas/factories remain in `mas.elements` for now.
+`flareward.services.sessions`, `flareward.resources` and related paths.
+Concrete plugins and their schemas/factories remain in `flareward.elements` for now.
 Further application ownership and plugin thinning/relocation remain required;
 Program consolidation does not complete the whole package migration.
 The intended complete layout remains:
 
 | Target area | Responsibility |
 | --- | --- |
-| `lib/mas/domain` | SDK-free values, messages, identity, tasks/workspaces, program/resource contracts, and pure policies/invariants. |
-| `lib/mas/application` | Agent execution/strategies, program/session/resource use cases, ports, registry and element-construction services. |
+| `src/flareward/domain` | SDK-free values, messages, identity, tasks/workspaces, program/resource contracts, and pure policies/invariants. |
+| `src/flareward/application` | Agent execution/strategies, program/session/resource use cases, ports, registry and element-construction services. |
 | `adapters/elements` | Registered element plugins: thin node adapters and concrete LLM/tool/provider/retriever/condition integrations, with their schemas, factories, metadata, and SDK translation. OpenShell placement stays in Run Engine. |
 | `adapters/inbound`, `adapters/outbound` | HTTP and engine ingress, execution/persistence/identity/interaction transports. |
-| `bootstrap` | Install registrations, configure adapters, and inject application ports. |
+| `flareward.bootstrap` | Install registrations, configure adapters, and inject application ports. |
 
 Domain imports neither application nor adapters. Application imports domain and
 its own contracts; it does not import installed element implementations or SDKs.
@@ -2435,32 +2459,32 @@ foundation does not implement agent delegation or continuation state machines.
 Start the native API from the repository root:
 
 ```sh
-UNIFAI_HOST='{"runner_type":"local"}' \
-UNIFAI_STORAGE=memory \
-UNIFAI_INTERACTIONS=disabled \
-UNIFAI_AUTHENTICATION=development \
-UNIFAI_DEVELOPMENT_USER=alice \
-.venv/bin/mas-platform serve --host 127.0.0.1 --port 13457
+FLAREWARD_HOST='{"runner_type":"local"}' \
+FLAREWARD_STORAGE=memory \
+FLAREWARD_INTERACTIONS=disabled \
+FLAREWARD_AUTHENTICATION=development \
+FLAREWARD_DEVELOPMENT_USER=alice \
+.venv/bin/flareward-platform serve --host 127.0.0.1 --port 13457
 ```
 
 This explicit development configuration uses one Local host and in-memory records.
 Local runs do not survive process loss. Multiple HTTP workers require a shared
 coordination host; the CLI rejects multiple workers with Local coordination.
 
-`bootstrap.asgi:create_app` is also a Uvicorn factory. Its lifespan composition
+`flareward.bootstrap.asgi:create_app` is also a Uvicorn factory. Its lifespan composition
 root constructs and closes clients on the server event loop, starts execution and
 session reconciliation, and stops those observers before closing their dependencies.
-Use Mongo storage for persistent records. Settings use the `UNIFAI_` environment
+Use Mongo storage for persistent records. Settings use the `FLAREWARD_` environment
 prefix; structured host/profile settings use JSON. Registered application modules
 export an `APPLICATION_PROGRAMS` sequence of `ApplicationRegistration` instances.
 
 Session authentication validates the existing signed session cookie and Redis
 session, then checks team membership through the identity service when requested.
-It requires the same `SECRET_KEY` or `UNIFAI_SECRET_KEY` as the identity service.
+It requires the same `SECRET_KEY` or `FLAREWARD_SECRET_KEY` as the identity service.
 Forwarded user headers require the configured internal token. Development identity
 is an explicit alternative and requires a configured username.
 
-Tests can provide prebuilt services to `inbound.http_api.app.create_app`, or provide
+Tests can provide prebuilt services to `flareward.api.app.create_app`, or provide
 a lifespan services factory. Protected routers obtain identity and services through
 typed FastAPI dependencies.
 
@@ -2497,12 +2521,12 @@ can bind all state channels explicitly. The importer preserves existing factorie
 typed dependencies, conditions, and step metadata.
 
 To import an existing stored blueprint, install the `blueprints` extra on the API
-and set `UNIFAI_LIBRARY=true`. Configure `UNIFAI_MONGO_URI` and
-`UNIFAI_MONGO_DATABASE` for the existing library. Collection names default to
+and set `FLAREWARD_LIBRARY=true`. Configure `FLAREWARD_MONGO_URI` and
+`FLAREWARD_MONGO_DATABASE` for the existing library. Collection names default to
 `blueprints`, `resources`, `builtin_resource_descriptors`, and
-`builtin_user_configs`; override them through `UNIFAI_BLUEPRINTS_COLLECTION`,
-`UNIFAI_RESOURCES_COLLECTION`, `UNIFAI_BUILTIN_DESCRIPTORS_COLLECTION`, and
-`UNIFAI_BUILTIN_USER_CONFIGS_COLLECTION` when the existing deployment uses
+`builtin_user_configs`; override them through `FLAREWARD_BLUEPRINTS_COLLECTION`,
+`FLAREWARD_RESOURCES_COLLECTION`, `FLAREWARD_BUILTIN_DESCRIPTORS_COLLECTION`, and
+`FLAREWARD_BUILTIN_USER_CONFIGS_COLLECTION` when the existing deployment uses
 different names. The optional library module is isolated so the native execution
 API can still run without loading concrete blueprint/provider schemas.
 
@@ -2580,10 +2604,10 @@ references require native execution and receiver resolution. Keep legacy drain
 workers for their existing runs, and move new execution callers to the native
 program/session path. The older authoring raw YAML/form and dotted-route HTTP contracts,
 admin behavior, and affected UI migration remain
-open. The CLI's `inbound.blueprints.files.BlueprintFileLoader` accepts YAML and
+open. The CLI's `flareward.programs.templates.input.files.BlueprintFileLoader` accepts YAML and
 JSON objects. File access belongs to this inbound adapter; installed schema
 validation belongs to the application service. The unused broken JSON-only loader,
-single-implementation loader base, and old `mas.blueprints.loader` package have
+single-implementation loader base, and old `flareward.programs.templates.loader` package have
 been removed. Import concrete blueprint models from their defining modules;
 the models package no longer eagerly re-exports provider-dependent schemas.
 
@@ -2617,20 +2641,20 @@ alongside ownership, stored/draft/raw transport parity, redaction, and cancellat
 
 ### Native library resources
 
-With `UNIFAI_LIBRARY=true`, native resource authoring uses asynchronous Mongo
-repositories and the installed element registry. Requests contain `config`; responses
+With `FLAREWARD_LIBRARY=true`, native resource authoring uses asynchronous Mongo
+repositories and the installed element registry. Requests contain `flareward.bootstrap.settings`; responses
 retain the existing resource document's `cfg_dict` shape.
 
 | Route | Behavior |
 | --- | --- |
 | `GET /api/resources/schema/{category}/{type}` | Installed configuration schema |
-| `POST /api/resources` | Create a custom resource from `category`, `type`, `name`, `config` |
+| `POST /api/resources` | Create a custom resource from `category`, `type`, `name`, `flareward.bootstrap.settings` |
 | `GET /api/resources` | Own custom resources and public built-ins; category/type/ownership filters, offset/limit |
 | `GET /api/resources/{rid}` | Read a visible resource |
 | `PUT /api/resources/{rid}` | Replace custom configuration and optionally its name |
 | `DELETE /api/resources/{rid}` | Delete an unreferenced custom resource |
 | `GET /api/resources/{rid}/configuration` | Read the caller's encrypted built-in overlay and version, or null |
-| `PATCH /api/resources/{rid}/configuration` | Merge caller-configurable fields from `config` |
+| `PATCH /api/resources/{rid}/configuration` | Merge caller-configurable fields from `flareward.bootstrap.settings` |
 | `DELETE /api/resources/{rid}/configuration` | Clear caller-specific fields, retaining the version fence |
 
 Custom updates and overlay patches accept `expected_version`; deletion/reset
@@ -2676,7 +2700,7 @@ mutation boundary before the legacy API can be retired.
 ### Resource execution preferences
 
 Nodes and conditions can carry application execution metadata alongside their
-element `config`. For example, an agent resource submitted to `POST /api/resources`
+element `flareward.bootstrap.settings`. For example, an agent resource submitted to `POST /api/resources`
 can include:
 
 ```json
@@ -2684,7 +2708,7 @@ can include:
   "category": "nodes",
   "type": "custom_agent_node",
   "name": "Researcher",
-  "config": {"type": "custom_agent_node", "llm": "$ref:research-model"},
+  "flareward.bootstrap.settings": {"type": "custom_agent_node", "llm": "$ref:research-model"},
   "execution": {"profile": "isolated-agent"}
 }
 ```
@@ -2731,14 +2755,14 @@ engine run is needed for an authoring inspection.
 | --- | --- |
 | `POST /api/resources/{rid}/validation` | Validate one saved resource and its dependencies |
 | `POST /api/resources/validation` | Validate `resource_ids`, preserving input order |
-| `POST /api/resources/configuration/validation` | Validate inline `category`, `type`, `config`, optional `name` |
+| `POST /api/resources/configuration/validation` | Validate inline `category`, `type`, `flareward.bootstrap.settings`, optional `name` |
 | `GET /api/resources/{rid}/card` | Build the requested resource card |
 | `POST /api/resources/cards` | Build cards for `resource_ids` and their transitive dependencies |
 
 All routes require authentication. Workspace ownership comes from the authenticated
 user/team scope; credential lookup uses the logged-in human separately. Inline
 validation now passes that scope through dependency resolution too. The retained
-`config.validate` route now requires authentication and forwards the same scope.
+`flareward.bootstrap.settings.validate` route now requires authentication and forwards the same scope.
 Callers cannot override credential identity through a request body.
 
 Validation bodies accept `timeout_seconds` (greater than zero and at most 60);
@@ -2842,11 +2866,11 @@ worker deployment, and the default container command remain migration work.
 ## Native program schedules
 
 The Temporal + Mongo composition exposes `/api/program-schedules` through thin
-authenticated routers. Local coordination returns 503 for these routes. UnifAI's
+authenticated routers. Local coordination returns 503 for these routes. Flareward's
 schedule service owns authorization, pinned programs, inputs, session bindings,
 and finite-run policy; an outbound port uses Temporal's calendar API. Run Engine
 owns the generic worker, delivery, traversal, children, cancellation, and environments.
-There is no UnifAI polling scheduler.
+There is no Flareward polling scheduler.
 
 Create a schedule for an already published revision:
 
@@ -2945,7 +2969,7 @@ Installed backend declarations are resolved synchronously after worker preload.
 Temporal coordination cannot use `asyncio.to_thread`; operational I/O continues
 through invocation ports. The native consent gate exposed and corrected that
 unnecessary declaration-resolution bridge. Fresh scheduled entry/admission
-contracts are `unifai-scheduled-program-v2` and `unifai-schedule-admission-v2`.
+contracts are `flareward-scheduled-program-v2` and `flareward-schedule-admission-v2`.
 Current thread/process calendar cases cover worker restart during review, replay,
 material retirement and refusal of revoked native ticks. Generic event-source
 admission is described next. Broader recovery, isolated remote delivery and full
@@ -2974,7 +2998,7 @@ Native run history lives in Mongo and survives deletion of its calendar.
 
 ## Authenticated event-driven Program starts
 
-Enable `UNIFAI_EVENT_SOURCES_ENABLED=true` with Mongo storage to expose the generic
+Enable `FLAREWARD_EVENT_SOURCES_ENABLED=true` with Mongo storage to expose the generic
 event-start adapter. `ProgramEventService` owns subscription approval and admission
 through application-owned ports. `MongoEventSources` stores private registrations;
 the HTTP adapter handles transport. `ExecutionService` still owns root submission,
@@ -3057,31 +3081,55 @@ remote private delivery and full trigger UI remain separate work. Do not call th
 live Jira integration or massive-scale acceptance. Existing authorized review and
 runtime-message contracts still own continuation of their particular waits.
 
-The Engineering implementation is registered as `engineering@2` by installing
-`mas_plugins.engineering.program` in both API and worker configuration. Candidate
-production/repair are declared child Programs; verification/review use scoped
-service-operation bundles. Version 2 presents `EngineeringReviewSubject` from
-`mas_plugins.engineering.review`: `engineering-review@1`, exact candidate, and
-accepted verification snapshot including plan, receipt/configuration identities
-and durable report references. The subject rejects mismatched/unaccepted evidence.
-`EngineeringResult` requires the reviewed snapshot to equal its candidate and
-verification result; an approval for another snapshot cannot establish completion.
+The Engineering implementation is registered as `engineering@3` by installing
+`plugins.engineering.program` in both API and worker configuration. Its
+`completions` list contains named `EngineeringCompletion` choices and a declared
+`default_completion`. Each choice freezes a bundled JSON Schema for the ADLC
+candidate result, producer/repair child aliases, repair bound, verification policy
+ID, exact check/verifier/report requirements, runner IDs and Human Review flareward.bootstrap.settings.
+Invocation accepts `task` and an optional `completion` name; an unknown choice
+fails before producer dispatch. No other invocation field can override its policy.
+Candidate shape is checked before verification effects. Returned plans must match
+the configured requirements as well as candidate and policy: changing an operator
+policy under the same ID cannot silently weaken an existing publication.
+
+Candidate production/repair remain ordinary child Programs; verification/review use
+scoped operation bundles. An ADLC candidate uses `EngineeringCandidate.subject`;
+ordinary operations and other Programs require no such envelope. The shared
+`ChildContract.result_schema` supplements typed model constraints with configured
+projected-result constraints at publication. Provably disjoint types, finite values
+and required object members are refused; open/recursive/complex cases retain runtime
+checks. These are conservative compatibility checks, not complete schema subtyping.
+Shared aliases require the same candidate schema; different aliases may bind the
+same published Program. UI fields use the existing nested array/schema renderer.
+
+`EngineeringReviewSubject` from `plugins.engineering.review` now uses
+`engineering-review@2`: selected completion name, exact candidate and accepted
+verification snapshot, including plan, receipt/configuration identities and durable
+reports. The subject rejects mismatched/unaccepted evidence. `EngineeringResult`
+must preserve the selected name and exact reviewed snapshot. It and Design results
+compare the existing canonical review fingerprints, preserving JSON scalar identity
+instead of Python's numeric/boolean equality. An approval for another snapshot
+cannot establish completion.
 
 The generic review service persists/authorizes this JSON subject and handles native
 waiting unchanged. The existing generic artifact inspector discovers source and
 report references before approval. Reviewer assignment does not confer another
 owner's artifact access. No private verifier-run access or credential is attached.
-This replaces the candidate-only review contract; earlier implementation version 1
-is not installed as a compatibility path. The module contract is
-`unifai-engineering-v2`; rebuild receiving images before remote acceptance.
+Earlier Engineering implementations 1/2 are not installed as compatibility paths.
+The module contract is `flareward-engineering-v3`; recreate development publications
+and rebuild receiving images before remote acceptance of this source.
 
 The [review-evidence checkpoint](evidence/2026-11-07-review-evidence.md) proves native
 thread/process repair plus actual-App source/report previews before final approval,
 retained retrieval and owned cleanup. Planning/coding in this browser gate use
-controlled peers; previous live checkpoints retain their own source scope. Full
-user-created authoring, live current-image remote and recovery acceptance remain.
+controlled peers. The [live authored checkpoint](evidence/2026-11-08-live-feature-authoring.md)
+accepts the preceding version-2 thin journey on its matched images. The
+[completion-contract checkpoint](evidence/2026-11-08-completion-contracts.md) records
+version-3 native scope. Real Git retention/delivery, current-source browser/remote
+acceptance, final UX and broader recovery remain required.
 
-Install `mas_plugins.engineering.coding` alongside that module to register
+Install `plugins.engineering.coding` alongside that module to register
 `coding_file_candidate@1`. This backend Program consumes `EngineeringWork` whose
 `task` follows `CodingInput` (`prompt`, optional `context` and immutable input files).
 Configure coding, artifact-loader, workspace-reader and content-publication bundles,
@@ -3093,10 +3141,27 @@ published identity must match before it returns an `EngineeringCandidate`.
 This is an optional single-file composition, not a new operation category or a
 Git requirement. Other candidate Programs can return other verification subjects.
 
+Install `plugins.engineering.git_coding` to register `coding_git_candidate@1`.
+Its `CodingGitConfig` declares coding/loader/resolver bundles, logical repository ID,
+and separate coding/artifact/repository placement. The configured coding agent owns
+branch/worktree/commit/publication commands through its already authorized repository
+tools. It reports only a typed `GitRevision`. The Program independently resolves that
+exact commit through the normal admitted Git resource and requires an identical result
+before returning a `git-revision@1` candidate. Prose, mutable branch reports, foreign
+repositories and unavailable commits cannot establish a candidate. Repairs receive
+the previous immutable identity and bounded report files; agent tools handle checkout.
+
+This does not provision Git write credentials, choose arbitrary transport URLs from
+inputs, or promise permanent remote archival. Repository administration owns retention
+and agent publishing authority. The [alternative-deliverable checkpoint](evidence/2026-11-08-git-completion.md)
+proves retained local Git work and file output through one unchanged Engineering
+publication, with actual checks, repair, final review and retrieval after compute deletion.
+Coding is controlled; live Git publishing, UI choice authoring and remote acceptance remain open.
+
 Coding and workspace reads must access the same physical workspace. On isolated
 receivers use an approved named environment binding; repeating a profile alone
 does not establish shared storage. Repairs attach the previous blob candidate at the
-configured output path and check reports under `.unifai/reports/<artifact_id>`.
+configured output path and check reports under `.flareward/reports/<artifact_id>`.
 Original input files are preserved, except that the previous candidate replaces an
 original input at the output path. Conflicting report paths and input limits fail
 before coding; report lists are not silently truncated. Trusted checks and acceptance
@@ -3108,7 +3173,7 @@ remote placement, or full feature-design/UI acceptance.
 
 ### Feature design and approval
 
-Install `mas_plugins.engineering.design` in both API and worker application-module
+Install `plugins.engineering.design` in both API and worker application-module
 configuration to register `feature_design@1`. It takes a task and nonempty acceptance
 criteria. Its configured designer child takes `DesignWork` and returns a
 `DesignProposal` (plan text and optional generic references). The child can be a
@@ -3123,7 +3188,7 @@ outcomes. A design result cannot substitute a different subject or relabel rejec
 as approval. Revision numbers are local to this execution, not Programs library
 publication revisions. The durable review occurrence identifies the accepted version.
 
-Install `mas_plugins.engineering.designer` to register `coding_designer@1`, a normal
+Install `plugins.engineering.designer` to register `coding_designer@1`, a normal
 designer child for coding tasks. Its concrete `CodingDesignWork` contract specializes
 generic `DesignWork` / `FeatureRequest` with `CodingInput`, preserving generic task
 contracts for other designers. Configure a captured coding-operation bundle, loader,
@@ -3137,8 +3202,13 @@ Planning instructions do not enforce a read-only filesystem. The [designer check
 records native revision/repair and real OpenShell browser proof, including remaining
 pre-approval evidence and authoring gaps.
 
-Install `mas_plugins.engineering.feature` to register `coding_feature@1`. Its input
-has a coding prompt, optional context and acceptance criteria. It composes declared
+Install `plugins.engineering.feature` to register `coding_feature@1`. Its input
+has a coding prompt, optional context, acceptance criteria and optional `completion`.
+The selection is forwarded separately from `CodingInput` to the pinned Engineering
+revision; omission uses its published default. The wrapper rejects a result for a
+different explicit choice. Engineering owns allowed-choice validation without the
+wrapper inspecting its configuration. Native file/Git composition is recorded in
+[completion proof](evidence/2026-11-08-git-completion.md). It composes declared
 design and Engineering child Programs, checks that the reviewed request matches the
 original input, and starts Engineering only after approval. Engineering receives the
 approved proposal, revision, criteria and approval ID as structured context alongside
@@ -3234,8 +3304,13 @@ Explicit text preview is limited to 256 KiB, verifies byte count and SHA-256 bef
 strict UTF-8 decoding, and renders escaped text. Binary/invalid/oversized content
 does not become executable markup. Closing inspection aborts pending preview work.
 The [controlled App journey](evidence/2026-11-05-feature-ui.md) verifies design approval,
-repair, final review and source/report retrieval after compute deletion. Live-agent,
-production verification and complete Engineering authoring acceptance remain open.
+repair, final review and source/report retrieval after compute deletion. The
+[authored live journey](evidence/2026-11-08-live-feature-authoring.md) now adds UI-created
+designer/coder resources, published designer/candidate/root Programs and explicit
+Design/Engineering revision adoption. Matched bundle-v2 images execute real planning
+and coding on normal OpenShell; a separately owned verifier checks offline. Exact
+source/report previews precede approval and survive compute deletion. This is thin
+product acceptance; full canvas UX, Session and operational matrices remain open.
 
 Configured plugin modules export `ELEMENT_SPECIFICATIONS`; reflective built-in
 discovery alone does not prove that explicit module installation works. Codex now
@@ -3243,29 +3318,29 @@ supports both paths through the normal registry, including identical registratio
 
 ## Durable worker and deployment
 
-Run the API and a separate worker with the same `UNIFAI_HOST` endpoint, namespace,
-and task queue. The default queue is `unifai-programs-v2`. Superseded worker
+Run the API and a separate worker with the same `FLAREWARD_HOST` endpoint, namespace,
+and task queue. The default queue is `flareward-programs-v2`. Superseded worker
 entrypoints and queues are not compatibility requirements.
 
 For example, after starting Temporal and the application's storage services:
 
 ```sh
-UNIFAI_HOST='{"runner_type":"temporal","endpoint":"127.0.0.1:7233","namespace":"default","task_queue":"unifai-programs-v2"}' \
-UNIFAI_REDIS_URI=redis://127.0.0.1:6379/0 \
-.venv/bin/mas-platform worker
+FLAREWARD_HOST='{"runner_type":"temporal","endpoint":"127.0.0.1:7233","namespace":"default","task_queue":"flareward-programs-v2"}' \
+FLAREWARD_REDIS_URI=redis://127.0.0.1:6379/0 \
+.venv/bin/flareward-platform worker
 ```
 
-Install `mas[api,temporal]` plus the element/provider extras used by published
+Install `flareward[api,temporal]` plus the element/provider extras used by published
 programs on the API and workers. The development extra includes Temporal support.
 Every invocation environment needs the same installed entrypoints, compatible
 application modules, and required credentials/configuration. Set
-`UNIFAI_APPLICATION_MODULES` to the same installed module list as the API; no extra
+`FLAREWARD_APPLICATION_MODULES` to the same installed module list as the API; no extra
 HTTP session secret is required merely to run the worker. Settings use JSON for
 structured values. SIGTERM/SIGINT stop the worker through its owned SDK lifecycle.
 
 Retained environments require Run Engine's durable ownership store. Choose
-`UNIFAI_ENVIRONMENT_SQLITE=/durable/local/path/environments.sqlite` for cooperating
-workers on one durable filesystem, or `UNIFAI_ENVIRONMENT_POSTGRES` for a shared
+`FLAREWARD_ENVIRONMENT_SQLITE=/durable/local/path/environments.sqlite` for cooperating
+workers on one durable filesystem, or `FLAREWARD_ENVIRONMENT_POSTGRES` for a shared
 PostgreSQL DSN and install `runengine[postgres]`. These settings are mutually
 exclusive. Do not share a SQLite file between hosts or put it on ephemeral storage
 when recovery is required. Without a journal, retained environment operations are
@@ -3278,28 +3353,28 @@ evidence under both hosts; remote worker-loss and journal recovery remain open.
 Policies belong to approved execution profiles in deployment configuration. Programs
 select a profile through their default, an element's imported preference, or a step
 override. A program cannot supply inline OpenShell policy, SDK objects, or a policy
-file path through that selection. `UNIFAI_PROFILE_ACCESS` can restrict discovery and
+file path through that selection. `FLAREWARD_PROFILE_ACCESS` can restrict discovery and
 admission by owner; without that policy, all configured profiles are available to
 authors. Expose only profiles appropriate for the deployment and owner grants.
 
 For an inline policy, use the OpenShell profile's existing `policy` field in
-`UNIFAI_EXECUTION_PROFILES`. For a separately maintained JSON policy, configure:
+`FLAREWARD_EXECUTION_PROFILES`. For a separately maintained JSON policy, configure:
 
 ```sh
-export UNIFAI_EXECUTION_PROFILES='{
+export FLAREWARD_EXECUTION_PROFILES='{
   "isolated": {
     "runner_type": "openshell",
     "endpoint": "127.0.0.1:8090",
-    "image": "unifai-sandbox:release",
+    "image": "flareward-sandbox:release",
     "tls": {
-      "ca_path": "/etc/unifai/openshell/ca.crt",
-      "cert_path": "/etc/unifai/openshell/client.crt",
-      "key_path": "/etc/unifai/openshell/client.key"
+      "ca_path": "/etc/flareward/openshell/ca.crt",
+      "cert_path": "/etc/flareward/openshell/client.crt",
+      "key_path": "/etc/flareward/openshell/client.key"
     }
   }
 }'
-export UNIFAI_DEFAULT_EXECUTION_PROFILE=isolated
-export UNIFAI_EXECUTION_POLICY_FILES='{"isolated":"/etc/unifai/policies/isolated.json"}'
+export FLAREWARD_DEFAULT_EXECUTION_PROFILE=isolated
+export FLAREWARD_EXECUTION_POLICY_FILES='{"isolated":"/etc/flareward/policies/isolated.json"}'
 ```
 
 The example paths refer to the dispatcher's gateway certificates; supply your
@@ -3312,7 +3387,7 @@ existing execution snapshots and named environments keep their original policy.
 File paths do not enter compiled program requests. Workers receive validated portable
 policy data, not a policy-file dependency.
 
-[`multi-agent/config/policies/openshell-restricted.json`](../multi-agent/config/policies/openshell-restricted.json)
+[`platform/flareward.bootstrap.settings/policies/openshell-restricted.json`](../platform/flareward.bootstrap.settings/policies/openshell-restricted.json)
 is an opt-in example for the test sandbox image. Its only network rule allows the
 Gemini host on port 443 for the listed Python executables. Adjust the executable
 paths and filesystem/process baseline for the selected image. The example explicitly
@@ -3332,7 +3407,7 @@ Retain the settings needed by the image when editing its network rules. Omitted
 policy leaves the image policy in effect. A pre-existing `sandbox_id` cannot be paired
 with a policy or a policy file: its external owner manages its existing policy.
 
-UnifAI owns profile selection and snapshots; Run Engine translates policy data to
+Flareward owns profile selection and snapshots; Run Engine translates policy data to
 the SDK and OpenShell enforces it. Named environments are created with that snapshot.
 Borrowing an environment does not reconfigure its policy. Environment cleanup follows
 the existing engine lifetime rules, independent of policy-file ownership. OpenShell
@@ -3355,7 +3430,7 @@ Declare shared environments in `GraphDefinition.environments` and bind selected
 steps through `ExecutionSelection.environment`. Child calls declare imports using
 child-alias-to-parent-name mappings. A child does not acquire ownership merely by
 using a parent's environment. Run Engine handles declarations, grants, admission,
-dispatch, draining, and release. UnifAI translates application selections into
+dispatch, draining, and release. Flareward translates application selections into
 those contracts and records execution state.
 
 For a shorter reuse lifetime, group the relevant steps in a graph program that
@@ -3387,7 +3462,7 @@ result clears that transient failure.
 Root submission also has an application-owned delivery claim. The repository
 atomically assigns a private token and expiry when admitting an initial or recovery
 attempt. Reconciliation observes an active `starting` attempt without redelivering
-it. `UNIFAI_SUBMISSION_TIMEOUT_SECONDS` bounds the original I/O (default 30 seconds);
+it. `FLAREWARD_SUBMISSION_TIMEOUT_SECONDS` bounds the original I/O (default 30 seconds);
 its claim expires five seconds later so a crashed owner can be recovered. Finishing
 an attempt is fenced by its token: an expired owner's late reply/refusal cannot
 overwrite the newer owner. Recovery always uses the identical stored request and
@@ -3446,7 +3521,7 @@ References in the companion checkout:
 `src/runengine/programs/graph/program.py` (`GraphProgram._interrupt`),
 `src/runengine/programs/graph/handle.py` (`GraphHandle.resume`), and
 `src/runengine/programs/graph/traversal/README.md` describe the pre-node boundary.
-UnifAI's current compiler does not set interrupt flags. Existing receiver-side
+Flareward's current compiler does not set interrupt flags. Existing receiver-side
 tool approvals use a separate receiver-side gate and Redis tickets; those tests
 do not prove durable Human Review.
 
@@ -3472,7 +3547,7 @@ existing output bindings and conditions route the graph to continue, revise, or
 stop. Receiving a message alone must not mean approval. Existing tool auto-approval
 rules must not silently approve graph reviews.
 
-**Responsibilities and boundaries.** UnifAI owns request/response validation,
+**Responsibilities and boundaries.** Flareward owns request/response validation,
 reviewer authorization, the pending request, atomic decision acceptance, responder
 identity, and the audit result. Thin FastAPI routes call that application service.
 Use a review-specific request model rather than filling the tool approval model's
@@ -3484,7 +3559,7 @@ at the existing runtime boundary. The API and owned reconciler persist lifecycle
 changes and deliver notifications through application-owned ports. The application
 coordinator itself performs no direct database, Redis, HTTP, or wall-clock I/O.
 It uses engine messages/timers for waiting and expiry. Engine SDK objects remain
-in adapters; no second scheduler or custom durability layer belongs in UnifAI.
+in adapters; no second scheduler or custom durability layer belongs in Flareward.
 
 **Reliable submission.** Correlate each request with its actual execution, step,
 and review occurrence; retries reuse that identity, later loop visits do not.
@@ -3520,11 +3595,11 @@ environment-retention results only after running those cases.
 
 ### Current contracts and setup
 
-Enable `UNIFAI_REVIEWS_ENABLED=true` with Mongo storage. Configure
-`UNIFAI_REVIEW_POLICIES` as a mapping of policy IDs to admitted owners, assigned
+Enable `FLAREWARD_REVIEWS_ENABLED=true` with Mongo storage. Configure
+`FLAREWARD_REVIEW_POLICIES` as a mapping of policy IDs to admitted owners, assigned
 human user IDs in `reviewers`, and `max_timeout_seconds`. Include
-`mas.application.reviews.program` in `UNIFAI_APPLICATION_MODULES` and
-`mas_plugins.reviews.specification` in `UNIFAI_ELEMENT_MODULES`. Registration uses
+`plugins.human_review.programs.human_review` in `FLAREWARD_APPLICATION_MODULES` and
+`plugins.reviews.specification` in `FLAREWARD_ELEMENT_MODULES`. Registration uses
 the existing application registry and element discovery; no dedicated review
 worker or compiler branch exists.
 
@@ -3558,8 +3633,8 @@ schemas; server validation remains authoritative.
 Workflow bearer credentials cannot submit decisions, including alongside a human
 cookie. Assignment is frozen when the occurrence opens; ownership alone does not
 permit a human response. Access is purpose-separated from artifact/verification
-credentials. Operator-only `UNIFAI_REVIEW_ENDPOINT` and
-`UNIFAI_REVIEW_ACCESS_DIRECTORY` bind workers to private mode-0600 capability files
+credentials. Operator-only `FLAREWARD_REVIEW_ENDPOINT` and
+`FLAREWARD_REVIEW_ACCESS_DIRECTORY` bind workers to private mode-0600 capability files
 named by `review_credential_key(owner, root)`. HTTPS is required unless the operator
 explicitly enables insecure transport; the test harness uses loopback only.
 Endpoint and private directory settings are not authored program data. Effective
@@ -3592,8 +3667,8 @@ to reviewers or implement visual review-block authoring.
 
 ## Receiver services and interactions
 
-The default interaction backend is Redis. Set `UNIFAI_REDIS_URI` on the API and
-every invocation worker to the same service. Set `UNIFAI_INTERACTIONS=disabled`
+The default interaction backend is Redis. Set `FLAREWARD_REDIS_URI` on the API and
+every invocation worker to the same service. Set `FLAREWARD_INTERACTIONS=disabled`
 for development that does not require streaming or human approval. A node configured
 to require approval fails if no gate/policy is available. Native approval requests
 await the shared async gate. Legacy channel/store adapters isolate unavoidable
@@ -3609,9 +3684,9 @@ Execution interaction routes are:
 The SSE `id` is the resume cursor. A cursor outside retained history receives a
 conflict before streaming, or an explicit error event if retention advances after
 headers have been sent. Root streams aggregate child events while retaining each
-actual child execution identity. `UNIFAI_INTERACTION_TTL` controls retention and
-must exceed `UNIFAI_APPROVAL_TIMEOUT`. `UNIFAI_MAX_STREAM_EVENTS` and
-`UNIFAI_STREAM_BUFFER_CAPACITY` bound retained history and receiver buffering.
+actual child execution identity. `FLAREWARD_INTERACTION_TTL` controls retention and
+must exceed `FLAREWARD_APPROVAL_TIMEOUT`. `FLAREWARD_MAX_STREAM_EVENTS` and
+`FLAREWARD_STREAM_BUFFER_CAPACITY` bound retained history and receiver buffering.
 Transport failure and overflow are explicit failures. Approval submissions are
 atomic and replayable; conflicting decisions and late responses are rejected.
 
@@ -3640,28 +3715,28 @@ rule governs later requests and does not resolve an already pending ticket. The
 UI saves the rule and separately submits the captured current decision. It reports
 those operations independently and keeps entered feedback after a failed decision.
 
-Enable existing stored credentials with `UNIFAI_CREDENTIALS=mongo` on the API and
-invocation workers. Configure `UNIFAI_MONGO_URI`, `UNIFAI_MONGO_DATABASE`, and
-`UNIFAI_CREDENTIAL_ENCRYPTION_KEY` consistently with the existing credential store.
+Enable existing stored credentials with `FLAREWARD_CREDENTIALS=mongo` on the API and
+invocation workers. Configure `FLAREWARD_MONGO_URI`, `FLAREWARD_MONGO_DATABASE`, and
+`FLAREWARD_CREDENTIAL_ENCRYPTION_KEY` consistently with the existing credential store.
 The optional `credentials` package extra supplies the runtime dependencies and is
 included in `dev` and `all`. Credentials default to disabled for deterministic
 local development. This wires runtime lookup and refresh; native credential
 onboarding/callback HTTP routes are still part of the remaining API migration.
 
 The receiver owns a scoped Mongo client shared by the existing credential and
-server-config adapters. The application service depends on their ports; storage
+server-flareward.bootstrap.settings adapters. The application service depends on their ports; storage
 calls remain off the event loop. Team ownership does not select team credentials:
 the execution context supplies the initiating human's credential identity.
 Registered AuthService credentials and live clients stay outside bundles and
 prepared requests.
 
 For existing inline configuration credentials, enable
-`UNIFAI_CONFIGURATION_SECRETS=true` and configure the Mongo connection and
-`UNIFAI_CREDENTIAL_ENCRYPTION_KEY` on the API and invocation workers. This is
-independent of `UNIFAI_CREDENTIALS=mongo`: one handles authored configuration
+`FLAREWARD_CONFIGURATION_SECRETS=true` and configure the Mongo connection and
+`FLAREWARD_CREDENTIAL_ENCRYPTION_KEY` on the API and invocation workers. This is
+independent of `FLAREWARD_CREDENTIALS=mongo`: one handles authored configuration
 values, while the other provides runtime AuthService credential lookup.
 Fields declared with `SecretHint`, `ENCRYPTED_FIELDS`, or `SecretStr` are replaced
-at save time with owner-scoped `unifai-secret:v1:<id>` references. Their immutable
+at save time with owner-scoped `flareward-secret:v1:<id>` references. Their immutable
 values are encrypted in `program_configuration_secrets`; published revisions,
 element bundles, prepared requests, and Temporal histories carry references.
 Construction resolves those references inside the receiving environment before
@@ -3692,21 +3767,21 @@ does not redact arbitrary values intentionally emitted as application outputs.
 
 An installed custom module may supply
 `element_runtime(holder) -> AsyncContextManager[ElementRuntime]` through
-`UNIFAI_RECEIVER_MODULE`. Its build context must use that same execution holder.
+`FLAREWARD_RECEIVER_MODULE`. Its build context must use that same execution holder.
 The receiver closes after elements and their dependencies, runtime unbinding,
 stream draining, and tracing flush.
 
 ### Native tracing
 
-Install `mas[telemetry]` in every receiving environment and configure its local
+Install `flareward[telemetry]` in every receiving environment and configure its local
 deployment secrets:
 
 ```sh
-export UNIFAI_TRACING=langfuse
-export UNIFAI_LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
-export UNIFAI_LANGFUSE_PUBLIC_KEY=your-public-key
-export UNIFAI_LANGFUSE_SECRET_KEY=your-secret-key
-export UNIFAI_TRACING_TIMEOUT=5
+export FLAREWARD_TRACING=langfuse
+export FLAREWARD_LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
+export FLAREWARD_LANGFUSE_PUBLIC_KEY=your-public-key
+export FLAREWARD_LANGFUSE_SECRET_KEY=your-secret-key
+export FLAREWARD_TRACING_TIMEOUT=5
 ```
 
 Tracing defaults to `disabled`. Selecting it also selects the built-in receiver,
@@ -3743,11 +3818,11 @@ Langfuse deployment's persistence, aggregation, or UI. Legacy session-cost HTTP
 compatibility remains part of the remaining API migration.
 ### Receiver-local deployment settings
 
-Set `UNIFAI_SECRETS_DIR` to an existing absolute directory in the receiving
+Set `FLAREWARD_SECRETS_DIR` to an existing absolute directory in the receiving
 environment. The shared settings source uses Pydantic's file-secret loader;
-files use their environment-variable names, such as `UNIFAI_LANGFUSE_PUBLIC_KEY`,
-`UNIFAI_LANGFUSE_SECRET_KEY`, `UNIFAI_MONGO_URI`, or
-`UNIFAI_CREDENTIAL_ENCRYPTION_KEY`. Nonsecret settings such as `UNIFAI_TRACING`
+files use their environment-variable names, such as `FLAREWARD_LANGFUSE_PUBLIC_KEY`,
+`FLAREWARD_LANGFUSE_SECRET_KEY`, `FLAREWARD_MONGO_URI`, or
+`FLAREWARD_CREDENTIAL_ENCRYPTION_KEY`. Nonsecret settings such as `FLAREWARD_TRACING`
 and the collector URL may be provided there too. Keep deployment files private.
 Selecting an unavailable directory fails explicitly. Each invocation reads current
 files; live clients retain their configuration for their owned lifetime.
@@ -3770,22 +3845,22 @@ Kubernetes can use Run Engine's existing `secret_mounts`, for example:
 ```json
 {
   "runner_type": "k8s",
-  "image": "registry.example.com/unifai/receiver:version",
-  "namespace": "unifai",
-  "env": {"UNIFAI_SECRETS_DIR": "/var/run/unifai-settings"},
-  "secret_mounts": [{"secret_name": "receiver-settings", "mount_path": "/var/run/unifai-settings"}]
+  "image": "registry.example.com/flareward/receiver:version",
+  "namespace": "flareward",
+  "env": {"FLAREWARD_SECRETS_DIR": "/var/run/flareward-settings"},
+  "secret_mounts": [{"secret_name": "receiver-settings", "mount_path": "/var/run/flareward-settings"}]
 }
 ```
 
 The deployment owns that Secret. When only remote receivers need these services,
-select `UNIFAI_RECEIVER_MODULE=bootstrap.receiver` on the API so compilation emits
+select `FLAREWARD_RECEIVER_MODULE=flareward.bootstrap.receiver` on the API so compilation emits
 the installed receiver entrypoint; local API settings need not contain remote keys.
 Configure API-side services separately when they are needed.
 
 For the pinned OpenShell integration, a deployment can provision private files
 outside execution and select the existing `sandbox_id` mode, with
-`UNIFAI_SECRETS_DIR` pointing to those files. The external owner keeps that sandbox
-alive and deletes it after its work has drained. UnifAI adds no sandbox or secret
+`FLAREWARD_SECRETS_DIR` pointing to those files. The external owner keeps that sandbox
+alive and deletes it after its work has drained. Flareward adds no sandbox or secret
 manager. Automatic file provisioning for managed OpenShell environments remains a
 deployment capability gap; do not replace it with plaintext keys in profiles or
 images. The deployment tests provision their own sandbox through the authenticated
@@ -3793,22 +3868,22 @@ SDK and send synthetic settings over stdin before any program starts.
 
 ## Verification limits
 
-The [test layout](../multi-agent/tests/README.md) follows the same boundaries as the
+The [test layout](../platform/tests/README.md) follows the same boundaries as the
 application. Application tests run without an engine, HTTP server, or database.
 Integration tests extend that composition with actual adapters. Reusable fixtures
 live in support modules and avoid process-global resource tracking.
 
 The default tests require no real LLM, MongoDB, Temporal service, Kubernetes cluster,
 or OpenShell gateway. Enable the real Mongo contracts with
-`UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27017`; the fixture creates and removes a
+`FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27017`; the fixture creates and removes a
 uniquely named test database. Those tests verify persistence and application restart
 with completed results, plus encrypted credentials in actual thread/process receivers.
 Stored blueprint contracts also resolve transitive catalog dependencies and user
 or team overlays before native thread/process session execution. They reject
 foreign resources, unowned blueprints, missing dependencies, and draft built-ins.
-Set `UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6379/0` for real interaction tests;
+Set `FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6379/0` for real interaction tests;
 they remove their unique execution keys afterward. Set
-`UNIFAI_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7233` for real composition, replay, native
+`FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7233` for real composition, replay, native
 worker crash/replacement, and message recovery. The API-restart contract also
 requires Mongo. Queues and execution identities are unique to each test. These
 checks also verify encrypted configuration snapshots and failure records and
@@ -3833,8 +3908,8 @@ listening socket is inherited to avoid a port-allocation race; these process tes
 use POSIX descriptor passing. Shared process support signals and reaps only the
 processes it created.
 
-The [independent infrastructure guide](../multi-agent/tests/infra/README.md) creates
-UnifAI's own Mongo/Redis/Temporal services, kind cluster, receiver images, and mTLS
+The [independent infrastructure guide](../platform/tests/infra/README.md) creates
+Flareward's own Mongo/Redis/Temporal services, kind cluster, receiver images, and mTLS
 OpenShell gateway. Remote deployment scenarios run the same public API with Local
 or Temporal coordination and Kubernetes or OpenShell invocations. They verify
 transitive factory construction, three distinct invocation environments versus one
@@ -3852,8 +3927,8 @@ enforcement, or worker-loss recovery.
 ### Coding agents and Codex CLI
 
 `operations/codex_coding` is the production typed coding operation. Its outer
-plugin lives at `multi-agent/plugins/mas_plugins/coding/codex`: configuration,
-identifier, specification/factory, and CLI adapter. `bootstrap.elements` installs
+plugin lives at `platform/platform/src/plugins/coding/codex`: configuration,
+identifier, specification/factory, and CLI adapter. `flareward.bootstrap.elements` installs
 `CodexSpec` into the existing element registry. Bundles, resource secrets,
 construction factories, category builders, and receiver ownership are shared
 with other registered operations. The former Codex node implementation is deleted.
@@ -3871,7 +3946,7 @@ selects resource-owned credentials.
 byte limits are configurable. Credentials use the same resource encryption and
 opaque published configuration references as other elements. The receiver resolves
 them locally through its configured secret store. Alternatively, an operator can
-provision a private file and set the receiver-only `UNIFAI_CODEX_API_KEY_FILE`
+provision a private file and set the receiver-only `FLAREWARD_CODEX_API_KEY_FILE`
 path. The adapter reads that file when the resource has no `api_key`; authors
 cannot select its path through resource configuration. Missing credentials fail
 before the CLI starts. Live Kubernetes tests use a private Secret mount; live
@@ -3887,7 +3962,7 @@ between sequential coding steps. Program children use the existing explicit
 environment imports. The element creates no sandbox, worker, child engine or child
 program. The environment owner controls retention and deletion.
 
-The receiver-local `UNIFAI_WORKSPACE_ROOT` defaults to `/tmp/unifai-workspaces`.
+The receiver-local `FLAREWARD_WORKSPACE_ROOT` defaults to `/tmp/flareward-workspaces`.
 Within it, the root execution identity selects a hashed namespace.
 `workspace_mode=isolated` (default) additionally scopes the directory by execution
 identity and stable invocation key: concurrent calls and child executions use
@@ -3905,7 +3980,7 @@ Each invocation starts a fresh noninteractive `codex exec --json --ephemeral` tu
 Explicit input bindings carry the previous answer; files carry repository changes.
 CLI chat-thread resumption is not implemented. The CLI defaults to workspace-write permissions and noninteractive approval
 handling; it does not wait on a terminal. An operator may set receiver-only
-`UNIFAI_CODEX_SANDBOX_MODE=danger-full-access` for a profile whose external
+`FLAREWARD_CODEX_SANDBOX_MODE=danger-full-access` for a profile whose external
 isolation already provides the required boundary. This is not an element
 configuration field, and there is no automatic fallback. The tested OpenShell
 host disallows nested unprivileged user namespaces, so its live fixture explicitly
@@ -3930,12 +4005,12 @@ returned as typed token counts. Ordinary unsuccessful commands can be repaired b
 the coding agent; only a failed CLI/turn or contract violation fails the element.
 No automatic business retry is added for potentially mutating coding work.
 
-The optional [Codex image](../multi-agent/tests/infra/Dockerfile.codex) derives from
-the UnifAI OpenShell receiver. It pins CLI 0.166.0 and installs the native binary at
+The optional [Codex image](../platform/tests/infra/Dockerfile.codex) derives from
+the Flareward OpenShell receiver. It pins CLI 0.166.0 and installs the native binary at
 `/usr/local/bin/codex`, with the package's Bubblewrap and ripgrep helpers also on
 PATH. A version check alone cannot prove command execution: nested namespace
 support must be tested inside the actual target environment. The opt-in
-[Codex policy](../multi-agent/config/policies/openshell-codex.json) allows only that
+[Codex policy](../platform/flareward.bootstrap.settings/policies/openshell-codex.json) allows only that
 binary to contact `api.openai.com:443`. A receiver using Mongo secret storage additionally needs working native database
 transport and an operator-approved endpoint for its Python interpreter. The
 private-file binding needs no database access from the sandbox. Preserve the
@@ -3978,7 +4053,7 @@ chat/streams/approvals, collaboration, analytics or schedules complete on FastAP
 Default backend startup remains unchanged until that cutover is verified.
 
 Run actual TypeScript clients against a separately started native API and isolated
-Mongo with `--ui-clients`; see the [test guide](../multi-agent/tests/README.md#actual-ui-api-clients).
+Mongo with `--ui-clients`; see the [test guide](../platform/tests/README.md#actual-ui-api-clients).
 That runner compiles the production client modules with the UI's locked Vite
 version, exercises HTTP responses without mocks, and cleans its temporary bundle.
 It is distinct from a browser test of the whole logged-in application. The UI's
@@ -4069,13 +4144,13 @@ and stale actions; application/Redis cases cover persistence, recovery and revis
 ordering. Turn admission refreshes an apparently busy session before rejection,
 allowing a new turn immediately after its predecessor's result is available.
 Use [session diagnostics](../.cursor/skills/debug-session-ui/SKILL.md) and the
-[test guide](../multi-agent/tests/README.md#actual-ui-api-clients) for verification.
+[test guide](../platform/tests/README.md#actual-ui-api-clients) for verification.
 
 ## Team editing during native API migration
 
-Enable native resource/blueprint editing leases with `UNIFAI_EDIT_LOCKS=true`
-and `UNIFAI_LIBRARY=true`. The composition root owns an asynchronous Redis client;
-`UNIFAI_EDIT_LOCK_TTL` defaults to 180 seconds (accepted range 1–3600). Disabled
+Enable native resource/blueprint editing leases with `FLAREWARD_EDIT_LOCKS=true`
+and `FLAREWARD_LIBRARY=true`. The composition root owns an asynchronous Redis client;
+`FLAREWARD_EDIT_LOCK_TTL` defaults to 180 seconds (accepted range 1–3600). Disabled
 coordination returns 501, preserving the existing optional UI behavior. An enabled
 Redis failure returns 503; clients must not interpret it as an unlocked entity.
 

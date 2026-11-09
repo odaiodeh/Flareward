@@ -5,10 +5,10 @@ import { createProgramSchedule, deleteProgramSchedule, getProgramSchedule, listP
 import type { ProgramRef } from '../client/src/api/programs';
 
 export default async function verifyScheduleConsent() {
-  const endpoint = process.env.UNIFAI_TEST_UI_API_URL;
-  const cookie = process.env.UNIFAI_TEST_UI_HUMAN_COOKIE;
-  const reference = process.env.UNIFAI_TEST_UI_PROGRAM_REFERENCE;
-  const key = process.env.UNIFAI_TEST_UI_SCHEDULE_KEY;
+  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
+  const cookie = process.env.FLAREWARD_TEST_UI_HUMAN_COOKIE;
+  const reference = process.env.FLAREWARD_TEST_UI_PROGRAM_REFERENCE;
+  const key = process.env.FLAREWARD_TEST_UI_SCHEDULE_KEY;
   assert.ok(endpoint && cookie && reference && key);
   axios.defaults.baseURL = endpoint; axios.defaults.headers.common.Cookie = cookie;
   const program: ProgramRef = JSON.parse(reference);
@@ -36,7 +36,7 @@ export default async function verifyScheduleConsent() {
     const retried = await createProgramSchedule(request, key);
     assert.equal(retried.authorization_id, created.authorization_id);
     assert.equal(retried.workflow_access_consent?.revoked, true);
-    assert.equal(/unifai-review-v1\./.test(JSON.stringify([created, revoked, retried])), false);
+    assert.equal(/flareward-review-v1\./.test(JSON.stringify([created, revoked, retried])), false);
   } finally {
     await deleteProgramSchedule(id);
   }

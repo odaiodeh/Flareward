@@ -4,15 +4,15 @@ import axios from '../client/src/http/axiosAgentConfig';
 import { executionReviews, getReview, listReviews, respondToReview } from '../client/src/api/reviews';
 
 export default async function verifyReviews() {
-  const endpoint = process.env.UNIFAI_TEST_UI_API_URL;
-  const cookie = process.env.UNIFAI_TEST_UI_REVIEW_COOKIE;
+  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
+  const cookie = process.env.FLAREWARD_TEST_UI_REVIEW_COOKIE;
   assert.ok(endpoint && cookie);
   axios.defaults.baseURL = endpoint;
   axios.defaults.headers.common.Cookie = cookie;
   const inbox = await listReviews();
   assert.equal(inbox.reviews.length, 1);
   const review = await getReview(inbox.reviews[0].review_id);
-  const ownerCookie = process.env.UNIFAI_TEST_UI_HUMAN_COOKIE;
+  const ownerCookie = process.env.FLAREWARD_TEST_UI_HUMAN_COOKIE;
   assert.ok(ownerCookie);
   assert.deepEqual((await executionReviews(review.root_execution_id)).reviews, []);
   axios.defaults.headers.common.Cookie = ownerCookie;

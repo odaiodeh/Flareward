@@ -1,6 +1,6 @@
 ---
 name: debug-execution-admission
-description: Diagnose UnifAI root submission races, uncertain acknowledgements, delivery fencing, cancellation, coordinator recovery and shared execution-tree work budgets.
+description: Diagnose Flareward root submission races, uncertain acknowledgements, delivery fencing, cancellation, coordinator recovery and shared execution-tree work budgets.
 ---
 
 # Diagnose root execution admission
@@ -44,7 +44,7 @@ recovery scenario. Each root's cleanup must leave the other's live material inta
   private native ID. Never accept arbitrary `RUN_ALREADY_EXISTS` as ownership.
 - `prepared -> starting` atomically obtains a private submission token and expiry.
   A live starting owner must not be redelivered by another API/reconciler. The
-  original I/O is bounded by `UNIFAI_SUBMISSION_TIMEOUT_SECONDS` (default 30 seconds);
+  original I/O is bounded by `FLAREWARD_SUBMISSION_TIMEOUT_SECONDS` (default 30 seconds);
   a crashed owner's claim matures five seconds later. Claim metadata stays outside
   public records, program payloads and worker configuration.
 - A finishing attempt must match its token. An expired owner can receive a late
@@ -62,15 +62,15 @@ recovery scenario. Each root's cleanup must leave the other's live material inta
   `tests/support/execution_claims.py`. Mongo claims/finishes must be atomic and
   token-fenced across API workers; process-local locks alone are insufficient.
 
-Use `integration/run_engine/test_recovery.py` to force interleavings with a real
+Use `integration/flareward.executions.adapters.run_engine.shared/test_recovery.py` to force interleavings with a real
 Local host: delay before native acceptance, observe from another service, expire
 the owner before its late response, cancel before acceptance, and enforce the
 submission deadline. The existing foreign-collision assertion must remain intact.
 Then run real Mongo and the deployed agent-session Temporal scenario:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/adapters/test_execution_claims.py multi-agent/tests/integration/run_engine/test_recovery.py -q
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 UNIFAI_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest multi-agent/tests/integration/mongo/test_repositories.py multi-agent/tests/integration/deployment/test_agent_sessions.py -q
+.venv/bin/python -m pytest platform/tests/adapters/test_execution_claims.py platform/tests/integration/flareward.executions.adapters.run_engine.shared/test_recovery.py -q
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest platform/tests/integration/mongo/test_repositories.py platform/tests/integration/deployment/test_agent_sessions.py -q
 ```
 
 Use only dedicated test services. Do not mask a race with arbitrary sleeps,
@@ -83,7 +83,7 @@ are separate acceptance gates.
 ## Shared work budgets
 
 Read [root-wide work admission](../../../docs/program-platform-development.md#root-wide-work-admission)
-when a Program fails with `WORK_LIMIT_EXCEEDED`. `UNIFAI_WORK_LIMITS` is opt-in
+when a Program fails with `WORK_LIMIT_EXCEEDED`. `FLAREWARD_WORK_LIMITS` is opt-in
 deployment policy, requires Mongo and freezes into prepared requests/records.
 Check the original admitted limits rather than current deployment defaults.
 
@@ -103,7 +103,7 @@ pooling/load behavior, native replay/restart and current-image remote validation
 remain separate acceptance work.
 
 Use shared `support/work_budgets.py`, Mongo `test_work_budgets.py`, native
-`run_engine/test_work_budgets.py` and adapter refusal/cancellation tests. The native
+`flareward.executions.adapters.run_engine.shared/test_work_budgets.py` and adapter refusal/cancellation tests. The native
 scenario spans graph → Map → graph → thread/process operation under one ledger.
 The production Programs client verifies admitted limits. For error translation,
 native `FailureDescriptor.retryable` is allowed only on infrastructure failures;

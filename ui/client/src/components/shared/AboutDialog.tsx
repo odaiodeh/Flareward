@@ -17,17 +17,15 @@ import {
 import { Separator } from "@/components/ui/separator";
 import SimpleTooltip from "@/components/shared/SimpleTooltip";
 import { useTheme } from "@/contexts/ThemeContext";
-import { api } from "@/http/queryClient";
 import { api as apiAuth } from "@/http/authClient";
 import axios from "@/http/axiosAgentConfig";
-import { backendApi } from "@/http/backendClient";
 
 interface AboutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const MODULE_NAMES = ["Backend", "MultiAgent", "RAG", "Identity", "UI"];
+const MODULE_NAMES = ["Platform", "Identity", "UI"];
 
 const COLOR_OPTIONS = [
   { hex: "#A60000", name: "Red" },
@@ -49,11 +47,9 @@ export default function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
   const [teamMembers, setTeamMembers] = useState<string[]>([]);
   const [supportLink, setSupportLink] = useState("");
 
-  const clientMap: Record<string, typeof api> = {
-    RAG: api,
-    MultiAgent: axios,
+  const clientMap: Record<string, typeof axios> = {
+    Platform: axios,
     Identity: apiAuth,
-    Backend: backendApi,
   };
 
   const fetchAppConfig = async () => {
@@ -130,14 +126,14 @@ export default function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
                 <path d="M3 12H7M17 12H21M12 3V7M12 17V21M5 19L8 16M16 8L19 5M19 19L16 16M5 5L8 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            About UnifAI
+            About Flareward
           </DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-6 space-y-5">
           {/* App Description */}
           <p className="text-sm text-muted-foreground leading-relaxed">
-            AI-powered unified platform for Agentic AI workflows and RAG pipelines.
+            A unified platform for composing and executing agentic development workflows.
           </p>
 
           <Separator />

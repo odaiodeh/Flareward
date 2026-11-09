@@ -55,7 +55,7 @@ Before writing any design, answer all of the following. Address each explicitly 
 - If yes, verify compatibility with any timeout/cancellation primitives already in use (e.g., `anyio.fail_after` vs `asyncio.wait_for` cannot be mixed across cancel-scope boundaries).
 
 ### Template / Seed Data Integrity Check (for template features)
-- Does a seed JSON or fixture reference resources by external `$ref` (UUID pointer) rather than inline config?
+- Does a seed JSON or fixture reference resources by external `$ref` (UUID pointer) rather than inline flareward.bootstrap.settings?
 - Templates must embed all non-system resource configs inline so materialisation creates independent copies per user. Flag any `$ref`-only entries as a design risk.
 
 ## Architectural Constraints
@@ -71,7 +71,7 @@ Before writing any design, answer all of the following. Address each explicitly 
 Before writing the design, you MUST verify the following by reading actual source files. Do NOT assume — check.
 
 ### Service & Method Signatures
-- Read every existing service method you plan to call or extend. Verify its actual signature (parameters, return types). When changing a signature, update actual callers. For the fresh multi-agent platform, do not retain old signatures or aliases solely for compatibility.
+- Read every existing service method you plan to call or extend. Verify its actual signature (parameters, return types). When changing a signature, update actual callers. For the fresh platform platform, do not retain old signatures or aliases solely for compatibility.
 - Pay special attention to methods that create or persist entities — many auto-generate IDs (e.g. `str(uuid4())`). If the design requires a caller-supplied stable ID, confirm the method supports it or explicitly design the signature change.
 
 ### Middleware & Context Availability
@@ -80,7 +80,7 @@ Before writing the design, you MUST verify the following by reading actual sourc
 
 ### Serialization Compatibility
 - When reading data from shared stores (Redis, Kafka, etc.), check how complex types (lists, dicts, nested objects) are serialized on write and deserialized on read. A `List[str]` Pydantic field will NOT auto-parse a JSON string `'["a","b"]'` — verify each non-primitive field has explicit parse/encode logic.
-- When adding fields to a shared data model (e.g. `UserSessionData`), validate the canonical new record shape. Support older records only when the task explicitly requires it; the fresh multi-agent platform does not.
+- When adding fields to a shared data model (e.g. `UserSessionData`), validate the canonical new record shape. Support older records only when the task explicitly requires it; the fresh platform platform does not.
 
 ### Deployment & Seeding Mechanisms
 - If the design produces a new data artifact (template, configuration, seed record), verify whether a deployment/seeding mechanism already exists (CLI command, migration script, Helm hook, init container). If it does not exist, design it explicitly. Do NOT leave seeding as an implicit assumption.

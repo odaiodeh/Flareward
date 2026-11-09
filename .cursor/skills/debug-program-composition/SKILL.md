@@ -1,6 +1,6 @@
 ---
 name: debug-program-composition
-description: Diagnose UnifAI program-library authoring, pinned composition, Map/Repeat/Choose/Wait, native replay and the Programs UI.
+description: Diagnose Flareward program-library authoring, pinned composition, Map/Repeat/Choose/Wait, native replay and the Programs UI.
 ---
 
 # Diagnose program composition
@@ -17,7 +17,7 @@ for ordinary graph/code invocation.
 
 Trace authored configuration → `ApplicationRegistration.configuration` → pinned
 revision → prepared request → runtime ports. Core registrations are installed by
-`bootstrap.programs`; workers preload the same core module. New implementations
+`flareward.bootstrap.programs`; workers preload the same core module. New implementations
 must use the existing registry, publication and engine path, not compiler branches.
 
 Binding readiness now uses application `ProgramContracts` / `BindingProjection` and
@@ -82,9 +82,9 @@ selections carry the graph scope's `body_path`. Inline profile defaults inherit,
 published defaults remain independent, and environment imports stay explicit.
 Compilation uses the existing native child/runtime path. Keep prepared payloads
 scope-local instead of copying the enclosing revision into every child. Current
-entrypoint/prepared formats are `unifai-program-v6` / `runengine/request-v10`.
+entrypoint/prepared formats are `flareward-program-v6` / `runengine/request-v10`.
 Exercise `application/test_owned_programs.py`, `domain/test_program_bodies.py`,
-`domain/test_execution_source.py`, `adapters/run_engine/test_owned_compilation.py`
+`domain/test_execution_source.py`, `adapters/flareward.executions.adapters.run_engine.shared/test_owned_compilation.py`
 and shared Local composition/client scenarios. UI inline authoring and remote
 recovery are still outstanding; focused compilation is not a remote cleanup proof.
 
@@ -105,7 +105,7 @@ Call inputs and graph return values support arrays/scalars/null; named graph cha
 updates remain objects. `input` is the original graph invocation JSON. `results[uid]`
 is the latest actual typed-operation/Program result, not occurrence history. Parallel
 keys merge independently. Mapping/resume writes to these scopes reject. State-based
-nodes do not index their entire state. Graph-state contract is `unifai-graph-state-v4`.
+nodes do not index their entire state. Graph-state contract is `flareward-graph-state-v4`.
 Use domain binding, application literal/read-only, adapter scope and Local value-binding
 tests, shared `support/value_operations.py` factories and the production array journey.
 Application `ProgramState` owns portable input/results/values/output channels.
@@ -221,10 +221,10 @@ programs and definition helpers live in `tests/support/composition.py`; transpor
 and workers stay in infrastructure support. Run focused checks, then actual hosts:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/application/test_composition.py multi-agent/tests/integration/run_engine/test_composition.py multi-agent/tests/architecture -q
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 .venv/bin/python -m pytest multi-agent/tests/adapters/test_program_repository.py multi-agent/tests/integration/mongo/test_program_repository.py multi-agent/tests/application/test_publication.py -q
-UNIFAI_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest multi-agent/tests/integration/temporal/test_composition.py -q
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 .venv/bin/python -m pytest multi-agent/tests/integration/ui/test_editor_client.py -k programs --ui-clients -q
+.venv/bin/python -m pytest platform/tests/application/test_composition.py platform/tests/integration/flareward.executions.adapters.run_engine.shared/test_composition.py platform/tests/architecture -q
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 .venv/bin/python -m pytest platform/tests/adapters/test_program_repository.py platform/tests/integration/mongo/test_program_repository.py platform/tests/application/test_publication.py -q
+FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest platform/tests/integration/temporal/test_composition.py -q
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 .venv/bin/python -m pytest platform/tests/integration/ui/test_editor_client.py -k programs --ui-clients -q
 ```
 
 Require real graph → Map → graph → operation results on thread/process receivers,
@@ -236,7 +236,7 @@ For the actual App, build `ui/tests/build-workspace-browser.mjs` using
 [the existing browser workflow](../debug-session-ui/SKILL.md), then run:
 
 ```sh
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 PYTHONPATH=multi-agent/tests:multi-agent/lib:multi-agent/adapters:multi-agent:multi-agent/plugins .venv/bin/python -m support.program_browser --assets /tmp/unifai-program-browser-assets --directory /tmp/unifai-program-browser-run
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 PYTHONPATH=platform/src:platform/tests .venv/bin/python -m support.program_browser --assets /tmp/flareward-program-browser-assets --directory /tmp/flareward-program-browser-run
 ```
 
 Use a fresh directory and the printed test login URL. The fixture installs the

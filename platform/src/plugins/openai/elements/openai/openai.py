@@ -1,0 +1,193 @@
+"""
+OpenAI LLM implementation using the Responses API (``/v1/responses``).
+
+This provider targets the official OpenAI endpoint and GPT-5+ / o-series
+models that require the Responses API for tool calling.  For older models
+or OpenAI-compatible servers (vLLM, LocalAI, Ollama), use the
+``openai_compatible`` provider instead.
+"""
+
+from __future__ import annotations
+
+import copy
+from collections.abc import AsyncGenerator
+from typing import Any
+
+from openai import AsyncOpenAI
+
+from flareward.elements.messaging.domain.messages import ChatMessage, Role
+from flareward.elements.models.errors import provider_errors
+from flareward.elements.models.name_sanitizer import build_name_maps, map_name
+from flareward.elements.models.tool_name_restorer import restore_tool_names
+from flareward.elements.ports.llm import BaseLLM
+from flareward.elements.tools.domain.models import ToolDefinition
+from flareward.services.tracing import NoOpTracingService, TracingService
+from plugins.openai.elements.openai.responses_adapter import ResponsesAdapter
+from plugins.openai.elements.openai.responses_stream_aggregator import (
+    ResponsesStreamAggregator,
+)
+
+
+class OpenAILLM(BaseLLM):
+    """LLM client for the OpenAI Responses API (GPT-5+, o-series).
+
+    Responsibilities are split across dedicated collaborators:
+
+    * **ResponsesAdapter** – bidirectional ``ChatMessage`` ↔ Responses API format
+    * **ResponsesStreamAggregator** – reassembles Responses API streaming events
+
+    Tool names containing dots (e.g. ``time.get_current_time``) are
+    sanitized to underscores at the API boundary and restored on
+    inbound tool calls.  The adapter handles name sanitization for
+    outbound messages; this class handles tool definitions and inbound.
+    """
+
+    def __init__(
+        self,
+        base_url: str,
+        model_name: str,
+        max_tokens: int = 4096,
+        api_key: str = "EMPTY",
+        reasoning_effort: str | None = None,
+        tracing: TracingService = None,
+        **extra: Any,
+    ) -> None:
+        self._name = "openai"
+        self._model = model_name
+        self._max_tokens = max_tokens
+        self._reasoning_effort = reasoning_effort
+        self._responses_tools: list[dict[str, Any]] | None = None
+        self._fwd_names: dict[str, str] = {}
+        self._rev_names: dict[str, str] = {}
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url, **extra)
+        self._tracing = tracing or NoOpTracingService()
+        self._owns_client = True
+
+    # ------------------------------------------------------------------
+    # BaseLLM interface
+    # ------------------------------------------------------------------
+
+    async def chat(self, messages: list[ChatMessage]) -> ChatMessage:
+        input_items = ResponsesAdapter.to_input(messages, self._fwd_names)
+
+        with (
+            self._tracing.trace_llm(
+                model=self._model,
+                provider="openai",
+                input_messages=[
+                    {"role": m.role.value, "content": m.content} for m in messages[-5:]
+                ],
+            ) as gen,
+            provider_errors(gen, self.name),
+        ):
+            response = await self._client.responses.create(
+                **self._build_request(input_items),
+            )
+            result_msg = ResponsesAdapter.from_response(response)
+            result_msg = restore_tool_names(self._rev_names, result_msg)
+            usage = {}
+            if response.usage:
+                usage = {
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                    "total_tokens": response.usage.total_tokens,
+                }
+            gen.update(output=result_msg.content, usage_details=usage or None)
+        return result_msg
+
+    async def stream(
+        self,
+        messages: list[ChatMessage],
+        **call_params: Any,
+    ) -> AsyncGenerator[str | ChatMessage]:
+        input_items = ResponsesAdapter.to_input(messages, self._fwd_names)
+        aggregator = ResponsesStreamAggregator()
+
+        with (
+            self._tracing.trace_llm(
+                model=self._model,
+                provider="openai",
+                input_messages=[
+                    {"role": m.role.value, "content": m.content} for m in messages[-5:]
+                ],
+                metadata={"streaming": True},
+            ) as gen,
+            provider_errors(gen, self.name),
+        ):
+            stream_iter = await self._client.responses.create(
+                **self._build_request(input_items, stream=True, **call_params),
+            )
+            async with stream_iter:
+                async for event in stream_iter:
+                    text_delta = aggregator.process(event)
+                    if text_delta:
+                        yield text_delta
+            if aggregator.usage:
+                gen.update(usage_details=aggregator.usage)
+            gen.update(output=aggregator.accumulated_content)
+
+        if aggregator.has_tool_calls:
+            result = ChatMessage(
+                role=Role.ASSISTANT,
+                content=aggregator.accumulated_content,
+                tool_calls=aggregator.build(),
+            )
+            yield restore_tool_names(self._rev_names, result)
+
+    async def aclose(self) -> None:
+        if self._owns_client:
+            self._owns_client = False
+            await self._client.close()
+
+    def bind_tools(self, tools: list[ToolDefinition]) -> OpenAILLM:
+        clone = copy.copy(self)
+        clone._owns_client = False
+        clone._fwd_names, clone._rev_names = build_name_maps(t.name for t in tools)
+        clone._responses_tools = ResponsesAdapter.tools_to_responses(tools)
+        self._sanitize_tool_defs(clone._responses_tools, clone._fwd_names)
+        return clone
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _build_request(
+        self,
+        input_items: list[dict[str, Any]],
+        *,
+        stream: bool = False,
+        **overrides: Any,
+    ) -> dict[str, Any]:
+        """Assemble kwargs for ``client.responses.create``."""
+        request: dict[str, Any] = {
+            "model": self._model,
+            "input": input_items,
+            "max_output_tokens": self._max_tokens,
+            "tools": self._responses_tools or [],
+        }
+        if stream:
+            request["stream"] = True
+        if self._reasoning_effort:
+            request["reasoning"] = {"effort": self._reasoning_effort}
+        if overrides:
+            request.update(overrides)
+        return request
+
+    # ------------------------------------------------------------------
+    # Name sanitization
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _sanitize_tool_defs(
+        tools: list[dict[str, Any]] | None,
+        fwd_names: dict[str, str],
+    ) -> None:
+        """Sanitize function names inside Responses API tool defs (in-place)."""
+        if not tools:
+            return
+        for tool in tools:
+            tool["name"] = map_name(tool["name"], fwd_names)

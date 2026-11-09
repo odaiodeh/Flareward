@@ -38,14 +38,10 @@ export default function AdminConfigSection({
 
   const mutation = useMutation({
     mutationFn: (vals: Record<string, unknown>) =>
-      updateAdminConfigSection(section.key, vals),
+      updateAdminConfigSection(section.key, vals, section.revision),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin_config"] });
       queryClient.invalidateQueries({ queryKey: ["admin-access"] });
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["availableSlackChannels"] });
-        queryClient.invalidateQueries({ queryKey: ["embeddedSlackChannels"] });
-      }, 3000);
       toast({
         title: "Saved",
         description: `${section.title} updated successfully.`,

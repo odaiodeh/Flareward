@@ -12,7 +12,7 @@ export function useAdminAccess() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-access', user?.username],
-    queryFn: () => checkAdminAccess(user!.username),
+    queryFn: () => checkAdminAccess(),
     enabled: isAuthenticated && !!user?.username,
     staleTime: 5 * 60 * 1000,
     retry: 1,

@@ -6,14 +6,14 @@ globs:
 
 # Engineering standards
 
-Follow the user's task and the applicable architecture. For the multi-agent
+Follow the user's task and the applicable architecture. For the platform
 platform, start/resume with `docs/status.md` and `docs/plan.md`. Search and read
 relevant sections of `docs/architecture/README.md` and the development guide;
 retrieve specific proof through `docs/evidence/README.md`. Do not load full guides
 or historical archives by default. Rewrite compact status/plan facts and keep
 detailed milestone results in evidence records. The full goal/target still define
 completion. Historical implementation patterns do not override the target.
-The fresh multi-agent platform has no requirement to retain superseded APIs,
+The fresh platform platform has no requirement to retain superseded APIs,
 formats, workers, aliases, or compatibility facades. Other services consuming
 shared libraries retain their own contracts unless their migration is authorized.
 
@@ -39,7 +39,9 @@ shared libraries retain their own contracts unless their migration is authorized
 | Adapters/plugins | HTTP/SDK/database/filesystem/process integration | The inward contracts they implement or call |
 | Composition root | Registration, configuration and concrete wiring | Application, adapters and plugins |
 
-`lib/mas` contains multiple existing layers; it is not all domain code. Assess
+`platform/src/flareward` is organized by feature; each feature owns its values,
+ports, services and adapters locally. `platform/src/plugins` contains
+feature-owned integrations and reusable Programs. Assess
 ownership by responsibility and imports, not just the top-level directory.
 Domain/application contracts must not import concrete plugins, transport layers,
 provider SDKs, database drivers, or execution SDK types. Concrete integrations
@@ -52,7 +54,7 @@ no rule requiring exactly one ABC per adapter class. Pure payload mappers, wire
 models and composition helpers need no artificial application port. Vendor-neutral
 behavior belongs inward; vendor integration belongs in the plugin/adapter ring.
 Run Engine owns scheduling, durable coordination and physical environment
-lifetimes. UnifAI owns application policies and translates through its ports.
+lifetimes. Flareward owns application policies and translates through its ports.
 
 ## Models, types and enums
 

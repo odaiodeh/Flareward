@@ -1,21 +1,21 @@
 ---
 name: debug-native-actions
-description: Diagnose or extend UnifAI editor action discovery and async execution, including authenticated credentials, model capabilities and provider probes.
+description: Diagnose or extend Flareward editor action discovery and async execution, including authenticated credentials, model capabilities and provider probes.
 ---
 
 # Diagnose native editor actions
 
-Trace the actual UI action UID through `inbound.http_api.actions`,
-`mas.application.actions.service` and `bootstrap.actions`. Native routes retain
+Trace the actual UI action UID through `flareward.api.actions`,
+`flareward.services.actions.service` and `flareward.bootstrap.actions`. Native routes retain
 `GET /api/actions/actions.list` and `POST /api/actions/action.execute`, with
 `inputData`, `context`, `userId` and `teamId` compatibility fields. Stable UIDs and
 Pydantic schemas also drive existing element form hints. An empty successful list
 is not a substitute for missing registrations.
 
 Contracts, metadata, the instance-owned registry and credential use cases belong
-in `mas.application.actions`; network/SDK implementations belong in
-`outbound.actions`. Register injected instances in composition. Do not restore
-subclass-global discovery, singleton lookup or the removed `mas.actions` package.
+in `flareward.services.actions`; network/SDK implementations belong in
+`plugins.actions`. Register injected instances in composition. Do not restore
+subclass-global discovery, singleton lookup or the removed `flareward.actions` package.
 Optional external SDK absence may omit its action; internal import errors must
 still fail startup. The catalog refuses duplicate UIDs and synchronous classes
 before dispatch. Extensible UIDs/type keys are strings; action kinds/categories
@@ -42,12 +42,12 @@ action adapter, pending cutover.
 Run focused evidence from the repository root with its `.venv`:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/application/test_actions.py multi-agent/tests/architecture multi-agent/tests/adapters/test_action_capabilities.py multi-agent/tests/integration/providers/test_action_lifetimes.py -q
+.venv/bin/python -m pytest platform/tests/application/test_actions.py platform/tests/architecture platform/tests/adapters/test_action_capabilities.py platform/tests/integration/providers/test_action_lifetimes.py -q
 ```
 
 `integration/redis/test_actions.py` uses actual signed cookies, Redis, Mongo and
 encryption to check human/team scope, private errors and model metadata.
-`integration/providers/test_action_http.py` starts separate native API/MCP/RAG
+`integration/providers/test_action_http.py` starts separate native API/MCP/A2A
 services. Use explicit own-service URIs and
 [the platform test workflow](../run-platform-tests/SKILL.md); neither test needs a
 paid model call. `support/team_http.py` owns signed-cookie team fixtures, while
@@ -56,7 +56,7 @@ application scenarios import no infrastructure adapters.
 Strict typing of this slice:
 
 ```sh
-MYPYPATH=multi-agent/lib:multi-agent/adapters:multi-agent .venv/bin/python -m mypy multi-agent/lib/mas/application/actions multi-agent/adapters/outbound/actions multi-agent/adapters/outbound/mongo/action_settings.py multi-agent/adapters/inbound/http_api/actions.py multi-agent/bootstrap/actions.py --python-version 3.14 --explicit-package-bases --follow-imports=silent --ignore-missing-imports --disable-error-code=import-untyped --strict
+MYPYPATH=platform/src .venv/bin/python -m mypy platform/src/flareward/services/actions platform/src/plugins/actions platform/src/flareward/services/administration/adapters/mongo/action_settings.py platform/src/flareward/api/actions.py platform/flareward.bootstrap/actions.py --python-version 3.14 --explicit-package-bases --follow-imports=silent --ignore-missing-imports --disable-error-code=import-untyped --strict
 ```
 
 For a visible form failure use the actual full App fixture in

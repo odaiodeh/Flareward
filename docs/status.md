@@ -1,100 +1,89 @@
 # Program platform: current status
 
-Snapshot: 2026-11-08. Goal active; consolidation complete. Priority is the feature-delivery UI journey with quality and safeguards; broader migration/hardening remain required.
+Snapshot: 2026-11-09. Overall goal paused; explicitly requested repository cleanup
+is complete within its recorded scope. Thin authored feature acceptance remains; overall completion,
+full UX, delivery integrations and operational acceptance are still open.
+Start here and in [the plan](plan.md); [the target](architecture/README.md) defines completion.
 
-Start here and in [the active plan](plan.md); the full objective and [target architecture](architecture/README.md) define completion.
+## Repository cutover
+
+The user-authorized [Flareward naming cutover](evidence/2026-11-09-flareward-rename.md) follows the layout
+cutover. Core uses `flareward.*`; installed implementations use `plugins.*`.
+Rename gates pass: 1,350 core/tooling, 709 native integration and 16 remote cases.
+
+Core source is `platform/src/flareward`, grouped by feature with local domain values,
+ports, services and adapters. `plugins` groups capability contributions and
+can install Elements and Programs together through the existing registries.
+Retained roots: `ui`, `identity`, `packages/service-support`, `infra`, `tools`, docs.
+Bundled RAG, separate admin backend, product CLI, singleton composition and replaced
+Flask/custom/LangGraph execution are removed without import aliases. Useful specs,
+factories, category builders, resource closures and agent behavior are retained.
+Administrator settings/consent now use native platform services and production UI
+clients. Generic graph data and explicit MAS conversation remain separate contracts.
+See [cutover evidence](evidence/2026-11-09-repository-structure.md) for exact verification.
+
+The [checkout/remote move](evidence/2026-11-09-checkout-rename.md) is complete:
+`Flareward` folder, renamed `origin`, retained tracking and repaired local tooling.
 
 ## Implemented foundation
 
 | Area | Current capability | Remaining acceptance |
 | --- | --- | --- |
-| Elements/resources | Specs, factories, builders, dependencies, saved resources and frozen construction | Full plugin/boundary audit and replaced-path removal |
-| Typed operations | Validated contracts and context independent of graph state | Complete extension/semantic audit; graph nodes retain explicit state contracts |
-| Programs | One model/library, graph/backend implementations, generic data state, revisions and optional conversation | Complete authoring and consistency audit |
-| Composition | Pinned calls, owned bodies, Map/Repeat/Choose/Wait, bindings, conditions and joins | Complex flow, current-source recovery and remote acceptance |
-| Placement | Profiles, owner policy, per-call settings, named environments, child imports and frozen preparation | Current-image isolation/reuse/recovery/cleanup matrix |
-| Human Review | App-owned decisions/native waiting; actual Local/OpenShell live browser feature proof | Latest-source restart/replay/remote acceptance |
-| Credentials/control | Root-scoped authority, recoverable issuance, bounded renewal/retirement and root work/depth limits | Remaining rotation/recovery, isolated delivery, stale fencing and tenant capacity/fairness |
-| Artifacts/checks | Durable references, optional Git, bounded file handoff and live browser isolated checks | Completion alternatives and delivery integrations |
-| Observation/UI | Execution hierarchy, controlled feature UI, builder/session features and shared execution route | Complete occurrence/attempt views and unified workspace/workbench |
+| Elements/resources | Specs/factories/builders, saved configurations, frozen dependencies, plugin manifests | Continuing semantic/extension audit |
+| Operations | Typed contracts/context independent of graph state | Complete async/extension audit of retained integrations |
+| Programs | One model/library, graph/backend implementations, schemas/revisions and optional conversation | Complete authoring consistency and UX |
+| Composition | Pinned calls, owned bodies, Map/Repeat/Choose/Wait, bindings, conditions and joins | Complex-flow and full recovery acceptance |
+| Placement | Profiles, owner policy, per-call selection, named environments and child imports | Complete isolation/recovery/adverse-cleanup matrix |
+| Human Review | App-owned decisions with native waiting, actual live-browser feature proof | Remaining current-source recovery matrix |
+| Authority/control | Root-scoped credentials, recoverable issuance/renewal/retirement and work/depth limits | Rotation/private delivery/stale fencing and tenant fairness |
+| Artifacts/checks | Durable results, configurable file/Git candidates, independent checks, repair/review and retention | Live Git, choice UX and delivery integration |
+| UI/observation | Shared execution routes, authoring canvas, resources, Sessions and hierarchy | Full elegant workspace/workbench and occurrence/attempt views |
 
-## Active product work
+## Accepted product checkpoints
 
-`coding_feature@1` gates Engineering on exact versioned design approval. The
-[configurable designer checkpoint](evidence/2026-11-07-configurable-designer.md) now uses
-normal saved resources and production Programs for both planning and implementation.
-Native thread/process proof covers rejected/revised design, failed coding and repair;
-the live OpenShell App proves actual planning/coding, checks, review and retained work.
-Shared bounded file loading keeps storage authority outside the coding receiver.
-[Exact review evidence](evidence/2026-11-07-review-evidence.md) now has native and actual-App proof;
-[Feature authoring](evidence/2026-11-08-feature-authoring.md) now proves UI-created coder/designer/candidate/root, explicit Design/Engineering adoption, revision/repair/review and retained work with controlled coding. Matched-image real-agent acceptance and full UX remain open.
+The [live authored feature](evidence/2026-11-08-live-feature-authoring.md) joins
+UI-created coder/designer/candidate/root, pinned Design/Engineering adoption, real
+OpenShell planning/coding, independent checks, exact pre-approval previews and fresh
+source/report retrieval after compute deletion. All managed capabilities retire.
+[Controlled authoring](evidence/2026-11-08-feature-authoring.md) covers design
+revision, failed checks and bounded repair. The live task passed first try; it does
+not prove every repair path. Full canvas UX and complete ADLC delivery remain open.
 
-A [live browser feature journey](evidence/2026-11-06-live-feature-ui.md) now joins real Codex, isolated checks, final review and retained output.
-Full authoring/canvas acceptance remains open; the optional file Program does not restrict Git or other completion contracts.
+[Completion contracts](evidence/2026-11-08-completion-contracts.md) and
+[file/Git completion](evidence/2026-11-08-git-completion.md) select both deliverables
+through one Engineering 3 revision, forward Feature selection after approval,
+check/review exact candidates and retain source after compute removal. Git is an
+optional capability; core Programs and ordinary Operation results remain generic.
+The earlier live OpenShell checkpoint retains its version-2 source/image scope.
 
-The [configuration checkpoint](evidence/2026-11-05-program-configuration.md) adds saved
-capture and placement. The [shared execution checkpoint](evidence/2026-11-05-execution-workbench.md)
-adds pinned input forms, execution/child routes, owner review inspection and shared
-review responses. The embedded runner and separate review form renderer were removed.
-The [feature UI checkpoint](evidence/2026-11-05-feature-ui.md) adds owner-filtered
-capability consent and verified artifact/report previews. Its actual App journey
-completed design approval, two controlled coding attempts, checks and final review;
-source/report retrieval survived compute deletion. The [Program-check bridge](evidence/2026-11-05-program-checks.md)
-dispatches pinned verifiers; [Engineering integration](evidence/2026-11-06-engineering-program-checks.md) now proves the production checker, repair and shared UI together.
-[Live unchanged reuse](evidence/2026-11-06-engineering-reuse.md) proves its recorded revision independently and nested. Next: full authoring and completion/delivery; strict Landlock remains optional.
+Curated inspection, resource publication/edit leases, reporting, provider streaming,
+signed-session UI clients and native review/verification each have focused evidence.
+Inspection is an observation, not revision-pinned certification. Remaining sharing
+create/accept/copy and curated nested editing are tracked in the plan.
+Old AppContainer/runners are now removed; pending useful behavior must migrate into
+native services rather than restoring them. Current local package startup and the
+cutover gate are separate from external cluster deployment acceptance.
 
-## Reconciled paused work
-
-Curated draft-provider inspection is implemented: human-admin base probes use
-saved defaults and the real credential human, independently of owner overlay probes.
-Native signed-cookie HTTP/Mongo/Redis plus production-client proof passes. Its UI
-cache is separate and transport failure is unavailable, not provider invalidity.
-These are live observations, not revision-pinned certification. Curated private
-reference selection/nested editing still needs UI work; no full browser claim.
-
-Reporting and curated CRUD/publication/leases have native checkpoints. Old statistics
-and built-in services/routes were removed. Startup uses the canonical CLI and has
-historical installed-image/Temporal startup proof. Old AppContainer/service bodies,
-credential administration, sharing/templates and full old-runtime retirement remain
-open, but are no longer prerequisites for unrelated product work.
-
-## Latest verified checkpoints
-
-- [Feature authoring](evidence/2026-11-08-feature-authoring.md): 810 shared/boundary cases, native TypeScript Program suite and two thread/process feature cases pass; actual App completes the authored controlled flow. Bundle v2 fixes browser numeric identity; readiness stays separate from admission.
-- [Unified model](evidence/2026-11-07-unified-program-model.md): 1,047 native/shared/HTTP checks pass, 30 skip; UI gates pass. Remote receivers need rebuilding.
-- [Configured designer](evidence/2026-11-07-configurable-designer.md): 786 shared, two native revision/repair and 23 CLI/profile/lifetime checks pass; matched-image live planning/coding App proof passes. Earlier [handoff](evidence/2026-11-06-content-handoff.md): 778 shared, 14 native,
-  two post-helper and three profile checks pass; real Local/OpenShell HTTP journey
-  passes. [Live browser proof](evidence/2026-11-06-live-feature-ui.md) adds approval, real sandbox coding/checks, post-cleanup retrieval and eight fixture checks; earlier [shared execution](evidence/2026-11-05-execution-workbench.md)
-  retains pinned-input, cancellation and reviewer-authority proof. [Reuse](evidence/2026-11-06-engineering-reuse.md) adds two verified live roots, matched images and 15 CLI checks.
-- [Coding repair/capture](evidence/2026-11-05-coding-repair.md): 732 shared/adapter checks,
-  28 native integration cases and one production TypeScript API-client journey pass.
-  Thirteen production modules pass strict typing; 29 Python files pass lint/format,
-  and UI typecheck passes. No browser, paid-provider or remote acceptance is claimed.
-- [Design/composition](evidence/2026-11-05-feature-design.md) records the earlier
-  versioned-review and approval-gating proof; later coding evidence extends it.
-- [Curated inspection](evidence/2026-11-05-curated-inspection.md) and
-  [curated administration](evidence/2026-11-05-curated-administration.md) retain their
-  recorded scopes. Earlier [evidence](evidence/README.md) is not current-image proof.
-
-## Deferred required acceptance
-
-Managed review/verification/artifact capabilities have Local proof. Remaining
-worker/Session/scheduled/crash/replay combinations, rotation and cleanup reconciliation
-are required. Event source authority/deduplication and focused recovery are proven;
-provider-specific ingress and traffic/fairness controls remain incomplete. Proven
-slices do not establish every crash window or effects already in flight.
+## Required remaining acceptance
 
 The [private receiver request](../integrations/run-engine-private-receiver-delivery-request.md)
-records the inspected SDK gap. Isolated private delivery and remote proof remain open.
+records the SDK gap. Isolated private delivery, remaining credential/crash/rotation
+combinations, stale-attempt fencing, tenant capacity/fairness, dynamic work,
+authoritative occurrence history and the full remote/load/recovery matrix remain.
 Local source ownership cannot migrate environments after host loss.
 
-Run Engine baseline: `60393440efd3876cd6c81e0b013e8bf6d9167659`; no companion-project
-changes were made here. Focused Kubernetes and normal OpenShell gates pass; the wider remote/recovery matrix remains open. Strict filesystem tests are optional.
-The earlier matrix had 35 passes, an OpenShell/Temporal setup timeout and four unreached child-owned
-cases. Diagnose those first at the rebuilt-image milestone; full acceptance is required.
-Current formats: request v10, Program v6, state v4, elements v4, scheduled admission v2, bundle v2. Recreate old bundles; remote images need rebuilding.
+The cutover passes 20 actual remote cases, including all four previously unreached
+child-owned host/backend combinations. Focused cutover results do not certify the full
+adverse/private-delivery matrix. Normal OpenShell is supported; strict Landlock checks remain optional
+and need a capable Linux kernel. No paid calls are implicit in regression tests.
 
-## Reading and maintenance
+Run Engine baseline: `60393440efd3876cd6c81e0b013e8bf6d9167659`; unchanged externally.
+Current formats: request v10, Program v6, state v4, elements v4, scheduled admission
+v2, bundle v2; Engineering 3/review subject 2, Python evaluator 2.0.0. Recreate old
+publications after namespace cutover; use rebuilt matched images, not old aliases.
 
-Read relevant sections and focused evidence. Keep status within 100 lines and plan within 120; rewrite facts, not diaries.
-Completion requires every goal/checklist item, including deferred controls, UI, remote/load/recovery and retirement.
+## Maintenance
+
+Read focused evidence for its tested snapshot. Keep status <=100 and plan <=120
+lines; rewrite facts rather than appending diaries. Completion requires every full
+objective/target item; passing counts and compact plans do not replace acceptance.

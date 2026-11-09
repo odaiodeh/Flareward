@@ -7,8 +7,8 @@ import {
   listAllResources, updateResource,
 } from '../client/src/api/resources';
 
-const endpoint = process.env.UNIFAI_TEST_UI_API_URL;
-assert.ok(endpoint, 'UNIFAI_TEST_UI_API_URL must identify an isolated native test API');
+const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
+assert.ok(endpoint, 'FLAREWARD_TEST_UI_API_URL must identify an isolated native test API');
 axios.defaults.baseURL = endpoint;
 
 export default async function verifyEditorResources() {

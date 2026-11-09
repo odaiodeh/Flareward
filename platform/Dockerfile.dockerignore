@@ -1,0 +1,13 @@
+**
+!packages/
+!packages/service-support/
+!packages/service-support/pyproject.toml
+!packages/service-support/src/
+!packages/service-support/src/**
+!platform/
+!platform/pyproject.toml
+!platform/src/
+!platform/src/**
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/

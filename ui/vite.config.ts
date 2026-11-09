@@ -31,35 +31,15 @@ export default defineConfig({
     port: Number.isFinite(parsedDevPort) ? parsedDevPort : 5173,
     host: process.env.DEV_HOST || undefined,
     proxy: {
-      // Proxy for api1
-      '/api1': {
-        target: process.env.RAG_HOST,
+      '/api': {
+        target: process.env.PLATFORM_HOST,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api1/, '/api'), // This rewrites /api1 to /api
-        secure: false, // Set to true for production if target is HTTPS and has valid cert.
-                       // Set to false for dev if you're getting SSL errors with self-signed or invalid certs.
       },
-      // Proxy for api2 (assuming this is still local or another service)
-      '/api2': {
-        target: process.env.MULTIAGENT_HOST,//'http://127.0.0.1:13457', // Your second backend
+      '/identity/api': {
+        target: process.env.IDENTITY_HOST,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api2/, '/api'), // This rewrites /api2 to nothing
-        // secure: false, // Only needed if this target is HTTPS and you have SSL issues
+        rewrite: (pathname) => pathname.replace(/^\/identity\/api/, '/api'),
       },
-      // Proxy for api2 (assuming this is still local or another service)
-      '/api3': {
-        target: process.env.IDENTITY_HOST,//'http://127.0.0.1:13457', // Your second backend
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api3/, '/api'), // This rewrites /api2 to nothing
-        // secure: false, // Only needed if this target is HTTPS and you have SSL issues
-      },
-      '/api4': {
-        target: process.env.BACKEND_HOST,//'http://127.0.0.1:13457', // Your second backend
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api4/, '/api'), // This rewrites /api2 to nothing
-        // secure: false, // Only needed if this target is HTTPS and you have SSL issues
-      },
-      // You can add more proxies here if needed
     }
   },
 

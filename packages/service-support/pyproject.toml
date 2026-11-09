@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "global_utils"
+version = "1.0.0"
+description = "Global shared utilities for Flareward services"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "pyyaml",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+flask           = ["flask"]
+apiargs         = ["webargs", "marshmallow"]
+redis           = ["redis"]
+async-bridge    = ["anyio"]
+codegen         = ["datamodel-code-generator", "jsonschema"]
+identity-client = ["requests"]
+
+platform        = ["global_utils[async-bridge,codegen,identity-client]"]
+identity        = ["global_utils[flask,redis,identity-client]"]
+
+all             = ["global_utils[flask,apiargs,redis,async-bridge,codegen,identity-client]"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["global_utils*"]

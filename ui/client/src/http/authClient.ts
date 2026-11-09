@@ -6,7 +6,7 @@ interface APIErrorResponse {
 }
 
 export const api = axios.create({
-    baseURL: '/api3',
+    baseURL: '/identity/api',
     // baseURL: '/',
     timeout: 20000, // 20 seconds
     withCredentials: true, // Important: This ensures cookies are sent with requests

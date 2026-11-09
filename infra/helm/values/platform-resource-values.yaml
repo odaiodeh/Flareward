@@ -1,0 +1,51 @@
+platform_server:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: '2'
+      memory: 4Gi
+    requests:
+      cpu: '1'
+      memory: 2Gi
+  image:
+    repository: images.paas.redhat.com/flareward/platform
+    tag: latest
+  service:
+    type: ClusterIP
+    port: '8003'
+  env:
+    FLAREWARD_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"flareward-programs-v2"}'
+    FLAREWARD_MONGO_URI: mongodb://mongodb:27017
+    FLAREWARD_STORAGE: mongo
+    FLAREWARD_AUTHENTICATION: session
+    FLAREWARD_HTTP_WORKERS: '1'
+platform_temporal_worker:
+  replicaCount: 1
+  resources:
+    limits:
+      cpu: '2'
+      memory: 4Gi
+    requests:
+      cpu: '1'
+      memory: 2Gi
+  image:
+    repository: images.paas.redhat.com/flareward/platform
+    tag: latest
+  service:
+    type: ClusterIP
+    port: '8003'
+  env:
+    FLAREWARD_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"flareward-programs-v2"}'
+    FLAREWARD_MONGO_URI: mongodb://mongodb:27017
+    FLAREWARD_STORAGE: mongo
+storage:
+  volumeName: flareward-platform-shared-storage
+  requestedSize: 50Gi
+  className: aws-efs-tier-c1
+  accessModes:
+  - ReadWriteMany
+  keepPvc: true
+  annotations:
+    kubernetes.io/reclaimPolicy: Delete
+  labels:
+    paas.redhat.com/appcode: TAG-001

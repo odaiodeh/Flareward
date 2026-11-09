@@ -328,7 +328,7 @@ export async function subscribeToSessionStream(
   if (options.executionId) query.set('executionId', options.executionId);
   if (options.after) query.set('after', options.after);
   const response = await fetch(
-    `/api2/sessions/session.subscribe?${query.toString()}`,
+    `/api/sessions/session.subscribe?${query.toString()}`,
     {
       method: 'GET',
       signal: options.signal,

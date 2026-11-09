@@ -24,15 +24,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # BE folder isn't pushed yet to main
-          # - component: backend
-          #   dockerfile: backend/Dockerfile
-          #   context: .
-          - component: multiagentbackend
-            dockerfile: multi-agent/Dockerfile
+          - component: platform
+            dockerfile: platform/Dockerfile
             context: .
           - component: identity
-            dockerfile: shared-resources/identity/Dockerfile
+            dockerfile: identity/Dockerfile
             context: .
           - component: ui
             dockerfile: ui/deployment/Dockerfile
@@ -51,18 +47,30 @@ jobs:
           ref: main
           token: ${{ secrets.UNIFAI_SECRETS_TOKEN }}
           persist-credentials: false
-          path: ui/UnifAI-secrets
+          path: ui/Flareward-secrets
           
 
       - name: check repo exist
         if: ${{ matrix.component == 'ui' }}
         run: |
-          ls -la ui | grep UnifAI-secrets
-          ls -la ui/UnifAI-secrets 
+          ls -la ui | grep Flareward-secrets
+          ls -la ui/Flareward-secrets
       
+      - name: Checkout pinned Run Engine source
+        if: ${{ matrix.component == 'platform' }}
+        uses: actions/checkout@v4
+        with:
+          repository: redhat-community-ai-tools/run-engine
+          ref: 60393440efd3876cd6c81e0b013e8bf6d9167659
+          path: .run-engine-build
+
       - name: Build image for ${{ matrix.component }}
         run: |
-          podman build -t ${{ matrix.component }}:${{ github.sha }} -f ${{ matrix.dockerfile }} ${{ matrix.context }}
+          build_args=()
+          if [ '${{ matrix.component }}' = platform ]; then
+            build_args+=(--ignorefile platform/Dockerfile.dockerignore --build-context run_engine=.run-engine-build)
+          fi
+          podman build "${build_args[@]}" -t ${{ matrix.component }}:${{ github.sha }} -f ${{ matrix.dockerfile }} ${{ matrix.context }}
           podman save ${{ matrix.component }}:${{ github.sha }} -o ${{ matrix.component }}.tar
 
       - name: Run Trivy vulnerability scanner

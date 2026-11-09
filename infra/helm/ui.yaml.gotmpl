@@ -1,0 +1,19 @@
+environments:
+  default:
+    values:
+      - ./values/ui-values.yaml
+---
+
+helmDefaults:
+  createNamespace: false
+  wait: false
+  historyMax: 1
+
+releases:
+
+  - name: flareward-ui
+    chart: ./ui
+    wait: true
+    values:
+      - {{- toYaml .Values.ui | nindent 8 }}
+      - ./values/global-config.yaml

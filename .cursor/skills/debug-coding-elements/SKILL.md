@@ -1,10 +1,10 @@
 ---
 name: debug-coding-elements
-description: Implement or debug UnifAI coding-agent CLI elements, remote images and policies, protected credentials, and explicit Kubernetes/OpenShell live workflow tests.
+description: Implement or debug Flareward coding-agent CLI elements, remote images and policies, protected credentials, and explicit Kubernetes/OpenShell live workflow tests.
 ---
 
 Read the [coding contract and ownership](../../../docs/program-platform-development.md#coding-agents-and-codex-cli)
-and [test setup](../../../multi-agent/tests/infra/README.md#optional-live-codex-coding-workflow)
+and [test setup](../../../platform/tests/infra/README.md#optional-live-codex-coding-workflow)
 for this workflow.
 For actual App capability consent, approval-gated coding/repair, final review and
 artifact retrieval, use the [controlled browser procedure](references/feature-browser.md).
@@ -12,19 +12,25 @@ It exercises the production CLI adapter with a controlled executable, not a live
 For bounded real-agent HTTP or actual-App journeys with independent remote
 evaluation, use [the live feature procedure](references/live-feature.md). Keep
 live browser execution proof distinct from full authoring/canvas acceptance.
-For production planning, install `mas_plugins.engineering.designer` and configure
+For typed Git output, admitted revision inspection and file/Git completion choices,
+use [the Git candidate procedure](references/git-candidates.md). Its native gate
+uses controlled coding with actual Git publication and source checks.
+For production planning, install `plugins.adlc.programs.designer` and configure
 `coding_designer@1` through saved operation/loader bundles and explicit placement.
 It validates JSON proposals; the existing Design coordinator owns review/revision.
 The [designer checkpoint](../../../docs/evidence/2026-11-07-configurable-designer.md)
 records native and actual-App designer proof. The
 [review-evidence checkpoint](../../../docs/evidence/2026-11-07-review-evidence.md)
-adds source/report inspection before approval. `engineering@2` uses the ADLC-owned
-`EngineeringReviewSubject`; preserve exact snapshot validation and substitution tests.
+adds source/report inspection before approval. `engineering@3` now publishes named
+completion choices with candidate schemas and frozen check/verifier/report requirements.
+`EngineeringReviewSubject` (`engineering-review@2`) binds that name to exact evidence;
+preserve fingerprint validation and substitution tests. See
+[completion contracts](../../../docs/evidence/2026-11-08-completion-contracts.md).
 Keep generic review/inspection independent of Engineering; reviewer assignment is
 not another owner's artifact authority.
 
-Keep coding work behind `mas.application.coding.contracts.CodingAgent`; `CodingOperation` owns typed input/result translation, and the outer
-`mas_plugins.coding.codex` adapter owns subprocess details. Register `CodexSpec`
+Keep coding work behind `flareward.elements.coding.contracts.CodingAgent`; `CodingOperation` owns typed input/result translation, and the outer
+`plugins.codex` adapter owns subprocess details. Register `CodexSpec`
 through the existing catalog/factory/builder path as `operations/codex_coding`;
 do not restore the removed Codex node. Graphs use `OperationStep` bindings and
 custom programs use `ProgramRuntime.invoke_element`. The application coding
@@ -40,7 +46,7 @@ proxy/TLS settings through the shared outer `network_environment` helper; exclud
 unrelated application/provider material. Live secret assertions must fail with a
 constant message without pytest introspection printing credential or leaked data.
 
-For Engineering file candidates, install `mas_plugins.engineering.coding` and
+For Engineering file candidates, install `plugins.adlc.programs.coding` and
 exercise `integration/coding/test_artifact_handoff.py`. It covers production coding
 and publication with a protocol executable, not live-agent or trusted-check acceptance.
 Registered input/result models need installed importable identities: a generated
@@ -82,14 +88,14 @@ helpers too; copying only the CLI binary can let model calls succeed while all
 editing commands fail. Smoke-test namespace support in the actual sandbox before
 paid calls. On the tested host, nested namespaces are denied, so the externally
 isolated OpenShell fixture explicitly sets receiver-only
-`UNIFAI_CODEX_SANDBOX_MODE=danger-full-access`. Keep workspace-write as the default
-and never silently downgrade it or expose this choice in resource config. A supplied OpenShell policy replaces image
+`FLAREWARD_CODEX_SANDBOX_MODE=danger-full-access`. Keep workspace-write as the default
+and never silently downgrade it or expose this choice in resource flareward.bootstrap.settings. A supplied OpenShell policy replaces image
 policy, including filesystem and process fields. Give Python receiver services
 and Codex API calls separate endpoint/binary rules. Existing sandbox IDs retain
 the policy of their external owner.
 
 Use existing configuration-secret storage when the receiving environment can
-reach it, or the operator-only `UNIFAI_CODEX_API_KEY_FILE` binding. The pinned
+reach it, or the operator-only `FLAREWARD_CODEX_API_KEY_FILE` binding. The pinned
 0.0.103 test runtime did not reach Mongo through native sockets; an HTTP endpoint
 allow-list is not proof of database transport. Do not put a plaintext key in a
 runner profile to work around that. Keep credential resolution at the
@@ -123,8 +129,8 @@ be adopted as owned named environments.
 Select Kubernetes and OpenShell independently with `--platform-backends`; both
 use the same saved-operation-resource/publication/coding scenario. Load the Codex
 derivative into the dedicated kind cluster and select it through
-`UNIFAI_TEST_K8S_IMAGE`. Kubernetes uses the shared backend fixture's private
-Secret mount, with `UNIFAI_CODEX_API_KEY_FILE` derived from the receiver settings
+`FLAREWARD_TEST_K8S_IMAGE`. Kubernetes uses the shared backend fixture's private
+Secret mount, with `FLAREWARD_CODEX_API_KEY_FILE` derived from the receiver settings
 directory. Bind both coding steps and the physical file reader to an engine-owned
 named environment so they share one pod; repeated profile selection alone creates
 separate invocation pods. Temporal retained environments need the worker's durable

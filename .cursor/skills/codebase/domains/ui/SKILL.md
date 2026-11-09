@@ -1,7 +1,7 @@
 ---
 name: ui-knowledge
 description: >-
-  Domain knowledge for the UnifAI frontend. React/TypeScript SPA with feature-oriented
+  Domain knowledge for the Flareward frontend. React/TypeScript SPA with feature-oriented
   layout. Use when working on files under ui/client/src/.
 metadata:
   paths: "ui/client/src/**"
@@ -80,9 +80,9 @@ QueryClientProvider → ThemeProvider → AuthProvider → SharedProvider
 ## Dev-Guide Facts
 
 For full endpoint catalog (72 endpoints), component details, and hook documentation:
-- **Service doc:** `.cursor/unifai-dev-guide/docs/services/ui.md`
-- **Code → doc routing:** `.cursor/unifai-dev-guide/guide-index.yaml` (maps `ui/client/src/**` to ui.md)
-- **Source map:** `.cursor/unifai-dev-guide/source-map.yaml → ui` (API modules, hooks, contexts, HTTP clients)
+- **Service doc:** `.cursor/flareward-dev-guide/docs/services/ui.md`
+- **Code → doc routing:** `.cursor/flareward-dev-guide/guide-index.yaml` (maps `ui/client/src/**` to ui.md)
+- **Source map:** `.cursor/flareward-dev-guide/source-map.yaml → ui` (API modules, hooks, contexts, HTTP clients)
 
 ## Landmarks
 
@@ -91,9 +91,9 @@ For full endpoint catalog (72 endpoints), component details, and hook documentat
 | App entry | `App.tsx`, `main.tsx` |
 | Route definitions | `pages/` |
 | API client setup | `http/` |
-| Build config | `vite.config.ts`, `tailwind.config.ts` |
-| Nginx config | `ui/deployment/nginx.conf.template` |
-| Proxy config (dev) | `ui/vite.config.ts` |
+| Build flareward.bootstrap.settings | `vite.config.ts`, `tailwind.config.ts` |
+| Nginx flareward.bootstrap.settings | `ui/deployment/nginx.conf.template` |
+| Proxy flareward.bootstrap.settings (dev) | `ui/vite.config.ts` |
 
 ## Domain Rules
 

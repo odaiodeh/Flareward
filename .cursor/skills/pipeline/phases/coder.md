@@ -43,11 +43,11 @@ Before creating anything new, check if:
 
 If reusable logic exists, USE IT. Do NOT duplicate.
 
-### Identity Object Usage (STRICT — multi-agent only)
+### Identity Object Usage (STRICT — platform only)
 
-The `multi-agent` module uses a structured `Identity` object for resource ownership instead of flat `user_id` strings. When writing code in `multi-agent/`:
+The `platform` module uses a structured `Identity` object for resource ownership instead of flat `user_id` strings. When writing code in `platform/`:
 
-- Use `Identity` (`from mas.core.identity import Identity`) for all ownership and scoping of blueprints, resources, sessions, shares, schedules, and templates.
+- Use `Identity` (`from flareward.services.identity.domain import Identity`) for all ownership and scoping of blueprints, resources, sessions, shares, schedules, and templates.
 - At the FastAPI boundary, derive the human from the authenticated session and
   authorize an optional selected team scope. New UI/API contracts follow the target
   architecture; no dual legacy wire contract is required. Do not preserve old Flask
@@ -55,7 +55,7 @@ The `multi-agent` module uses a structured `Identity` object for resource owners
 - Use the `identity_q()` helper for MongoDB queries scoped to an owner.
 - `user_id` remains correct for human-specific concerns: OAuth credentials (`credential_user_id`), collaboration participants, and auth headers.
 
-When working in modules outside `multi-agent/`, follow the existing ownership pattern in that module (typically flat `user_id`). Do not introduce `Identity` dependencies into modules that don't already use it unless explicitly instructed. Report any ownership-related `user_id` usage in the implementation summary (see "Identity migration gaps" in the Output Format section).
+When working in modules outside `platform/`, follow the existing ownership pattern in that module (typically flat `user_id`). Do not introduce `Identity` dependencies into modules that don't already use it unless explicitly instructed. Report any ownership-related `user_id` usage in the implementation summary (see "Identity migration gaps" in the Output Format section).
 
 ### Quality Standards
 
@@ -90,5 +90,5 @@ Before listing changes, provide:
 After all changes, provide:
 - **Reuse summary**: list existing components leveraged.
 - **Architecture check**: confirm dependency direction is correct, no business logic leakage.
-- **Identity migration gaps**: list any files outside `multi-agent/` where ownership-related code uses flat `user_id` instead of the `Identity` object. For each, state the file path, the usage, and that it is a candidate for future migration to `mas.core.identity.Identity`. If none, state "None — all ownership code uses Identity."
+- **Identity migration gaps**: list any files outside `platform/` where ownership-related code uses flat `user_id` instead of the `Identity` object. For each, state the file path, the usage, and that it is a candidate for future migration to `flareward.services.identity.domain.Identity`. If none, state "None — all ownership code uses Identity."
 - **Files changed**: total count of new and modified files.

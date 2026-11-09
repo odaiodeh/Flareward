@@ -4,10 +4,10 @@ import axios from '../client/src/http/axiosAgentConfig';
 import { validateCuratedResources } from '../client/src/api/curatedInspection';
 
 export default async function curatedInspectionClients() {
-  const endpoint = process.env.UNIFAI_TEST_UI_API_URL;
-  const admin = process.env.UNIFAI_TEST_UI_ADMIN_COOKIE;
-  const reader = process.env.UNIFAI_TEST_UI_OWNER_COOKIE;
-  const rid = process.env.UNIFAI_TEST_UI_CURATED_RESOURCE;
+  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
+  const admin = process.env.FLAREWARD_TEST_UI_ADMIN_COOKIE;
+  const reader = process.env.FLAREWARD_TEST_UI_OWNER_COOKIE;
+  const rid = process.env.FLAREWARD_TEST_UI_CURATED_RESOURCE;
   assert.ok(endpoint && admin && reader && rid);
   axios.defaults.baseURL = endpoint;
   axios.defaults.headers.common.Cookie = admin;

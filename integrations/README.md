@@ -1,8 +1,8 @@
 # Run Engine integration handoffs
 
-UnifAI owns application behavior. Run Engine owns traversal, coordination,
+Flareward owns application behavior. Run Engine owns traversal, coordination,
 invocation and environment lifecycle. This inventory tracks the integration
-contracts without moving UnifAI business logic into its execution infrastructure.
+contracts without moving Flareward business logic into its execution infrastructure.
 
 The [sandbox capability diagnostics request](run-engine-sandbox-capability-diagnostics-request.md)
 records an opaque relay failure hiding a missing host Landlock capability. Strict
@@ -20,13 +20,13 @@ Use this committed baseline; do not apply the historical patches to it. Package
 version `0.2.0` alone does not distinguish this source from earlier checkouts.
 This verification establishes a local commit, not a published release or push.
 
-UnifAI imports `GraphBuilder`, `JoinPolicy` and `UnknownLabelPolicy` from the public
+Flareward imports `GraphBuilder`, `JoinPolicy` and `UnknownLabelPolicy` from the public
 `runengine` API and explicitly selects ACTIVE joins and ERROR label handling. It no longer depends on the local join
 prototype. See [development setup](../docs/program-platform-development.md).
 
 | ID | Contract | Status on the committed baseline |
 | --- | --- | --- |
-| RE-01 | Portable arguments for registered program-node mappings | Included. Application binding interpretation remains in UnifAI. |
+| RE-01 | Portable arguments for registered program-node mappings | Included. Application binding interpretation remains in Flareward. |
 | RE-02 | Public observation of accepted direct children | Included. Native retention/history still defines observation limits. |
 | RE-03 | Authenticated OpenShell TLS for invocation and managed environments | Included. Private certificate/key contents remain on the dispatcher. |
 | RE-04 | Exact native execution generation identity | Included. Namespace/workflow/run identity distinguishes rapid schedule starts. |
@@ -37,22 +37,22 @@ prototype. See [development setup](../docs/program-platform-development.md).
 
 ## Earlier verification against the join commit
 
-Independent UnifAI-side checks on 2026-10-30:
+Independent Flareward-side checks on 2026-10-30:
 
 - SDK active-join units and join integration modules: **135 passed**, no skips,
-  in 30.40 seconds, including actual Temporal on UnifAI's `127.0.0.1:7234`.
+  in 30.40 seconds, including actual Temporal on Flareward's `127.0.0.1:7234`.
   One existing `MapReduceState.items` shadow warning was reported.
-  JUnit: `/tmp/unifai-engine-joins-temporal-adoption-20261030.xml`.
+  JUnit: `/tmp/flareward-engine-joins-temporal-adoption-20261030.xml`.
   An earlier run passed 95 and skipped 40 without the Temporal enable flag;
   the enabled run supersedes that limited result.
-- UnifAI condition, blueprint and actual Temporal condition/replay modules:
-  **45 passed** in 12.96 seconds. Temporal used UnifAI's own `127.0.0.1:7234`
+- Flareward condition, blueprint and actual Temporal condition/replay modules:
+  **45 passed** in 12.96 seconds. Temporal used Flareward's own `127.0.0.1:7234`
   service with separate workers and thread/process condition invocation.
-  JUnit: `/tmp/unifai-engine-conditions-adoption-20261030.xml`.
-- Full current nonremote UnifAI gate with TypeScript API clients: **589 passed**,
+  JUnit: `/tmp/flareward-engine-conditions-adoption-20261030.xml`.
+- Full current nonremote Flareward gate with TypeScript API clients: **589 passed**,
   zero failures/errors/skips or reported warnings, 239.65 seconds. Remote program,
   OpenShell policy and paid coding modules were excluded for separate execution.
-  JUnit: `/tmp/unifai-committed-engine-platform-20261030.xml`.
+  JUnit: `/tmp/flareward-committed-engine-platform-20261030.xml`.
 - The unchanged [SDK-only reproduction](repros/conditional_join.py) now produces:
 
 ```json
@@ -62,8 +62,8 @@ Independent UnifAI-side checks on 2026-10-30:
 
 The SDK owner's `tests/VERIFICATION.md`, section “Conditional active-path joins:
 2026-10-30”, records broader SDK regression, checkpoint, native replay, lint and
-type checks. Those are owner-reported results, not a full SDK gate rerun by UnifAI.
-For that earlier join commit, UnifAI rebuilt Kubernetes/OpenShell receiver images
+type checks. Those are owner-reported results, not a full SDK gate rerun by Flareward.
+For that earlier join commit, Flareward rebuilt Kubernetes/OpenShell receiver images
 and verified **1,173 Python files per image** against the then-current sources. Its deterministic remote matrix
 passed **28 cases** across Local/Temporal and Kubernetes/OpenShell, including
 composition, dependencies, environment lifetime/borrowing, private settings, replay
@@ -77,19 +77,19 @@ and reports are in the [archived execution evidence](../docs/evidence/archive/ex
 The unchanged SDK-only reproduction now raises a permanent contract failure for
 `typo`, with code `UNKNOWN_CONDITION_LABEL` and only `{node_uid: choose}` in its
 details. A valid `yes` still reaches `finish`. Independent SDK strict/legacy/checkpoint/replay and join checks passed **232 cases**
-in 49.37 seconds on UnifAI Temporal 7234 with thread/process receivers, no skips
+in 49.37 seconds on Flareward Temporal 7234 with thread/process receivers, no skips
 and one existing fixture warning. JUnit:
-`/tmp/unifai-engine-label-policy-adoption-20261030.xml`. The current nonremote UnifAI gate passed **589 cases** in 301.45 seconds, with
+`/tmp/flareward-engine-label-policy-adoption-20261030.xml`. The current nonremote Flareward gate passed **589 cases** in 301.45 seconds, with
 zero failures/errors/skips or reported warnings:
-`/tmp/unifai-strict-label-platform-20261030.xml`. Matched Kubernetes/OpenShell images each match **1,175 Python files**. The
+`/tmp/flareward-strict-label-platform-20261030.xml`. Matched Kubernetes/OpenShell images each match **1,175 Python files**. The
 Local/Temporal × Kubernetes/OpenShell program matrix passed **28 cases** in
 358.81 seconds, no failures/errors/skips or reported warnings. JUnit:
-`/tmp/unifai-strict-label-remote-20261030.xml`. Exact image identities are in the
+`/tmp/flareward-strict-label-remote-20261030.xml`. Exact image identities are in the
 archived execution evidence linked above. The policy matrix above belongs to the preceding join commit;
 it was not rerun for this label-only SDK change. The earlier
 results above belong to `da10d1ac`, not automatically to this newer SDK.
 
-UnifAI retains its application condition normalization and declared-label checks.
+Flareward retains its application condition normalization and declared-label checks.
 They define boolean and legacy `END` semantics before generic engine routing.
 The engine remains independent of those product meanings.
 
@@ -107,7 +107,7 @@ from native invocation histories: data/secret policies still apply.
 The subsequent native-action module migration was also verified against this SDK
 with fresh source-matched receiver images: **28 remote cases passed** across
 Local/Temporal and Kubernetes/OpenShell. This confirms existing remote composition
-and environment contracts after UnifAI's module moves, not remote condition-label
+and environment contracts after Flareward's module moves, not remote condition-label
 invocation specifically. Current image identities, scope and the separate broad/
 focused action gates are in the [archived action evidence](../docs/evidence/archive/execution-platform-migration-2026-11-04.md#native-async-action-migration-2026-10-30).
 
@@ -117,7 +117,7 @@ a policy retain ALL behavior. The policy belongs to the strict `GraphPlan` /
 plans instead of silently interpreting them as ALL. See Run Engine's
 `src/runengine/COMPATIBILITY.md` before deploying coordinators and receivers.
 
-The unreleased UnifAI-side prototype placed policy in a different payload layout.
+The unreleased Flareward-side prototype placed policy in a different payload layout.
 Its requests/checkpoints are incompatible with the committed ACTIVE layout.
 Rebuild unsubmitted prototype graphs; finish already submitted prototype executions
 on their original compatible implementation. Keep old workers/recovery material
@@ -130,19 +130,19 @@ and recovery, not installation into the current SDK.
 
 [Pool invocation cancellation](run-engine-invocation-cancellation-request.md) records
 the inspected thread/process drain behavior, native observation and acceptance
-criteria for prompt cooperative receiver cancellation. UnifAI currently retains
+criteria for prompt cooperative receiver cancellation. Flareward currently retains
 retirement intent until the bounded invocation actually terminates.
 
 [Conditional-routing request](run-engine-conditional-routing-request.md) retains
 original reproductions and acceptance requirements. RE-06/RE-07 and the ACTIVE stalled-frontier part of RE-08 are now implemented.
 Retain the original acceptance criteria as regression requirements and complete
-matched deployment/upgrade validation. Do not reimplement traversal in UnifAI.
+matched deployment/upgrade validation. Do not reimplement traversal in Flareward.
 
 Separate investigations remain richer supported OpenShell egress controls and
 private-secret provisioning into engine-owned environments. Establish actual
 backend capabilities before adding interfaces. Current live evidence for external
 secret mounts/files does not prove automatic managed-environment secret setup.
-UnifAI continues to own authorization, approved profiles, provider credential
+Flareward continues to own authorization, approved profiles, provider credential
 resolution, review schemas, agent behavior and application condition semantics.
 
 ## Environment file-I/O investigation
@@ -154,5 +154,5 @@ needed for automatic per-root workflow credentials on isolated receivers.
 The [scoped file transfer proposal](run-engine-environment-file-io-request.md)
 records the checked environment ports and a possible out-of-band contract for
 strict credential isolation. It is not a confirmed bug or an implemented SDK
-capability. UnifAI retains artifact policy/storage and the SDK retains environment
+capability. Flareward retains artifact policy/storage and the SDK retains environment
 identity, grants and lifetime. No companion source change was made.

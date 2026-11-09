@@ -1,6 +1,6 @@
 ---
 name: debug-verification-evidence
-description: Diagnose UnifAI verification admission, trusted CI dispatch, uncertain acknowledgements, candidate provenance, scoped authority and API/worker recovery.
+description: Diagnose Flareward verification admission, trusted CI dispatch, uncertain acknowledgements, candidate provenance, scoped authority and API/worker recovery.
 ---
 
 # Diagnose verification evidence
@@ -18,7 +18,7 @@ report previews are implemented; broader UI acceptance remains unfinished. Deter
 fixtures do not prove live GitHub execution.
 
 For an operator-pinned verifier Program, trace `ProgramCheckRunner` and
-`UNIFAI_PROGRAM_CHECKS` through normal platform composition. The configured
+`FLAREWARD_PROGRAM_CHECKS` through normal platform composition. The configured
 Program owner/reference/digest is trusted authority; an arbitrary candidate
 Program returning `passed` is not. Inputs use `CheckProgramInput`; outputs use
 `CheckProgramResult` with the exact subject fingerprint. Check the actual verifier
@@ -26,6 +26,12 @@ execution identity, owner, inputs and digest before diagnosing report collection
 Its ID is stable for a check intent. Reconciliation observes that execution and
 never repeats a start because it is missing. Do not turn a source/definition pin
 into a claim about hostile-code isolation or runtime image provenance.
+
+For `engineering@3`, compare its selected completion's frozen `requirements` with
+the actual plan, including verifier IDs and report flags. The same policy ID is
+insufficient after operator configuration changes. Candidate schemas are checked
+before verification effects; unknown completion names dispatch no producer. See
+[the contract checkpoint](../../../docs/evidence/2026-11-08-completion-contracts.md).
 
 Use `application/test_program_checks.py`, `adapters/test_verification_settings.py`
 and `integration/verification/test_program_checks.py`. The latter uses actual
@@ -50,13 +56,13 @@ read [the focused procedure](references/python-checks.md). The operator enable f
 and a native process test do not establish a hostile-code sandbox or live acceptance.
 
 Recoverable human issuance is opt-in through `Idempotency-Key` and configured
-`UNIFAI_RECOVERABLE_CREDENTIAL_ISSUANCE`/encryption key. Retries preserve original
+`FLAREWARD_RECOVERABLE_CREDENTIAL_ISSUANCE`/encryption key. Retries preserve original
 scope/issuer/time/material and observe current renewal, never resurrect revocation.
 The actual API restart case is pre-provisioning, not a running-root restart proof.
 Grant issuance/list/revoke require shared `HumanPrincipal`: even a valid human
 cookie cannot turn a supplied workflow bearer into human authority. Inspect safe
 reservation metadata and ciphertext absence after retirement, never private values.
-Managed trusted-filesystem delivery uses `UNIFAI_WORKFLOW_CREDENTIAL_DIRECTORY`
+Managed trusted-filesystem delivery uses `FLAREWARD_WORKFLOW_CREDENTIAL_DIRECTORY`
 and normal `WorkflowCredentialSource` factory injection. The receiver needs no
 vault key; a configured source failure must not fall back to operator files.
 Source unavailability must surface as private retryable infrastructure failure.
@@ -141,7 +147,7 @@ rotation and isolated remote delivery remain open.
   prove safe resubmission. Provider refusal and failed verification are different.
 - GitHub bindings are API-server operator configuration, never receiver credentials.
   Validate repository, numeric workflow ID, exact workflow commit, dispatch event,
-  attempt one and `unifai-{intent}-{candidate_commit}` title. A changed binding
+  attempt one and `flareward-{intent}-{candidate_commit}` title. A changed binding
   must not reinterpret an old intent. Internal verifier IDs cannot also have an
   external evidence credential. The trusted workflow must check the exact commit;
   a successful unrelated workflow or a coding agent's report is insufficient.
@@ -169,9 +175,9 @@ the transport owner `verification_api.py` for local/durable scenarios;
 do not import test cases or add another scheduler. From repository root:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/application/test_verification.py multi-agent/tests/domain/test_verification.py multi-agent/tests/adapters/test_verification_settings.py -q
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest multi-agent/tests/integration/mongo/test_verifications.py multi-agent/tests/integration/http/test_verifications.py multi-agent/tests/integration/redis/test_verifications.py -q
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 UNIFAI_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest multi-agent/tests/integration/verification multi-agent/tests/integration/http/test_verification_access.py multi-agent/tests/integration/temporal/test_verification.py -q
+.venv/bin/python -m pytest platform/tests/application/test_verification.py platform/tests/domain/test_verification.py platform/tests/adapters/test_verification_settings.py -q
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/mongo/test_verifications.py platform/tests/integration/http/test_verifications.py platform/tests/integration/redis/test_verifications.py -q
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest platform/tests/integration/verification platform/tests/integration/http/test_verification_access.py platform/tests/integration/temporal/test_verification.py -q
 ```
 
 Use only the repository's dedicated services and temporary listeners. These cases

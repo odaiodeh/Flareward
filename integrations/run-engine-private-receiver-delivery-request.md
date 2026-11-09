@@ -1,10 +1,10 @@
 # Request: private material delivery to isolated invocation receivers
 
 Status: capability request, not a confirmed Run Engine bug. Inspected baseline:
-`60393440efd3876cd6c81e0b013e8bf6d9167659`. UnifAI has not changed the companion
+`60393440efd3876cd6c81e0b013e8bf6d9167659`. Flareward has not changed the companion
 checkout. Please identify an existing public capability if it already covers this.
 
-UnifAI provisions bounded workflow credentials for an approved owner/root. Its
+Flareward provisions bounded workflow credentials for an approved owner/root. Its
 trusted Local receivers resolve them from a private filesystem. Kubernetes and
 OpenShell receivers need only the credential for their admitted root and purpose;
 they must not receive the vault key or the directory containing all roots. Raw
@@ -27,7 +27,7 @@ Please consider a public extension point that lets a trusted application-owned
 provider, configured on the dispatcher rather than in portable requests:
 
 - Receive an engine-established invocation/run generation and verified environment
-  use, sufficient to correlate the invocation with the admitted root. UnifAI owns
+  use, sufficient to correlate the invocation with the admitted root. Flareward owns
   the mapping to its owner, purpose and grant; untrusted context fields are hints,
   never proof. Wrong roots, stale generations and revoked uses fail closed.
 - Deliver narrowly scoped private material to the actual receiver through an
@@ -40,7 +40,7 @@ provider, configured on the dispatcher rather than in portable requests:
   binding or overwrite a later generation.
 - Keep the engine responsible for physical resource identity, environment grants
   and lifetime. Keep application approval, grant issuance, scope, audit, rotation
-  and material retirement in UnifAI. Avoid a second sandbox manager or reliance
+  and material retirement in Flareward. Avoid a second sandbox manager or reliance
   on private SDK fields/journals.
 
 Workflow capabilities delivered into a workload are accessible to code with the

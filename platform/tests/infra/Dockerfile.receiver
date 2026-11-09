@@ -1,0 +1,27 @@
+ARG RECEIVER_BASE=python:3.14-slim
+FROM ${RECEIVER_BASE}
+
+USER root
+WORKDIR /app
+RUN if ! command -v git >/dev/null; then \
+      apt-get update && apt-get install -y --no-install-recommends git \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Named build contexts copy only application/runtime source, never local credentials.
+COPY --from=run_engine /pyproject.toml /opt/run-engine/pyproject.toml
+COPY --from=run_engine /README.md /opt/run-engine/README.md
+COPY --from=run_engine /src/ /opt/run-engine/src/
+COPY --from=flareward /packages/service-support/pyproject.toml /opt/service-support/pyproject.toml
+COPY --from=flareward /packages/service-support/src/ /opt/service-support/src/
+COPY --from=flareward /platform/pyproject.toml /opt/flareward/pyproject.toml
+COPY --from=flareward /platform/src/ /opt/flareward/src/
+RUN pip install --no-cache-dir /opt/run-engine /opt/service-support "/opt/flareward[api,credentials,blueprints,telemetry]"
+
+COPY --from=flareward /platform/tests/support/ /opt/test-fixtures/support/
+RUN python -c "from pathlib import Path; Path('/opt/flareward-e2e-receiver').write_text('flareward-platform-e2e-v1')"
+ENV PYTHONPATH=/opt/test-fixtures
+
+ARG RECEIVER_USER=1000:1000
+RUN chown ${RECEIVER_USER} /app
+USER ${RECEIVER_USER}

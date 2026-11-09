@@ -190,19 +190,19 @@ Do NOT approve based on the Coder's summary of changes — verify every claim by
 
 ### 9. Identity Object Compliance (STRICT)
 
-The `multi-agent` module uses a structured `Identity` object (`mas.core.identity.Identity` — with fields `type`, `id`, `display_name`) for resource ownership instead of flat `user_id` strings.
+The `platform` module uses a structured `Identity` object (`flareward.services.identity.domain.Identity` — with fields `type`, `id`, `display_name`) for resource ownership instead of flat `user_id` strings.
 
-**In `multi-agent/` code** — any new or modified code that handles ownership or scoping of blueprints, resources, sessions, shares, or templates MUST use `Identity`, not a flat `user_id` string:
+**In `platform/` code** — any new or modified code that handles ownership or scoping of blueprints, resources, sessions, shares, or templates MUST use `Identity`, not a flat `user_id` string:
 - Service methods accepting `user_id: str` for ownership where `identity: Identity` is the established pattern = **MAJOR**
 - Mongo queries filtering by flat `user_id` instead of `identity.type` + `identity.id` = **MAJOR**
 - New API endpoints passing `user_id` to services without resolving it to `Identity` at the adapter boundary = **MAJOR**
 
-**Legitimate `user_id` uses in `multi-agent/`** — these are NOT violations:
+**Legitimate `user_id` uses in `platform/`** — these are NOT violations:
 - OAuth credentials and `credential_user_id` (keyed per human)
 - Collaboration participants (always a human in the room)
 - `X-Authenticated-User` header (the logged-in human)
 
-**In other modules** (outside `multi-agent/`): If code handles resource ownership with a flat `user_id`, flag it as **WARNING — Identity migration recommended** but do NOT block approval. These modules have not yet adopted the `Identity` model.
+**In other modules** (outside `platform/`): If code handles resource ownership with a flat `user_id`, flag it as **WARNING — Identity migration recommended** but do NOT block approval. These modules have not yet adopted the `Identity` model.
 
 ### 10. Endpoint Thinness Check (STRICT)
 

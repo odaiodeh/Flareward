@@ -22,20 +22,20 @@ Build matched receiver/Codex images at the coherent milestone and verify them wi
 well as runtime code. After a host-only helper correction, distinguish that older
 full snapshot from a fresh `--platform` comparison of production/runtime sources;
 never claim changed execution source matches an old image. Test profile helpers
-must retain concrete SDK config classes; a base `ExecutorConfig` can serialize with
+must retain concrete SDK flareward.bootstrap.settings classes; a base `ExecutorConfig` can serialize with
 warnings when placed in the operator settings union.
 
 With current dedicated services, valid mTLS files, an explicitly selected image,
 and an authorized private key binding:
 
 ```sh
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
-UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
-UNIFAI_TEST_OPENSHELL_ENDPOINT=127.0.0.1:8090 \
-UNIFAI_TEST_OPENSHELL_PKI=/absolute/current-state/pki \
-UNIFAI_TEST_OPENSHELL_IMAGE=unifai-codex:content-handoff-20261106 \
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
+FLAREWARD_TEST_OPENSHELL_ENDPOINT=127.0.0.1:8090 \
+FLAREWARD_TEST_OPENSHELL_PKI=/absolute/current-state/pki \
+FLAREWARD_TEST_OPENSHELL_IMAGE=flareward-codex:your-current-source-tag \
 .venv/bin/python -m pytest \
-  multi-agent/tests/integration/deployment/test_live_feature.py \
+  platform/tests/integration/deployment/test_live_feature.py \
   --live-coding --platform-backends=openshell --platform-hosts=local -q \
   -o addopts='--tb=short --strict-markers --import-mode=importlib' -p no:cacheprovider
 ```
@@ -70,7 +70,7 @@ Build App assets with `ui/tests/build-workspace-browser.mjs`, then use the same
 service/image variables above and the repository's test import paths:
 
 ```sh
-PYTHONPATH=multi-agent/tests:multi-agent/lib:multi-agent/adapters:multi-agent:multi-agent/plugins \
+PYTHONPATH=platform/src:platform/tests \
 .venv/bin/python -m support.live_feature_browser \
   --assets /absolute/built-browser-assets --directory /tmp/unique-live-feature-run \
   --backend openshell --live-coding
@@ -82,8 +82,17 @@ and exclusive. Follow the printed login URL, choose Feature revision 1, fill inp
 and explicitly approve the required permissions. Reviews have 600-second manual
 deadlines. Inspect the exact source before final approval, then its admitted report.
 
+For authored-path acceptance, use the normal Resources and Programs editors to
+create coding/designer/candidate resources and adopt their published revisions in
+Design/Engineering. Use the provided `coding` profile for Codex and workspace
+reading, `thread` for artifact operations, and the receiver's private key binding;
+leave the resource API key empty. The live fixture supplies saved workspace input
+preparation, artifact dependencies and trusted verifier policy. Keep the model,
+timeout and command bounds no larger than the provided live resources.
+
 Once terminal, write the owned root ID to the printed `release-compute` marker.
-The runner checks the Program and root/terminal identity before collecting owned
+The runner checks the authenticated root/terminal identity and its pinned published
+`coding_feature@1` implementation, including UI-authored roots, before collecting owned
 compute. Wait for its removal message; reload the browser and freshly retrieve
 both previews. A local marker is fixture control, not a product endpoint. Keep the
 API live until this survival check finishes, then stop the same runner once and
@@ -93,6 +102,9 @@ Record UI steps, source/image identity, scopes and a saved screenshot as in
 [the live browser checkpoint](../../../../docs/evidence/2026-11-06-live-feature-ui.md).
 Prepublished Programs and controlled identity do not establish complete resource
 authoring or Git/CI delivery. The [configured designer checkpoint](../../../../docs/evidence/2026-11-07-configurable-designer.md)
-proves live planning and records the pending-review report-visibility gap: inspect
-the trusted report through authenticated HTTP before acceptance until that UI gap
-is fixed, and do not describe this fallback as pre-approval UI evidence proof.
+proves live planning. The [review-evidence checkpoint](../../../../docs/evidence/2026-11-07-review-evidence.md)
+closed its earlier report-visibility gap: inspect both source and admitted report
+in the pending review UI before approval. The
+[controlled authoring checkpoint](../../../../docs/evidence/2026-11-08-feature-authoring.md)
+records the authored path with a protocol executable; real-agent acceptance must
+exercise that path with matched bundle-v2 receiver images.

@@ -1,0 +1,27 @@
+"""Default installed features; optional SDK imports are resolved at registration."""
+
+DEFAULT_PLUGINS = (
+    "plugins.retrieval.plugin",
+    "plugins.a2a.plugin",
+    "plugins.adlc.plugin",
+    "plugins.adlc_git.plugin",
+    "plugins.agents.plugin",
+    "plugins.artifacts.plugin",
+    "plugins.claude.plugin",
+    "plugins.codex.plugin",
+    "plugins.deep_agent.plugin",
+    "plugins.gemini.plugin",
+    "plugins.git.plugin",
+    "plugins.human_interaction.plugin",
+    "plugins.human_review.plugin",
+    "plugins.mas.plugin",
+    "plugins.mcp.plugin",
+    "plugins.openai.plugin",
+    "plugins.openai_compatible.plugin",
+    "plugins.openshift.plugin",
+    "plugins.routing.plugin",
+    "plugins.ssh.plugin",
+    "plugins.testing.plugin",
+    "plugins.verification.plugin",
+    "plugins.web.plugin",
+)

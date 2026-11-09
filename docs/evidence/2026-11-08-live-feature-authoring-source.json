@@ -1,0 +1,164 @@
+{
+  "base_commit": "5ed1cdfa832f8779da96902f63d878e66fa8266a",
+  "engine_commit": "60393440efd3876cd6c81e0b013e8bf6d9167659",
+  "bundle_format": 2,
+  "digest_algorithm": "sorted relative path + NUL + raw SHA256(content), concatenated then SHA256",
+  "source": {
+    "platform": {
+      "files": 1079,
+      "sha256": "081c154362620a1c70903b0179ab1d0e9a33b7b86a1477a9dd7d9a69239e274f",
+      "roots": [
+        "multi-agent/lib/mas",
+        "multi-agent/adapters",
+        "multi-agent/bootstrap",
+        "multi-agent/config",
+        "multi-agent/plugins/mas_plugins"
+      ],
+      "suffixes": [
+        ".py"
+      ]
+    },
+    "support": {
+      "files": 115,
+      "sha256": "1f8dd345fa0d578cd230933d03e1ebb7091a15ac2eed24e4c350679e2811a952",
+      "roots": [
+        "multi-agent/tests/support"
+      ],
+      "suffixes": [
+        ".py"
+      ]
+    },
+    "ui": {
+      "files": 388,
+      "sha256": "528bb50bd9909d8dd0bbb98a099c4ac6e1efcd5f30171c5ef99dc13205450ee9",
+      "roots": [
+        "ui/client",
+        "ui/shared",
+        "ui/tests"
+      ],
+      "suffixes": [
+        ".css",
+        ".html",
+        ".mjs",
+        ".ts",
+        ".tsx"
+      ]
+    }
+  },
+  "images": [
+    {
+      "image": "unifai-sandbox:feature-authoring-20261108",
+      "identity": "sha256:5b9ea03207b3105215e786c6f529ce8478b19ca38a77bba8f58eeefeac56bf8a",
+      "matched_python_files": 1403
+    },
+    {
+      "image": "unifai-codex:feature-authoring-20261108",
+      "identity": "sha256:94bf815f2e3f3cfa454ee717a31f1db0e987d578189ec746c6f93b40a276e79c",
+      "matched_python_files": 1403
+    }
+  ],
+  "codex_cli": "0.166.0",
+  "model": "gpt-5.4-nano",
+  "host": "local",
+  "backend": "openshell",
+  "gateway": "0.0.103",
+  "coding_bounds": {
+    "timeout_seconds": 60,
+    "max_commands": 4,
+    "max_design_revisions": 1,
+    "max_repairs": 1
+  },
+  "live_calls": {
+    "design": 1,
+    "implementation": 1,
+    "repair": 0
+  },
+  "browser_assets": {
+    "assets/react-vendor-DYPZNrFI.js": "089687b9b90427d782b90ac6448ec3db4b4ab90ea440ac828f18e6cfcea6ea76",
+    "assets/vendor-6WbyGgZk.js": "c6a2104763d846651c7446bd0bfe2b29a2c2bddcbe47fb639ef77af9a8037a73",
+    "assets/workspace-browser-B62pc7_q.js": "9363550084635c57e6d0e8ae365f3c663ee01672512abe47d42877d87df2860e",
+    "assets/workspace-browser-DtRDaEWd.css": "abb3f702fcb65e310209bf1b094bbaef4c0b27e654cdec292a0f229ccd65f047",
+    "workspace-browser.html": "9f36c068573f590b39eca1b209201f847462f612164f5559792814ae4fc76cc4"
+  },
+  "proof": {
+    "root": "8f756fd4-d7af-483f-9393-ddb72f75ec33",
+    "database": "unifai_feature_browser_0649e3f66e0b4495ad50a54ce1a1673c",
+    "program": {
+      "program_id": "7fa9e0ee-462d-40e7-8ff7-8104fe9e8976",
+      "revision": 1
+    },
+    "outcome": "verified",
+    "design_revision": 1,
+    "attempts": 1,
+    "pins": {
+      "7fa9e0ee-462d-40e7-8ff7-8104fe9e8976": {
+        "revision": 1,
+        "content_digest": "dd36ab6f1414389d9c5f9b14d44c4da6d8d8a1841747024e6661b9303dc5043a",
+        "name": "Authored live feature"
+      },
+      "design": {
+        "revision": 2,
+        "content_digest": "190cbd4597534afca7e04af5248d4b1ea1c6f85a588ef2ddeac373411e503ab7",
+        "name": "Design"
+      },
+      "1db082ce-dfa9-4ec9-b72a-6efee11d12fd": {
+        "revision": 1,
+        "content_digest": "305ccc78f3ee822004e2310f76eeed17272c64d1e46c7451aff6289ac257873a",
+        "name": "Authored live designer program"
+      },
+      "engineering": {
+        "revision": 2,
+        "content_digest": "f203117bc70b9c6b513dd0c93dd33d3e34ca6a156796794b5c7ec1a9c3693037",
+        "name": "Engineering"
+      },
+      "4367b0a8-10c6-4c97-9b52-485e92290aa2": {
+        "revision": 1,
+        "content_digest": "38ee34faaa2990c0f0d34b8a2005609b42cc0f676ba76f9aa34c388dc316debb",
+        "name": "Authored live candidate"
+      }
+    },
+    "artifacts": [
+      {
+        "sha256": "4ba6c8881970c15c36e02f5784c3ea2713b519d51b02afdaf39c13e3e95189da",
+        "size_bytes": 33,
+        "artifact_id": "8d158e2062af0c860ecdc201a390e5c03d6dfc4457562f1ecb0f97cd39870912"
+      },
+      {
+        "sha256": "cea88b5a1630bcf2eb13b3c69ffab26811f7aa8c6433c6a01af0d15487bb171e",
+        "size_bytes": 145,
+        "artifact_id": "fa1489486e1275dcd4eee706d92b99b0b3b2eeca255574e68ba28ed71a8a06b6"
+      }
+    ],
+    "retired_capabilities": 3,
+    "nonterminal_executions": 0,
+    "private_verifier_denied": true,
+    "api_workspace_absent": true,
+    "private_binding_not_in_public_data": true,
+    "check_execution": "verification-e2569db06c8d7bf6347ae5537b027479f5f9c4e6a56435df3ef8219dfa430493",
+    "terminal_execution_count": 6,
+    "cleanup": {
+      "fixture_exit_code": 0,
+      "database_absent": true,
+      "cookie_absent": true,
+      "api_listener_closed": 52997,
+      "workspace_absent": "uf-1ef1615073cd",
+      "sandbox_absent": "b147d46d2ccd",
+      "fresh_api_and_browser_retrieval_after_compute_deletion": true
+    }
+  },
+  "verification": {
+    "actual_app_authoring": "passed",
+    "live_provider": true,
+    "trusted_offline_evaluation": "passed three cases",
+    "cleanup_guard_tests": 7,
+    "affected_ruff": "passed",
+    "broad_remote_matrix": false,
+    "temporal": false,
+    "kubernetes": false
+  },
+  "screenshots": {
+    "2026-11-08-live-authoring-pending.png": "e94e22d7d68412cbe1f53b15f1bfa04c9d9f931ae07937cc511884058f178e42",
+    "2026-11-08-live-authoring-retained.png": "0d32459dbb0793ad535ba07324d636999a7e58a0f5756014b6a18630b45084a6",
+    "2026-11-08-live-authoring-completed.png": "72949d0bfb76bf941238749b9c61f7d074711a57d201f3331e8827c9b99da7ec"
+  }
+}

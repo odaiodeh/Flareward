@@ -18,7 +18,7 @@ original implementation or rebuilding before submission.
 Investigate and implement the generic engine contracts below using small, cohesive
 changes. Keep graph traversal inside Run Engine. Preserve SOLID boundaries,
 typed configuration, closed-policy enums, portable checkpoints and deterministic
-replay. Do not import UnifAI, agent/LLM concepts, application authorization,
+replay. Do not import Flareward, agent/LLM concepts, application authorization,
 application condition schemas or another scheduler into the engine.
 
 Do not blindly adopt the attached prototype. Validate its semantics, lifecycle,
@@ -59,7 +59,7 @@ Actual result using the default public SDK API:
 
 `finish` has both `yes` and `no` as static predecessors. Only `yes` executes, so
 static all-predecessor gating never activates `finish`. Traversal then exhausts
-its active set and completes. UnifAI's real condition graphs reproduced this on
+its active set and completes. Flareward's real condition graphs reproduced this on
 both thread and process invocation backends.
 
 **Classification:** the current all-predecessor behavior is documented, so the
@@ -112,9 +112,9 @@ look like successful completion.
 - Plan compatibility for earlier graphs that intentionally used an unmapped
   label to stop. Do not introduce replay-breaking global strictness silently.
 
-UnifAI now validates its own declared labels at its adapter boundary, but generic
+Flareward now validates its own declared labels at its adapter boundary, but generic
 SDK callers still need an engine-level contract. The engine need not adopt
-UnifAI's boolean normalization or legacy `END` spelling.
+Flareward's boolean normalization or legacy `END` spelling.
 
 ## Related request: completion diagnostics
 
@@ -131,10 +131,10 @@ those appear in results/status/events.
 ## SDK-only executable reproduction
 
 The companion file [conditional_join.py](repros/conditional_join.py) contains no
-UnifAI imports. It uses `GraphBuilder`, a simple typed state, LocalHost and public
+Flareward imports. It uses `GraphBuilder`, a simple typed state, LocalHost and public
 graph handles. No databases, containers or paid APIs are required.
 
-From the UnifAI repository root with the editable SDK installed:
+From the Flareward repository root with the editable SDK installed:
 
 ```sh
 .venv/bin/python -c 'import asyncio, json; from integrations.repros.conditional_join import reproduce; print(json.dumps(asyncio.run(reproduce("yes"))))'
@@ -223,16 +223,16 @@ fields from legacy serialization.
 At the time of the original investigation, the prototype was applied locally and
 uncommitted after the five earlier integration patches. It has since been
 superseded by the committed SDK; see [README](README.md). Its five isolated units
-passed. With UnifAI selecting the experimental mode, 69 focused UnifAI condition,
+passed. With Flareward selecting the experimental mode, 69 focused Flareward condition,
 factory, graph and architecture cases passed in 6.15 seconds
-(`/tmp/unifai-conditions-active-joins-20261030.xml`). Before enabling it, the same
+(`/tmp/flareward-conditions-active-joins-20261030.xml`). Before enabling it, the same
 focused set had 16 failures demonstrating missing rejoins, with 53 cases passing.
 
-Six further UnifAI cases passed in 7.19 seconds using separate Temporal worker
+Six further Flareward cases passed in 7.19 seconds using separate Temporal worker
 processes, then replaying their histories after the workers closed. They cover both
 exclusive outcomes and selected fan-out, with thread/process condition invocation
 and thread invocation for the work nodes
-(`/tmp/unifai-conditions-durable-20261030.xml`). These prove the selected completed
+(`/tmp/flareward-conditions-durable-20261030.xml`). These prove the selected completed
 histories replay; they do not prove restart from a deferred join or old-history
 upgrade compatibility.
 
@@ -244,11 +244,11 @@ implement generic strict unknown-label handling or completion diagnostics.
 ## What is not an engine request
 
 - Threshold numeric selection, enum/config validation and condition registration
-  are UnifAI responsibilities; those defects are being fixed in UnifAI.
+  are Flareward responsibilities; those defects are being fixed in Flareward.
 - LLM structured generation, review permissions, ADLC budgets, artifact business
   schemas and agent orchestration remain application responsibilities.
 - Run Engine already provides children, waits, timers, cancellation and environment
-  ownership. Do not duplicate them in UnifAI.
+  ownership. Do not duplicate them in Flareward.
 - Richer OpenShell URL/method policy support and automatic private-secret binding
   for managed environments are separate integration requests, not established
   causes of this routing failure. Track them independently if implemented.

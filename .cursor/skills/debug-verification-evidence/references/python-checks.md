@@ -14,17 +14,29 @@ not an artifact token or all-root capability. Stored inputs/history include that
 bounded source; larger repository transport must use a separate appropriate contract.
 Metadata-only checks omit the artifact field. Preserve their pinned input schemas.
 
-Install `mas_plugins.testing.specification` for the normal evaluator spec/factory/
-builder and `mas_plugins.testing.program` for the verifier backend Program. Its
+Install `plugins.testing.specification` for the normal evaluator spec/factory/
+builder and `plugins.testing.programs.python_check` for the verifier backend Program. Its
 configuration captures an evaluator bundle, expected cases and explicit placement.
 The evaluator resource has only function/timeout configuration; its inputs contain
-artifact and arguments, without verification metadata, capabilities or expected answers. The trusted
+`source: InlineContent` and arguments, without artifact IDs, Git connections,
+verification metadata, capabilities or expected answers. Evaluator spec version 2.0.0
+replaces the old `artifact` invocation field; recapture old bundles and rebuild images.
+The trusted
 Program compares returned values. The old combined check operation was removed;
 fresh configurations must capture the evaluator and publish a verifier Program.
 
+For `git-revision@1`, use `plugins.testing.programs.git_check` and
+`git_python_function_check@1`. It reads exact source with a captured `read_git_file`
+operation on trusted repository placement, then reuses the byte evaluator. Preserve
+the original Git fingerprint in its result/report and keep expected answers and
+Git bindings outside the evaluator. Native file/Git choice proof is in
+`integration/coding/test_completion_choices.py`; it uses controlled coding and real
+Git/HTTP/storage, not a live provider or remote sandbox. See
+[the checkpoint](../../../../docs/evidence/2026-11-08-git-completion.md).
+
 Factory execution defaults to disabled. Receiver/operator settings may supply
-`UNIFAI_PYTHON_CHECK_EXECUTION_ENABLED=true` and an absolute
-`UNIFAI_PYTHON_CHECK_DIRECTORY`. Resource configuration cannot enable it. The flag
+`FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED=true` and an absolute
+`FLAREWARD_PYTHON_CHECK_DIRECTORY`. Resource configuration cannot enable it. The flag
 is an operator authorization assertion, not evidence of physical isolation. Do
 not enable it for live/untrusted code on a trusted host merely to make a test pass.
 `-I -S` disables import/user configuration, not OS/filesystem/network access.
@@ -35,7 +47,7 @@ byte validated before comparison. JSON booleans/numbers remain distinct. stdout/
 stderr and case/report data are bounded. Raw diagnostics must not become evidence.
 The actual restricted profile, not this protocol alone, establishes OS isolation.
 Preserve the receiver's injected proxy/TLS transport when filtering the child
-environment. `mas_plugins.subprocesses.network_environment` is shared with Codex;
+environment. `plugins.processes.network_environment` is shared with Codex;
 it excludes provider keys, workflow fields and invocation payloads. Native PATH-only
 execution can pass while OpenShell's allowed network route is unreachable. The
 [normal OpenShell checkpoint](../../../../docs/evidence/2026-11-06-normal-openshell.md)
@@ -49,12 +61,12 @@ or interpret an observation timeout as permission to restart live infrastructure
 Focused tests:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/adapters/test_python_function_checks.py \
-  multi-agent/tests/application/test_python_function_program.py \
-  multi-agent/tests/application/test_program_checks.py multi-agent/tests/domain/test_artifacts.py -q
-UNIFAI_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
-UNIFAI_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
-.venv/bin/python -m pytest multi-agent/tests/integration/verification/test_program_checks.py -q
+.venv/bin/python -m pytest platform/tests/adapters/test_python_function_checks.py \
+  platform/tests/application/test_python_function_program.py \
+  platform/tests/application/test_program_checks.py platform/tests/domain/test_artifacts.py -q
+FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
+.venv/bin/python -m pytest platform/tests/integration/verification/test_program_checks.py -q
 ```
 
 Native fixture environment is a callback accepted by `support.server.api_process`,
@@ -67,7 +79,7 @@ necessary. Do not claim prompt preemption or increase observation timeouts witho
 inspecting actual state. See the [engine request](../../../../integrations/run-engine-invocation-cancellation-request.md).
 For current-image remote checks, use `integration/deployment/test_program_checks.py`
 with explicit `--platform-backends=k8s --platform-hosts=local`, dedicated service
-URIs, kubeconfig/context and a freshly verified `UNIFAI_TEST_K8S_IMAGE`. Its shared
+URIs, kubeconfig/context and a freshly verified `FLAREWARD_TEST_K8S_IMAGE`. Its shared
 `prepared_verifier(..., target=...)` disables local candidate evaluation and keeps
 dispatcher settings separate from the receiver-local directory. Run Engine adds `RUNENGINE_PARAMS` to the declared
 pod environment; compare names without printing that payload. The child environment

@@ -1,6 +1,6 @@
 ---
 name: debug-native-tracing
-description: Diagnose UnifAI native receiver tracing, OTLP export, session correlation, concurrent ownership, and cancellation cleanup.
+description: Diagnose Flareward native receiver tracing, OTLP export, session correlation, concurrent ownership, and cancellation cleanup.
 ---
 
 # Diagnose native receiver tracing
@@ -20,8 +20,8 @@ that finishes after cancellation still needs its registered owner closed.
 Use both adapter and deployment evidence:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/adapters/test_native_tracing.py multi-agent/tests/architecture -q
-.venv/bin/python -m pytest multi-agent/tests/integration/deployment/test_tracing.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
+.venv/bin/python -m pytest platform/tests/adapters/test_native_tracing.py platform/tests/architecture -q
+.venv/bin/python -m pytest platform/tests/integration/deployment/test_tracing.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
 ```
 
 Deployment cases use the documented Mongo and Temporal URIs. The endpoint in
@@ -43,7 +43,7 @@ Collector rejection must not trigger business retries after successful effects.
 Distinguish a verified OTLP request from verified Langfuse persistence, cost
 aggregation, and UI behavior. Rebuild receiving images after installed-code changes.
 
-For remote settings, use `UNIFAI_SECRETS_DIR` and Pydantic's existing file source.
+For remote settings, use `FLAREWARD_SECRETS_DIR` and Pydantic's existing file source.
 Files use environment-variable names. Explicit/environment/dotenv values retain
 precedence, including empty environment placeholders. An unavailable selected
 directory fails; invoke-side reads are off-loop and private diagnostics stay out
@@ -55,6 +55,6 @@ integration can use a pre-provisioned sandbox with private files and an opaque
 outside graph execution. Managed OpenShell file provisioning is a separate gap.
 The remote private-settings scenario checks authenticated export, repeated use,
 absence of raw/encoded keys in execution records and history, replay, and cleanup.
-Use `UNIFAI_RECEIVER_MODULE=bootstrap.receiver` when only remote receivers need
+Use `FLAREWARD_RECEIVER_MODULE=flareward.bootstrap.receiver` when only remote receivers need
 the built-in services. Profile `env` maps are serialized and reject declared
 private settings; directory paths and secret names may travel as references.

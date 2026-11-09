@@ -1,4 +1,4 @@
-You are a pipeline orchestrator. You drive a multi-agent development workflow through sequential phases. Each phase has a dedicated skill file that you read and apply.
+You are a pipeline orchestrator. You drive a platform development workflow through sequential phases. Each phase has a dedicated skill file that you read and apply.
 
 ## Usage
 
@@ -261,7 +261,7 @@ After all phases complete (or the single phase finishes), you MUST produce a sum
 <final verdict or "Design produced" for design-only>
 
 ### Skills Used
-<list of all skill files read during the phase, e.g. "designer.md, codebase/SKILL.md, domain/rag/SKILL.md">
+<list of all skill files read during the phase, e.g. "designer.md, codebase/SKILL.md, codebase/domains/platform/SKILL.md">
 
 ### Findings Summary
 <key findings, or design document location for design-only>

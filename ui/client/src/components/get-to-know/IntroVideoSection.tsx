@@ -86,7 +86,7 @@ function GoogleDrivePlayer({ config }: IntroVideoPlayerProps) {
         className="w-full h-full"
         allow="autoplay; encrypted-media"
         allowFullScreen
-        title="UnifAI Introduction Video"
+        title="Flareward Introduction Video"
         frameBorder="0"
       />
     </div>
@@ -123,7 +123,7 @@ export default function IntroVideoSection() {
     >
       {/* <div className="mb-4">
         <h2 className="text-xl font-semibold text-white mb-2">
-          {config.title || "See UnifAI in Action"}
+          {config.title || "See Flareward in Action"}
         </h2>
         {config.description && (
           <p className="text-gray-400 text-sm">

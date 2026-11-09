@@ -1,4 +1,7 @@
-# UnifAI program platform: target architecture
+# Flareward program platform: target architecture
+
+Canonical product, package, plugin and configuration names are defined in
+[the naming cutover](../branding.md). Capability implementations use `plugins.*`.
 
 Status: agreed architectural target, recorded 2026-11-01. This document defines
 what we want to achieve and the criteria against which implementation should be
@@ -89,7 +92,7 @@ These are logical boundaries, not a requirement for one microservice per box.
                                       |
                                       v
 +----------------------------------------------------------------------------+
-| UNIFAI APPLICATION                                                         |
+| FLAREWARD APPLICATION                                                      |
 |                                                                            |
 |  +----------------------------------------------------------------------+  |
 |  | AUTHORING                                                            |  |
@@ -153,7 +156,7 @@ The upward arrow is dependency direction: adapters implement ports owned by the
 application. Runtime calls go from application services through those ports.
 The composition root alone selects and wires concrete implementations.
 
-UnifAI owns application semantics, permissions, contracts, decisions, and business
+Flareward owns application semantics, permissions, contracts, decisions, and business
 outcomes. Run Engine owns execution mechanics. ADLC-specific work management and
 acceptance sit above generic program composition. Other kinds of programs must
 not be forced to adopt software-engineering concepts.
@@ -465,7 +468,7 @@ vendor-neutral coding or acceptance behavior belongs in application modules.
 A small plugin follows the existing specification/factory convention:
 
 ```text
-plugins/mas_plugins/tickets/jira/
+platform/src/plugins/tickets/jira/
 |
 +-- contracts.py      # Configuration and invocation models
 +-- specification.py  # Identity, schemas, capabilities, factory registration
@@ -807,7 +810,7 @@ does not silently change existing references or executions.
 
 ```text
 +----------------------------------------------------------------------------+
-| UNIFAI WORKER RECEIVER                                                     |
+| FLAREWARD WORKER RECEIVER                                                  |
 |                                                                            |
 | Validate envelope and authority                                            |
 |              |                                                             |
@@ -829,7 +832,7 @@ does not silently change existing references or executions.
 | Plugin | Integration behavior and owned subprocess/protocol |
 | Application | Artifact access, review authority and business acceptance |
 
-UnifAI owns behavior and constructed invocation resources. Plugins own their
+Flareward owns behavior and constructed invocation resources. Plugins own their
 integration protocols and subprocesses. Run Engine owns physical environments,
 grants, borrowing, dispatch, and cleanup. Publish durable outputs before relying
 on them surviving environment destruction.
@@ -853,11 +856,11 @@ programs, isolated coding, controlled reuse, and predictable cleanup.
 
 | Concept | Meaning | Owner |
 | --- | --- | --- |
-| Execution profile | Approved configuration describing how invocations execute: backend, installed implementation/image, resource/isolation/network policy, and supported capabilities | Deployment configuration and UnifAI admission policy |
+| Execution profile | Approved configuration describing how invocations execute: backend, installed implementation/image, resource/isolation/network policy, and supported capabilities | Deployment configuration and Flareward admission policy |
 | Named environment binding | Program-local name selecting a reusable environment backed by a compatible profile | Declaring program revision and its owning execution |
 | Live environment | Actual process/container/pod/sandbox instance and its engine-managed binding/grants | Run Engine and its backend adapter |
 | Workspace | Mutable files used by a task; can be inside an environment but has separate concurrency and handoff semantics | Application work policy and operation configuration |
-| Artifact | Published durable output that remains usable after compute is destroyed | UnifAI artifact services and storage adapters |
+| Artifact | Published durable output that remains usable after compute is destroyed | Flareward artifact services and storage adapters |
 
 A profile selects execution characteristics; selecting the same profile twice
 does not by itself select the same live environment. Explicit named bindings
@@ -875,14 +878,14 @@ with separately constructed clients and agent configurations.
                                       |
                                       v
 +----------------------------------------------------------------------------+
-| UNIFAI APPLICATION                                                         |
+| FLAREWARD APPLICATION                                                      |
 | Operation requirements + saved preferences + tenant policy                 |
 | Resolve compatible placement; reject unavailable or forbidden choices      |
 +----------------------------------------------------------------------------+
                                       |
                                       v
 +----------------------------------------------------------------------------+
-| UNIFAI ENGINE ADAPTER                                                      |
+| FLAREWARD ENGINE ADAPTER                                                   |
 | Translate public selections into engine targets and bindings               |
 | Persist concrete execution settings before submission                      |
 +----------------------------------------------------------------------------+
@@ -951,7 +954,7 @@ operation/service boundary.
 ```
 
 Run Engine owns provisioning, binding, grants/borrowing, dispatch, release, and
-cleanup reconciliation. UnifAI decides which bindings are permitted to be shared.
+cleanup reconciliation. Flareward decides which bindings are permitted to be shared.
 Children receive only explicitly imported environment bindings with local aliases;
 access to one environment does not grant every parent environment or credential.
 
@@ -962,7 +965,7 @@ retain their external owner's deletion responsibility.
 
 On completion, failure, timeout, or cancellation, follow engine ownership and
 drain/release semantics. Cleanup uncertainty is observable and reconciled through
-engine/backend mechanisms; do not invent another environment manager in UnifAI.
+engine/backend mechanisms; do not invent another environment manager in Flareward.
 A human-review wait does not silently destroy an intentionally retained parent
 environment. Idle release/recreation requires an explicit supported lifetime
 policy and durable workspace handoff.
@@ -988,13 +991,13 @@ for current APIs, UI behavior, precedence, and limitations.
 ## Human-in-the-loop: engine pause and continuation are explicit
 
 Yes: human review and custom HITL behavior must use Run Engine coordination
-through UnifAI runtime ports. Do not implement a second pause/resume scheduler.
+through Flareward runtime ports. Do not implement a second pause/resume scheduler.
 There are two distinct mechanisms:
 
 | Mechanism | Intended use | Ownership |
 | --- | --- | --- |
-| Graph pre-node interrupt/resume | Operational pause before a selected graph node | Engine checkpoints and suspends traversal; UnifAI controls access and maps public commands |
-| Durable program wait | Human Review, structured input, external decisions and custom program interactions | UnifAI validates/persists the interaction; engine messages/timers suspend and continue coordination |
+| Graph pre-node interrupt/resume | Operational pause before a selected graph node | Engine checkpoints and suspends traversal; Flareward controls access and maps public commands |
+| Durable program wait | Human Review, structured input, external decisions and custom program interactions | Flareward validates/persists the interaction; engine messages/timers suspend and continue coordination |
 
 A graph resume payload alone is not an authorized business approval. Human Review
 is a registered, versioned application program, exposed as a reusable UI block.
@@ -1044,7 +1047,7 @@ declared lifetime. Temporal supplies restart-durable coordination; Local waiting
 is in-memory. Pausing stops progress at a defined boundary; it cannot undo an
 external action already sent.
 
-Current-state distinction: UnifAI has runtime message waiting and existing tool
+Current-state distinction: Flareward has runtime message waiting and existing tool
 approval behavior. The dedicated Human Review program is planned. The compiler
 does not currently enable graph pre-node interrupts. See the development guide's
 [Human Review design](../program-platform-development.md#human-review)
@@ -1172,8 +1175,12 @@ dependencies and typed invocation contracts as other integrations. No Git-specif
 branches belong in the compiler, runtime, program definitions or execution engine.
 Elements with other semantics remain free to return their own validated data.
 
-The current implementation has managed-blob transfer, optional Git resolve/checkout
+The current implementation has managed-blob transfer, optional Git resolve/checkout/read
 with local graph/code integration, and verification-plan/evidence-admission APIs.
+The [file/Git checkpoint](../evidence/2026-11-08-git-completion.md) proves one Engineering
+revision directly for files and nested in Feature for Git after design approval,
+with controlled coding, trusted repair/checks/review and retained source. Live Git
+publishing, current remote images, choice UX and delivery acceptance remain open.
 Verification is an opt-in application capability: freeze an exact subject and
 required checks, admit authenticated verifier receipts, and derive acceptance.
 Workflow-scoped plan capabilities and registered request/inspect/cancel operations
@@ -1209,113 +1216,77 @@ tool call. Preserve that distinction in contracts and UI.
 
 ## Repository organization
 
-Target layout; create/move modules when an implemented responsibility warrants it.
-Preserve the current lib/adapters/bootstrap separation. Ports live near their
-owning use cases. Avoid a global core or ports module containing unrelated code.
+The repository is feature-first. Domain values, ports, use cases and adapters
+stay near their owning feature. This is a source layout, not a new execution model.
+`flareward` owns platform policy and contracts; `plugins` contributes installed
+capabilities through the existing specifications, factories, builders and Program
+registry. Concrete plugins are selected only in `flareward.bootstrap`.
 
 ```text
-UnifAI-ADLC/
-|
-+-- multi-agent/
-|   |
-|   +-- lib/
-|   |   +-- mas/
-|   |       +-- domain/
-|   |       |   +-- elements/       # Definitions, references, bundles
-|   |       |   +-- programs/       # Composition, bindings, revisions
-|   |       |   +-- execution/      # Identities, outcomes, policies
-|   |       |   +-- artifacts/      # Durable output contracts
-|   |       |   +-- interactions/   # Decisions and review contracts
-|   |       |   +-- adlc/           # Work items, evidence, acceptance
-|   |       |
-|   |       +-- application/
-|   |           +-- elements/
-|   |           |   +-- catalog/
-|   |           |   +-- construction/
-|   |           |   +-- invocation/
-|   |           +-- resources/     # Saved-resource use cases
-|   |           +-- programs/      # Authoring, validation, publication
-|   |           +-- execution/     # Admission, submission, control
-|   |           +-- interactions/  # Review and decision use cases
-|   |           +-- artifacts/     # Publication and access
-|   |           +-- sessions/      # Chat/session application behavior
-|   |           +-- adlc/          # Reusable engineering policies
-|   |           +-- capabilities/  # Shared provider-neutral behavior
-|   |
-|   +-- adapters/
-|   |   +-- inbound/
-|   |   |   +-- http_api/
-|   |   |   +-- cli/
-|   |   |   +-- webhooks/
-|   |   |   +-- run_engine/         # Installed worker entrypoints
-|   |   +-- outbound/
-|   |       +-- run_engine/         # Compiler, runtime, gateway
-|   |       +-- mongo/
-|   |       +-- redis/
-|   |       +-- artifact_storage/
-|   |       +-- telemetry/
-|   |
-|   +-- plugins/
-|   |   +-- mas_plugins/
-|   |       +-- coding/
-|   |       |   +-- codex/
-|   |       +-- tickets/
-|   |       |   +-- jira/
-|   |       +-- source_control/
-|   |       +-- ci/
-|   |       +-- llms/
-|   |       +-- retrieval/
-|   |
-|   +-- programs/                  # Installed reusable code programs
-|   |   +-- mas_programs/
-|   |       +-- review/
-|   |       +-- delivery/
-|   +-- templates/                 # Declarative reusable workflows
-|   |
-|   +-- bootstrap/                 # Composition root
-|   |   +-- platform.py
-|   |   +-- plugins.py
-|   |   +-- programs.py
-|   |   +-- receiver.py
-|   |   +-- worker.py
-|   |   +-- settings.py
-|   |
+Flareward/
++-- platform/
+|   +-- pyproject.toml
+|   +-- src/
+|   |   +-- flareward/
+|   |   |   +-- elements/        # Catalog, specs, construction, typed invocation
+|   |   |   +-- resources/       # Saved configurations, references, bundles
+|   |   |   +-- programs/        # One Program model, registry, graph, controls
+|   |   |   +-- executions/      # Admission, lifecycle, profiles, engine adapter
+|   |   |   +-- services/
+|   |   |   |   +-- identity/    # Identity values, ports, consent
+|   |   |   |   +-- auth/        # Credentials and authentication services
+|   |   |   |   +-- access/      # Workflow authority and human policy
+|   |   |   |   +-- artifacts/   # Durable results and access
+|   |   |   |   +-- reviews/     # Human decisions and lifecycle
+|   |   |   |   +-- verification/# Exact-candidate checks and receipts
+|   |   |   |   +-- ...          # Sessions, sharing, scheduling, reporting, etc.
+|   |   |   +-- api/             # Inbound FastAPI transport
+|   |   |   +-- bootstrap/       # Composition, installed plugins, API/worker CLI
+|   |   |
+|   |   +-- plugins/
+|   |       +-- codex/           # Coding operation, spec, factory, CLI adapter
+|   |       +-- git/             # Optional Git values, operations, adapter
+|   |       +-- adlc/            # Reusable Design/Engineering/Feature Programs
+|   |       +-- adlc_git/        # Optional Git candidate composition
+|   |       +-- human_review/   # Review Elements and reusable review Program
+|   |       +-- verification/   # Check operations and waiting Program
+|   |       +-- openai/         # Provider Element implementations
+|   |       +-- ...
 |   +-- tests/
-|       +-- domain/
-|       +-- application/
-|       +-- contracts/
-|       +-- adapters/
-|       +-- plugins/
-|       +-- integration/
-|       +-- e2e/
-|       +-- architecture/
-|       +-- support/
-|
-+-- ui/
-|   +-- client/src/
-|       +-- api/                   # Typed transport clients
-|       +-- features/
-|       |   +-- catalog/
-|       |   +-- resource-editor/
-|       |   +-- workflow-builder/
-|       |   +-- execution-explorer/
-|       |   +-- reviews/
-|       |   +-- artifacts/
-|       +-- shared/                # UI primitives, not workflow semantics
-|
+|       +-- domain/             # Value/invariant tests
+|       +-- application/        # Use cases through owned ports
+|       +-- adapters/           # Boundary translation tests
+|       +-- architecture/       # Imports, layering, discovery, cold imports
+|       +-- integration/        # Native HTTP/stores/hosts/remote scenarios
+|       +-- support/            # Shared owned fixtures
+|       +-- infra/              # Dedicated Docker/Kubernetes/OpenShell tests
++-- ui/                         # Existing React catalogs/canvas/workbench
++-- identity/                   # Authentication and directory service
++-- packages/service-support/   # Actually shared infrastructure helpers
++-- infra/helm/                 # Platform, Identity, UI and shared services
++-- tools/dev/                  # Local service manager (not a product CLI)
++-- tools/ci/                   # Build/deploy pipelines
 +-- docs/
-    +-- architecture/
-    +-- extensions/
-    +-- operations/
 ```
 
-Plugins are outer adapters; installed code programs are application compositions
-using public contracts. Package discovery must be updated when new source roots
-are introduced. Do not duplicate a provider implementation in plugins and adapters.
+Each feature can contain `domain/`, `ports.py`, cohesive service modules and
+`adapters/` where it needs them; do not create empty layers. Generic graph state is
+owned by Programs, never by a generic Operation. Run Engine translation belongs in
+`executions/adapters/run_engine/`, including receiving entrypoints.
 
-A small plugin may need only contracts.py, specification.py, factory.py, and
-operation.py. Combine related code when clearer; extra client/mapper/validator
-files are optional. Shared provider-neutral behavior stays in the library.
+Organize plugins by capability, not a mandatory global `elements/` versus
+`programs/` split. A plugin may expose either or both through its `plugin.py`
+manifest. Within a substantial plugin, use `elements/`, `programs/`, `domain/`
+and `adapters/` only as warranted. For example Human Review contributes an operation
+and a reusable waiting Program together; Git/ADLC composition has a separate bridge
+plugin so the Git capability does not depend on ADLC.
+
+A small plugin may need only a configuration/specification, factory and operation.
+Preserve category construction and dependency snapshots. Do not add a parallel
+registry, scheduler, compatibility import namespace or duplicate provider adapter.
+The removed RAG ingestion/admin/CLI applications and old in-process/Flask/LangGraph
+execution paths have no compatibility promise. Useful consent and administrator
+flows belong to platform services and use the canonical FastAPI API.
 
 ## Hexagonal dependency directions
 
@@ -1409,9 +1380,12 @@ justify them. These are not prerequisites for the agreed composition model.
 - [ ] A graph calls a code program, and a code program calls a graph.
 - [ ] A reusable implementation/test/review program runs independently and inside
       a larger Jira-to-CI/CD workflow without modification.
-- [ ] The first useful UI journey includes versioned feature design, authorized
+- [x] The first useful UI journey includes versioned feature design, authorized
       design approval/revision, actual coding, trusted checks, bounded repair and
       final review. Decisions and evidence identify the exact reviewed candidate.
+      [Controlled revision/repair](../evidence/2026-11-08-feature-authoring.md) and
+      [matched-image live authoring](../evidence/2026-11-08-live-feature-authoring.md)
+      prove this thin journey; the other UI and operational requirements remain open.
 - [ ] A new operation uses registration, schemas, factory, and the shared runner;
       it adds no integration-specific compiler branch or execution endpoint.
 - [ ] Existing dependency references/builders construct transitive resources and

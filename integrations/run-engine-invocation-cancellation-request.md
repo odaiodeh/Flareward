@@ -16,7 +16,7 @@ running function. Its limitation is cancellation latency: even a natively async
 application operation with reliable `finally` cleanup cannot observe coordinator
 cancellation promptly while running inside that pool event loop.
 
-UnifAI's actual thread check test observed `cancel_requested=true`, coordination
+Flareward's actual thread check test observed `cancel_requested=true`, coordination
 phase `running` and check job `retiring` beyond a 15-second observation window when
 the independently bounded operation had a 30-second timeout. The thread/process
 cases pass when using a six-second operation bound and waiting for actual terminal
@@ -42,7 +42,7 @@ with explicit acknowledgement/cleanup semantics. Keep it owned by Run Engine:
   uncertain dispatch or controller/worker restart. Do not silently redeliver work.
 - Keep portable request data separate from private cancellation-channel bindings.
 
-The particular transport is an engine implementation decision. UnifAI should not
+The particular transport is an engine implementation decision. Flareward should not
 add an ad hoc Redis polling cancellation channel, reach into executor internals,
 kill pool workers globally, or implement another environment owner as a workaround.
 
@@ -62,6 +62,6 @@ kill pool workers globally, or implement another environment owner as a workarou
 6. Expose enough public capability/status information for application admission
    and truthful observation without requiring SDK-private handles.
 
-Until then, UnifAI retains retirement intent and observes exact execution state,
+Until then, Flareward retains retirement intent and observes exact execution state,
 uses finite operation bounds, and reports the pool limitation explicitly. This
 does not close the broader isolated/remote cancellation acceptance checklist.

@@ -1,6 +1,6 @@
 ---
 name: debug-mcp-elements
-description: Diagnose UnifAI saved MCP provider/tool resources, async preparation, actual MCP SDK metadata/execution, task-owned protocol fixtures and pinned agent-session snapshots.
+description: Diagnose Flareward saved MCP provider/tool resources, async preparation, actual MCP SDK metadata/execution, task-owned protocol fixtures and pinned agent-session snapshots.
 ---
 
 # Diagnose MCP element construction
@@ -11,7 +11,7 @@ name. Its pure factory returns a provider-backed adapter; native bundle preparat
 awaits the provider's tool port before constructing a dependent agent. A tool schema
 must be ready when the agent binds definitions, not only when it later executes.
 
-Use `mas.application.elements.construction.builder.ElementBundleBuilder` and the existing category builders. Ownership starts before async preparation.
+Use `flareward.elements.construction.builder.ElementBundleBuilder` and the existing category builders. Ownership starts before async preparation.
 Preparation errors/cancellation unwind the same owned scope; private errors stay
 masked. The wrapper borrows provider/tool lifetimes. Avoid restoring the retired
 factory's unsupported `mcp_client` constructor argument or another async bridge.
@@ -25,7 +25,7 @@ successful text observation.
 Run the preparation and SDK-wire tests first:
 
 ```sh
-.venv/bin/python -m pytest multi-agent/tests/application/test_element_preparation.py multi-agent/tests/integration/providers/test_provider_tools.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
+.venv/bin/python -m pytest platform/tests/application/test_element_preparation.py platform/tests/integration/providers/test_provider_tools.py -q -o addopts='--tb=short --strict-markers --import-mode=importlib'
 ```
 
 The actual FastMCP server lifespan contains an AnyIO cancel scope. It must enter and
@@ -35,7 +35,7 @@ the different-task exit failure. SDK client/transport contexts also retain their
 task owner. Assert that HTTP clients close after missing tools and failed execution.
 
 Then use `integration/mongo/test_mcp_agent_sessions.py` with the dedicated Mongo and
-Redis URIs from [UnifAI's infrastructure guide](../../../multi-agent/tests/infra/README.md).
+Redis URIs from [Flareward's infrastructure guide](../../../platform/tests/infra/README.md).
 It uses the existing saved-resource API, blueprint importer, real agent nodes,
 shared session assertions and owned ASGI process helper. Thread/process cases require
 actual remote tool calls on both turns and keep the published endpoint after its

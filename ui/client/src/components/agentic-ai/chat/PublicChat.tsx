@@ -207,7 +207,7 @@ export default function PublicChat() {
 
   return (
     <div className="flex flex-col h-screen bg-background-dark">
-      {/* Header with Unifai branding and user info */}
+      {/* Header with Flareward branding and user info */}
       <div className="bg-background-card border-b border-gray-800 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
@@ -216,7 +216,7 @@ export default function PublicChat() {
                 <path d="M3 12H7M17 12H21M12 3V7M12 17V21M5 19L8 16M16 8L19 5M19 19L16 16M5 5L8 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-white">UnifAI</h1>
+            <h1 className="text-xl font-bold text-white">Flareward</h1>
           </div>
           <div className="h-6 w-px bg-gray-700" />
           <div className="flex items-center">
@@ -227,7 +227,7 @@ export default function PublicChat() {
           </div>
         </div>
         
-        {/* User Profile with Logout - matching regular UnifAI header */}
+        {/* User Profile with Logout - matching regular Flareward header */}
         <div className="px-4 py-3 border-l border-gray-800">
           <div className="flex items-center space-x-3">
             <div

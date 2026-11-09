@@ -1,6 +1,6 @@
-# UnifAI
+# Flareward
 
-UnifAI is a platform for composing and executing agentic development workflows.
+Flareward is a platform for composing and executing agentic development workflows.
 Configured capabilities perform work; reusable Programs coordinate those capabilities
 and other Programs through typed contracts and a shared execution lifecycle.
 
@@ -30,7 +30,7 @@ run. Specifications, factories and builders remain the capability construction p
 +------------------------------+------------------------------+
                                | HTTP
 +------------------------------v------------------------------+
-| UnifAI application: authoring, admission, Program contracts, |
+| Flareward application: authoring, admission, Program contracts, |
 | construction, verification, review and artifact services     |
 | Domain values and application-owned ports                   |
 +------------------------------+------------------------------+
@@ -46,7 +46,7 @@ run. Specifications, factories and builders remain the capability construction p
 +-------------------------------------------------------------+
 ```
 
-UnifAI owns product policy, typed work contracts and authoritative business records.
+Flareward owns product policy, typed work contracts and authoritative business records.
 Run Engine owns scheduling, coordination, native waits, invocation and environments.
 An agent's successful exit is distinct from independent verification and authorized
 human acceptance. Git revisions are supported identities; the core remains generic.
@@ -55,24 +55,31 @@ human acceptance. Git revisions are supported identities; the core remains gener
 
 | Directory | Responsibility |
 | --- | --- |
-| `multi-agent/` | FastAPI, application/domain contracts, Programs, capability integrations, workers and tests |
-| `ui/` | React UI and shared API clients |
-| `shared-resources/identity/` | Authentication, users and teams |
-| `backend/` | Administration and Slack integration |
-| `rag/` | Knowledge ingestion and retrieval |
-| `global_utils/` | Shared infrastructure utilities |
-| `local-development/`, `helm/`, `ci/` | Development setup and deployment |
+| `platform/` | Feature-owned core (`flareward`) and optional capability plugins (`plugins`), API, workers and tests |
+| `ui/` | React canvas, catalogs, execution workbench and shared API clients |
+| `identity/` | Authentication, users, teams and directory integration |
+| `packages/service-support/` | Infrastructure utilities shared by platform and Identity (`global_utils` package) |
+| `infra/` | Deployment charts; dedicated test infrastructure remains under `platform/tests/infra/` |
+| `tools/dev/`, `tools/ci/` | Local service tooling and CI pipelines |
+
+Core features own their models, ports, services and adapters locally. Plugin folders
+are organized by capability and may contribute Elements and Programs together.
+Only the composition root selects concrete plugins. There is no old `mas` namespace
+or second execution engine. RAG ingestion, the separate admin app and the user CLI
+have been removed; platform administration and consent use the platform API.
 
 ## Start and develop
 
-- [Platform setup and API/worker commands](multi-agent/README.md)
+- [Flareward naming, package installation and configuration cutover](docs/branding.md)
+
+- [Platform setup and API/worker commands](platform/README.md)
 - [UI setup](ui/README.md)
-- [Local service tooling](local-development/LOCAL_DEV_GUIDE.md)
+- [Local service tooling](tools/dev/LOCAL_DEV_GUIDE.md)
 - [Target architecture, ownership and ASCII diagrams](docs/architecture/README.md)
 - [Implemented contracts and development guide](docs/program-platform-development.md)
 - [Current status](docs/status.md) and [milestone plan](docs/plan.md)
 - [Verification evidence](docs/evidence/README.md)
-- [Platform tests](multi-agent/tests/README.md) and [dedicated infrastructure](multi-agent/tests/infra/README.md)
+- [Platform tests](platform/tests/README.md) and [dedicated infrastructure](platform/tests/infra/README.md)
 
 The target architecture is broader than current acceptance. Live ADLC checkpoints
 exist; complete UI convergence, delivery integrations, remaining service retirement,

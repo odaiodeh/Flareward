@@ -1,32 +1,31 @@
 ---
 name: refactor-agent-boundaries
-description: Refactor UnifAI shared agent code and element plugins while preserving portable references, construction behavior, dependency direction and resource ownership.
+description: Refactor Flareward shared agent code and element plugins while preserving portable references, construction behavior, dependency direction and resource ownership.
 ---
 
 # Refactor agent and plugin boundaries
 
 Read [the current package status](../../../docs/program-platform-development.md#package-boundaries)
-before moving modules. Shared values live in `mas.domain`; application behavior and
-ports live in `mas.application`. Catalog/construction contracts and services live
-in `mas.application.elements`; portable bundles are domain data. Discovery belongs
-to an outbound adapter composed by `bootstrap.elements`, not the registry.
-Concrete plugins currently retain their existing
-`mas.elements` registrations. Classify responsibilities before moving a whole tree;
-putting a mixed package under `adapters` does not fix its dependencies.
+before moving modules. Core features live under `platform/src/flareward` and own
+values (`domain/`), ports, services and adapters locally. Concrete capabilities live
+under `platform/src/plugins`; only bootstrap selects plugin manifests.
+Generic element construction, agent behavior and typed invocation stay independent
+of graph state and vendor SDKs. Classify responsibilities before moving a tree;
+putting mixed code under an adapters folder does not repair its dependencies.
 
-Program values/bindings live in `mas.domain.programs`; authoring, registry,
-publication, ports and blueprint import live in `mas.application.programs`.
+Program values/bindings live in `flareward.programs.domain`; authoring, registry,
+publication, ports and blueprint import live in `flareward.programs`.
 Placement values, step metadata and the shared frozen base have domain owners.
 Import shared values from those owners rather than re-exporting them through
-Program models. The old `mas.programs` namespace and core placement module are
+Program models. The old `flareward.programs` namespace and core placement module are
 retired. The domain cold-import check must not initialize application code;
 retired paths must stay unimportable in the checkout and installed receiver images.
 Update all actual import/portable-function consumers and packaging guidance.
 
 Execution context, lifecycle records, request digests and safe placement values
-live in `mas.domain.execution`. Submission requests, prepared adapter snapshots,
+live in `flareward.executions.domain`. Submission requests, prepared adapter snapshots,
 delivery claims, lifecycle services/ports and the mutable context holder live in
-`mas.application.execution`. Domain context must not import its holder. The old
+`flareward.executions`. Domain context must not import its holder. The old
 execution package/core context module are retired without aliases. Missing context
 identity is invalid; do not restore the removed unknown-owner backfill or silently
 ignore extra fields. Metadata tags are JSON-only. Preserve team-owner versus
@@ -47,10 +46,10 @@ Validate authored snapshots as one traversal, rather than resolving every resour
 as a separate root (which becomes quadratic for deep shared chains). Preserve
 canonical field names through category factory revalidation (`by_name=True`).
 
-Reusable `application.agents`, `application.workloads` and `application.capabilities`
-packages cold-import without `mas.graph`. Workload services take `WorkloadStorage`;
+Reusable `flareward.elements.agents`, `flareward.elements.workloads` and `flareward.elements.behaviors`
+packages cold-import without `flareward.programs.graph`. Workload services take `WorkloadStorage`;
 they do not select graph/memory implementations or retain old convenience facades.
-`mas.graph.workloads.GraphWorkloadStorage` binds the graph channels. Graph nodes use
+`flareward.programs.graph.workloads.GraphWorkloadStorage` binds the graph channels. Graph nodes use
 `graph.capabilities.workloads.GraphWorkloadMixin` and
 `graph.capabilities.messaging.GraphMessagingMixin`; generic agent/tool behavior
 stays in the application. Shared delegation policy accepts candidate mappings;
@@ -66,20 +65,20 @@ Run Engine's durable Program message/wait mechanism. Use `test_workloads.py`,
 
 Generic specifications and construction must cold-import without graph state.
 Graph node/condition declarations specialize `GraphElementSpec` and graph-specific
-protocols in `mas.application.programs.graph_elements`; generic operations and
+protocols in `flareward.programs.graph_elements`; generic operations and
 dependency resources do not inherit channel reads/writes. Keep abstract spec bases
 out of discovery and registration, while concrete descendants validate normally.
 Operations use their invocation key and typed context, never a fabricated
 `StepContext` or automatic graph `set_context` injection. Test coincidentally named
 methods: structural protocol matching alone does not authorize graph binding.
-Current receiver/prepared formats are `unifai-elements-v4` and `runengine/request-v10`;
+Current receiver/prepared formats are `flareward-elements-v4` and `runengine/request-v10`;
 old prototype payloads have no compatibility promise. Rebuild matched images at
 the next relevant milestone after these installed-source changes.
 
 Backend Program invocation/model enforcement belongs to application `ApplicationInvoker`.
 Adapter `ApplicationCall` only captures/resolves installed references and translates
 boundary errors; it must not become another validation service or implementation
-registry. Program entrypoint contract is `unifai-program-v6`. Keep validators/defaults/
+registry. Program entrypoint contract is `flareward-program-v6`. Keep validators/defaults/
 serializers deterministic and runtime effects behind application ports. Registration
 already serves the installed specification role; introduce implementation classes or
 factories for real cohesive behavior/construction needs, not structural symmetry.
@@ -95,7 +94,7 @@ Whole-value `Projection` is portable domain data. Typed operation/Program inputs
 may be any JSON shape; graph input and output channel writes remain named mappings.
 Application `ProgramState` owns read-only `input`, indexed `results`, writable channel
 schemas and safe update validation. The thin engine adapter binds native reducer
-behavior (`unifai-graph-state-v4`). `StateContracts` admits declared channel access
+behavior (`flareward-graph-state-v4`). `StateContracts` admits declared channel access
 and graph-wide ordered/reduce writer policies; receiving adapters check actual
 returned changes against declared writes. Reduce uses existing reducers, including
 overwrite; it is not a general concurrency guarantee. Installed operations still receive

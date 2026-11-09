@@ -1,6 +1,6 @@
 ---
 name: debug-sharing
-description: Diagnose native invitation authorization, concurrent decisions, dependency copying, and sharing UI lifetimes in UnifAI.
+description: Diagnose native invitation authorization, concurrent decisions, dependency copying, and sharing UI lifetimes in Flareward.
 ---
 
 # Diagnose native sharing
@@ -13,7 +13,7 @@ adapter into application-owned sharing use cases. Read the
 Native list/details/decline/cancel exist; create/accept/copy remains implementation
 work. Missing behavior must become native use cases, not a legacy cloner bridge.
 
-Use mas.domain.sharing values and the canonical typed Identity. Scope users and
+Use flareward.services.sharing.domain.models values and the canonical typed Identity. Scope users and
 teams separately, authorize participant roles, and require the selected team scope.
 Never authorize from a display name or caller-authored user identity.
 Public DTOs omit internal owner pools and private configuration.
