@@ -27,7 +27,7 @@ clients. Generic graph data and explicit MAS conversation remain separate contra
 See [cutover evidence](evidence/2026-11-09-repository-structure.md) for exact verification.
 
 The [Lumora checkout/remote move](evidence/2026-11-10-lumora-checkout.md) is complete:
-`/Users/odaiodeh/IdeaProjects/Lumora`, `odaiodeh/Lumora` origin, retained tracking,
+`/Users/odaiodeh/IdeaProjects/lumora`, `odaiodeh/Lumora` origin, retained tracking,
 repaired tooling and verified owned infrastructure paths. No commit or push ran.
 
 ## Implemented foundation

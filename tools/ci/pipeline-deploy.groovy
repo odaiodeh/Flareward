@@ -230,7 +230,7 @@ pipeline {
                     checkout([$class: 'GitSCM',
                         branches: [[name: "${buildParams.CredMainRepoBranch}"]],
                         doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "${buildParams.DevRoot}/${params.BRANCH}/infra/helm/Lumora-secrets/"]],
+                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "${buildParams.DevRoot}/${params.BRANCH}/infra/helm/lumora-secrets/"]],
                         submoduleCfg: [],
                         userRemoteConfigs: [[
                             credentialsId: "${buildParams.CredCredentialsId}",
@@ -264,8 +264,8 @@ pipeline {
                         def NameSpace = vaultEnvMap.namespace
                         def ClusterCredsId = vaultEnvMap.jenkins_credentials_id
 
-                        // Non-secret config still passed from Lumora-secrets for now (umami_url, admin_allowed_users, etc.)
-                        def configEnvFile = "./Lumora-secrets/${params.deploy_location.toLowerCase()}/.env"
+                        // Non-secret config still passed from lumora-secrets for now (umami_url, admin_allowed_users, etc.)
+                        def configEnvFile = "./lumora-secrets/${params.deploy_location.toLowerCase()}/.env"
 
                         withCredentials([
                             string(credentialsId: "${ClusterCredsId}", variable: 'token'),

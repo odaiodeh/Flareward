@@ -97,7 +97,7 @@ Builds container images for each component and scans them with [Trivy](https://g
 | `identity` | `identity/Dockerfile` | `.` |
 | `ui` | `ui/deployment/Dockerfile` | `.` |
 
-The UI build requires certificates from the existing private `redhat-community-ai-tools/UnifAI-secrets` repository (accessed via `UNIFAI_SECRETS_TOKEN`, checked out locally as `ui/Lumora-secrets`).
+The UI build requires certificates from the existing private `redhat-community-ai-tools/UnifAI-secrets` repository (accessed via `UNIFAI_SECRETS_TOKEN`, checked out locally as `ui/lumora-secrets`).
 
 #### `security-pip-auditing.yaml` — PIP Dependency Security Scanning
 

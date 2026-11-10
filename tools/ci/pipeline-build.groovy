@@ -143,7 +143,7 @@ pipeline {
                         branches: [[name: "${buildParams.CredMainRepoBranch}"]],
                         doGenerateSubmoduleConfigurations: false,
                         //extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "${buildParams.DevRoot}/${params.BRANCH}"]],
-                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "Lumora-secrets"]],
+                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "lumora-secrets"]],
                         submoduleCfg: [],
                         userRemoteConfigs: [[
                             credentialsId: "${buildParams.CredCredentialsId}",

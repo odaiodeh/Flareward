@@ -45,8 +45,8 @@ RUN chmod -R 7777 /opt/app-root/src/
 RUN chown default:root /opt/app-root/src/
 
 #copy certificate files from the cred repo
-COPY ui/Lumora-secrets/certificates/unifai_bundle.pem /etc/nginx/ssl/server.pem
-COPY ui/Lumora-secrets/certificates/unifai.key /etc/nginx/ssl/server.key
+COPY ui/lumora-secrets/certificates/unifai_bundle.pem /etc/nginx/ssl/server.pem
+COPY ui/lumora-secrets/certificates/unifai.key /etc/nginx/ssl/server.key
 
 COPY --from=build /ui/build /usr/share/nginx/html
 RUN chown -R default:root /usr/share/nginx/html && chmod -R 775 /usr/share/nginx/html

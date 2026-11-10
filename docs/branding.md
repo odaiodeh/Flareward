@@ -6,7 +6,8 @@ Its tagline is **From intent to reality.**
 
 Use `Lumora` in product text, `lumora` in Python and machine-readable identifiers,
 and `LUMORA_` for platform environment variables. Capability implementations
-continue to use the top-level `plugins` package.
+continue to use the top-level `plugins` package. Directory names use lowercase
+`lumora`, including certificate checkout directories such as `lumora-secrets`.
 
 ## Canonical names
 
@@ -55,13 +56,13 @@ Do not run old and renamed workers against the same active task queue.
 
 ## External identities and historical records
 
-The local checkout is `/Users/odaiodeh/IdeaProjects/Lumora`, and `origin` uses
+The local checkout is `/Users/odaiodeh/IdeaProjects/lumora`, and `origin` uses
 `git@github.com:odaiodeh/Lumora.git` for fetch and push. GitHub serves
 `odaiodeh/Lumora` and redirects the old Flareward URL to the same repository.
 `main` continues to track `origin/main`. The checkout move preserves the complete
 uncommitted worktree and existing Git history, without an old-folder alias.
 Generated Python/Node paths were repaired and editable packages reinstalled.
-Reopen the Lumora folder in Codex and the IDE so saved workspace selections follow
+Reopen the `lumora` folder in Codex and the IDE so saved workspace selections follow
 this move. No commit or push was performed. See the
 [checkout verification](evidence/2026-11-10-lumora-checkout.md).
 
@@ -69,7 +70,7 @@ Existing external domains, GitHub secrets, registry credentials, Vault paths and
 Jenkins jobs retain their actual identities. The original community repository
 and private certificate repository retain their `UnifAI` addresses, as does the
 `UNIFAI_SECRETS_TOKEN` secret. The certificate checkout directory is now
-`ui/Lumora-secrets`; original certificate filenames are copied to generic
+`ui/lumora-secrets`; original certificate filenames are copied to generic
 `server.pem` / `server.key` image paths. Renamed deployment manifests require
 provisioning the corresponding release/image/storage resources before use.
 

@@ -1223,7 +1223,7 @@ capabilities through the existing specifications, factories, builders and Progra
 registry. Concrete plugins are selected only in `lumora.bootstrap`.
 
 ```text
-Lumora/
+lumora/
 +-- platform/
 |   +-- pyproject.toml
 |   +-- src/
