@@ -2,8 +2,8 @@ from typing import Any, Dict, Literal
 
 from pydantic import Field
 
-from flareward.elements.hints import CardContext, CardHint
-from flareward.elements.models.base_config import BaseLLMConfig
+from lumora.elements.hints import CardContext, CardHint
+from lumora.elements.models.base_config import BaseLLMConfig
 from plugins.openai_compatible.elements.openai_compatible.identifiers import Identifier
 
 

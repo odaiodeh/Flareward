@@ -13,9 +13,9 @@ from support.reporting import OWNER, executions
 from support.server import api_process
 from support.ui_clients import run_contracts
 
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 async def test_reporting_native_authority_root_counts_and_pinned_names(
@@ -124,9 +124,9 @@ async def test_reporting_native_authority_root_counts_and_pinned_names(
                 "reporting",
                 {
                     **os.environ,
-                    "FLAREWARD_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
-                    "FLAREWARD_TEST_UI_OWNER_COOKIE": "session=" + cookies["same"],
-                    "FLAREWARD_TEST_UI_ADMIN_COOKIE": "session=" + cookies["admin"],
+                    "LUMORA_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
+                    "LUMORA_TEST_UI_OWNER_COOKIE": "session=" + cookies["same"],
+                    "LUMORA_TEST_UI_ADMIN_COOKIE": "session=" + cookies["admin"],
                 },
             )
             assert "Reporting production clients passed" in output

@@ -5,15 +5,15 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import StoredVerificationAccess
-from flareward.services.verification.domain.models import (
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import StoredVerificationAccess
+from lumora.services.verification.domain.models import (
     CheckRequirement,
     CheckVerdict,
     VerificationState,
     VerificationSubject,
 )
-from flareward.services.verification.models import (
+from lumora.services.verification.models import (
     StartVerification,
     SubmitCheckEvidence,
     VerificationAuthority,

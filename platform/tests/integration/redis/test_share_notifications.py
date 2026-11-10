@@ -5,7 +5,7 @@ import asyncio
 from support.sharing import invitation
 from support.team_http import team_api
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 async def test_native_notifications_preserve_ui_shapes_and_hide_internal_owner_pools(

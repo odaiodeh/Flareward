@@ -6,7 +6,7 @@ from support.check_runs import source_request
 from support.github_checks import report_archive
 from support.server import api_process
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("mode", ["reconcile", "reports", "manual-resolution"])

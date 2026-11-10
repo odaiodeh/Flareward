@@ -10,7 +10,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from opentelemetry.proto.collector.trace.v1.trace_service_pb2 import ExportTraceServiceRequest
 from opentelemetry.proto.trace.v1.trace_pb2 import Span
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 
 @dataclass(frozen=True)

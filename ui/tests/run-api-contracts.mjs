@@ -21,7 +21,7 @@ const suite = process.argv[2] ?? 'api';
 if (!Object.hasOwn(suites, suite)) throw new Error(`Unknown UI contract suite: ${suite}`);
 const cache = join(root, 'node_modules/.cache');
 await mkdir(cache, { recursive: true });
-const directory = await mkdtemp(join(cache, 'flareward-api-tests-'));
+const directory = await mkdtemp(join(cache, 'lumora-api-tests-'));
 try {
   await build({
     configFile: false,

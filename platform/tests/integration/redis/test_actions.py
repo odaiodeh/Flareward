@@ -6,14 +6,14 @@ import pytest
 from support.action_scenarios import FailingAction, IdentityAction, InvalidOutputAction
 from support.team_http import team_api
 
-from flareward.services.actions.service import ActionsService
-from flareward.services.auth.adapters.crypto import FieldCipher
+from lumora.services.actions.service import ActionsService
+from lumora.services.auth.adapters.crypto import FieldCipher
 
 
 def redis_uri():
-    uri = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    uri = os.environ.get("LUMORA_TEST_REDIS_URI")
     if not uri:
-        pytest.skip("Set FLAREWARD_TEST_REDIS_URI for authenticated action contracts")
+        pytest.skip("Set LUMORA_TEST_REDIS_URI for authenticated action contracts")
     return uri
 
 

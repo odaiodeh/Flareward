@@ -6,17 +6,17 @@ from pathlib import Path
 import pytest
 from support.scenarios import publish, run
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.models import ExecutionPhase, FailureKind
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.models import ExecutionPhase, FailureKind
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     OperationStep,
     PathBinding,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.codex.identifiers import TYPE_KEY
 from plugins.codex.specification import CodexSpec
 
@@ -25,11 +25,11 @@ from plugins.codex.specification import CodexSpec
 def coding_runtime(codex_cli, tmp_path, monkeypatch):
     monkeypatch.setenv("PATH", str(codex_cli.parent) + os.pathsep + os.environ.get("PATH", ""))
     root = tmp_path / "workspaces"
-    monkeypatch.setenv("FLAREWARD_WORKSPACE_ROOT", str(root))
+    monkeypatch.setenv("LUMORA_WORKSPACE_ROOT", str(root))
     credential = tmp_path / "credential"
     credential.write_text("private-test-token")
     credential.chmod(0o600)
-    monkeypatch.setenv("FLAREWARD_CODEX_API_KEY_FILE", str(credential))
+    monkeypatch.setenv("LUMORA_CODEX_API_KEY_FILE", str(credential))
     return root
 
 

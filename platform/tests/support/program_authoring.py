@@ -2,8 +2,8 @@
 
 from httpx import AsyncClient
 
-from flareward.programs.domain.models import GraphDefinition, ProgramDefinition, ProgramRef
-from flareward.services.identity.domain import Identity
+from lumora.programs.domain.models import GraphDefinition, ProgramDefinition, ProgramRef
+from lumora.services.identity.domain import Identity
 from support.http_programs import execute_program
 from support.operations import operation_graph
 

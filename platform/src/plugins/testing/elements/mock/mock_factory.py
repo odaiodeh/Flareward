@@ -1,7 +1,7 @@
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.testing.elements.mock.config import MockLLMConfig
 from plugins.testing.elements.mock.identifiers import Identifier
 from plugins.testing.elements.mock.mock import MockLLM

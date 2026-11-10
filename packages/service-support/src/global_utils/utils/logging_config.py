@@ -187,10 +187,6 @@ class JSONFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
-# Kept as a compatibility alias for services that imported the original name.
-FlarewardJSONFormatter = JSONFormatter
-
-
 class ConsoleFormatter(logging.Formatter):
     """Human-readable formatter for local development."""
 
@@ -223,10 +219,6 @@ class ConsoleFormatter(logging.Formatter):
         if record.exc_info:
             parts.append(self.formatException(record.exc_info))
         return " ".join(parts)
-
-
-# Kept as a compatibility alias for services that imported the original name.
-FlarewardConsoleFormatter = ConsoleFormatter
 
 
 def _is_dir_writable_with_retry(
@@ -264,7 +256,7 @@ def configure_logging(
       LOG_LEVEL      default "INFO"
       BACKEND_ENV    default "production"  # local|development|dev → console; else JSON
                      (same var Helm/services.yaml already set for every service)
-      LOG_DIR        default "/var/log/flareward"
+      LOG_DIR        default "/var/log/lumora"
       POD_NAME, APP_VERSION  → pod / deployment fields
 
     Handlers:
@@ -281,7 +273,7 @@ def configure_logging(
 
     resolved_level = (log_level or os.getenv("LOG_LEVEL", "INFO")).upper()
     resolved_env = (environment or os.getenv("BACKEND_ENV", "production")).lower()
-    resolved_log_dir = Path(log_dir or os.getenv("LOG_DIR", "/var/log/flareward"))
+    resolved_log_dir = Path(log_dir or os.getenv("LOG_DIR", "/var/log/lumora"))
     pod = os.getenv("POD_NAME") or os.getenv("HOSTNAME") or None
     deployment = os.getenv("APP_VERSION") or None
 

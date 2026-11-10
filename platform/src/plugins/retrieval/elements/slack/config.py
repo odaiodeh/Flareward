@@ -2,8 +2,8 @@ from typing import Literal
 
 from pydantic import Field, HttpUrl
 
-from flareward.elements.hints import CardContext, CardHint
-from flareward.elements.retrieval.base_config import BaseRetrieverConfig
+from lumora.elements.hints import CardContext, CardHint
+from lumora.elements.retrieval.base_config import BaseRetrieverConfig
 
 from .identifiers import Identifier
 

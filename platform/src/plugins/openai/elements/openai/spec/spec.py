@@ -1,5 +1,5 @@
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.openai.elements.openai.config import OpenAIConfig
 from plugins.openai.elements.openai.identifiers import META, Identifier
 from plugins.openai.elements.openai.openai_factory import OpenAIFactory

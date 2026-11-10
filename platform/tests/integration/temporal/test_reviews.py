@@ -11,10 +11,10 @@ from support.temporal import replay, worker_process, workflow_handle
 from temporalio.api.enums.v1 import EventType
 from temporalio.client import WorkflowExecutionStatus
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 
 
@@ -112,7 +112,7 @@ async def test_review_decision_survives_api_and_worker_restart_and_native_replay
         repeated = await http.post(path, headers=reviewer, json=response)
         assert repeated.status_code == 200, repeated.text
         assert repeated.json()["response"] == accepted.json()["response"]
-        environment = {**api.operator_environment, "FLAREWARD_REVIEW_ENDPOINT": str(http.base_url)}
+        environment = {**api.operator_environment, "LUMORA_REVIEW_ENDPOINT": str(http.base_url)}
         async with worker_process(worker, tmp_path / "after-worker.log", environment=environment):
             result = await http.get(f"/api/executions/{api.root}/result", headers=human)
             assert result.status_code == 200, result.text

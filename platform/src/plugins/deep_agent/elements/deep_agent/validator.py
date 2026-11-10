@@ -5,14 +5,14 @@ Mirrors ``CustomAgentNodeValidator`` since both nodes share the same
 dependency shape (LLM + optional retriever, tools, MCP providers).
 """
 
-from flareward.elements.validation import (
+from lumora.elements.validation import (
     BaseElementValidator,
     ElementValidationResult,
     ValidationContext,
     ValidationMessage,
     ValidatorReport,
 )
-from flareward.resources.domain.references import Ref
+from lumora.resources.domain.references import Ref
 from plugins.deep_agent.elements.deep_agent.config import DeepAgentNodeConfig
 
 

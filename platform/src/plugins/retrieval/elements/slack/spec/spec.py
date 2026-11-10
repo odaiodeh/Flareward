@@ -1,6 +1,6 @@
-from flareward.elements.retrieval.card_builder import RetrieverCardBuilder
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.retrieval.card_builder import RetrieverCardBuilder
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 
 from ..config import SlackRetrieverConfig
 from ..identifiers import META, Identifier

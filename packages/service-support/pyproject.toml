@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "global_utils"
 version = "1.0.0"
-description = "Global shared utilities for Flareward services"
+description = "Global shared utilities for Lumora services"
 requires-python = ">=3.11"
 license = {text = "Proprietary"}
 

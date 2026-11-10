@@ -53,7 +53,7 @@ def _make_orchestrator(
     registry.get_service.side_effect = lambda n: by_name[n]
     registry.all_services.return_value = services
     registry.primary_services.return_value = [s for s in services if s.is_primary]
-    registry.log_dir = Path("/tmp/flareward-dev-test/logs")
+    registry.log_dir = Path("/tmp/lumora-dev-test/logs")
 
     infra_list = infra or []
     infra_by_name = {c.name: c for c in infra_list}
@@ -176,7 +176,7 @@ class TestClean:
         )
         svc = _make_service("backend")
         orch = _make_orchestrator([svc], infra=[comp])
-        orch._registry.log_dir = Path("/tmp/flareward-dev-test/logs")
+        orch._registry.log_dir = Path("/tmp/lumora-dev-test/logs")
         orch._runtime.status.return_value = ContainerStatus.STOPPED
 
         orch.clean(clean_logs=False, clean_containers=True)
@@ -189,7 +189,7 @@ class TestClean:
         )
         svc = _make_service("backend")
         orch = _make_orchestrator([svc], infra=[comp])
-        orch._registry.log_dir = Path("/tmp/flareward-dev-test/logs")
+        orch._registry.log_dir = Path("/tmp/lumora-dev-test/logs")
         orch._runtime.status.return_value = ContainerStatus.RUNNING
 
         orch.clean(clean_logs=False, clean_containers=True)

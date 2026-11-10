@@ -53,7 +53,7 @@ def _make_startup_service(
     registry.get_service.side_effect = lambda n: by_name[n]
     registry.all_services.return_value = services
     registry.primary_services.return_value = [s for s in services if s.is_primary]
-    registry.log_dir = Path("/tmp/flareward-dev-test/logs")
+    registry.log_dir = Path("/tmp/lumora-dev-test/logs")
 
     infra_list = infra or []
     infra_by_name = {c.name: c for c in infra_list}

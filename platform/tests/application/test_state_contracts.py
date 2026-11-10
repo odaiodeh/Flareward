@@ -5,14 +5,14 @@ from support.condition_scenarios import routing_graph
 from support.conditions import ELEMENT_SPECIFICATIONS
 from support.operations import operation_graph
 
-from flareward.programs.authoring import ProgramIssueCode
-from flareward.programs.domain.models import (
+from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.domain.models import (
     GraphWritePolicy,
     LiteralBinding,
     PathBinding,
     ProgramDefinition,
 )
-from flareward.programs.service import ProgramContractError
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.mark.parametrize(

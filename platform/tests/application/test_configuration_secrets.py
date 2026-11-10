@@ -12,26 +12,26 @@ from support.programs import InvokeConfig
 from support.scenarios import resource
 from support.secrets import MemorySecretStore, SecretNodeConfig, SecretToolConfig
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.programs.blueprints import (
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.programs.blueprints import (
     BlueprintProgramImporter,
     BlueprintProgramService,
     BlueprintSource,
 )
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.programs.service import ProgramContractError
-from flareward.resources.domain.bundles import BundleEntry, ElementBundle
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.construction import ResourceSpec, StepDef
-from flareward.resources.field_encryption import ResourceFieldEncryption
-from flareward.resources.secrets import (
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.service import ProgramContractError
+from lumora.resources.domain.bundles import BundleEntry, ElementBundle
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.construction import ResourceSpec, StepDef
+from lumora.resources.field_encryption import ResourceFieldEncryption
+from lumora.resources.secrets import (
     is_secret_reference,
     protected_configuration,
     sensitive_fields,
 )
-from flareward.services.auth.credentials.ports import TokenCipher
-from flareward.services.identity.domain import Identity
+from lumora.services.auth.credentials.ports import TokenCipher
+from lumora.services.identity.domain import Identity
 
 
 def test_read_only_construction_validation_preserves_portable_secret_guard(application):

@@ -1,5 +1,5 @@
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.routing.elements.branch_chooser.branch_chooser import BranchChooserNode
 from plugins.routing.elements.branch_chooser.config import BranchChooserNodeConfig
 from plugins.routing.elements.branch_chooser.identifiers import Identifier

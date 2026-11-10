@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import Field, model_validator
 
-from flareward.elements.hints import (
+from lumora.elements.hints import (
     ApiHint,
     CardContext,
     CardHint,
@@ -11,9 +11,9 @@ from flareward.elements.hints import (
     SelectionType,
     combine_hints,
 )
-from flareward.elements.node_config import NodeBaseConfig, retired_sandbox_configuration
-from flareward.resources.domain.references import LLMRef, ProviderRef, RetrieverRef, ToolRef
-from flareward.services.interactions.tools.models import HITLMode
+from lumora.elements.node_config import NodeBaseConfig, retired_sandbox_configuration
+from lumora.resources.domain.references import LLMRef, ProviderRef, RetrieverRef, ToolRef
+from lumora.services.interactions.tools.models import HITLMode
 from plugins.deep_agent.elements.deep_agent.identifiers import Identifier
 
 

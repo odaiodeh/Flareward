@@ -8,8 +8,8 @@ from support.blueprint_http import library_api
 from support.blueprints import dependency_blueprint
 from support.elements import element_registry
 
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.services.identity.domain import Identity
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

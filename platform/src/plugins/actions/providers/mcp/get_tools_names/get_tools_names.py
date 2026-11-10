@@ -4,15 +4,15 @@ from typing import Any
 
 from pydantic import Field, HttpUrl
 
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.actions.contracts import (
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.actions.contracts import (
     ActionContext,
     ActionType,
     BaseAction,
     BaseActionInput,
     BaseActionOutput,
 )
-from flareward.services.auth.service import AuthService
+from lumora.services.auth.service import AuthService
 from plugins.mcp.elements.mcp_server_client.config import McpProviderConfig
 from plugins.mcp.elements.mcp_server_client.identifiers import Identifier
 from plugins.mcp.elements.mcp_server_client.mcp_provider_factory import McpProviderFactory

@@ -6,7 +6,7 @@ metadata:
 data:
   # role: {{ .Values.global.role }}
   # mode: {{ .Values.global.mode }}
-  FLAREWARD_BIND_PORT: {{ .Values.service.port | quote}}
+  LUMORA_BIND_PORT: {{ .Values.service.port | quote}}
 {{- range $key, $value:= .Values.env }}
   {{ $key }}: {{ $value | quote }}
 {{- end }}

@@ -8,11 +8,11 @@ import httpx
 from support.elements import element_registry
 from temporalio.api.enums.v1 import EventType
 
-from flareward.api.app import create_app
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.bootstrap.worker import compose_worker
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.api.app import create_app
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.worker import compose_worker
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
 
 
 @asynccontextmanager
@@ -34,7 +34,7 @@ async def test_waiting_session_survives_api_restart_without_extra_root_or_graph_
         host=durable.settings.host,
         storage="mongo",
         interactions="disabled",
-        mongo_uri=os.environ["FLAREWARD_TEST_MONGO_URI"],
+        mongo_uri=os.environ["LUMORA_TEST_MONGO_URI"],
         mongo_database=mongo_database.name,
         authentication="development",
         development_user=application.owner.id,

@@ -6,10 +6,10 @@ from unittest.mock import create_autospec
 import pytest
 from pydantic import ValidationError
 
-from flareward.services.artifacts.access import ArtifactAccessService
-from flareward.services.artifacts.access_models import ArtifactAccessRequest, ArtifactAccessScope
-from flareward.services.artifacts.ports import ArtifactAccessRepository, ArtifactCredentialError
-from flareward.services.identity.domain import Identity
+from lumora.services.artifacts.access import ArtifactAccessService
+from lumora.services.artifacts.access_models import ArtifactAccessRequest, ArtifactAccessScope
+from lumora.services.artifacts.ports import ArtifactAccessRepository, ArtifactCredentialError
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("reason", ["expired", "revoked", "changed-secret"])

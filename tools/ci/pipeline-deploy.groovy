@@ -28,7 +28,7 @@ def buildParams = [
     NodeToRun          : "tag-slave",
     DevRoot            : "/root/workspace/${env.JOB_NAME}",
     ImageRegistry      : "images.paas.redhat.com",
-    ImageRegistryPath  : "flareward",
+    ImageRegistryPath  : "lumora",
     ImageRegistryCreds : "images.paas.registry-unifai",
     VaultBasePath      : "apps/automation-and-tools/unifai",
 ]
@@ -170,7 +170,7 @@ def deployModules(module){
 }
 
 def deleteRunningApplication(){
-    echo("Removing running Flareward application")
+    echo("Removing running Lumora application")
     // cleanOldDataflow()
     def charts = ["platform", "ui", "identity", "shared-resources"]
 
@@ -180,12 +180,12 @@ def deleteRunningApplication(){
 
     echo("Wait for resource deletion...")
     sh("""
-        until ! oc get deployment,statefulset,svc | grep 'flareward\\|qdrant\\|mongo\\|rabbitmq'; do
+        until ! oc get deployment,statefulset,svc | grep 'lumora\\|qdrant\\|mongo\\|rabbitmq'; do
             echo 'Waiting for deployment deletion...'
             sleep 5
         done
     """)
-    echo("Flareward application successfully deleted")
+    echo("Lumora application successfully deleted")
     sh("sleep 10")
 }
 
@@ -230,7 +230,7 @@ pipeline {
                     checkout([$class: 'GitSCM',
                         branches: [[name: "${buildParams.CredMainRepoBranch}"]],
                         doGenerateSubmoduleConfigurations: false,
-                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "${buildParams.DevRoot}/${params.BRANCH}/infra/helm/Flareward-secrets/"]],
+                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "${buildParams.DevRoot}/${params.BRANCH}/infra/helm/Lumora-secrets/"]],
                         submoduleCfg: [],
                         userRemoteConfigs: [[
                             credentialsId: "${buildParams.CredCredentialsId}",
@@ -241,7 +241,7 @@ pipeline {
             }
         }
         
-        stage('Deploy Flareward') {
+        stage('Deploy Lumora') {
             steps {
                 dir("${buildParams.DevRoot}/${params.BRANCH}/infra/helm/") {
                     script {
@@ -264,8 +264,8 @@ pipeline {
                         def NameSpace = vaultEnvMap.namespace
                         def ClusterCredsId = vaultEnvMap.jenkins_credentials_id
 
-                        // Non-secret config still passed from Flareward-secrets for now (umami_url, admin_allowed_users, etc.)
-                        def configEnvFile = "./Flareward-secrets/${params.deploy_location.toLowerCase()}/.env"
+                        // Non-secret config still passed from Lumora-secrets for now (umami_url, admin_allowed_users, etc.)
+                        def configEnvFile = "./Lumora-secrets/${params.deploy_location.toLowerCase()}/.env"
 
                         withCredentials([
                             string(credentialsId: "${ClusterCredsId}", variable: 'token'),

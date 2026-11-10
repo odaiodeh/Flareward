@@ -11,9 +11,9 @@ from urllib.parse import urlparse
 import openshift_client as oc
 from pydantic import BaseModel, Field
 
-from flareward.async_work import await_owned
-from flareward.elements.ports.tool import BaseTool
-from flareward.services.interactions.tools.models import ToolAccessMode
+from lumora.async_work import await_owned
+from lumora.elements.ports.tool import BaseTool
+from lumora.services.interactions.tools.models import ToolAccessMode
 
 
 class OcCommandInput(BaseModel):

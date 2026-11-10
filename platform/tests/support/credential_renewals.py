@@ -5,13 +5,13 @@ from dataclasses import dataclass
 
 from pydantic import SecretStr
 
-from flareward.services.access.issuance import (
+from lumora.services.access.issuance import (
     CredentialDelivery,
     CredentialIssuance,
     CredentialMaterialStore,
 )
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.access import (
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.access import (
     ReviewAccessRepository,
     ReviewAccessRequest,
     ReviewAccessService,
@@ -19,14 +19,14 @@ from flareward.services.reviews.access import (
     ReviewGrant,
     ReviewScope,
 )
-from flareward.services.verification.access import VerificationAccessService
-from flareward.services.verification.access_models import (
+from lumora.services.verification.access import VerificationAccessService
+from lumora.services.verification.access_models import (
     VerificationAccessGrant,
     VerificationAccessRequest,
     VerificationAccessScope,
     VerificationAction,
 )
-from flareward.services.verification.ports import VerificationAccessRepository
+from lumora.services.verification.ports import VerificationAccessRepository
 from support.execution_access import ExecutionAuthority
 from support.reviews import MemoryReviewAccess, review_policy
 from support.verification import (

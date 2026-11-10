@@ -1,6 +1,6 @@
 from typing import Literal
 
-from flareward.elements.condition_config import BaseConditionConfig
+from lumora.elements.condition_config import BaseConditionConfig
 from plugins.routing.elements.router_direct.identifiers import Identifier
 
 

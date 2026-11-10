@@ -8,10 +8,10 @@ from support.elements import element_registry
 from support.secrets import secret_definition
 from support.temporal import replay
 
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.worker import compose_worker
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.models import StartExecution
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.worker import compose_worker
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.models import StartExecution
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

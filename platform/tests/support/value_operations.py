@@ -4,13 +4,13 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.elements.specification import BaseElementSpec
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import GraphDefinition, OperationStep, PathBinding
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.factory import BaseFactory
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.elements.specification import BaseElementSpec
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import GraphDefinition, OperationStep, PathBinding
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 from support.typed_programs import Numbers
 
 

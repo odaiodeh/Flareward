@@ -8,16 +8,16 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
-from flareward.elements.ports.llm import BaseLLM
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.specification import BaseElementSpec
-from flareward.elements.tools.domain.models import ToolDefinition
-from flareward.executions.domain.context import ExecutionContext
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ToolRef
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
+from lumora.elements.ports.llm import BaseLLM
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.specification import BaseElementSpec
+from lumora.elements.tools.domain.models import ToolDefinition
+from lumora.executions.domain.context import ExecutionContext
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ToolRef
 from plugins.agents.elements.custom_agent.spec.spec import CustomAgentNodeElementSpec
 from plugins.human_interaction.elements.user_question.spec.spec import (
     UserQuestionNodeElementSpec,
@@ -25,7 +25,7 @@ from plugins.human_interaction.elements.user_question.spec.spec import (
 from plugins.mas.elements.final_answer.spec.spec import FinalAnswerNodeElementSpec
 from support.elements import DependencySpec, TextResource
 
-__runengine_contract__ = "flareward-test-agent-session-v1"
+__runengine_contract__ = "lumora-test-agent-session-v1"
 
 
 class AgentRole(StrEnum):

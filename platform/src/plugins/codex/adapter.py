@@ -7,8 +7,8 @@ import signal
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from flareward.async_work import await_owned
-from flareward.elements.coding.contracts import (
+from lumora.async_work import await_owned
+from lumora.elements.coding.contracts import (
     CodingAgentError,
     CodingRequest,
     CodingResult,
@@ -36,7 +36,7 @@ class CodexCodingAgent:
         key = await asyncio.to_thread(self._api_key)
         workspace = await asyncio.to_thread(self._workspace, request.workspace)
         # Auth/session files are invocation-owned, outside the shared coding workspace.
-        with TemporaryDirectory(prefix="flareward-codex-") as home:
+        with TemporaryDirectory(prefix="lumora-codex-") as home:
             environment = {
                 key: value for key, value in os.environ.items() if key in {"PATH", "HOME", "LANG"}
             }
@@ -86,7 +86,7 @@ class CodexCodingAgent:
         if self._configuration.api_key is not None:
             return self._configuration.api_key.get_secret_value()
         # Operator-only file binding is useful when a sandbox cannot access secret storage.
-        path = Path(os.environ.get("FLAREWARD_CODEX_API_KEY_FILE", ""))
+        path = Path(os.environ.get("LUMORA_CODEX_API_KEY_FILE", ""))
         try:
             if not path.is_absolute():
                 raise ValueError("Expected an absolute private credential path")

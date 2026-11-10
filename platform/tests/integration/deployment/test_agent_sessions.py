@@ -13,11 +13,11 @@ from support.server import api_process
 from support.temporal import replay, worker_process
 from temporalio.client import Client
 
-from flareward.bootstrap.settings.interaction_settings import InteractionBackend
-from flareward.bootstrap.settings.platform_settings import AuthenticationKind
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.interactions.adapters.wire import root_key
+from lumora.bootstrap.settings.interaction_settings import InteractionBackend
+from lumora.bootstrap.settings.platform_settings import AuthenticationKind
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.interactions.adapters.wire import root_key
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -25,15 +25,14 @@ async def test_deployed_real_agents_share_resources_and_continue_the_same_sessio
     secret_settings, profile, tmp_path
 ):
     endpoint, redis_uri = (
-        os.environ.get(name)
-        for name in ("FLAREWARD_TEST_TEMPORAL_ENDPOINT", "FLAREWARD_TEST_REDIS_URI")
+        os.environ.get(name) for name in ("LUMORA_TEST_TEMPORAL_ENDPOINT", "LUMORA_TEST_REDIS_URI")
     )
     if not endpoint or not redis_uri:
         pytest.skip("Set Temporal, Mongo, and Redis test services for agent-session E2E")
     settings = secret_settings.model_copy(
         update={
             "host": TemporalHostConfig(
-                endpoint=endpoint, task_queue="flareward-agents-" + uuid4().hex
+                endpoint=endpoint, task_queue="lumora-agents-" + uuid4().hex
             ),
             "library": True,
             "authentication": AuthenticationKind.SESSION,

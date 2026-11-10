@@ -6,10 +6,10 @@ from support.composition import composition_graph, mapped_program, repeated_prog
 from support.operations import operation_graph
 from support.scenarios import publish, run
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.models import StartExecution
-from flareward.programs.composition.programs import APPLICATION_PROGRAMS
-from flareward.programs.domain.models import (
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.models import StartExecution
+from lumora.programs.composition.programs import APPLICATION_PROGRAMS
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     LiteralBinding,

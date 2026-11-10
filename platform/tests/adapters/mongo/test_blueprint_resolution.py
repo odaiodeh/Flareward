@@ -9,13 +9,13 @@ import pytest
 from pymongo.errors import PyMongoError
 from support.blueprints import inline_blueprint, library_elements
 
-from flareward.programs.templates.adapters.mongo.blueprint_resolution import (
+from lumora.programs.templates.adapters.mongo.blueprint_resolution import (
     StoredBlueprintResolution,
 )
-from flareward.programs.templates.exceptions import BlueprintStorageError
-from flareward.programs.templates.resolver import BlueprintResolver
-from flareward.programs.templates.schema import blueprint_schemas
-from flareward.services.identity.domain import Identity
+from lumora.programs.templates.exceptions import BlueprintStorageError
+from lumora.programs.templates.resolver import BlueprintResolver
+from lumora.programs.templates.schema import blueprint_schemas
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

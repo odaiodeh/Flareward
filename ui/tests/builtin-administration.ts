@@ -8,13 +8,13 @@ import {
 } from '../client/src/api/resources';
 
 export default async function builtinClients() {
-  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
-  const admin = process.env.FLAREWARD_TEST_UI_ADMIN_COOKIE;
-  const reader = process.env.FLAREWARD_TEST_UI_OWNER_COOKIE;
+  const endpoint = process.env.LUMORA_TEST_UI_API_URL;
+  const admin = process.env.LUMORA_TEST_UI_ADMIN_COOKIE;
+  const reader = process.env.LUMORA_TEST_UI_OWNER_COOKIE;
   assert.ok(endpoint && admin && reader);
   axios.defaults.baseURL = endpoint;
   axios.defaults.headers.common.Cookie = admin;
-  const root = process.env.FLAREWARD_TEST_UI_ROOT_RESOURCE;
+  const root = process.env.LUMORA_TEST_UI_ROOT_RESOURCE;
   assert.ok(root);
   let operation = await createBuiltin({ category: 'operations', type: 'platform_text_operation', name: 'Placed curated operation', config: { dependency: '$ref:' + root }, execution: { profile: 'process' } });
   try {

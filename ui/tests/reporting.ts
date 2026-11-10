@@ -5,9 +5,9 @@ import { fetchAgenticStats } from '../client/src/api/agentic';
 import { fetchSystemWideStats } from '../client/src/api/systemStats';
 
 export default async function reportingClients() {
-  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
-  const owner = process.env.FLAREWARD_TEST_UI_OWNER_COOKIE;
-  const admin = process.env.FLAREWARD_TEST_UI_ADMIN_COOKIE;
+  const endpoint = process.env.LUMORA_TEST_UI_API_URL;
+  const owner = process.env.LUMORA_TEST_UI_OWNER_COOKIE;
+  const admin = process.env.LUMORA_TEST_UI_ADMIN_COOKIE;
   assert.ok(endpoint && owner && admin);
   axios.defaults.baseURL = endpoint;
   axios.defaults.headers.common.Cookie = owner;

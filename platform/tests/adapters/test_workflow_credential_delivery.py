@@ -9,16 +9,16 @@ from support.credential_material import MemoryCredentialMaterial
 from support.credential_renewals import RenewalCase
 from support.verification import VerificationClock
 
-from flareward.executions.adapters.run_engine.outbound.errors import application_errors
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.access.adapters.workflow_credentials import FileWorkflowCredentials
-from flareward.services.access.issuance import (
+from lumora.executions.adapters.run_engine.outbound.errors import application_errors
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.access.adapters.workflow_credentials import FileWorkflowCredentials
+from lumora.services.access.issuance import (
     CredentialIssuanceClosed,
     CredentialMaterial,
     CredentialMaterialRetirement,
     CredentialMaterialUnavailable,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 from plugins.human_review.elements.http import HTTPReviewGateway, ReviewTransportSettings
 from plugins.verification.elements.http import (
     HTTPVerificationGateway,

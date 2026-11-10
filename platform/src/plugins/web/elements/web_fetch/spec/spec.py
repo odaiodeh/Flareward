@@ -1,5 +1,5 @@
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.web.elements.web_fetch.config import WebFetchToolConfig
 from plugins.web.elements.web_fetch.identifiers import META, Identifier
 from plugins.web.elements.web_fetch.web_fetch_factory import WebFetchToolFactory

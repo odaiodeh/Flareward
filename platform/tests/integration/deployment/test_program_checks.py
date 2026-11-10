@@ -17,8 +17,8 @@ def checker_target(remote_backend):
         update={
             "env": {
                 **(remote_backend.target.env or {}),
-                "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": "true",
-                "FLAREWARD_PYTHON_CHECK_DIRECTORY": "/tmp/flareward-python-checks",
+                "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": "true",
+                "LUMORA_PYTHON_CHECK_DIRECTORY": "/tmp/lumora-python-checks",
             }
         }
     )
@@ -44,10 +44,10 @@ async def test_remote_python_verifier_uses_pinned_program_without_storage_creden
     source = (
         "import os, time\nfrom pathlib import Path\n"
         "assert os.getuid() != 0\n"
-        "assert Path('/opt/flareward-e2e-receiver').read_text() == 'flareward-platform-e2e-v1'\n"
+        "assert Path('/opt/lumora-e2e-receiver').read_text() == 'lumora-platform-e2e-v1'\n"
         "assert not Path('/var/run/secrets/kubernetes.io/serviceaccount/token').exists()\n"
         f"assert not Path({str(marker)!r}).exists()\n"
-        "assert not any(name.startswith('FLAREWARD_') for name in os.environ)\n"
+        "assert not any(name.startswith('LUMORA_') for name in os.environ)\n"
         "time.sleep(3)\n"
     ).encode() + candidate
     async with prepared_verifier(

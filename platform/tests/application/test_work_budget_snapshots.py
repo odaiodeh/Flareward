@@ -3,14 +3,14 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.executions.domain.budgets import WorkLimits
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.identity import request_digest
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.executions.domain.preferences import ExecutionProfileCatalog
-from flareward.executions.models import PreparedExecution
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.budgets import WorkLimits
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.identity import request_digest
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.executions.domain.preferences import ExecutionProfileCatalog
+from lumora.executions.models import PreparedExecution
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.identity.domain import Identity
 
 
 def test_prepared_budget_metadata_cannot_change_under_its_existing_digest():

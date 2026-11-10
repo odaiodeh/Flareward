@@ -37,7 +37,7 @@ class InitService:
 
     def init(self, *, non_interactive: bool = False) -> None:
         """First-time setup: prerequisites, infra, venvs, env, patches."""
-        print("🚀 Flareward first-time setup\n")
+        print("🚀 Lumora first-time setup\n")
 
         # 1. Prerequisites
         print("1/6  Checking prerequisites…")
@@ -120,14 +120,14 @@ class InitService:
         print("║  Setup complete!                                            ║")
         print("║                                                             ║")
         print("║  Next steps:                                                ║")
-        print("║    flareward-dev start         Start all services              ║")
-        print("║    flareward-dev doctor        Verify everything is healthy    ║")
-        print("║    flareward-dev list          Show services, groups, infra    ║")
+        print("║    lumora-dev start         Start all services              ║")
+        print("║    lumora-dev doctor        Verify everything is healthy    ║")
+        print("║    lumora-dev list          Show services, groups, infra    ║")
         print("╚══════════════════════════════════════════════════════════════╝")
 
     @staticmethod
     def _install_shell_completion(*, non_interactive: bool = False) -> None:
-        """Offer to install Typer shell completion for flareward-dev."""
+        """Offer to install Typer shell completion for lumora-dev."""
         try:
             import shellingham
             shell_name, _ = shellingham.detect_shell()
@@ -136,11 +136,11 @@ class InitService:
             shell_name = Path(shell_name).name if shell_name else ""
 
         if not shell_name:
-            print("  ⏭ Could not detect shell — run 'flareward-dev --install-completion' manually.")
+            print("  ⏭ Could not detect shell — run 'lumora-dev --install-completion' manually.")
             return
 
         if non_interactive:
-            print(f"  ℹ Run 'flareward-dev --install-completion {shell_name}' to enable tab completion.")
+            print(f"  ℹ Run 'lumora-dev --install-completion {shell_name}' to enable tab completion.")
             return
 
         try:
@@ -151,15 +151,15 @@ class InitService:
             answer = "n"
 
         if answer in ("n", "no"):
-            print(f"  ⏭ Skipped. Run 'flareward-dev --install-completion' later.")
+            print(f"  ⏭ Skipped. Run 'lumora-dev --install-completion' later.")
             return
 
         result = subprocess.run(
-            ["flareward-dev", "--install-completion", shell_name],
+            ["lumora-dev", "--install-completion", shell_name],
             capture_output=True, text=True,
         )
         if result.returncode == 0:
             print(f"  ✔ Completion installed for {shell_name}. Restart your shell to activate.")
         else:
             print(f"  ⚠ Could not install completion automatically.")
-            print(f"    Run 'flareward-dev --install-completion {shell_name}' manually.")
+            print(f"    Run 'lumora-dev --install-completion {shell_name}' manually.")

@@ -11,8 +11,8 @@ from support.verification_api import verification_api
 from support.verification_programs import verification_graph, verification_wait_definition
 from temporalio.api.enums.v1 import EventType
 
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord
-from flareward.executions.models import StartExecution
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord
+from lumora.executions.models import StartExecution
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS
 from plugins.verification.programs.waiting import APPLICATION_PROGRAMS
 

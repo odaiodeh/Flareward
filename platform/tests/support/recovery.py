@@ -8,15 +8,15 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.node import BaseNode
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.programs.ports import ProgramRuntime
-from flareward.resources.domain.bundles import ElementBundle
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.factory import BaseFactory
+from lumora.elements.node import BaseNode
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.programs.ports import ProgramRuntime
+from lumora.resources.domain.bundles import ElementBundle
+from lumora.resources.domain.categories import ResourceCategory
 
-__runengine_contract__ = "flareward-test-recovery-v1"
+__runengine_contract__ = "lumora-test-recovery-v1"
 
 
 class EffectConfig(BaseModel):

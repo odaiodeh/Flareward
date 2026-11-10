@@ -3,7 +3,7 @@
 from support.blueprint_http import library_api
 from support.blueprints import library_elements
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 from plugins.codex.specification import CodexSpec
 
 

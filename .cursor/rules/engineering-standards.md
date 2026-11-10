@@ -39,7 +39,7 @@ shared libraries retain their own contracts unless their migration is authorized
 | Adapters/plugins | HTTP/SDK/database/filesystem/process integration | The inward contracts they implement or call |
 | Composition root | Registration, configuration and concrete wiring | Application, adapters and plugins |
 
-`platform/src/flareward` is organized by feature; each feature owns its values,
+`platform/src/lumora` is organized by feature; each feature owns its values,
 ports, services and adapters locally. `platform/src/plugins` contains
 feature-owned integrations and reusable Programs. Assess
 ownership by responsibility and imports, not just the top-level directory.
@@ -54,7 +54,7 @@ no rule requiring exactly one ABC per adapter class. Pure payload mappers, wire
 models and composition helpers need no artificial application port. Vendor-neutral
 behavior belongs inward; vendor integration belongs in the plugin/adapter ring.
 Run Engine owns scheduling, durable coordination and physical environment
-lifetimes. Flareward owns application policies and translates through its ports.
+lifetimes. Lumora owns application policies and translates through its ports.
 
 ## Models, types and enums
 

@@ -1,4 +1,4 @@
-# Flareward deployment charts
+# Lumora deployment charts
 
 Run Helmfile from this directory. The retained release groups are:
 

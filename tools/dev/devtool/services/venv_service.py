@@ -29,7 +29,7 @@ class VenvService:
     def detect_python(self) -> tuple[str, str]:
         """Returns (python_path, python_minor_str)."""
         py_min, py_max = self._registry.python_bounds()
-        env_override = (os.environ.get("FLAREWARD_PYTHON") or "").strip() or None
+        env_override = (os.environ.get("LUMORA_PYTHON") or "").strip() or None
         return self._python_resolver.find_python(
             py_min, py_max, env_override=env_override,
         )

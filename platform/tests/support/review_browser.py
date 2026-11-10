@@ -9,9 +9,9 @@ from uuid import uuid4
 from fastapi.responses import FileResponse, RedirectResponse
 from pymongo import AsyncMongoClient
 
-from flareward.async_work import await_owned
-from flareward.bootstrap.elements import installed_elements
-from flareward.services.identity.domain import Identity
+from lumora.async_work import await_owned
+from lumora.bootstrap.elements import installed_elements
+from lumora.services.identity.domain import Identity
 from support.review_api import review_api, review_settings
 from support.review_programs import review_definition, review_graph
 from support.server import api_process
@@ -47,13 +47,13 @@ def create_app():
 
 async def serve(assets: Path, directory: Path) -> None:
     directory.mkdir(parents=True, exist_ok=True)
-    database = "flareward_review_browser_" + uuid4().hex
+    database = "lumora_review_browser_" + uuid4().hex
     owner = Identity.user("review-owner")
-    settings = review_settings(owner, database, os.environ["FLAREWARD_TEST_REDIS_URI"])
+    settings = review_settings(owner, database, os.environ["LUMORA_TEST_REDIS_URI"])
     os.environ["PLACEMENT_BROWSER_ASSETS"] = str(assets.resolve())
     os.environ["BROWSER_TEAM_PREFIX"] = "review-" + uuid4().hex
     os.environ["REVIEW_BROWSER_COOKIE_FILE"] = str(directory / "reviewer-cookie")
-    mongo = AsyncMongoClient(os.environ["FLAREWARD_TEST_MONGO_URI"])
+    mongo = AsyncMongoClient(os.environ["LUMORA_TEST_MONGO_URI"])
     try:
         async with api_process(
             settings,
@@ -71,7 +71,7 @@ async def serve(assets: Path, directory: Path) -> None:
             async with review_api(
                 owner,
                 database,
-                os.environ["FLAREWARD_TEST_REDIS_URI"],
+                os.environ["LUMORA_TEST_REDIS_URI"],
                 directory,
                 factory="support.review_browser:create_app",
                 settings=settings,

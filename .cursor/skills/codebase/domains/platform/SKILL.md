@@ -1,9 +1,9 @@
 ---
 name: platform
-description: Develop Flareward's composable program platform, typed operations, resource construction, UI contracts, and Run Engine integration with inward dependencies.
+description: Develop Lumora's composable program platform, typed operations, resource construction, UI contracts, and Run Engine integration with inward dependencies.
 ---
 
-# Flareward program platform
+# Lumora program platform
 
 Start with [current status](../../../../../docs/status.md) and
 [the active plan](../../../../../docs/plan.md). Search/read relevant sections of

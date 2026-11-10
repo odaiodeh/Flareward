@@ -12,11 +12,11 @@ from support.verification import (
     verification_request,
 )
 
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import VerificationActor
-from flareward.services.verification.domain.models import CheckVerdict, VerificationOutcome
-from flareward.services.verification.ports import VerificationConflict, VerificationMissing
-from flareward.services.verification.service import VerificationService
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import VerificationActor
+from lumora.services.verification.domain.models import CheckVerdict, VerificationOutcome
+from lumora.services.verification.ports import VerificationConflict, VerificationMissing
+from lumora.services.verification.service import VerificationService
 
 
 @pytest.fixture

@@ -8,7 +8,7 @@ A clean, extensible client for the [A2A (Agent-to-Agent) Protocol](https://a2a-p
 a2a_client/
 ├── __init__.py                 # Public API exports
 ├── identifiers.py              # Identifier.TYPE = "a2a_agent", META
-├── flareward.bootstrap.settings.py                   # A2AProviderConfig (Pydantic)
+├── lumora.bootstrap.settings.py                   # A2AProviderConfig (Pydantic)
 ├── a2a_provider_factory.py     # Factory pattern for creation
 │
 ├── provider.py                 # A2AProvider - HIGH LEVEL (ChatMessage API)
@@ -329,5 +329,5 @@ config = A2AProviderConfig(
 | `MessageHandler` | handlers/handlers.py | Handles Message responses |
 | `StatusEventHandler` | handlers/handlers.py | Handles status events |
 | `ArtifactEventHandler` | handlers/handlers.py | Handles artifact events |
-| `A2AProviderConfig` | flareward.bootstrap.settings.py | Configuration model |
+| `A2AProviderConfig` | lumora.bootstrap.settings.py | Configuration model |
 | `A2AProviderFactory` | a2a_provider_factory.py | Factory for creation |

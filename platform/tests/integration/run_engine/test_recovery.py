@@ -8,11 +8,11 @@ from runengine.coordination.errors import RunContractError, RunSubmissionError
 from runengine.coordination.ports import RunHost
 from support.scenarios import publish
 
-from flareward.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
-from flareward.executions.domain.models import ExecutionPhase, SubmissionState
-from flareward.executions.models import StartExecution
-from flareward.executions.service import ExecutionService
-from flareward.programs.domain.models import ApplicationDefinition
+from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
+from lumora.executions.domain.models import ExecutionPhase, SubmissionState
+from lumora.executions.models import StartExecution
+from lumora.executions.service import ExecutionService
+from lumora.programs.domain.models import ApplicationDefinition
 
 
 class ReplyLossHost(RunHost):

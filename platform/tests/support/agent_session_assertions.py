@@ -2,10 +2,10 @@
 
 import hashlib
 
-from flareward.elements.messaging.domain.messages import Role
-from flareward.elements.workloads.domain.models import AgentResult
-from flareward.elements.workloads.domain.workspace import Workspace
-from flareward.services.sessions.records import SessionRecord
+from lumora.elements.messaging.domain.messages import Role
+from lumora.elements.workloads.domain.models import AgentResult
+from lumora.elements.workloads.domain.workspace import Workspace
+from lumora.services.sessions.records import SessionRecord
 from support.agent_session import AgentRole
 
 

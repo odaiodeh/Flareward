@@ -3,13 +3,13 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.resources.domain.bundles import (
+from lumora.resources.domain.bundles import (
     BundleEntry,
     ElementBundle,
     ResourceDefinition,
     ResourceKey,
 )
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.categories import ResourceCategory
 
 
 def numeric_bundle(value):

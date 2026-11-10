@@ -7,15 +7,15 @@ from pymongo import MongoClient
 from support.blueprint_http import library_api
 from support.blueprints import inline_blueprint
 
-from flareward.programs.templates.adapters.mongo.blueprint_authoring_repository import (
+from lumora.programs.templates.adapters.mongo.blueprint_authoring_repository import (
     MongoBlueprintAuthoringRepository,
 )
-from flareward.programs.templates.adapters.mongo.blueprint_repository import (
+from lumora.programs.templates.adapters.mongo.blueprint_repository import (
     MongoBlueprintRepository,
 )
-from flareward.programs.templates.models.blueprint import BlueprintDraft
-from flareward.programs.templates.models.prompt_shortcuts import PromptShortcuts
-from flareward.services.identity.domain import Identity
+from lumora.programs.templates.models.blueprint import BlueprintDraft
+from lumora.programs.templates.models.prompt_shortcuts import PromptShortcuts
+from lumora.services.identity.domain import Identity
 
 
 async def test_http_authoring_preserves_editing_semantics_and_protects_configuration(
@@ -129,7 +129,7 @@ async def test_native_cas_fences_legacy_edits_and_updates_versionless_documents(
     assert await repository.replace(original, updated)
 
     def legacy_edit():
-        with MongoClient(os.environ["FLAREWARD_TEST_MONGO_URI"]) as client:
+        with MongoClient(os.environ["LUMORA_TEST_MONGO_URI"]) as client:
             legacy = MongoBlueprintRepository(database=client[mongo_database.name])
             legacy.close()  # Borrowed repositories do not close the client's owned scope.
             legacy.update(

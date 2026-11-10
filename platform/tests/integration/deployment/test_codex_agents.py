@@ -15,17 +15,17 @@ from support.server import api_process
 from support.temporal import replay, worker_process
 from temporalio.client import Client
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     GraphDefinition,
     OperationStep,
     PathBinding,
     ProgramDefinition,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
 from plugins.codex.identifiers import TYPE_KEY
 
 
@@ -34,8 +34,8 @@ async def coding_deployment(
     live_coding_key, remote_backend, deployment_host, secret_settings, tmp_path
 ):
     values = {
-        "FLAREWARD_CONFIGURATION_SECRETS": "false",
-        "FLAREWARD_CODEX_API_KEY": live_coding_key.get_secret_value(),
+        "LUMORA_CONFIGURATION_SECRETS": "false",
+        "LUMORA_CODEX_API_KEY": live_coding_key.get_secret_value(),
     }
     async with AsyncExitStack() as owned:
         target = await owned.enter_async_context(
@@ -48,9 +48,9 @@ async def coding_deployment(
             update={
                 "env": {
                     **target.env,
-                    "FLAREWARD_CODEX_SANDBOX_MODE": "danger-full-access",
-                    "FLAREWARD_CODEX_API_KEY_FILE": (
-                        target.env["FLAREWARD_SECRETS_DIR"] + "/FLAREWARD_CODEX_API_KEY"
+                    "LUMORA_CODEX_SANDBOX_MODE": "danger-full-access",
+                    "LUMORA_CODEX_API_KEY_FILE": (
+                        target.env["LUMORA_SECRETS_DIR"] + "/LUMORA_CODEX_API_KEY"
                     ),
                 }
             }
@@ -58,14 +58,14 @@ async def coding_deployment(
         host = LocalHostConfig()
         if deployment_host == "temporal":
             host = TemporalHostConfig(
-                endpoint=os.environ["FLAREWARD_TEST_TEMPORAL_ENDPOINT"],
-                task_queue="flareward-codex-" + uuid4().hex,
+                endpoint=os.environ["LUMORA_TEST_TEMPORAL_ENDPOINT"],
+                task_queue="lumora-codex-" + uuid4().hex,
                 invocation_timeout_seconds=180,
             )
         settings = secret_settings.model_copy(
             update={
                 "host": host,
-                "receiver_module": "flareward.bootstrap.receiver",
+                "receiver_module": "lumora.bootstrap.receiver",
                 "execution_profiles": {"coding": target},
                 "default_execution_profile": "coding",
                 "library": True,
@@ -182,7 +182,7 @@ async def test_codex_steps_share_files_and_keep_credentials_out_of_published_dat
     proof = execution["result"]["evidence"]
     assert proof["verified"] == "42" and "def add" in proof["source"]
     assert proof["system"] == "Linux" and proof["namespace"] == backend.namespace
-    assert proof["image_marker"] == "flareward-platform-e2e-v1"
+    assert proof["image_marker"] == "lumora-platform-e2e-v1"
     assert execution["result"]["coding"]["commands"] > 0
     assert execution["result"]["coding"]["usage"]["input_tokens"] > 0
     revision = await http.get(

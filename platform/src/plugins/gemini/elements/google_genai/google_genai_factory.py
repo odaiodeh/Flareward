@@ -1,7 +1,7 @@
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.gemini.elements.google_genai.config import GoogleGenAIConfig
 from plugins.gemini.elements.google_genai.google_genai import GoogleGenAILLM
 from plugins.gemini.elements.google_genai.identifiers import Identifier

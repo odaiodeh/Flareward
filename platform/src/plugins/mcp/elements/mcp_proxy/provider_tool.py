@@ -2,11 +2,11 @@
 
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.ports.tool_provider import ToolProvider
-from flareward.elements.tools.domain.models import ToolDefinition
-from flareward.services.interactions.tools.models import ToolAccessMode
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.ports.tool_provider import ToolProvider
+from lumora.elements.tools.domain.models import ToolDefinition
+from lumora.services.interactions.tools.models import ToolAccessMode
 
 
 class ProviderTool(BaseTool):

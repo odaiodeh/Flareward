@@ -9,19 +9,19 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.behaviors.hitl_capable import HITLCapableMixin
-from flareward.elements.configuration.platform import PlatformConfig
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.construction.runtime import ElementRuntime
-from flareward.elements.factory import BaseFactory
-from flareward.elements.messaging.channels import SessionChannel
-from flareward.elements.node import BaseNode
-from flareward.executions.context import ExecutionContextHolder
-from flareward.programs.graph.runtime_binder import NodeRuntimeBindings
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.interactions.tools.models import (
+from lumora.elements.behaviors.hitl_capable import HITLCapableMixin
+from lumora.elements.configuration.platform import PlatformConfig
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.construction.runtime import ElementRuntime
+from lumora.elements.factory import BaseFactory
+from lumora.elements.messaging.channels import SessionChannel
+from lumora.elements.node import BaseNode
+from lumora.executions.context import ExecutionContextHolder
+from lumora.programs.graph.runtime_binder import NodeRuntimeBindings
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.interactions.tools.models import (
     ApprovalDecision,
     ApprovalRequest,
     ApprovalResponse,
@@ -32,12 +32,12 @@ from flareward.services.interactions.tools.models import (
     ToolAccessMode,
     ToolApprovalPolicy,
 )
-from flareward.services.interactions.tools.ports import ApprovalGate
-from flareward.services.tracing import NoOpTracingService
+from lumora.services.interactions.tools.ports import ApprovalGate
+from lumora.services.tracing import NoOpTracingService
 
 
 def audit(event: str, holder: ExecutionContextHolder) -> None:
-    target = os.environ.get("FLAREWARD_TEST_RECEIVER_AUDIT")
+    target = os.environ.get("LUMORA_TEST_RECEIVER_AUDIT")
     if target:
         with Path(target).open("a", encoding="utf-8") as output:
             output.write(

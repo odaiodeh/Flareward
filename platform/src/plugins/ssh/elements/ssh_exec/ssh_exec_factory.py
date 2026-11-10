@@ -1,7 +1,7 @@
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.ssh.elements.ssh_exec.config import SshExecToolConfig
 from plugins.ssh.elements.ssh_exec.identifiers import Identifier
 from plugins.ssh.elements.ssh_exec.ssh_exec import SshExecTool

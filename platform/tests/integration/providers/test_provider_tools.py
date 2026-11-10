@@ -7,11 +7,11 @@ import pytest
 from support.mcp_service import create_app
 from support.scenarios import resource
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.construction.builder import ElementBundleBuilder
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.builder import ElementBundleBuilder
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.mcp.elements.mcp_proxy.mcp_proxy_tool import McpProxyToolError
 from plugins.mcp.elements.mcp_proxy.spec.spec import McpProxyToolElementSpec
 from plugins.mcp.elements.mcp_server_client.spec.spec import McpProviderElementSpec

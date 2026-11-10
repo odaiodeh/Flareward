@@ -4,7 +4,7 @@ import yaml
 from support.blueprint_http import library_api
 from support.graph_analysis import graph_blueprint, graph_elements
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 async def test_graph_analysis_saved_draft_and_legacy_yaml_preserve_reports_without_writes(

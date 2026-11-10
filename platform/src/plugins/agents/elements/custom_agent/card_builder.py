@@ -4,7 +4,7 @@ Card builder for CustomAgentNode.
 Composes skills from dependencies (tools, providers).
 """
 
-from flareward.elements.cards.default import DefaultCardBuilder
+from lumora.elements.cards.default import DefaultCardBuilder
 
 
 class CustomAgentCardBuilder(DefaultCardBuilder):

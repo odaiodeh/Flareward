@@ -1,6 +1,6 @@
 ---
 name: debug-verification-evidence
-description: Diagnose Flareward verification admission, trusted CI dispatch, uncertain acknowledgements, candidate provenance, scoped authority and API/worker recovery.
+description: Diagnose Lumora verification admission, trusted CI dispatch, uncertain acknowledgements, candidate provenance, scoped authority and API/worker recovery.
 ---
 
 # Diagnose verification evidence
@@ -18,7 +18,7 @@ report previews are implemented; broader UI acceptance remains unfinished. Deter
 fixtures do not prove live GitHub execution.
 
 For an operator-pinned verifier Program, trace `ProgramCheckRunner` and
-`FLAREWARD_PROGRAM_CHECKS` through normal platform composition. The configured
+`LUMORA_PROGRAM_CHECKS` through normal platform composition. The configured
 Program owner/reference/digest is trusted authority; an arbitrary candidate
 Program returning `passed` is not. Inputs use `CheckProgramInput`; outputs use
 `CheckProgramResult` with the exact subject fingerprint. Check the actual verifier
@@ -56,13 +56,13 @@ read [the focused procedure](references/python-checks.md). The operator enable f
 and a native process test do not establish a hostile-code sandbox or live acceptance.
 
 Recoverable human issuance is opt-in through `Idempotency-Key` and configured
-`FLAREWARD_RECOVERABLE_CREDENTIAL_ISSUANCE`/encryption key. Retries preserve original
+`LUMORA_RECOVERABLE_CREDENTIAL_ISSUANCE`/encryption key. Retries preserve original
 scope/issuer/time/material and observe current renewal, never resurrect revocation.
 The actual API restart case is pre-provisioning, not a running-root restart proof.
 Grant issuance/list/revoke require shared `HumanPrincipal`: even a valid human
 cookie cannot turn a supplied workflow bearer into human authority. Inspect safe
 reservation metadata and ciphertext absence after retirement, never private values.
-Managed trusted-filesystem delivery uses `FLAREWARD_WORKFLOW_CREDENTIAL_DIRECTORY`
+Managed trusted-filesystem delivery uses `LUMORA_WORKFLOW_CREDENTIAL_DIRECTORY`
 and normal `WorkflowCredentialSource` factory injection. The receiver needs no
 vault key; a configured source failure must not fall back to operator files.
 Source unavailability must surface as private retryable infrastructure failure.
@@ -147,7 +147,7 @@ rotation and isolated remote delivery remain open.
   prove safe resubmission. Provider refusal and failed verification are different.
 - GitHub bindings are API-server operator configuration, never receiver credentials.
   Validate repository, numeric workflow ID, exact workflow commit, dispatch event,
-  attempt one and `flareward-{intent}-{candidate_commit}` title. A changed binding
+  attempt one and `lumora-{intent}-{candidate_commit}` title. A changed binding
   must not reinterpret an old intent. Internal verifier IDs cannot also have an
   external evidence credential. The trusted workflow must check the exact commit;
   a successful unrelated workflow or a coding agent's report is insufficient.
@@ -176,8 +176,8 @@ do not import test cases or add another scheduler. From repository root:
 
 ```sh
 .venv/bin/python -m pytest platform/tests/application/test_verification.py platform/tests/domain/test_verification.py platform/tests/adapters/test_verification_settings.py -q
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/mongo/test_verifications.py platform/tests/integration/http/test_verifications.py platform/tests/integration/redis/test_verifications.py -q
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest platform/tests/integration/verification platform/tests/integration/http/test_verification_access.py platform/tests/integration/temporal/test_verification.py -q
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/mongo/test_verifications.py platform/tests/integration/http/test_verifications.py platform/tests/integration/redis/test_verifications.py -q
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 LUMORA_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest platform/tests/integration/verification platform/tests/integration/http/test_verification_access.py platform/tests/integration/temporal/test_verification.py -q
 ```
 
 Use only the repository's dedicated services and temporary listeners. These cases

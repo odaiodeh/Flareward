@@ -8,18 +8,18 @@ complete authoring acceptance.
 Build assets from `ui/` before starting the runner:
 
 ```sh
-NODE_ENV=production node tests/build-workspace-browser.mjs /tmp/flareward-feature-browser-assets
+NODE_ENV=production node tests/build-workspace-browser.mjs /tmp/lumora-feature-browser-assets
 ```
 
 Start from the repository root with dedicated services and a fresh owned directory:
 
 ```sh
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
-FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
 PYTHONPATH=platform/src:platform/tests \
 .venv/bin/python -m support.feature_browser \
-  --assets /tmp/flareward-feature-browser-assets \
-  --directory /tmp/flareward-feature-browser-run
+  --assets /tmp/lumora-feature-browser-assets \
+  --directory /tmp/lumora-feature-browser-run
 ```
 
 Keep the live handle and open its printed login URL. The fixture publishes saved

@@ -17,23 +17,23 @@ from support.telemetry import span_attributes, trace_collector
 from support.temporal import replay, worker_process
 from temporalio.client import Client
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     ElementStep,
     GraphDefinition,
     PathBinding,
     ProgramDefinition,
 )
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture
 async def traced_deployment(deployment_host, secret_settings, tmp_path):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
     if deployment_host == "temporal" and not endpoint:
         pytest.skip("Set the Temporal endpoint for durable tracing deployment contracts")
     async with trace_collector() as collector, AsyncExitStack() as owned:
@@ -44,7 +44,7 @@ async def traced_deployment(deployment_host, secret_settings, tmp_path):
                 if deployment_host == "local"
                 else TemporalHostConfig(
                     endpoint=endpoint,
-                    task_queue="flareward-tracing-" + uuid4().hex,
+                    task_queue="lumora-tracing-" + uuid4().hex,
                 ),
                 "tracing": "langfuse",
                 "langfuse_base_url": collector.base_url,

@@ -8,21 +8,21 @@ from pymongo import MongoClient
 from support.blueprint_http import library_api
 from support.blueprints import external_blueprint
 
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.programs.templates.adapters.mongo.blueprint_repository import (
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.programs.templates.adapters.mongo.blueprint_repository import (
     MongoBlueprintRepository,
 )
-from flareward.programs.templates.adapters.mongo.blueprint_usage import MongoBlueprintUsage
-from flareward.resources.adapters.mongo.resource_authoring_repository import (
+from lumora.programs.templates.adapters.mongo.blueprint_usage import MongoBlueprintUsage
+from lumora.resources.adapters.mongo.resource_authoring_repository import (
     MongoResourceAuthoringRepository,
 )
-from flareward.resources.adapters.mongo.resource_repository import MongoResourceRepository
-from flareward.resources.domain.builtins import BuiltinResourceDescriptor
-from flareward.resources.domain.models import Resource
-from flareward.resources.errors import ResourceInUseError
-from flareward.resources.registry import ResourcesRegistry
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.identity.domain import Identity
+from lumora.resources.adapters.mongo.resource_repository import MongoResourceRepository
+from lumora.resources.domain.builtins import BuiltinResourceDescriptor
+from lumora.resources.domain.models import Resource
+from lumora.resources.errors import ResourceInUseError
+from lumora.resources.registry import ResourcesRegistry
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.identity.domain import Identity
 
 
 def model_request(token="EMPTY", *, name="Model"):
@@ -228,7 +228,7 @@ async def test_resource_cas_fences_legacy_writes_and_versionless_documents(mongo
     assert previous.version == 1 and await repository.replace(previous, updated)
 
     def legacy_edit():
-        with MongoClient(os.environ["FLAREWARD_TEST_MONGO_URI"]) as client:
+        with MongoClient(os.environ["LUMORA_TEST_MONGO_URI"]) as client:
             resources = MongoResourceRepository(database=client[mongo_database.name])
             blueprints = MongoBlueprintRepository(database=client[mongo_database.name])
             resources.close()
@@ -329,7 +329,7 @@ async def test_narrow_blueprint_usage_adapter_preserves_resource_deletion_guards
     )
 
     def delete() -> None:
-        with MongoClient(os.environ["FLAREWARD_TEST_MONGO_URI"]) as client:
+        with MongoClient(os.environ["LUMORA_TEST_MONGO_URI"]) as client:
             database = client[mongo_database.name]
             registry = ResourcesRegistry(
                 MongoResourceRepository(database=database), MongoBlueprintUsage(database.blueprints)

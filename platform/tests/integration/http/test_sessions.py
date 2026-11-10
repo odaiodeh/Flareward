@@ -3,9 +3,9 @@
 import httpx
 from support.scenarios import publish
 
-from flareward.api.app import create_app
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.identity.domain import Identity
+from lumora.api.app import create_app
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.identity.domain import Identity
 
 
 async def test_fastapi_session_turn_uses_application_services_and_enforces_owner(

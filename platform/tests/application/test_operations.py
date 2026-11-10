@@ -8,18 +8,18 @@ from pydantic import ValidationError
 from support.elements import EchoSpec, element_registry
 from support.operations import TextInput, TextResult, TextSpec, operation_bundle
 
-from flareward.elements.catalog.service import CatalogService
-from flareward.elements.construction.builder import ElementBundleBuilder
-from flareward.elements.operation import (
+from lumora.elements.catalog.service import CatalogService
+from lumora.elements.construction.builder import ElementBundleBuilder
+from lumora.elements.operation import (
     BaseOperation,
     OperationContext,
     OperationContractError,
     OperationInvoker,
 )
-from flareward.executions.domain.context import ExecutionContext
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import OperationRef
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.context import ExecutionContext
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import OperationRef
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

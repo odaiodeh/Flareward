@@ -7,12 +7,12 @@ from unittest.mock import create_autospec
 import pytest
 from support.artifacts import chunks
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.artifacts.domain.models import BlobArtifactRef
-from flareward.services.artifacts.ports import ArtifactGateway, WorkspaceFiles
-from flareward.services.artifacts.preparation import ArtifactWorkspacePreparation
-from flareward.services.identity.domain import Identity
-from flareward.services.workspaces.domain.files import ArtifactFile, WorkspaceFile
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.artifacts.domain.models import BlobArtifactRef
+from lumora.services.artifacts.ports import ArtifactGateway, WorkspaceFiles
+from lumora.services.artifacts.preparation import ArtifactWorkspacePreparation
+from lumora.services.identity.domain import Identity
+from lumora.services.workspaces.domain.files import ArtifactFile, WorkspaceFile
 
 
 @pytest.mark.parametrize("failure", [None, PermissionError("denied"), asyncio.CancelledError()])

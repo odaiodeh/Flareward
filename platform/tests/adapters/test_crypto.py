@@ -4,8 +4,8 @@ import pytest
 from cryptography.fernet import Fernet
 from global_utils.utils.crypto import FieldCipher as LegacyCipher
 
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.auth.credentials.ports import CipherError
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.auth.credentials.ports import CipherError
 
 
 def test_field_cipher_is_compatible_with_existing_encrypted_values():

@@ -76,7 +76,7 @@ elif sys.argv[sys.argv.index('--model') + 1] == 'engineering-fixture':
     bad = 'def add(a, b):' + chr(10) + '    return a - b' + chr(10)
     good = bad.replace('a - b', 'a + b')
     answer = workspace / 'answer.py'
-    reports = list((workspace / '.flareward/reports').glob('*'))
+    reports = list((workspace / '.lumora/reports').glob('*'))
     if reports:
         assert answer.read_text() == bad, 'Repair did not restore the exact previous candidate'
         report = json.loads(reports[0].read_text())
@@ -96,7 +96,7 @@ elif sys.argv[sys.argv.index('--model') + 1] == 'git-fixture':
                  'GIT_CONFIG_NOSYSTEM':'1', 'GIT_CONFIG_GLOBAL':os.devnull},
         ).stdout.strip()
     git('init', '--quiet', '--initial-branch=work')
-    reports = list((workspace / '.flareward/reports').glob('*'))
+    reports = list((workspace / '.lumora/reports').glob('*'))
     if reports:
         raw_feedback = prompt.split('Previous attempt feedback:' + chr(10), 1)[1]
         feedback, _ = json.JSONDecoder().raw_decode(raw_feedback)
@@ -110,7 +110,7 @@ elif sys.argv[sys.argv.index('--model') + 1] == 'git-fixture':
     git('add', 'answer.py')
     git('commit', '--quiet', '-m', 'Implement candidate')
     commit = git('rev-parse', 'HEAD')
-    git('push', '--quiet', git_repository, commit + ':refs/heads/flareward/candidates/' + commit)
+    git('push', '--quiet', git_repository, commit + ':refs/heads/lumora/candidates/' + commit)
     answer_text = json.dumps({'repository':'product', 'commit':commit})
 else:
     (workspace / 'answer.txt').write_text(prompt)

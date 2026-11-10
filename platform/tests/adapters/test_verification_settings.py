@@ -8,14 +8,14 @@ from support.check_runs import check_policy, source_policy
 from support.github_checks import github_configuration
 from support.verification import verification_authority, verification_policy
 
-from flareward.api.verification_auth import VerifierAuthenticator
-from flareward.bootstrap.settings.platform_settings import (
+from lumora.api.verification_auth import VerifierAuthenticator
+from lumora.bootstrap.settings.platform_settings import (
     PlatformSettings,
     VerificationAuthorityConfig,
 )
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.program_checks import ProgramCheckConfiguration
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.program_checks import ProgramCheckConfiguration
 from plugins.github_actions.github_config import GitHubCheckConfiguration
 
 

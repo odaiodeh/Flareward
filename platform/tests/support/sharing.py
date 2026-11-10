@@ -2,8 +2,8 @@
 
 from datetime import UTC, datetime, timedelta
 
-from flareward.services.identity.domain import Identity
-from flareward.services.sharing.domain.models import ShareInvite, ShareItemKind, ShareStatus
+from lumora.services.identity.domain import Identity
+from lumora.services.sharing.domain.models import ShareInvite, ShareItemKind, ShareStatus
 
 
 def invitation(share_id: str = "invite", **changes) -> ShareInvite:

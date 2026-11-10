@@ -1,5 +1,5 @@
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.deep_agent.elements.deep_agent.config import DeepAgentNodeConfig
 from plugins.deep_agent.elements.deep_agent.deep_agent_node import DeepAgentNode
 from plugins.deep_agent.elements.deep_agent.identifiers import Identifier

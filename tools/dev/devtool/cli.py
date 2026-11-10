@@ -15,18 +15,18 @@ from devtool.services.orchestrator import Orchestrator
 # -- Root app ----------------------------------------------------------------
 
 app = typer.Typer(
-    name="flareward-dev",
+    name="lumora-dev",
     help=(
-        "Flareward local development tool.\n\n"
+        "Lumora local development tool.\n\n"
         "Quick start:\n"
-        "  flareward-dev init              First-time setup (infra + venvs + .env)\n"
-        "  flareward-dev start             Start all services in tmux\n"
-        "  flareward-dev status            Health dashboard\n"
-        "  flareward-dev doctor            Full diagnostic\n\n"
+        "  lumora-dev init              First-time setup (infra + venvs + .env)\n"
+        "  lumora-dev start             Start all services in tmux\n"
+        "  lumora-dev status            Health dashboard\n"
+        "  lumora-dev doctor            Full diagnostic\n\n"
         "Discovery:\n"
-        "  flareward-dev list              Show all services, groups, and infra\n"
-        "  flareward-dev info <service>    Deep-dive into a single service\n\n"
-        "Tip: run 'flareward-dev --install-completion' for tab autocompletion."
+        "  lumora-dev list              Show all services, groups, and infra\n"
+        "  lumora-dev info <service>    Deep-dive into a single service\n\n"
+        "Tip: run 'lumora-dev --install-completion' for tab autocompletion."
     ),
     no_args_is_help=True,
     pretty_exceptions_enable=False,
@@ -117,21 +117,21 @@ def _resolve_root() -> Path:
     if (root / "platform").is_dir() and (root / "ui").is_dir():
         return root
 
-    alt = os.environ.get("FLAREWARD_ROOT", "").strip()
+    alt = os.environ.get("LUMORA_ROOT", "").strip()
     if alt:
         root = Path(alt).expanduser().resolve()
         if (root / "platform").is_dir() and (root / "ui").is_dir():
             return root
         print(
-            f"❌ FLAREWARD_ROOT='{alt}' does not contain expected "
+            f"❌ LUMORA_ROOT='{alt}' does not contain expected "
             f"repo structure (missing platform/ or ui/).",
             file=sys.stderr,
         )
         raise SystemExit(1)
 
     print(
-        f"❌ Cannot find Flareward repo structure at {root}.\n"
-        f"   Set FLAREWARD_ROOT or run from the repo root.",
+        f"❌ Cannot find Lumora repo structure at {root}.\n"
+        f"   Set LUMORA_ROOT or run from the repo root.",
         file=sys.stderr,
     )
     raise SystemExit(1)
@@ -227,12 +227,12 @@ def _create_orchestrator(*, fg: bool = False) -> Orchestrator:
 @app.command(
     epilog=(
         "Examples:\n"
-        "  flareward-dev start                          Start everything\n"
-        "  flareward-dev start platform ui               Only platform + UI\n"
-        "  flareward-dev start agents                   Start a group\n"
-        "  flareward-dev start platform --fg         Single service, foreground\n"
-        "  flareward-dev start --setup-venv             Create venvs first\n"
-        "  flareward-dev start --window ai=platform,temporal-worker"
+        "  lumora-dev start                          Start everything\n"
+        "  lumora-dev start platform ui               Only platform + UI\n"
+        "  lumora-dev start agents                   Start a group\n"
+        "  lumora-dev start platform --fg         Single service, foreground\n"
+        "  lumora-dev start --setup-venv             Create venvs first\n"
+        "  lumora-dev start --window ai=platform,temporal-worker"
     ),
 )
 def start(
@@ -264,8 +264,8 @@ def start(
 @app.command(
     epilog=(
         "Examples:\n"
-        "  flareward-dev shell platform          Enter platform environment\n"
-        "  flareward-dev shell platform      Enter platform environment"
+        "  lumora-dev shell platform          Enter platform environment\n"
+        "  lumora-dev shell platform      Enter platform environment"
     ),
 )
 def shell(
@@ -284,9 +284,9 @@ def shell(
     context_settings={"allow_extra_args": True, "allow_interspersed_args": False},
     epilog=(
         "Examples:\n"
-        "  flareward-dev exec platform python -m pytest tests/\n"
-        "  flareward-dev exec identity pip list\n"
-        "  flareward-dev exec platform flareward-platform --help"
+        "  lumora-dev exec platform python -m pytest tests/\n"
+        "  lumora-dev exec identity pip list\n"
+        "  lumora-dev exec platform lumora-platform --help"
     ),
 )
 def exec_cmd(
@@ -298,7 +298,7 @@ def exec_cmd(
 ):
     """Run a command inside a service's context, then exit."""
     if not ctx.args:
-        print("Usage: flareward-dev exec <service> <command...>")
+        print("Usage: lumora-dev exec <service> <command...>")
         raise SystemExit(1)
     orch = _create_orchestrator()
     raise SystemExit(orch.exec_in_context(service, ctx.args))
@@ -326,9 +326,9 @@ def stop():
 @app.command(
     epilog=(
         "Examples:\n"
-        "  flareward-dev restart platform          Restart a single service\n"
-        "  flareward-dev restart agents            Restart a group\n"
-        "  flareward-dev restart --failed          Auto-restart all unhealthy services"
+        "  lumora-dev restart platform          Restart a single service\n"
+        "  lumora-dev restart agents            Restart a group\n"
+        "  lumora-dev restart --failed          Auto-restart all unhealthy services"
     ),
 )
 def restart(
@@ -354,8 +354,8 @@ def status():
 @app.command(
     epilog=(
         "Examples:\n"
-        "  flareward-dev logs platform              Full log output\n"
-        "  flareward-dev logs platform -f           Tail in real time"
+        "  lumora-dev logs platform              Full log output\n"
+        "  lumora-dev logs platform -f           Tail in real time"
     ),
 )
 def logs(
@@ -392,11 +392,11 @@ def init(
 @app.command(
     epilog=(
         "Examples:\n"
-        "  flareward-dev clean                     Remove logs + stopped containers\n"
-        "  flareward-dev clean --dry-run            Preview what would be removed\n"
-        "  flareward-dev clean --logs               Only clean log files\n"
-        "  flareward-dev clean --venvs              Only clean virtual environments\n"
-        "  flareward-dev clean --containers         Only clean stopped containers"
+        "  lumora-dev clean                     Remove logs + stopped containers\n"
+        "  lumora-dev clean --dry-run            Preview what would be removed\n"
+        "  lumora-dev clean --logs               Only clean log files\n"
+        "  lumora-dev clean --venvs              Only clean virtual environments\n"
+        "  lumora-dev clean --containers         Only clean stopped containers"
     ),
 )
 def clean(
@@ -497,9 +497,9 @@ def info(
     "start",
     epilog=(
         "Examples:\n"
-        "  flareward-dev infra start                    Start all containers\n"
-        "  flareward-dev infra start mongo redis         Cherry-pick containers\n"
-        "  flareward-dev infra start --for platform       Only what platform needs"
+        "  lumora-dev infra start                    Start all containers\n"
+        "  lumora-dev infra start mongo redis         Cherry-pick containers\n"
+        "  lumora-dev infra start --for platform       Only what platform needs"
     ),
 )
 def infra_start(
@@ -620,7 +620,7 @@ def main():
     """CLI entry point with clean error handling."""
     if sys.platform == "win32":
         print(
-            "❌ flareward-dev does not support Windows natively. "
+            "❌ lumora-dev does not support Windows natively. "
             "Please use WSL2.",
             file=sys.stderr,
         )

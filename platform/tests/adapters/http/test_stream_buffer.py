@@ -4,10 +4,10 @@ import asyncio
 
 import pytest
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
-from flareward.services.interactions.adapters.buffered_channel import BufferedChannel
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
+from lumora.services.interactions.adapters.buffered_channel import BufferedChannel
 
 
 async def test_buffer_normalizes_domain_values_and_drains_before_close():

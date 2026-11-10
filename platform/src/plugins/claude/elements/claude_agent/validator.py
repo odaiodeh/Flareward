@@ -2,7 +2,7 @@
 Validator for Claude Agent Node - checks configuration completeness.
 """
 
-from flareward.elements.validation import (
+from lumora.elements.validation import (
     BaseElementValidator,
     ElementValidationResult,
     ValidationCode,
@@ -10,7 +10,7 @@ from flareward.elements.validation import (
     ValidationMessage,
     ValidatorReport,
 )
-from flareward.resources.domain.references import Ref
+from lumora.resources.domain.references import Ref
 from plugins.claude.elements.claude_agent.config import ClaudeAgentNodeConfig
 from plugins.claude.elements.claude_agent.identifiers import EffortLevel
 

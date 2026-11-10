@@ -9,13 +9,13 @@ from pathlib import Path
 import httpx
 from runengine.invocation.config import ExecutorConfig
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.check_ports import CheckRunnerPolicy
-from flareward.services.verification.domain.models import CheckRequirement, VerificationSubject
-from flareward.services.verification.models import VerificationPolicy
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.check_ports import CheckRunnerPolicy
+from lumora.services.verification.domain.models import CheckRequirement, VerificationSubject
+from lumora.services.verification.models import VerificationPolicy
 from plugins.testing.programs.python_check import PythonFunctionCheckConfig
 from support.artifacts import chunks, publication
 from support.check_program_publication import CheckProgramSetup
@@ -43,10 +43,10 @@ class ProgramCheckAPI:
             self.settings,
             self.directory / (name + ".log"),
             environment=lambda _: {
-                "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": (
+                "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": (
                     "true" if self.local_evaluation_enabled else "false"
                 ),
-                "FLAREWARD_PYTHON_CHECK_DIRECTORY": str(self.directory / "check-workspaces"),
+                "LUMORA_PYTHON_CHECK_DIRECTORY": str(self.directory / "check-workspaces"),
             },
         )
 

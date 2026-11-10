@@ -7,8 +7,8 @@ from unittest.mock import Mock
 
 from support.blueprint_http import library_api
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.services.identity.domain import Identity
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.services.identity.domain import Identity
 from plugins.a2a.elements.a2a_agent.spec.spec import A2AAgentNodeElementSpec
 from plugins.mcp.elements.mcp_server_client.spec.spec import McpProviderElementSpec
 

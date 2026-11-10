@@ -14,14 +14,14 @@ from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 from runengine.adapters.coordination.config import LocalHostConfig
 
-from flareward.api.app import create_app as http_app
-from flareward.api.dependencies import HttpServices
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
-from flareward.services.verification.check_service import CheckRunService, RegisteredCheckRunner
-from flareward.services.verification.reports import CheckReportCollector
+from lumora.api.app import create_app as http_app
+from lumora.api.dependencies import HttpServices
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
+from lumora.services.verification.check_service import CheckRunService, RegisteredCheckRunner
+from lumora.services.verification.reports import CheckReportCollector
 from plugins.github_actions.github import GitHubActionsCheckRunner
 from plugins.github_actions.github_reports import GitHubCheckReports
 from support.check_runs import source_policy
@@ -42,7 +42,7 @@ def check_api_settings(
         authentication="development" if development else "session",
         development_user=owner.id if development else "",
         secret_key=SecretStr("ci-cookie-fixture"),
-        mongo_uri=SecretStr(os.environ["FLAREWARD_TEST_MONGO_URI"]),
+        mongo_uri=SecretStr(os.environ["LUMORA_TEST_MONGO_URI"]),
         mongo_database=database,
         redis_uri=SecretStr(redis_uri),
         verification_enabled=True,

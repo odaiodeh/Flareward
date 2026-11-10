@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.programs.domain.models import (
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     ProgramBody,
@@ -13,7 +13,7 @@ from flareward.programs.domain.models import (
     ProgramRef,
     ProgramRevision,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 def body() -> ProgramBody:

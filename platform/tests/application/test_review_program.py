@@ -14,10 +14,10 @@ from support.reviews import (
 )
 from support.verification import VerificationClock
 
-from flareward.programs.ports import ProgramRuntime
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.contracts import SubmitReview
-from flareward.services.reviews.service import ReviewService
+from lumora.programs.ports import ProgramRuntime
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.contracts import SubmitReview
+from lumora.services.reviews.service import ReviewService
 from plugins.human_review.programs.human_review import HumanReviewConfig, human_review
 
 

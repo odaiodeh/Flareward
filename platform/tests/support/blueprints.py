@@ -2,14 +2,14 @@
 
 from pydantic import Field
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.hints import ReadOnlyHint, SecretHint
-from flareward.programs.templates.models.blueprint import BlueprintDraft
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.hints import ReadOnlyHint, SecretHint
+from lumora.programs.templates.models.blueprint import BlueprintDraft
 from plugins.testing.elements.mock.config import MockLLMConfig
 from plugins.testing.elements.mock.spec.spec import MockLLMElementSpec
 from plugins.testing.elements.mock_agent.spec.spec import MockAgentNodeElementSpec
 
-__runengine_contract__ = "flareward-test-blueprints-v1"
+__runengine_contract__ = "lumora-test-blueprints-v1"
 
 
 class OverlayMockConfig(MockLLMConfig):

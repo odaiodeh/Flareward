@@ -8,13 +8,13 @@ from runengine.programs.graph.inputs import GraphProgramInput
 from support.elements import DependencySpec
 from support.scenarios import echo_graph, publish
 
-from flareward.bootstrap.elements import installed_elements
-from flareward.elements.catalog.service import CatalogService
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.domain.context import ExecutionContext
-from flareward.programs.templates.models.blueprint import BlueprintDraft
-from flareward.programs.templates.schema import blueprint_schemas
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.bootstrap.elements import installed_elements
+from lumora.elements.catalog.service import CatalogService
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.domain.context import ExecutionContext
+from lumora.programs.templates.models.blueprint import BlueprintDraft
+from lumora.programs.templates.schema import blueprint_schemas
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.claude.elements.claude_agent.config import ClaudeAgentNodeConfig
 from plugins.deep_agent.elements.deep_agent.config import DeepAgentNodeConfig
 

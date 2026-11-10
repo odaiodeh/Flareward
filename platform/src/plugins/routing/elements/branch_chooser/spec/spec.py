@@ -1,5 +1,5 @@
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.routing.elements.branch_chooser.branch_chooser import BranchChooserNode
 from plugins.routing.elements.branch_chooser.branch_chooser_node_factory import (
     BranchChooserNodeFactory,

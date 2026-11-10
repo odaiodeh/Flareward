@@ -7,9 +7,9 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from flareward.elements.agents.constants import ToolNames
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.workloads.domain import WorkItemKind, WorkItemStatus
+from lumora.elements.agents.constants import ToolNames
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.workloads.domain import WorkItemKind, WorkItemStatus
 
 
 class SummarizeWorkPlanArgs(BaseModel):

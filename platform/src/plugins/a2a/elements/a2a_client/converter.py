@@ -21,7 +21,7 @@ from a2a.types import (
 )
 from pydantic import BaseModel
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
 from plugins.a2a.elements.a2a_client.result import A2AResult, ResultKind
 
 

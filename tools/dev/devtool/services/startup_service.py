@@ -116,7 +116,7 @@ class StartupService:
             print(
                 "  │                                                     │"
                 "\n  │  To fix: stop the conflicting processes manually   │"
-                "\n  │  and run 'flareward-dev restart --failed'.            │"
+                "\n  │  and run 'lumora-dev restart --failed'.            │"
                 "\n  └─────────────────────────────────────────────────────┘"
             )
             try:
@@ -311,7 +311,7 @@ class StartupService:
     ) -> None:
         print()
         print("╔══════════════════════════════════════════════════════════════╗")
-        print("║              Flareward Development Environment                 ║")
+        print("║              Lumora Development Environment                 ║")
         print("╠══════════════════════════════════════════════════════════════╣")
         print(f"║  Session: {SESSION_NAME:<49}║")
         print("║                                                             ║")
@@ -338,7 +338,7 @@ class StartupService:
                 print(f"║    {svc.name:<55}║")
         print("║                                                             ║")
         print(f"║  Attach:  tmux attach -t {SESSION_NAME:<34}║")
-        print(f"║  Destroy: flareward-dev destroy{' ':<31}║")
+        print(f"║  Destroy: lumora-dev destroy{' ':<31}║")
         groups = self._registry.group_names()
         if groups:
             group_str = ", ".join(groups)

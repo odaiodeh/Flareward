@@ -1,17 +1,21 @@
 # Program platform: current status
 
-Snapshot: 2026-11-09. Overall goal paused; explicitly requested repository cleanup
+Snapshot: 2026-11-10. Overall goal paused; explicitly requested repository cleanup
 is complete within its recorded scope. Thin authored feature acceptance remains; overall completion,
 full UX, delivery integrations and operational acceptance are still open.
 Start here and in [the plan](plan.md); [the target](architecture/README.md) defines completion.
 
 ## Repository cutover
 
-The user-authorized [Flareward naming cutover](evidence/2026-11-09-flareward-rename.md) follows the layout
-cutover. Core uses `flareward.*`; installed implementations use `plugins.*`.
-Rename gates pass: 1,350 core/tooling, 709 native integration and 16 remote cases.
+The user selected Lumora, with the tagline "From intent to reality."
+The [naming guide](branding.md) defines the package/configuration cutover;
+[current evidence](evidence/2026-11-10-lumora-rename.md) records its verification.
+Core/native/Identity gates pass 2,037 tests; UI checks/build and wheel inspection pass.
+This naming gate does not rebuild images or repeat Kubernetes/OpenShell acceptance.
+Earlier [Flareward acceptance](evidence/2026-11-09-flareward-rename.md) remains
+historical and does not certify renamed source or images.
 
-Core source is `platform/src/flareward`, grouped by feature with local domain values,
+Core source is `platform/src/lumora`, grouped by feature with local domain values,
 ports, services and adapters. `plugins` groups capability contributions and
 can install Elements and Programs together through the existing registries.
 Retained roots: `ui`, `identity`, `packages/service-support`, `infra`, `tools`, docs.
@@ -22,8 +26,9 @@ Administrator settings/consent now use native platform services and production U
 clients. Generic graph data and explicit MAS conversation remain separate contracts.
 See [cutover evidence](evidence/2026-11-09-repository-structure.md) for exact verification.
 
-The [checkout/remote move](evidence/2026-11-09-checkout-rename.md) is complete:
-`Flareward` folder, renamed `origin`, retained tracking and repaired local tooling.
+The [Lumora checkout/remote move](evidence/2026-11-10-lumora-checkout.md) is complete:
+`/Users/odaiodeh/IdeaProjects/Lumora`, `odaiodeh/Lumora` origin, retained tracking,
+repaired tooling and verified owned infrastructure paths. No commit or push ran.
 
 ## Implemented foundation
 
@@ -72,7 +77,7 @@ combinations, stale-attempt fencing, tenant capacity/fairness, dynamic work,
 authoritative occurrence history and the full remote/load/recovery matrix remain.
 Local source ownership cannot migrate environments after host loss.
 
-The cutover passes 20 actual remote cases, including all four previously unreached
+The earlier repository cutover passed 20 remote cases, including all four then-unreached
 child-owned host/backend combinations. Focused cutover results do not certify the full
 adverse/private-delivery matrix. Normal OpenShell is supported; strict Landlock checks remain optional
 and need a capable Linux kernel. No paid calls are implicit in regression tests.

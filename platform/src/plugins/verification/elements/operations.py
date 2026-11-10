@@ -5,10 +5,10 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.services.verification.domain.models import VerificationId, VerificationSubject
-from flareward.services.verification.models import StartVerification, VerificationView
-from flareward.services.verification.ports import VerificationGateway
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.services.verification.domain.models import VerificationId, VerificationSubject
+from lumora.services.verification.models import StartVerification, VerificationView
+from lumora.services.verification.ports import VerificationGateway
 
 
 class RequestVerification(BaseModel):

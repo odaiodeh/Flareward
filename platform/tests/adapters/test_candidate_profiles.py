@@ -6,7 +6,7 @@ import pytest
 from runengine.invocation.config import K8sRunnerConfig, OpenShellRunnerConfig, ThreadRunnerConfig
 from support.live_feature import evaluation_target
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
 
 
 @pytest.mark.parametrize(
@@ -34,9 +34,9 @@ def test_evaluation_profile_retains_sdk_type_and_serializes_without_loss(target)
         )
         encoded = settings.model_dump(mode="json")["execution_profiles"]["evaluation"]
     assert encoded == prepared.model_dump(mode="json")
-    assert encoded["env"]["FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED"] == "true"
-    assert encoded["env"]["FLAREWARD_CONFIGURATION_SECRETS"] == "false"
-    assert "FLAREWARD_SECRETS_DIR" not in encoded["env"]
+    assert encoded["env"]["LUMORA_PYTHON_CHECK_EXECUTION_ENABLED"] == "true"
+    assert encoded["env"]["LUMORA_CONFIGURATION_SECRETS"] == "false"
+    assert "LUMORA_SECRETS_DIR" not in encoded["env"]
     if isinstance(prepared, OpenShellRunnerConfig):
         assert encoded["policy"]["network_policies"] == {}
         assert encoded["policy"]["landlock"]["compatibility"] == "best_effort"

@@ -1,17 +1,17 @@
 """Program definitions for remote scenarios contain only application contracts."""
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
     ProgramRef,
 )
-from flareward.resources.domain.bundles import ElementBundle, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ElementBundle, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 from support.elements import DependencySpec
 from support.remote import RemoteOperationSpec
 from support.scenarios import resource

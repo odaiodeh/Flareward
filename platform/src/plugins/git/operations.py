@@ -2,8 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.services.workspaces.domain.files import WorkspaceLayout, WorkspaceMode
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.services.workspaces.domain.files import WorkspaceLayout, WorkspaceMode
 from plugins.git.domain.repositories import GitFile, GitFileContent, GitRevision
 from plugins.git.ports import GitFileReader, GitRepository
 

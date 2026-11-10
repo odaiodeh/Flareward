@@ -9,19 +9,19 @@ from support.managed_access import managed_access_settings
 from support.managed_workflow import workflow_requirements
 from support.scenarios import publish
 
-from flareward.bootstrap.workflow_access import WorkflowAccessComponents
-from flareward.executions.access import ExecutionGrantAccess
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.domain.models import ExecutionPhase, SubmissionState
-from flareward.executions.models import PreparedExecution, StartExecution
-from flareward.executions.ports import ExecutionMissing, ProgramExecutionGateway
-from flareward.executions.service import ExecutionService
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.access.adapters.workflow_credentials import FileWorkflowCredentials
-from flareward.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
-from flareward.services.access.credentials import WorkflowCredentialUnavailable
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.workflow_access import WorkflowAccessComponents
+from lumora.executions.access import ExecutionGrantAccess
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.models import ExecutionPhase, SubmissionState
+from lumora.executions.models import PreparedExecution, StartExecution
+from lumora.executions.ports import ExecutionMissing, ProgramExecutionGateway
+from lumora.executions.service import ExecutionService
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.access.adapters.workflow_credentials import FileWorkflowCredentials
+from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
+from lumora.services.access.credentials import WorkflowCredentialUnavailable
+from lumora.services.identity.domain import Identity
 
 
 class InterruptedIssuer:

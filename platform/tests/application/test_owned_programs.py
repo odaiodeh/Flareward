@@ -6,15 +6,15 @@ from support.resource_snapshots import MemoryResourceSources, saved_resource_gra
 from support.scenarios import publish
 from support.secrets import MemorySecretStore, secret_definition
 
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.elements.construction.snapshots import SavedResourceResolver
-from flareward.programs.adapters.memory.program_repository import MemoryProgramRepository
-from flareward.programs.authoring import ProgramIssueCode, ProgramResourceSelection
-from flareward.programs.domain.models import ApplicationDefinition, GraphDefinition, ProgramBody
-from flareward.programs.service import ProgramContractError, ProgramService
-from flareward.resources.domain.bundles import ResourceKey
-from flareward.resources.secrets import is_secret_reference
-from flareward.services.identity.domain import Identity
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.elements.construction.snapshots import SavedResourceResolver
+from lumora.programs.adapters.memory.program_repository import MemoryProgramRepository
+from lumora.programs.authoring import ProgramIssueCode, ProgramResourceSelection
+from lumora.programs.domain.models import ApplicationDefinition, GraphDefinition, ProgramBody
+from lumora.programs.service import ProgramContractError, ProgramService
+from lumora.resources.domain.bundles import ResourceKey
+from lumora.resources.secrets import is_secret_reference
+from lumora.services.identity.domain import Identity
 
 
 async def test_owned_secrets_are_protected_before_save_and_remain_frozen():

@@ -1,5 +1,5 @@
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.testing.elements.mock_agent.config import MockAgentNodeConfig
 from plugins.testing.elements.mock_agent.identifiers import Identifier
 from plugins.testing.elements.mock_agent.mock_agent import MockAgentNode

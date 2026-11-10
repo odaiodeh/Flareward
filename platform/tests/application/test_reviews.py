@@ -12,12 +12,12 @@ from support.reviews import (
 )
 from support.verification import VerificationClock
 
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.access import ReviewActor
-from flareward.services.reviews.contracts import CloseReview, ReviewSettings, SubmitReview
-from flareward.services.reviews.domain.models import ReviewDecision, ReviewStatus
-from flareward.services.reviews.ports import ReviewConflict, ReviewMissing
-from flareward.services.reviews.service import ReviewService
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.access import ReviewActor
+from lumora.services.reviews.contracts import CloseReview, ReviewSettings, SubmitReview
+from lumora.services.reviews.domain.models import ReviewDecision, ReviewStatus
+from lumora.services.reviews.ports import ReviewConflict, ReviewMissing
+from lumora.services.reviews.service import ReviewService
 
 
 @pytest.fixture

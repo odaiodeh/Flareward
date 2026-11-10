@@ -9,25 +9,25 @@ from support.scheduling import schedule_request
 from support.verification import VerificationClock
 from support.workflow_consents import MemoryWorkflowConsents, assert_consent_store_contract
 
-from flareward.executions.adapters.memory.execution_repository import MemoryExecutionRepository
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.models import PreparedExecution, StartExecution
-from flareward.executions.ports import ProgramExecutionGateway
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
-from flareward.services.access.consent import WorkflowConsentRequest, WorkflowConsents
-from flareward.services.access.credentials import WorkflowCredentialUnavailable
-from flareward.services.scheduling.admission import ScheduledAdmission, scheduled_execution_id
-from flareward.services.scheduling.models import ScheduleStatus
-from flareward.services.scheduling.programs import (
+from lumora.executions.adapters.memory.execution_repository import MemoryExecutionRepository
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.models import PreparedExecution, StartExecution
+from lumora.executions.ports import ProgramExecutionGateway
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
+from lumora.services.access.consent import WorkflowConsentRequest, WorkflowConsents
+from lumora.services.access.credentials import WorkflowCredentialUnavailable
+from lumora.services.scheduling.admission import ScheduledAdmission, scheduled_execution_id
+from lumora.services.scheduling.models import ScheduleStatus
+from lumora.services.scheduling.programs import (
     ProgramSchedule,
     ProgramScheduleBackend,
     ProgramScheduleService,
     ProgramScheduleView,
     ScheduleRegistration,
 )
-from flareward.services.sessions.execution.session_store import SessionStore
+from lumora.services.sessions.execution.session_store import SessionStore
 
 
 @pytest.fixture

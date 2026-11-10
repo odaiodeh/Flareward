@@ -7,10 +7,10 @@ from unittest.mock import Mock, create_autospec
 
 import pytest
 
-from flareward.elements.validation import ValidationCode, ValidationContext
-from flareward.services.auth.credentials.credential import AuthCredential
-from flareward.services.auth.errors import TokenExpiredError
-from flareward.services.auth.service import AuthService
+from lumora.elements.validation import ValidationCode, ValidationContext
+from lumora.services.auth.credentials.credential import AuthCredential
+from lumora.services.auth.errors import TokenExpiredError
+from lumora.services.auth.service import AuthService
 from plugins.a2a.elements.a2a_agent.config import A2AAgentNodeConfig
 from plugins.a2a.elements.a2a_agent.validator import A2AAgentNodeValidator
 from plugins.mcp.elements.mcp_server_client.config import McpProviderConfig

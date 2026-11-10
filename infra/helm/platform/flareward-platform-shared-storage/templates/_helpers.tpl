@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "flareward-platform-shared-storage.name" -}}
+{{- define "lumora-platform-shared-storage.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "flareward-platform-shared-storage.fullname" -}}
+{{- define "lumora-platform-shared-storage.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "flareward-platform-shared-storage.chart" -}}
+{{- define "lumora-platform-shared-storage.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "flareward-platform-shared-storage.labels" -}}
-helm.sh/chart: {{ include "flareward-platform-shared-storage.chart" . }}
-{{ include "flareward-platform-shared-storage.selectorLabels" . }}
+{{- define "lumora-platform-shared-storage.labels" -}}
+helm.sh/chart: {{ include "lumora-platform-shared-storage.chart" . }}
+{{ include "lumora-platform-shared-storage.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,7 +45,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "flareward-platform-shared-storage.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "flareward-platform-shared-storage.name" . }}
+{{- define "lumora-platform-shared-storage.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "lumora-platform-shared-storage.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}

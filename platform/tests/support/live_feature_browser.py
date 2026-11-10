@@ -6,7 +6,7 @@ from importlib import import_module
 from pathlib import Path
 from urllib.parse import quote
 
-from flareward.programs.domain.models import ProgramRef
+from lumora.programs.domain.models import ProgramRef
 from support.feature_browser_session import feature_browser_session
 from support.live_coding import live_coding_credential
 from support.live_feature import LiveFeature, live_feature

@@ -5,10 +5,10 @@ from runengine.adapters.coordination.config import LocalHostConfig
 from runengine.bootstrap.hosts import RunHostBuilder
 from support.engine_functions import contribute_state, state_identity
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.messaging.protocol.models import ElementAddress
-from flareward.elements.messaging.protocol.packets import TaskPacket
-from flareward.executions.adapters.run_engine.shared.state import AgentProgramGraphState
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.messaging.protocol.models import ElementAddress
+from lumora.elements.messaging.protocol.packets import TaskPacket
+from lumora.executions.adapters.run_engine.shared.state import AgentProgramGraphState
 
 
 async def test_parallel_state_keeps_messages_acknowledgments_threads_and_workspaces():

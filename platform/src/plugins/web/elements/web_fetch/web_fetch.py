@@ -4,7 +4,7 @@ from typing import Any
 import safehttpx
 from html_to_markdown import convert
 
-from flareward.elements.ports.tool import BaseTool
+from lumora.elements.ports.tool import BaseTool
 from plugins.web.elements.web_fetch.models import WebFetchArgs, WebFetchResponse
 
 logger = logging.getLogger(__name__)

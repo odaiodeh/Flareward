@@ -2,22 +2,22 @@
 
 from dataclasses import dataclass
 
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import (
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import (
     VerificationAccessScope,
     VerificationAction,
     VerificationActor,
 )
-from flareward.services.verification.check_ports import (
+from lumora.services.verification.check_ports import (
     CheckProviderUnavailable,
     CheckRunRepository,
     StartCheckRun,
 )
-from flareward.services.verification.check_service import CheckRunService, RegisteredCheckRunner
-from flareward.services.verification.domain.check_runs import CheckJobState, CheckRun
-from flareward.services.verification.domain.models import CheckRequirement
-from flareward.services.verification.maintenance import CheckJobMaintenance
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.check_service import CheckRunService, RegisteredCheckRunner
+from lumora.services.verification.domain.check_runs import CheckJobState, CheckRun
+from lumora.services.verification.domain.models import CheckRequirement
+from lumora.services.verification.maintenance import CheckJobMaintenance
+from lumora.services.verification.service import VerificationService
 from support.check_runs import (
     MemoryCheckRunRepository,
     ScriptedCheckRunner,

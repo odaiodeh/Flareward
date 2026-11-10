@@ -17,18 +17,18 @@ from pymongo.asynchronous.database import AsyncDatabase
 from runengine.adapters.coordination.config import LocalHostConfig
 from runengine.invocation.config import ProcessRunnerConfig, ThreadRunnerConfig
 
-from flareward.async_work import await_owned
-from flareward.bootstrap.settings.platform_settings import (
+from lumora.async_work import await_owned
+from lumora.bootstrap.settings.platform_settings import (
     PlatformSettings,
     VerificationAuthorityConfig,
 )
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import (
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import (
     VerificationAccessGrant,
     verification_credential_key,
 )
-from flareward.services.verification.domain.models import VerificationPlan, VerificationState
+from lumora.services.verification.domain.models import VerificationPlan, VerificationState
 from support.identity import authenticated_cookie
 from support.server import api_process
 from support.verification import evidence_request, verification_policy
@@ -54,9 +54,9 @@ class VerificationAPI:
     @property
     def operator_environment(self) -> dict[str, str]:
         return {
-            "FLAREWARD_VERIFICATION_ENDPOINT": str(self.http.base_url),
-            "FLAREWARD_VERIFICATION_ACCESS_DIRECTORY": str(self.directory),
-            "FLAREWARD_VERIFICATION_ALLOW_INSECURE": "true",
+            "LUMORA_VERIFICATION_ENDPOINT": str(self.http.base_url),
+            "LUMORA_VERIFICATION_ACCESS_DIRECTORY": str(self.directory),
+            "LUMORA_VERIFICATION_ALLOW_INSECURE": "true",
         }
 
     async def inspected_plan(self) -> VerificationPlan:
@@ -93,7 +93,7 @@ async def verification_api(
     directory: Path,
     *,
     settings: PlatformSettings | None = None,
-    factory: str = "flareward.bootstrap.asgi:create_app",
+    factory: str = "lumora.bootstrap.asgi:create_app",
     policy: str = "release@1",
     actions: tuple[str, ...] = ("create", "read", "cancel"),
     host=None,
@@ -113,7 +113,7 @@ async def verification_api(
         storage="mongo",
         authentication="session",
         secret_key=SecretStr("workflow-cookie-fixture"),
-        mongo_uri=SecretStr(os.environ["FLAREWARD_TEST_MONGO_URI"]),
+        mongo_uri=SecretStr(os.environ["LUMORA_TEST_MONGO_URI"]),
         mongo_database=database.name,
         redis_uri=SecretStr(redis_uri),
         verification_enabled=True,
@@ -172,9 +172,9 @@ async def verification_api(
                 log,
                 factory=factory,
                 environment=lambda base: {
-                    "FLAREWARD_VERIFICATION_ENDPOINT": base,
-                    "FLAREWARD_VERIFICATION_ACCESS_DIRECTORY": str(credentials),
-                    "FLAREWARD_VERIFICATION_ALLOW_INSECURE": "true",
+                    "LUMORA_VERIFICATION_ENDPOINT": base,
+                    "LUMORA_VERIFICATION_ACCESS_DIRECTORY": str(credentials),
+                    "LUMORA_VERIFICATION_ALLOW_INSECURE": "true",
                 },
             )
         )

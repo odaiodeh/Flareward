@@ -4,7 +4,7 @@ import base64
 import hashlib
 from collections.abc import AsyncIterator
 
-from flareward.services.artifacts.domain.models import (
+from lumora.services.artifacts.domain.models import (
     BlobArtifactRef,
     ContentIdentity,
     InlineArtifact,

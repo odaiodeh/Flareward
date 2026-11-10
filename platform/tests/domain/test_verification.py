@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.services.verification.domain.models import VerificationSubject
+from lumora.services.verification.domain.models import VerificationSubject
 
 
 def test_subject_identity_is_order_independent_and_kind_specific():

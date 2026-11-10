@@ -74,7 +74,7 @@ def yaml_path(tmp_path: Path) -> Path:
 class TestLocalAuth:
     @pytest.fixture(autouse=True)
     def _clear_local_auth_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.delenv("FLAREWARD_LOCAL_AUTH", raising=False)
+        monkeypatch.delenv("LUMORA_LOCAL_AUTH", raising=False)
 
     def test_local_auth_default_true(self, yaml_path: Path) -> None:
         reg = YamlRegistryLoader.load(yaml_path)
@@ -161,7 +161,7 @@ class TestLocalAuth:
         """)
         p = tmp_path / "services_env_override.yaml"
         p.write_text(content)
-        monkeypatch.setenv("FLAREWARD_LOCAL_AUTH", "false")
+        monkeypatch.setenv("LUMORA_LOCAL_AUTH", "false")
         reg = YamlRegistryLoader.load(p)
         assert reg.local_auth is False
 
@@ -190,7 +190,7 @@ class TestLocalAuth:
         """)
         p = tmp_path / "services_env_override2.yaml"
         p.write_text(content)
-        monkeypatch.setenv("FLAREWARD_LOCAL_AUTH", "true")
+        monkeypatch.setenv("LUMORA_LOCAL_AUTH", "true")
         reg = YamlRegistryLoader.load(p)
         assert reg.local_auth is True
 

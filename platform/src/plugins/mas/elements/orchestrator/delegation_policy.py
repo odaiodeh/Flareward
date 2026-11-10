@@ -1,8 +1,8 @@
 """Graph topology supplies the orchestrator's explicit delegation exclusions."""
 
-from flareward.elements.agents.delegation_policy import DelegationPolicy
-from flareward.programs.graph.models import AdjacentNodes
-from flareward.programs.graph.topology.models import StepTopology
+from lumora.elements.agents.delegation_policy import DelegationPolicy
+from lumora.programs.graph.models import AdjacentNodes
+from lumora.programs.graph.topology.models import StepTopology
 
 
 class OrchestratorDelegationPolicy(DelegationPolicy):

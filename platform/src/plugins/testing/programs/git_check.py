@@ -2,13 +2,13 @@
 
 from pydantic import BaseModel, JsonValue, field_validator
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.models import Model
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
-from flareward.services.verification.domain.models import VerificationSubject
-from flareward.services.verification.program_checks import CheckProgramInput, CheckProgramResult
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.models import Model
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
+from lumora.services.verification.domain.models import VerificationSubject
+from lumora.services.verification.program_checks import CheckProgramInput, CheckProgramResult
 from plugins.git.domain.repositories import GitFile, GitFileContent, GitRevision
 from plugins.testing.programs.python_check import (
     PythonFunctionCheck,

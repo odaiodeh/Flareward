@@ -4,14 +4,14 @@ import json
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from flareward.elements.behaviors.hitl_capable import HITLCapableMixin
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.elements.node import BaseNode
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.interactions.tools.models import (
+from lumora.elements.behaviors.hitl_capable import HITLCapableMixin
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.elements.node import BaseNode
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.interactions.tools.models import (
     ApprovalRequest,
     ApprovalType,
     HITLMode,

@@ -7,7 +7,7 @@ import yaml
 from support.blueprint_http import library_api
 from support.blueprints import external_blueprint, inline_blueprint
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("team", [False, True])
@@ -28,9 +28,7 @@ async def test_editor_blueprints_preserve_sources_shortcuts_versions_and_display
         info = await http.get("/api/blueprints/blueprint.info.get", params=params)
         assert info.status_code == 200 and info.json()["user_id"] == owner.id, info.text
         assert "editor-private-value" not in info.text
-        assert info.json()["spec_dict"]["llms"][0]["config"]["api_key"].startswith(
-            "flareward-secret:"
-        )
+        assert info.json()["spec_dict"]["llms"][0]["config"]["api_key"].startswith("lumora-secret:")
         summary = await http.get("/api/blueprints/available.blueprints.summary.get")
         assert summary.json()[0]["name"] == spec["name"], summary.text
         assert "spec_dict" not in summary.text and summary.json()[0]["user_id"] == owner.id

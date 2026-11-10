@@ -15,8 +15,8 @@ from concurrent.futures import CancelledError
 
 from global_utils.utils.async_bridge import get_async_bridge
 
-from flareward.async_work import await_owned
-from flareward.elements.validation import (
+from lumora.async_work import await_owned
+from lumora.elements.validation import (
     BaseElementValidator,
     ElementValidationResult,
     ValidationCode,
@@ -24,9 +24,9 @@ from flareward.elements.validation import (
     ValidationMessage,
     ValidatorReport,
 )
-from flareward.resources.domain.references import Ref
-from flareward.services.auth.credentials.models import StaticAuthMethod
-from flareward.services.auth.errors import AuthError
+from lumora.resources.domain.references import Ref
+from lumora.services.auth.credentials.models import StaticAuthMethod
+from lumora.services.auth.errors import AuthError
 from plugins.a2a.elements.a2a_agent.config import A2AAgentNodeConfig
 from plugins.a2a.elements.a2a_client import A2AClient
 
@@ -98,7 +98,7 @@ class A2AAgentNodeValidator(BaseElementValidator):
         context: ValidationContext,
     ) -> tuple[dict[str, str] | None, str | None]:
         """
-        Build probe headers from flareward.bootstrap.settings + AuthService.
+        Build probe headers from lumora.bootstrap.settings + AuthService.
 
         Returns (headers, auth_error_message). When auth_error_message is set,
         the card should report INVALID_CREDENTIALS.

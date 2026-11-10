@@ -4,8 +4,8 @@ import asyncio
 
 import pytest
 
-from flareward.executions.budgets import WorkBudgetRepository
-from flareward.executions.domain.budgets import (
+from lumora.executions.budgets import WorkBudgetRepository
+from lumora.executions.domain.budgets import (
     WorkBudget,
     WorkBudgetConflict,
     WorkKind,
@@ -13,7 +13,7 @@ from flareward.executions.domain.budgets import (
     WorkLimits,
     WorkReservation,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 def work_budget(root: str = "root", **limits: int) -> WorkBudget:

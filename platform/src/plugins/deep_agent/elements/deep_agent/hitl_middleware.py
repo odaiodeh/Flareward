@@ -20,15 +20,15 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain.messages import ToolMessage
 from langchain.tools.tool_node import ToolCallRequest
 
-from flareward.elements.agents.approvals import HITLToolGatekeeper
-from flareward.elements.ports.tool import BaseTool
-from flareward.services.interactions.tools.models import (
+from lumora.elements.agents.approvals import HITLToolGatekeeper
+from lumora.elements.ports.tool import BaseTool
+from lumora.services.interactions.tools.models import (
     ApprovalDecision,
     RequestOrigin,
     ToolAccessMode,
     ToolApprovalPolicy,
 )
-from flareward.services.interactions.tools.ports import ApprovalGate
+from lumora.services.interactions.tools.ports import ApprovalGate
 
 logger = logging.getLogger(__name__)
 

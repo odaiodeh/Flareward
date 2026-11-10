@@ -2,10 +2,10 @@
 
 import pytest
 
-from flareward.elements.domain.cards import ElementCard
-from flareward.programs.graph.models import AdjacentNodes
-from flareward.programs.graph.topology.models import FinalizerPathInfo, StepTopology
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.domain.cards import ElementCard
+from lumora.programs.graph.models import AdjacentNodes
+from lumora.programs.graph.topology.models import FinalizerPathInfo, StepTopology
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.mas.elements.orchestrator.delegation_policy import (
     OrchestratorDelegationPolicy,
 )

@@ -7,7 +7,7 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
-from flareward.services.verification.check_ports import CheckRunnerPolicy
+from lumora.services.verification.check_ports import CheckRunnerPolicy
 from plugins.git.domain.repositories import GitCommitId, RepositoryId
 
 

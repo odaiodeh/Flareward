@@ -4,10 +4,10 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.factory import BaseFactory
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 
 
 class Stage(StrEnum):

@@ -1,5 +1,5 @@
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.routing.elements.router_direct.config import RouterDirectConditionConfig
 from plugins.routing.elements.router_direct.identifiers import Identifier
 from plugins.routing.elements.router_direct.router import RouterDirectCondition

@@ -11,14 +11,14 @@ from support.verification import (
     verification_request,
 )
 
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import VerificationActor
-from flareward.services.verification.adapters.mongo.verification_repository import (
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import VerificationActor
+from lumora.services.verification.adapters.mongo.verification_repository import (
     MongoVerificationRepository,
 )
-from flareward.services.verification.domain.models import VerificationOutcome
-from flareward.services.verification.ports import VerificationStorageError
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.domain.models import VerificationOutcome
+from lumora.services.verification.ports import VerificationStorageError
+from lumora.services.verification.service import VerificationService
 
 
 async def test_records_survive_reconstruction_and_concurrent_checks_have_no_lost_updates(

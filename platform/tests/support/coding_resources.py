@@ -4,8 +4,8 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.resources.domain.bundles import ElementBundle
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.resources.domain.bundles import ElementBundle
 from plugins.adlc.programs.coding import CodingFileCandidateConfig
 from plugins.codex.config import CodexConfig
 

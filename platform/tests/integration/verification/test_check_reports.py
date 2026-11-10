@@ -9,19 +9,19 @@ from support.check_runs import MemoryCheckRunRepository, source_policy, source_r
 from support.github_checks import GitHubProtocol, github_configuration, report_archive
 from support.verification import MemoryVerificationRepository, VerificationClock
 
-from flareward.services.artifacts.access_models import ArtifactActor
-from flareward.services.artifacts.adapters.filesystem import FileArtifactRepository
-from flareward.services.artifacts.ports import ArtifactIntegrityError
-from flareward.services.artifacts.service import ArtifactService
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import VerificationActor
-from flareward.services.verification.check_ports import CheckProviderUnavailable, StartCheckRun
-from flareward.services.verification.check_service import CheckRunService, RegisteredCheckRunner
-from flareward.services.verification.domain.check_runs import CheckRun
-from flareward.services.verification.domain.models import VerificationOutcome
-from flareward.services.verification.ports import VerificationStorageError
-from flareward.services.verification.reports import CheckReportCollector
-from flareward.services.verification.service import VerificationService
+from lumora.services.artifacts.access_models import ArtifactActor
+from lumora.services.artifacts.adapters.filesystem import FileArtifactRepository
+from lumora.services.artifacts.ports import ArtifactIntegrityError
+from lumora.services.artifacts.service import ArtifactService
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import VerificationActor
+from lumora.services.verification.check_ports import CheckProviderUnavailable, StartCheckRun
+from lumora.services.verification.check_service import CheckRunService, RegisteredCheckRunner
+from lumora.services.verification.domain.check_runs import CheckRun
+from lumora.services.verification.domain.models import VerificationOutcome
+from lumora.services.verification.ports import VerificationStorageError
+from lumora.services.verification.reports import CheckReportCollector
+from lumora.services.verification.service import VerificationService
 from plugins.github_actions.github import GitHubActionsCheckRunner
 from plugins.github_actions.github_reports import GitHubCheckReports
 

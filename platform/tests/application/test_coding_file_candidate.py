@@ -9,10 +9,10 @@ from support.artifacts import inline_content
 from support.operations import operation_bundle
 from support.verification import VerificationClock
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.ports import ProgramRuntime
-from flareward.services.artifacts.domain.models import BlobArtifactRef
-from flareward.services.verification.domain.models import (
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.ports import ProgramRuntime
+from lumora.services.artifacts.domain.models import BlobArtifactRef
+from lumora.services.verification.domain.models import (
     CheckEvidence,
     CheckReport,
     CheckReportSource,
@@ -20,7 +20,7 @@ from flareward.services.verification.domain.models import (
     VerificationOutcome,
     VerificationSubject,
 )
-from flareward.services.workspaces.domain.files import InlineFile
+from lumora.services.workspaces.domain.files import InlineFile
 from plugins.adlc.programs.coding import (
     APPLICATION_PROGRAMS,
     CodingFileCandidate,
@@ -103,7 +103,7 @@ async def test_repair_loads_exact_inputs_outside_coding_and_publishes_exact_expo
     assert coded.args[1]["files"] == [
         InlineFile(path=config.path, content=old).model_dump(mode="json"),
         InlineFile(
-            path=".flareward/reports/" + report.content.artifact_id, content=report_bytes
+            path=".lumora/reports/" + report.content.artifact_id, content=report_bytes
         ).model_dump(mode="json"),
     ]
     assert all("artifact" not in file for file in coded.args[1]["files"])

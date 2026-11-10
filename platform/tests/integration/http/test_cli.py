@@ -13,9 +13,9 @@ from support.http_programs import execute_program, publish_program
 from support.processes import command_process, settings_environment
 from support.scenarios import echo_graph
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.programs.domain.models import ProgramDefinition
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.programs.domain.models import ProgramDefinition
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -36,7 +36,7 @@ async def test_canonical_cli_serves_and_executes_programs(tmp_path, profile):
         port = allocation.getsockname()[1]
     log = tmp_path / "cli.log"
     async with command_process(
-        ["-m", "flareward.bootstrap.http_cli", "serve", "--host", "127.0.0.1", "--port", str(port)],
+        ["-m", "lumora.bootstrap.http_cli", "serve", "--host", "127.0.0.1", "--port", str(port)],
         settings_environment(settings),
         log,
         exit_codes=(0, -signal.SIGTERM),

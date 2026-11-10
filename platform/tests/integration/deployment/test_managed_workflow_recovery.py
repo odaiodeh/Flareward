@@ -19,13 +19,13 @@ from support.temporal import replay, worker_process, workflow_handle
 from support.verification import verification_request
 from temporalio.client import Client, WorkflowExecutionStatus
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.programs.domain.models import ProgramDefinition
-from flareward.services.access.issuance import CredentialReservation
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.reviews.domain.models import ReviewRecord
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.programs.domain.models import ProgramDefinition
+from lumora.services.access.issuance import CredentialReservation
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.specification import (
     ELEMENT_SPECIFICATIONS as REVIEW_SPECIFICATIONS,
 )
@@ -38,12 +38,12 @@ from plugins.verification.elements.specification import (
 async def test_concurrent_multipurpose_roots_survive_api_restart_with_independent_cleanup(
     application, mongo_database, redis_uri, tmp_path, profile
 ):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
     if not endpoint:
         pytest.skip("Select the dedicated Temporal endpoint for running-root API recovery")
     for spec in (*REVIEW_SPECIFICATIONS, *VERIFICATION_SPECIFICATIONS):
         application.elements.register_spec_class(spec)
-    host = TemporalHostConfig(endpoint=endpoint, task_queue="flareward-managed-" + uuid4().hex)
+    host = TemporalHostConfig(endpoint=endpoint, task_queue="lumora-managed-" + uuid4().hex)
     native = await Client.connect(endpoint, namespace=host.namespace)
     records = MongoExecutionRepository(mongo_database)
     try:
@@ -258,8 +258,8 @@ async def test_concurrent_multipurpose_roots_survive_api_restart_with_independen
                         tmp_path / "managed-restarted-api.log",
                     ):
                         portable += log.read_text()
-                    assert "flareward-review-v1." not in portable
-                    assert "flareward-verification-v1." not in portable
+                    assert "lumora-review-v1." not in portable
+                    assert "lumora-verification-v1." not in portable
     finally:
         # Only executions admitted into this test's isolated database are owned.
         async for row in mongo_database.program_executions.find({}, {"_id": 1}):

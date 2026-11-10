@@ -8,22 +8,22 @@ import pytest
 from pydantic import BaseModel, Field, SecretStr, ValidationError
 from support.secrets import MemoryCipher
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.hints import ReadOnlyHint
-from flareward.programs.templates.repository.repository import BlueprintRepository
-from flareward.resources.authoring import (
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.hints import ReadOnlyHint
+from lumora.programs.templates.repository.repository import BlueprintRepository
+from lumora.resources.authoring import (
     BuiltinConfigurationRepository,
     ResourceAuthoringRepository,
     ResourceAuthoringService,
     ResourceRecord,
 )
-from flareward.resources.domain.builtins import BuiltinResourceDescriptor
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.models import ResourceQuery
-from flareward.resources.field_encryption import ResourceFieldEncryption
-from flareward.resources.registry import ResourcesRegistry
-from flareward.resources.repository.base import ResourceRepository
-from flareward.resources.service import CoreResourceService
+from lumora.resources.domain.builtins import BuiltinResourceDescriptor
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.models import ResourceQuery
+from lumora.resources.field_encryption import ResourceFieldEncryption
+from lumora.resources.registry import ResourcesRegistry
+from lumora.resources.repository.base import ResourceRepository
+from lumora.resources.service import CoreResourceService
 
 
 def test_nested_secretstr_aliases_and_legacy_secret_metadata_round_trip(application):

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
-from flareward.elements.coding.contracts import CodingAgentError, CodingRequest
+from lumora.elements.coding.contracts import CodingAgentError, CodingRequest
 from plugins.codex.adapter import CodexCodingAgent
 from plugins.codex.config import CodexConfig
 from plugins.codex.identifiers import CodexSandboxMode
@@ -121,7 +121,7 @@ async def test_operator_private_file_supplies_key_without_resource_credential(
     credential = tmp_path / "private-key"
     credential.write_text("private-test-token")
     credential.chmod(0o600)
-    monkeypatch.setenv("FLAREWARD_CODEX_API_KEY_FILE", str(credential))
+    monkeypatch.setenv("LUMORA_CODEX_API_KEY_FILE", str(credential))
     implementation = CodexCodingAgent(
         CodexConfig(model="explicit-test"),
         workspace_root=tmp_path / "workspaces",
@@ -133,7 +133,7 @@ async def test_operator_private_file_supplies_key_without_resource_credential(
 
 
 async def test_missing_credential_fails_before_starting_cli(codex_cli, tmp_path, monkeypatch):
-    monkeypatch.delenv("FLAREWARD_CODEX_API_KEY_FILE", raising=False)
+    monkeypatch.delenv("LUMORA_CODEX_API_KEY_FILE", raising=False)
     implementation = CodexCodingAgent(
         CodexConfig(model="explicit-test"),
         workspace_root=tmp_path / "workspaces",

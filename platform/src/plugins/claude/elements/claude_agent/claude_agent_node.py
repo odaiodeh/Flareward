@@ -32,19 +32,19 @@ from claude_agent_sdk import (
     query,
 )
 
-from flareward.async_work import await_owned
-from flareward.elements.agents.approvals import HITLToolGatekeeper
-from flareward.elements.behaviors.hitl_capable import HITLCapableMixin
-from flareward.elements.behaviors.retriever_capable import RetrieverCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.node import BaseNode
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.ports.tool_provider import ToolProvider
-from flareward.elements.workloads.domain import AgentResult, Task
-from flareward.programs.graph.capabilities.messaging import GraphMessagingMixin
-from flareward.programs.graph.capabilities.workloads import GraphWorkloadMixin
-from flareward.programs.graph.state.state_view import StateView
-from flareward.services.interactions.tools.models import HITLMode, RequestOrigin
+from lumora.async_work import await_owned
+from lumora.elements.agents.approvals import HITLToolGatekeeper
+from lumora.elements.behaviors.hitl_capable import HITLCapableMixin
+from lumora.elements.behaviors.retriever_capable import RetrieverCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.node import BaseNode
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.ports.tool_provider import ToolProvider
+from lumora.elements.workloads.domain import AgentResult, Task
+from lumora.programs.graph.capabilities.messaging import GraphMessagingMixin
+from lumora.programs.graph.capabilities.workloads import GraphWorkloadMixin
+from lumora.programs.graph.state.state_view import StateView
+from lumora.services.interactions.tools.models import HITLMode, RequestOrigin
 from plugins.claude.adapters.tools import ClaudeSDKConverter
 from plugins.claude.elements.claude_agent.hitl_hook import (
     CLAUDE_BUILTIN_ACCESS_MODES,

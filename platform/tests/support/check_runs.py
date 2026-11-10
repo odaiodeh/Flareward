@@ -2,22 +2,22 @@
 
 import asyncio
 
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.check_ports import CheckProviderUnavailable, CheckRunnerPolicy
-from flareward.services.verification.check_service import RegisteredCheckRunner
-from flareward.services.verification.domain.check_runs import (
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.check_ports import CheckProviderUnavailable, CheckRunnerPolicy
+from lumora.services.verification.check_service import RegisteredCheckRunner
+from lumora.services.verification.domain.check_runs import (
     CheckJobState,
     CheckRun,
     CheckRunObservation,
     CheckRunStatus,
 )
-from flareward.services.verification.domain.models import (
+from lumora.services.verification.domain.models import (
     CheckRequirement,
     CheckVerdict,
     VerificationSubject,
 )
-from flareward.services.verification.models import StartVerification, VerificationPolicy
-from flareward.services.verification.ports import VerificationStorageError
+from lumora.services.verification.models import StartVerification, VerificationPolicy
+from lumora.services.verification.ports import VerificationStorageError
 
 
 class MemoryCheckRunRepository:

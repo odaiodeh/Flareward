@@ -1,9 +1,9 @@
 ---
 name: run-platform-tests
-description: Run and diagnose Flareward platform architecture, application, adapter, and deployment tests, including actual Temporal, Kubernetes, and OpenShell execution.
+description: Run and diagnose Lumora platform architecture, application, adapter, and deployment tests, including actual Temporal, Kubernetes, and OpenShell execution.
 ---
 
-# Test Flareward's program platform
+# Test Lumora's program platform
 
 Read [the test layout](../../../platform/tests/README.md) and the selected
 suite's fixtures. Use the repository's Python 3.14 `.venv` and local Run Engine
@@ -12,7 +12,7 @@ Do not apply archived prototype patches. Tests from unrelated services remain ou
 the replaced platform suite.
 
 Start with the relevant application/adapter/architecture cases. For infrastructure
-or deployment changes, use [Flareward's own infrastructure guide](../../../platform/tests/infra/README.md).
+or deployment changes, use [Lumora's own infrastructure guide](../../../platform/tests/infra/README.md).
 Inspect existing services and use explicit service URIs; do not rely on another
 repository's infrastructure or silently reduce a requested backend matrix.
 
@@ -42,9 +42,9 @@ For the production service image, use the package README's named Run Engine buil
 context and Dockerfile-specific allowlist. `verify_images.py --platform --image ...`
 checks installed packages without requiring test fixtures. Stream
 `tests/infra/smoke_platform.py` into the image's Python entrypoint for an isolated
-CLI/API/core-Wait/shutdown check. Its default mode is Local; `FLAREWARD_SMOKE_HOST`
+CLI/API/core-Wait/shutdown check. Its default mode is Local; `LUMORA_SMOKE_HOST`
 selects a matching separately started Temporal worker and requires actual pollers
-plus Mongo (`FLAREWARD_SMOKE_MONGO_URI`, default `mongodb://mongo:27017`). Use only the
+plus Mongo (`LUMORA_SMOKE_MONGO_URI`, default `mongodb://mongo:27017`). Use only the
 dedicated test network, unique queues and owned-container cleanup. No host ports,
 credentials or socket mounts are needed. This does not certify remote execution.
 A partial namespace dependency (for example `google` installed without
@@ -112,7 +112,7 @@ Notification tests do not certify the still-unmigrated create/accept/copy flows.
 
 For curated-library transactions, dependency publication and admin edit leases,
 use [built-in administration diagnostics](../debug-builtin-administration/SKILL.md).
-Its replica-set fixture uses `FLAREWARD_TEST_MONGO_TRANSACTION_URI`; the standalone
+Its replica-set fixture uses `LUMORA_TEST_MONGO_TRANSACTION_URI`; the standalone
 Mongo refusal check uses the ordinary Mongo URI. Do not silently replace atomic
 publication with separate writes to make a standalone service pass.
 
@@ -121,7 +121,7 @@ and HTTP `test_reporting.py --ui-clients`. The last gate runs the production
 dashboard/analytics clients against real signed sessions, Mongo and Redis. Count
 root records separately from nested children and conversation sessions; preserve
 user/team identity, pinned revision names, null completion and bounded UTC history.
-An empty persisted admin list revokes flareward.bootstrap authority; directory failure must
+An empty persisted admin list revokes lumora.bootstrap authority; directory failure must
 not restore it. Reports are stored projections, not live engine or acceptance proof.
 The old statistics service/routes are removed; verify their absence on the next
 coherent image rebuild, without rebuilding per reporting edit.
@@ -131,7 +131,7 @@ For tracing ownership and actual OTLP transport, use
 cases cover both hosts and thread/process receivers; a local protocol endpoint
 does not establish Langfuse server-side persistence or cost aggregation.
 
-For blueprint/plugin failures, check `flareward.programs.templates.schema.blueprint_schemas` and
+For blueprint/plugin failures, check `lumora.programs.templates.schema.blueprint_schemas` and
 the catalog supplied to library composition. Native authoring, inspection, and
 import share registry-generated schemas; changing legacy global type unions is
 not a plugin registration step. The resource's outer type key selects its schema,
@@ -200,15 +200,15 @@ adapters for integration evidence.
 
 For conditional rejoins, reuse `support/condition_scenarios.py` and installed
 `support.conditions` specs. Local factory/backend contracts live in
-`integration/flareward.executions.adapters.run_engine.shared/test_conditions.py`; `integration/temporal/test_conditions.py`
+`integration/lumora.executions.adapters.run_engine.shared/test_conditions.py`; `integration/temporal/test_conditions.py`
 uses separate worker processes and replays completed exclusive/fan-out histories.
 Its thread/process selection applies to condition invocation; work nodes use the
 thread default. These tests do not prove restore while a join is deferred, old
 history upgrades, or remote images. The committed SDK provides public ACTIVE joins. Consult `integrations/README.md`
 for exact source identity, owner-reported SDK coverage and incompatible unreleased
-prototype payloads. The fresh platform does not preserve earlier Flareward workers,
+prototype payloads. The fresh platform does not preserve earlier Lumora workers,
 formats, or histories; test current-source execution and replay.
-The strict-label SDK commit now rejects unknown selections atomically. Retain Flareward
+The strict-label SDK commit now rejects unknown selections atomically. Retain Lumora
 normalization/label validation for product semantics; verify strict ERROR routing,
 checkpoint consistency, and native replay. Diagnostics/events
 must not echo invalid labels; ordinary invocation histories still carry return data.

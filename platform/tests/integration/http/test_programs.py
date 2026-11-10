@@ -6,9 +6,9 @@ from support.program_authoring import assert_unfinished_program_lifecycle
 from support.resource_snapshots import MemoryResourceSources, saved_resource_graph
 from support.scenarios import publish
 
-from flareward.api.app import create_app
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramDefinition
-from flareward.services.identity.domain import Identity
+from lumora.api.app import create_app
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramDefinition
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("injected", ["owner", "program_id"])

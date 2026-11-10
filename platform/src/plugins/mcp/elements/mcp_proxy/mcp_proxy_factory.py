@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.ports.tool_provider import ToolProvider
+from lumora.elements.factory import BaseFactory
+from lumora.elements.ports.tool_provider import ToolProvider
 from plugins.mcp.elements.mcp_proxy.config import McpProxyToolConfig
 from plugins.mcp.elements.mcp_proxy.identifiers import Identifier
 from plugins.mcp.elements.mcp_proxy.provider_tool import ProviderTool

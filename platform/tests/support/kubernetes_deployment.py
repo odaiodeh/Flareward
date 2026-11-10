@@ -9,17 +9,17 @@ from uuid import uuid4
 from kubernetes import client, config
 from runengine.invocation.config import K8sRunnerConfig, SecretMount
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 from support.deployment_backend import DeploymentBackend, NetworkEndpoint, ReceiverEvidence
 
 
 @asynccontextmanager
 async def backend() -> AsyncIterator[DeploymentBackend]:
     context, image = (
-        os.environ[name] for name in ("FLAREWARD_TEST_K8S_CONTEXT", "FLAREWARD_TEST_K8S_IMAGE")
+        os.environ[name] for name in ("LUMORA_TEST_K8S_CONTEXT", "LUMORA_TEST_K8S_IMAGE")
     )
-    kubeconfig = os.environ.get("FLAREWARD_TEST_KUBECONFIG")
-    namespace = "flareward-e2e-" + uuid4().hex[:16]
+    kubeconfig = os.environ.get("LUMORA_TEST_KUBECONFIG")
+    namespace = "lumora-e2e-" + uuid4().hex[:16]
     api = await asyncio.to_thread(
         config.new_client_from_config, config_file=kubeconfig, context=context
     )
@@ -29,9 +29,7 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
         await asyncio.to_thread(
             core.create_namespace,
             client.V1Namespace(
-                metadata=client.V1ObjectMeta(
-                    name=namespace, labels={"flareward-e2e-owner": namespace}
-                )
+                metadata=client.V1ObjectMeta(name=namespace, labels={"lumora-e2e-owner": namespace})
             ),
         )
         created = True
@@ -88,8 +86,8 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
             kubeconfig_path=kubeconfig,
             kubeconfig_context=context,
             timeout=90,
-            labels={"flareward-e2e-owner": namespace},
-            env={"FLAREWARD_INTERACTIONS": "disabled", "FLAREWARD_TEST_NAMESPACE": namespace},
+            labels={"lumora-e2e-owner": namespace},
+            env={"LUMORA_INTERACTIONS": "disabled", "LUMORA_TEST_NAMESPACE": namespace},
         )
 
         @asynccontextmanager
@@ -97,7 +95,7 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
             values: dict[str, str], endpoints: tuple[NetworkEndpoint, ...]
         ) -> AsyncIterator[K8sRunnerConfig]:
             # This isolated kind namespace has no egress-denying NetworkPolicy.
-            name, directory = "receiver-settings", "/var/run/flareward-settings"
+            name, directory = "receiver-settings", "/var/run/lumora-settings"
             await asyncio.to_thread(
                 core.create_namespaced_secret,
                 namespace,
@@ -110,7 +108,7 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
                 yield target.model_copy(
                     update={
                         "secret_mounts": [SecretMount(secret_name=name, mount_path=directory)],
-                        "env": {**(target.env or {}), "FLAREWARD_SECRETS_DIR": directory},
+                        "env": {**(target.env or {}), "LUMORA_SECRETS_DIR": directory},
                     }
                 )
             finally:

@@ -2,8 +2,8 @@
 
 import asyncio
 
-from flareward.elements.agents.approvals import HITLToolGatekeeper
-from flareward.services.interactions.tools.models import (
+from lumora.elements.agents.approvals import HITLToolGatekeeper
+from lumora.services.interactions.tools.models import (
     ApprovalDecision,
     ApprovalRequest,
     ApprovalResponse,
@@ -12,7 +12,7 @@ from flareward.services.interactions.tools.models import (
     ToolAccessMode,
     ToolApprovalPolicy,
 )
-from flareward.services.interactions.tools.ports import ApprovalGate
+from lumora.services.interactions.tools.ports import ApprovalGate
 
 
 class RecordingGate(ApprovalGate):

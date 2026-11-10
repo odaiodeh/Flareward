@@ -1,7 +1,7 @@
 from typing import ClassVar
 
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.routing.elements.router_direct.config import RouterDirectConditionConfig
 from plugins.routing.elements.router_direct.identifiers import META, Identifier
 from plugins.routing.elements.router_direct.router import RouterDirectCondition

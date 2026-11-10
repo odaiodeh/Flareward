@@ -3,19 +3,19 @@
 from pydantic import BaseModel
 from support.secrets import SecretToolConfig, SecretToolSpec
 
-from flareward.elements.cards.default import DefaultCardBuilder
-from flareward.elements.catalog.card_service import ElementCardService
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.configuration.meta import ElementConfigMeta
-from flareward.elements.domain.cards import Skill
-from flareward.elements.validation import (
+from lumora.elements.cards.default import DefaultCardBuilder
+from lumora.elements.catalog.card_service import ElementCardService
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.configuration.meta import ElementConfigMeta
+from lumora.elements.domain.cards import Skill
+from lumora.elements.validation import (
     BaseElementValidator,
     ValidationCode,
     ValidationContext,
     ValidationSeverity,
 )
-from flareward.elements.validation_services.service import ElementValidationService
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.validation_services.service import ElementValidationService
+from lumora.resources.domain.categories import ResourceCategory
 
 
 class Metadata(BaseModel):

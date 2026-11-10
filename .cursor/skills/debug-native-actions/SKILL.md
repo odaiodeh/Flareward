@@ -1,21 +1,21 @@
 ---
 name: debug-native-actions
-description: Diagnose or extend Flareward editor action discovery and async execution, including authenticated credentials, model capabilities and provider probes.
+description: Diagnose or extend Lumora editor action discovery and async execution, including authenticated credentials, model capabilities and provider probes.
 ---
 
 # Diagnose native editor actions
 
-Trace the actual UI action UID through `flareward.api.actions`,
-`flareward.services.actions.service` and `flareward.bootstrap.actions`. Native routes retain
+Trace the actual UI action UID through `lumora.api.actions`,
+`lumora.services.actions.service` and `lumora.bootstrap.actions`. Native routes retain
 `GET /api/actions/actions.list` and `POST /api/actions/action.execute`, with
 `inputData`, `context`, `userId` and `teamId` compatibility fields. Stable UIDs and
 Pydantic schemas also drive existing element form hints. An empty successful list
 is not a substitute for missing registrations.
 
 Contracts, metadata, the instance-owned registry and credential use cases belong
-in `flareward.services.actions`; network/SDK implementations belong in
+in `lumora.services.actions`; network/SDK implementations belong in
 `plugins.actions`. Register injected instances in composition. Do not restore
-subclass-global discovery, singleton lookup or the removed `flareward.actions` package.
+subclass-global discovery, singleton lookup or the removed `lumora.actions` package.
 Optional external SDK absence may omit its action; internal import errors must
 still fail startup. The catalog refuses duplicate UIDs and synchronous classes
 before dispatch. Extensible UIDs/type keys are strings; action kinds/categories
@@ -56,7 +56,7 @@ application scenarios import no infrastructure adapters.
 Strict typing of this slice:
 
 ```sh
-MYPYPATH=platform/src .venv/bin/python -m mypy platform/src/flareward/services/actions platform/src/plugins/actions platform/src/flareward/services/administration/adapters/mongo/action_settings.py platform/src/flareward/api/actions.py platform/flareward.bootstrap/actions.py --python-version 3.14 --explicit-package-bases --follow-imports=silent --ignore-missing-imports --disable-error-code=import-untyped --strict
+MYPYPATH=platform/src .venv/bin/python -m mypy platform/src/lumora/services/actions platform/src/plugins/actions platform/src/lumora/services/administration/adapters/mongo/action_settings.py platform/src/lumora/api/actions.py platform/lumora.bootstrap/actions.py --python-version 3.14 --explicit-package-bases --follow-imports=silent --ignore-missing-imports --disable-error-code=import-untyped --strict
 ```
 
 For a visible form failure use the actual full App fixture in

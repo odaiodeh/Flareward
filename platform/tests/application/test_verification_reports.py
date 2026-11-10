@@ -10,24 +10,24 @@ from support.verification import (
     verification_authority,
 )
 
-from flareward.services.artifacts.domain.models import (
+from lumora.services.artifacts.domain.models import (
     ArtifactRecord,
     BlobArtifactRef,
     ContentIdentity,
 )
-from flareward.services.artifacts.ports import ArtifactMissing, ArtifactRepository
-from flareward.services.artifacts.service import ArtifactService
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import VerificationActor
-from flareward.services.verification.domain.models import (
+from lumora.services.artifacts.ports import ArtifactMissing, ArtifactRepository
+from lumora.services.artifacts.service import ArtifactService
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import VerificationActor
+from lumora.services.verification.domain.models import (
     CheckReport,
     CheckReportSource,
     CheckVerdict,
     VerificationOutcome,
 )
-from flareward.services.verification.models import SubmitCheckEvidence
-from flareward.services.verification.ports import VerificationConflict
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.models import SubmitCheckEvidence
+from lumora.services.verification.ports import VerificationConflict
+from lumora.services.verification.service import VerificationService
 
 
 @pytest.fixture

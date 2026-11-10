@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 from support.artifacts import inline_artifact, inline_content, publication
 
-from flareward.services.artifacts.domain.models import (
+from lumora.services.artifacts.domain.models import (
     InlineArtifact,
     InlineContent,
     PublishArtifact,

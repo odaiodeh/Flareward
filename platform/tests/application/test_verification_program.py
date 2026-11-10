@@ -15,17 +15,17 @@ from support.verification import (
     verification_request,
 )
 
-from flareward.programs.ports import ProgramRuntime
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import VerificationActor
-from flareward.services.verification.domain.check_runs import (
+from lumora.programs.ports import ProgramRuntime
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import VerificationActor
+from lumora.services.verification.domain.check_runs import (
     CheckRun,
     CheckRunObservation,
     CheckRunStatus,
 )
-from flareward.services.verification.domain.models import CheckVerdict
-from flareward.services.verification.models import VerificationView
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.domain.models import CheckVerdict
+from lumora.services.verification.models import VerificationView
+from lumora.services.verification.service import VerificationService
 from plugins.verification.programs.waiting import (
     AwaitVerificationConfig,
     await_check_run,

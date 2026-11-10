@@ -11,14 +11,14 @@ helmDefaults:
 
 releases:
 
-  - name: flareward-platform-shared-storage
-    chart: ./platform/flareward-platform-shared-storage
+  - name: lumora-platform-shared-storage
+    chart: ./platform/lumora-platform-shared-storage
     wait: true
     values:
       - {{- toYaml .Values.storage | nindent 8 }}
       - ./values/global-config.yaml
 
-  - name: flareward-platform-be
+  - name: lumora-platform-be
     chart: ./platform/be
     wait: true
     #timeout: 300
@@ -32,11 +32,11 @@ releases:
         args:
         - "./scripts/platform-presync.sh"
 
-  - name: flareward-platform-temporal-worker
+  - name: lumora-platform-temporal-worker
     chart: ./platform/temporal-worker
     wait: true
     needs:
-      - flareward-platform-shared-storage
+      - lumora-platform-shared-storage
     values:
       - ./values/global-config.yaml
       - {{- toYaml .Values.platform_temporal_worker | nindent 8 }}
@@ -46,7 +46,7 @@ releases:
     chart: ./platform/platform-config
     wait: true
     needs:
-      - flareward-platform-be
+      - lumora-platform-be
     hooks:
       - events: ["postsync"]
         showlogs: true

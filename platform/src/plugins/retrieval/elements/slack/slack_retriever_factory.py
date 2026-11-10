@@ -1,8 +1,8 @@
 from typing import Any
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 
 from .config import SlackRetrieverConfig
 from .identifiers import Identifier

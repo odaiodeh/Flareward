@@ -15,8 +15,8 @@ from temporalio.client import Client, WorkflowHandle
 from temporalio.worker import Replayer
 from temporalio.worker.workflow_sandbox import SandboxedWorkflowRunner, SandboxRestrictions
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.bootstrap.worker import workflow_modules
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.bootstrap.worker import workflow_modules
 from support.processes import OwnedProcess, command_process, settings_environment
 
 
@@ -55,7 +55,7 @@ async def worker_process(
     if environment is not None:
         configuration.update(environment)
     async with command_process(
-        ["-m", "flareward.bootstrap.http_cli", "worker"], configuration, log
+        ["-m", "lumora.bootstrap.http_cli", "worker"], configuration, log
     ) as worker:
         client = await Client.connect(settings.host.endpoint, namespace=settings.host.namespace)
         async with asyncio.timeout(30):

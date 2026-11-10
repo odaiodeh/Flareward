@@ -5,15 +5,15 @@ from typing import Self
 
 from pydantic import BaseModel, Field, JsonValue, model_validator
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.models import Model
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.artifacts.domain.models import ContentIdentity, InlineContent
-from flareward.services.verification.domain.models import CheckVerdict, VerificationSubject
-from flareward.services.verification.program_checks import CheckProgramInput, CheckProgramResult
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.models import Model
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.artifacts.domain.models import ContentIdentity, InlineContent
+from lumora.services.verification.domain.models import CheckVerdict, VerificationSubject
+from lumora.services.verification.program_checks import CheckProgramInput, CheckProgramResult
 from plugins.testing.contracts import (
     EvaluationFailure,
     FunctionArguments,

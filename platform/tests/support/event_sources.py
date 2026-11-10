@@ -3,11 +3,11 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-from flareward.executions.domain.events import ProgramEventSource
-from flareward.executions.events import EventSourceConflict, EventSourceStore, StoredEventSource
-from flareward.executions.models import PreparedExecution
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.events import ProgramEventSource
+from lumora.executions.events import EventSourceConflict, EventSourceStore, StoredEventSource
+from lumora.executions.models import PreparedExecution
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.identity.domain import Identity
 
 
 class MemoryEventSources:

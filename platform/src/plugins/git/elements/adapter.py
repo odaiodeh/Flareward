@@ -13,10 +13,10 @@ from functools import partial
 from pathlib import Path
 from tempfile import mkdtemp
 
-from flareward.async_work import await_owned
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.artifacts.domain.models import ContentIdentity, InlineContent
-from flareward.services.identity.domain import Identity
+from lumora.async_work import await_owned
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.artifacts.domain.models import ContentIdentity, InlineContent
+from lumora.services.identity.domain import Identity
 from plugins.git.domain.repositories import (
     GitFile,
     GitFileContent,
@@ -124,11 +124,9 @@ class GitCLIRepository:
             "--depth=1",
             "--",
             self._binding.location,
-            reference + ":refs/flareward/source",
+            reference + ":refs/lumora/source",
         )
-        result = await self._run(
-            directory, "rev-parse", "--verify", "refs/flareward/source^{commit}"
-        )
+        result = await self._run(directory, "rev-parse", "--verify", "refs/lumora/source^{commit}")
         try:
             return GitRevision(repository=self._repository, commit=result.decode().strip()).commit
         except ValueError, UnicodeError:

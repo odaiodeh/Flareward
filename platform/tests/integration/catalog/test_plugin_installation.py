@@ -2,10 +2,10 @@
 
 import pytest
 
-from flareward.bootstrap.elements import installed_elements
-from flareward.bootstrap.plugins import installed_plugins
-from flareward.bootstrap.programs import installed_applications
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.bootstrap.elements import installed_elements
+from lumora.bootstrap.plugins import installed_plugins
+from lumora.bootstrap.programs import installed_applications
+from lumora.resources.domain.categories import ResourceCategory
 
 PLUGIN = "plugins.human_review.plugin"
 

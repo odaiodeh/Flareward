@@ -6,13 +6,13 @@ import pytest
 from pydantic import BaseModel, ConfigDict, SecretStr
 from support.secrets import MemorySecretStore
 
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.programs.templates.authoring import BlueprintAuthoringService
-from flareward.programs.templates.contracts import BlueprintAuthoringRepository, BlueprintDocument
-from flareward.programs.templates.exceptions import BlueprintConflictError, InvalidMetadataKeysError
-from flareward.programs.templates.models.prompt_shortcuts import PromptShortcuts
-from flareward.resources.domain.references import NodeRef
-from flareward.services.identity.domain import Identity
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.programs.templates.authoring import BlueprintAuthoringService
+from lumora.programs.templates.contracts import BlueprintAuthoringRepository, BlueprintDocument
+from lumora.programs.templates.exceptions import BlueprintConflictError, InvalidMetadataKeysError
+from lumora.programs.templates.models.prompt_shortcuts import PromptShortcuts
+from lumora.resources.domain.references import NodeRef
+from lumora.services.identity.domain import Identity
 
 
 class AuthoringDraft(BaseModel):

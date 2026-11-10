@@ -3,8 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.programs.domain.bindings import BindingError, project
-from flareward.programs.domain.models import (
+from lumora.programs.domain.bindings import BindingError, project
+from lumora.programs.domain.models import (
     LiteralBinding,
     PathBinding,
     ProgramCallStep,

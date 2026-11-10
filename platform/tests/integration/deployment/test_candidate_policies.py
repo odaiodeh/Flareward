@@ -8,8 +8,8 @@ from support.http_probe import http_probe
 from support.program_check_api import prepared_verifier
 from support.python_checks import addition_cases
 
-from flareward.bootstrap.settings.execution_policies import load_execution_profiles
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.settings.execution_policies import load_execution_profiles
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
 from plugins.testing.programs.python_check import FunctionCase
 
 PROBE = b"""
@@ -37,7 +37,7 @@ def add(first, second, host_marker, strict_filesystem):
         'second': read(second),
         'non_root': os.getuid() != 0,
         'host_file_absent': not Path(host_marker).exists(),
-        'private_environment_absent': not any(name.startswith('FLAREWARD_') for name in os.environ),
+        'private_environment_absent': not any(name.startswith('LUMORA_') for name in os.environ),
     }
     if strict_filesystem:
         result.update({
@@ -60,7 +60,7 @@ async def test_candidate_policy_enforces_declared_sandbox_guarantees_in_verifier
     async with http_probe() as first, http_probe() as second:
         endpoints = (first, second)
         policy = json.loads(
-            files("flareward.bootstrap.settings")
+            files("lumora.bootstrap.settings")
             .joinpath("policies/openshell-restricted.json")
             .read_text()
         )
@@ -101,8 +101,8 @@ async def test_candidate_policy_enforces_declared_sandbox_guarantees_in_verifier
             update={
                 "env": {
                     **(profiles["candidate"].env or {}),
-                    "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": "true",
-                    "FLAREWARD_PYTHON_CHECK_DIRECTORY": "/tmp/flareward-python-checks",
+                    "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": "true",
+                    "LUMORA_PYTHON_CHECK_DIRECTORY": "/tmp/lumora-python-checks",
                 }
             }
         )

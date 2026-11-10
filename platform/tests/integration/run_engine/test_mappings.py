@@ -8,12 +8,12 @@ from runengine.programs.graph.inputs import GraphProgramInput
 from runengine.programs.graph.models.execution import GraphCallArguments
 from runengine.programs.graph.models.program import ProgramNode
 
-from flareward.executions.adapters.run_engine.inbound.programs import (
+from lumora.executions.adapters.run_engine.inbound.programs import (
     execute_program,
     map_program_inputs,
     map_program_outputs,
 )
-from flareward.executions.adapters.run_engine.shared.state import ProgramGraphState
+from lumora.executions.adapters.run_engine.shared.state import ProgramGraphState
 
 
 def test_empty_mapping_arguments_do_not_change_existing_payloads():

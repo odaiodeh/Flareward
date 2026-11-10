@@ -5,16 +5,16 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.factory import BaseFactory
-from flareward.elements.node import BaseNode
-from flareward.elements.specification import BaseElementSpec
-from flareward.programs.graph.models.step_context import StepContext
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ToolRef
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.factory import BaseFactory
+from lumora.elements.node import BaseNode
+from lumora.elements.specification import BaseElementSpec
+from lumora.programs.graph.models.step_context import StepContext
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ToolRef
 from plugins.routing.elements.router_boolean.spec.spec import (
     RouterBooleanConditionElementSpec,
 )

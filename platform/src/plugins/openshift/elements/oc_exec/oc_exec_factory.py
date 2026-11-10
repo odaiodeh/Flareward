@@ -2,8 +2,8 @@
 
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.openshift.elements.oc_exec.config import OcExecToolConfig
 from plugins.openshift.elements.oc_exec.identifiers import Identifier
 from plugins.openshift.elements.oc_exec.oc_exec import OcExecTool

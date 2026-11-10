@@ -11,8 +11,8 @@ from support.native_settings import session_settings
 from support.server import api_process
 from support.ui_clients import run_contracts
 
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 async def test_curated_library_native_authority_transactions_leases_and_clients(
@@ -20,7 +20,7 @@ async def test_curated_library_native_authority_transactions_leases_and_clients(
 ):
     settings = session_settings(transaction_database.name, redis_uri).model_copy(
         update={
-            "mongo_uri": SecretStr(os.environ["FLAREWARD_TEST_MONGO_TRANSACTION_URI"]),
+            "mongo_uri": SecretStr(os.environ["LUMORA_TEST_MONGO_TRANSACTION_URI"]),
             "library": True,
             "edit_locks": True,
             "admin_config_database": transaction_database.name,
@@ -129,10 +129,10 @@ async def test_curated_library_native_authority_transactions_leases_and_clients(
                 "builtins",
                 {
                     **os.environ,
-                    "FLAREWARD_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
-                    "FLAREWARD_TEST_UI_ADMIN_COOKIE": admin["Cookie"],
-                    "FLAREWARD_TEST_UI_OWNER_COOKIE": reader["Cookie"],
-                    "FLAREWARD_TEST_UI_ROOT_RESOURCE": root["rid"],
+                    "LUMORA_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
+                    "LUMORA_TEST_UI_ADMIN_COOKIE": admin["Cookie"],
+                    "LUMORA_TEST_UI_OWNER_COOKIE": reader["Cookie"],
+                    "LUMORA_TEST_UI_ROOT_RESOURCE": root["rid"],
                 },
             )
             assert "Curated library production clients passed" in output

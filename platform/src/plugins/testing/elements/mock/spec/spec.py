@@ -1,5 +1,5 @@
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.testing.elements.mock.config import MockLLMConfig
 from plugins.testing.elements.mock.identifiers import META, Identifier
 from plugins.testing.elements.mock.mock_factory import MockLLMFactory

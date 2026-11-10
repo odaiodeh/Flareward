@@ -5,9 +5,9 @@ import pytest
 from support.http_programs import execute_program, publish_program
 from support.operations import TextInput, TextResult, TextSpec, operation_graph
 
-from flareward.api.app import create_app
-from flareward.elements.catalog.service import CatalogService
-from flareward.programs.domain.models import ProgramDefinition
+from lumora.api.app import create_app
+from lumora.elements.catalog.service import CatalogService
+from lumora.programs.domain.models import ProgramDefinition
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

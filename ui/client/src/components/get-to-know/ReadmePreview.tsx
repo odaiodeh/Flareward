@@ -20,7 +20,7 @@ export default function ReadmePreview() {
                 <BookOpen className="w-5 h-5 text-primary" />
               </div>
               <CardTitle className="text-lg font-semibold text-white">
-                What is Flareward?
+                What is Lumora?
               </CardTitle>
             </div>
             <Button

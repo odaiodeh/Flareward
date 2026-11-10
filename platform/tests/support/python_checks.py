@@ -1,17 +1,17 @@
 """Controlled Python source and typed check inputs; no process or transport ownership."""
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.resources.domain.bundles import (
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.resources.domain.bundles import (
     BundleEntry,
     ElementBundle,
     ResourceDefinition,
     ResourceKey,
 )
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.models import VerificationSubject
-from flareward.services.verification.program_checks import CheckProgramInput
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.models import VerificationSubject
+from lumora.services.verification.program_checks import CheckProgramInput
 from plugins.testing.contracts import (
     FunctionArguments,
     PythonFunctionConfig,

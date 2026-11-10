@@ -10,7 +10,7 @@ from support.native_settings import session_settings
 from support.server import api_process
 from support.ui_clients import run_contracts
 
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 async def test_configuration_authority_conflict_validation_and_consent_restart(
@@ -85,8 +85,8 @@ async def test_configuration_authority_conflict_validation_and_consent_restart(
                     "administration",
                     {
                         **os.environ,
-                        "FLAREWARD_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
-                        "FLAREWARD_TEST_UI_ADMIN_COOKIE": headers["alice"]["Cookie"],
+                        "LUMORA_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
+                        "LUMORA_TEST_UI_ADMIN_COOKIE": headers["alice"]["Cookie"],
                     },
                 )
                 assert "Administration and consent production clients passed" in output

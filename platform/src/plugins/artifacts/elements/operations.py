@@ -6,14 +6,14 @@ from pathlib import PurePosixPath
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.services.artifacts.domain.models import (
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.services.artifacts.domain.models import (
     BlobArtifactRef,
     ContentIdentity,
     PublishArtifact,
 )
-from flareward.services.artifacts.ports import ArtifactGateway, WorkspaceFiles
-from flareward.services.workspaces.domain.files import WorkspaceFile, WorkspaceLayout, WorkspaceMode
+from lumora.services.artifacts.ports import ArtifactGateway, WorkspaceFiles
+from lumora.services.workspaces.domain.files import WorkspaceFile, WorkspaceLayout, WorkspaceMode
 
 
 class PublishedArtifact(BaseModel):

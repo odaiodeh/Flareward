@@ -2,15 +2,15 @@
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
-from flareward.programs.domain.models import (
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
     ProgramTarget,
 )
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
 
 
 class CounterConfig(BaseModel):

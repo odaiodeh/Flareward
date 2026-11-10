@@ -291,7 +291,7 @@ storage:
   persistentVolumeClaimName:
 
   ## Internal volume name and prefix of a created PVC
-  volumeName: "flareward-mongodb-volume"
+  volumeName: "lumora-mongodb-volume"
 
   ## Alternative set requestedSize to define a size for a dynamically created PVC
   requestedSize: 100G

@@ -7,10 +7,10 @@ from support.artifacts import inline_content
 from support.operations import operation_bundle
 from support.python_checks import ADDITION, addition_cases
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.ports import ProgramRuntime
-from flareward.services.verification.domain.models import VerificationSubject
-from flareward.services.verification.program_checks import CheckProgramInput
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.ports import ProgramRuntime
+from lumora.services.verification.domain.models import VerificationSubject
+from lumora.services.verification.program_checks import CheckProgramInput
 from plugins.git.domain.repositories import GitFileContent, GitRevision
 from plugins.testing.programs.git_check import GitPythonCheck, GitPythonCheckConfig
 

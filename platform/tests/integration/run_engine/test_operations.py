@@ -4,15 +4,15 @@ import pytest
 from support.operations import AliasedTextSpec, operation_bundle, operation_graph
 from support.scenarios import publish, run
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.programs.domain.models import (
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     OperationStep,
     PathBinding,
     ProgramCallStep,
 )
-from flareward.programs.service import ProgramContractError
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

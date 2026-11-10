@@ -9,8 +9,8 @@ import httpx
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import FileResponse
 
-from flareward.api.dependencies import authenticated
-from flareward.services.identity.domain import Identity
+from lumora.api.dependencies import authenticated
+from lumora.services.identity.domain import Identity
 from support.placement_browser import create_app as placement_app
 
 
@@ -51,7 +51,7 @@ def add_workspace_routes(app: FastAPI) -> FastAPI:
     async def memberships(caller: Annotated[Identity, Depends(authenticated)]):
         async with httpx.AsyncClient() as upstream:
             response = await upstream.get(
-                os.environ["FLAREWARD_IDENTITY_URL"] + "/api/teams/teams.list",
+                os.environ["LUMORA_IDENTITY_URL"] + "/api/teams/teams.list",
                 params={"userId": caller.id},
             )
             response.raise_for_status()

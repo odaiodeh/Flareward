@@ -11,14 +11,14 @@ from support.conditions import ELEMENT_SPECIFICATIONS
 from support.http_programs import execute_program, publish_program
 from support.operations import operation_bundle, operation_graph
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.executions.domain.profile_access import (
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.executions.domain.profile_access import (
     OwnerProfileRule,
     ProfileAccessPolicy,
     ProfileGrant,
 )
-from flareward.executions.models import PreparedExecution
-from flareward.programs.domain.models import (
+from lumora.executions.models import PreparedExecution
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     PathBinding,
@@ -26,7 +26,7 @@ from flareward.programs.domain.models import (
     ProgramCallStep,
     ProgramDefinition,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

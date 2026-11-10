@@ -5,8 +5,8 @@ import hashlib
 from support.blueprint_http import library_api
 from support.inspection import inspection_elements
 
-from flareward.resources.domain.builtins import BuiltinResourceDescriptor
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.builtins import BuiltinResourceDescriptor
+from lumora.services.identity.domain import Identity
 
 
 async def test_native_inspection_preserves_dependencies_overlays_and_human_credentials(

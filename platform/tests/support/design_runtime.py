@@ -3,10 +3,10 @@
 from collections import deque
 from unittest.mock import create_autospec
 
-from flareward.programs.ports import ChildExecution
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.contracts import OpenReview, SubmitReview
-from flareward.services.reviews.service import ReviewService
+from lumora.programs.ports import ChildExecution
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.contracts import OpenReview, SubmitReview
+from lumora.services.reviews.service import ReviewService
 from plugins.adlc.programs.design import (
     DesignWork,
 )
@@ -51,7 +51,7 @@ class DesignRuntime:
 
     async def receive(self, name, *, timeout=None):
         review = await self.reviews.inspect(
-            name.removeprefix("flareward.review."), review_actor(self.owner)
+            name.removeprefix("lumora.review."), review_actor(self.owner)
         )
         decision = self.decisions.popleft() if self.decisions else "pending"
         if decision == "pending":

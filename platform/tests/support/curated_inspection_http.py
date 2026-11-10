@@ -2,9 +2,9 @@
 
 from functools import partial
 
-from flareward.api.app import create_app as http_app
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.api.app import create_app as http_app
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
 from support.inspection import inspection_elements
 
 

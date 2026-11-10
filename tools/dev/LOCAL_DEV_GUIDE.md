@@ -1,14 +1,14 @@
 # Local development
 
 Python 3.14, Node 22+, npm/pnpm, tmux and Docker/Podman are required for the full
-stack. Install `tools/dev` to use the optional `flareward-dev` service manager:
+stack. Install `tools/dev` to use the optional `lumora-dev` service manager:
 
 ```sh
 .venv/bin/python -m pip install -e tools/dev
-flareward-dev init
-flareward-dev start
-flareward-dev start platform --fg
-flareward-dev logs platform -f
+lumora-dev init
+lumora-dev start
+lumora-dev start platform --fg
+lumora-dev logs platform -f
 ```
 
 The registry in `services.yaml` defines Platform, Identity, UI and an optional

@@ -40,6 +40,6 @@ class DeploymentBackend:
     def verify(self, proof: dict) -> None:
         assert proof["system"] == "Linux"
         assert proof["hostname"] and proof["pid"] > 0
-        assert proof["image_marker"] == "flareward-platform-e2e-v1"
+        assert proof["image_marker"] == "lumora-platform-e2e-v1"
         assert proof["namespace"] == self.namespace
         assert proof["dependencies"] == ["middle", "leaf"]

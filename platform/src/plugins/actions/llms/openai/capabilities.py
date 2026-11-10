@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from pydantic import JsonValue
 
-from flareward.services.actions.contracts import ActionSettings
+from lumora.services.actions.contracts import ActionSettings
 
 
 class ModelCapabilities:

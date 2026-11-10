@@ -20,9 +20,9 @@ import json
 from typing import Any
 from uuid import uuid4
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
-from flareward.elements.models.name_sanitizer import map_name
-from flareward.elements.tools.domain.models import ToolDefinition
+from lumora.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
+from lumora.elements.models.name_sanitizer import map_name
+from lumora.elements.tools.domain.models import ToolDefinition
 
 
 class ResponsesAdapter:

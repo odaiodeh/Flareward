@@ -1,7 +1,7 @@
 from pydantic import HttpUrl, JsonValue
 
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.actions.contracts import (
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.actions.contracts import (
     ActionContext,
     ActionType,
     BaseAction,

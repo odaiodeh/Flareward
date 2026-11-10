@@ -4,12 +4,12 @@ import json
 
 from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError
 
-from flareward.elements.coding.contracts import CodingInput, CodingOutcome
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.files import ProgramFileInputs
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
+from lumora.elements.coding.contracts import CodingInput, CodingOutcome
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.files import ProgramFileInputs
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
 from plugins.adlc.programs.design import DesignProposal, DesignWork
 from plugins.adlc.programs.program import validate_result
 

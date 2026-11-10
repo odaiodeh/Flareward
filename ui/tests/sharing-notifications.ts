@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import axios from '../client/src/http/axiosAgentConfig';
 import { declineShare, formatShareSenderLabel, getShare, listShares } from '../client/src/api/shares';
 
-const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
+const endpoint = process.env.LUMORA_TEST_UI_API_URL;
 assert.ok(endpoint);
 axios.defaults.baseURL = endpoint;
 

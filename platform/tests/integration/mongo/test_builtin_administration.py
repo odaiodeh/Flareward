@@ -5,16 +5,16 @@ import asyncio
 import pytest
 from support.builtins import chain, curated_record
 
-from flareward.resources.adapters.mongo.builtin_administration import MongoBuiltinAdministration
-from flareward.resources.adapters.mongo.resource_authoring_repository import (
+from lumora.resources.adapters.mongo.builtin_administration import MongoBuiltinAdministration
+from lumora.resources.adapters.mongo.resource_authoring_repository import (
     MongoResourceAuthoringRepository,
 )
-from flareward.resources.errors import ResourceConflictError, ResourceDuplicateNameError
+from lumora.resources.errors import ResourceConflictError, ResourceDuplicateNameError
 
 
 async def repository(database):
     hello = await database.client.admin.command("hello")
-    assert hello.get("setName"), "Select Flareward's transaction-capable Mongo test service"
+    assert hello.get("setName"), "Select Lumora's transaction-capable Mongo test service"
     resources = MongoResourceAuthoringRepository(
         database,
         resources="resources",

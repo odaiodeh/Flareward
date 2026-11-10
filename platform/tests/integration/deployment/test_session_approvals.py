@@ -15,27 +15,27 @@ from support.server import api_process
 from support.temporal import replay, worker_process, workflow_handle
 from temporalio.client import Client, WorkflowFailureError
 
-from flareward.bootstrap.settings.interaction_settings import InteractionBackend
-from flareward.bootstrap.settings.platform_settings import AuthenticationKind
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.interactions.adapters.redis_store import RedisInteractionStore
-from flareward.services.interactions.adapters.wire import root_key
+from lumora.bootstrap.settings.interaction_settings import InteractionBackend
+from lumora.bootstrap.settings.platform_settings import AuthenticationKind
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.interactions.adapters.redis_store import RedisInteractionStore
+from lumora.services.interactions.adapters.wire import root_key
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
 async def test_approval_and_saved_rules_recover_across_api_restart(
     secret_settings, mongo_database, tmp_path, profile
 ):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
-    redis_uri = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
+    redis_uri = os.environ.get("LUMORA_TEST_REDIS_URI")
     if not endpoint or not redis_uri:
         pytest.skip("Set Temporal, Mongo and Redis services for approval recovery E2E")
     settings = secret_settings.model_copy(
         update={
             "host": TemporalHostConfig(
-                endpoint=endpoint, task_queue="flareward-review-" + uuid4().hex
+                endpoint=endpoint, task_queue="lumora-review-" + uuid4().hex
             ),
             "library": True,
             "authentication": AuthenticationKind.SESSION,

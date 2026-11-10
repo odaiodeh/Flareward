@@ -2,8 +2,8 @@
 
 from unittest.mock import create_autospec
 
-from flareward.elements.tools.config import ExecutorConfig
-from flareward.elements.tools.interfaces import ErrorHandler, ExecutionValidator
+from lumora.elements.tools.config import ExecutorConfig
+from lumora.elements.tools.interfaces import ErrorHandler, ExecutionValidator
 
 
 def test_executor_configuration_passes_original_ports_without_cloning_their_resources():

@@ -4,12 +4,12 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
-from flareward.services.reviews.contracts import ReviewSettings, ValidatedReviewTemplate
-from flareward.services.reviews.domain.models import ReviewRecord, ReviewStatus
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
+from lumora.services.reviews.contracts import ReviewSettings, ValidatedReviewTemplate
+from lumora.services.reviews.domain.models import ReviewRecord, ReviewStatus
 from plugins.human_review.elements.operations import RequestReview
 
 

@@ -6,9 +6,9 @@ from typing import Any, Self
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.factory import BaseFactory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.testing.contracts import (
     PythonFunctionConfig,
     PythonFunctionInput,
@@ -18,9 +18,9 @@ from plugins.testing.python_functions import PythonFunctionEvaluation
 
 
 class PythonCheckSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="FLAREWARD_PYTHON_CHECK_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="LUMORA_PYTHON_CHECK_", extra="ignore")
     execution_enabled: bool = False
-    directory: Path = Path("/tmp/flareward-python-checks")
+    directory: Path = Path("/tmp/lumora-python-checks")
 
     @model_validator(mode="after")
     def absolute_directory(self) -> Self:

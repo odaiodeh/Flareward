@@ -4,12 +4,12 @@ from typing import Protocol
 
 from pydantic import JsonValue
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.executions.models import StartExecution
-from flareward.executions.service import ExecutionService
-from flareward.programs.domain.models import (
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.executions.models import StartExecution
+from lumora.executions.service import ExecutionService
+from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
     PathBinding,
@@ -17,12 +17,12 @@ from flareward.programs.domain.models import (
     ProgramImplementation,
     ProgramRevision,
 )
-from flareward.programs.service import ProgramService
-from flareward.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
-from flareward.services.sessions.execution.program_sessions import ProgramSessionService
-from flareward.services.sessions.records import SessionRecord
+from lumora.programs.service import ProgramService
+from lumora.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
+from lumora.services.sessions.execution.program_sessions import ProgramSessionService
+from lumora.services.sessions.records import SessionRecord
 from support.elements import element_registry
 
 

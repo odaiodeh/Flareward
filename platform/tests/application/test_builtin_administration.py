@@ -6,17 +6,17 @@ import pytest
 from support.builtins import ADMIN, chain, curated_record
 from support.secrets import MemoryCipher
 
-from flareward.resources.builtins import BuiltinAdministration, BuiltinRepository
-from flareward.resources.configuration import ResourceConfiguration
-from flareward.resources.errors import (
+from lumora.resources.builtins import BuiltinAdministration, BuiltinRepository
+from lumora.resources.configuration import ResourceConfiguration
+from lumora.resources.errors import (
     BuiltinDependentsPublicError,
     ResourceConflictError,
     ResourceLockedError,
 )
-from flareward.resources.field_encryption import ResourceFieldEncryption
-from flareward.services.access.administrators import AdministratorAccess
-from flareward.services.collaboration.editing import EditLease, EditLockStore
-from flareward.services.identity.domain import Identity
+from lumora.resources.field_encryption import ResourceFieldEncryption
+from lumora.services.access.administrators import AdministratorAccess
+from lumora.services.collaboration.editing import EditLease, EditLockStore
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

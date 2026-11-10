@@ -2,8 +2,8 @@
 A2A Agent Node Specification
 """
 
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.a2a.elements.a2a_agent.a2a_agent_node import A2AAgentNode
 from plugins.a2a.elements.a2a_agent.a2a_agent_node_factory import A2AAgentNodeFactory
 from plugins.a2a.elements.a2a_agent.card_builder import A2AAgentCardBuilder

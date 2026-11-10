@@ -1,5 +1,5 @@
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.workloads.domain import WorkItemKind, WorkItemStatus
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.workloads.domain import WorkItemKind, WorkItemStatus
 from plugins.mas.elements.orchestrator.context.models import CycleTriggerReason
 
 """
@@ -13,12 +13,12 @@ from collections.abc import Callable
 from enum import Enum
 from typing import Any
 
-from flareward.elements.agents.phases.models import PhaseValidationContext
-from flareward.elements.agents.phases.phase_definition import PhaseDefinition, PhaseSystem
-from flareward.elements.agents.phases.phase_protocols import PhaseState, create_phase_state
-from flareward.elements.agents.phases.unified_phase_provider import PhaseProvider
-from flareward.elements.messaging.domain.messages import ChatMessage
-from flareward.elements.ports.tool import BaseTool
+from lumora.elements.agents.phases.models import PhaseValidationContext
+from lumora.elements.agents.phases.phase_definition import PhaseDefinition, PhaseSystem
+from lumora.elements.agents.phases.phase_protocols import PhaseState, create_phase_state
+from lumora.elements.agents.phases.unified_phase_provider import PhaseProvider
+from lumora.elements.messaging.domain.messages import ChatMessage
+from lumora.elements.ports.tool import BaseTool
 from plugins.mas.elements.builtin.delegation.delegate_task import DelegateTaskTool
 from plugins.mas.elements.builtin.time import GetCurrentTimeTool
 from plugins.mas.elements.builtin.topology.get_node_card import GetNodeCardTool

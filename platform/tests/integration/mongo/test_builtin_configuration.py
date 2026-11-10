@@ -7,20 +7,20 @@ from pymongo import MongoClient
 from support.blueprint_http import library_api
 from support.blueprints import external_blueprint
 
-from flareward.resources.adapters.mongo.builtin_configuration_repository import (
+from lumora.resources.adapters.mongo.builtin_configuration_repository import (
     MongoBuiltinConfigurationRepository,
 )
-from flareward.resources.adapters.mongo.builtin_user_config_repository import (
+from lumora.resources.adapters.mongo.builtin_user_config_repository import (
     MongoBuiltinUserConfigRepository,
 )
-from flareward.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
-from flareward.resources.domain.builtins import (
+from lumora.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
+from lumora.resources.domain.builtins import (
     BuiltinResourceDescriptor,
     BuiltinUserConfig,
     identity_to_key,
 )
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.identity.domain import Identity
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.identity.domain import Identity
 
 
 async def test_builtin_http_configuration_is_owner_scoped_versioned_and_snapshotted(
@@ -152,7 +152,7 @@ async def test_builtin_configuration_cas_handles_versionless_records_and_fences_
     assert await repository.replace(original, updated)
 
     def legacy_edit():
-        with MongoClient(os.environ["FLAREWARD_TEST_MONGO_URI"]) as client:
+        with MongoClient(os.environ["LUMORA_TEST_MONGO_URI"]) as client:
             legacy = MongoBuiltinUserConfigRepository(database=client[mongo_database.name])
             legacy.close()
             current = legacy.get("builtin", "user:owner")

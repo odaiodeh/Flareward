@@ -1,5 +1,5 @@
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.mas.elements.llm_merger.config import MergerLLMNodeConfig
 from plugins.mas.elements.llm_merger.identifiers import Identifier
 from plugins.mas.elements.llm_merger.llm_merger import LLMMergerNode

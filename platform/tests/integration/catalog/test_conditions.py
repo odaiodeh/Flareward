@@ -3,8 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.elements.condition import BaseCondition
-from flareward.programs.graph.state.graph_state import GraphState
+from lumora.elements.condition import BaseCondition
+from lumora.programs.graph.state.graph_state import GraphState
 from plugins.routing.elements.router_boolean.config import RouterBooleanConditionConfig
 from plugins.routing.elements.router_boolean.router_condition_factory import (
     RouterBooleanConditionFactory,

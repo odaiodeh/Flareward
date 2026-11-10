@@ -5,15 +5,15 @@ from unittest.mock import create_autospec
 import pytest
 from support.artifacts import chunks, publication
 
-from flareward.services.artifacts.access_models import ArtifactActor
-from flareward.services.artifacts.ports import (
+from lumora.services.artifacts.access_models import ArtifactActor
+from lumora.services.artifacts.ports import (
     ArtifactIntegrityError,
     ArtifactLimitExceeded,
     ArtifactMissing,
     ArtifactRepository,
 )
-from flareward.services.artifacts.service import ArtifactService
-from flareward.services.identity.domain import Identity
+from lumora.services.artifacts.service import ArtifactService
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

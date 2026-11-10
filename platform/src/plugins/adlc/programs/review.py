@@ -4,8 +4,8 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from flareward.services.verification.domain.models import VerificationOutcome, VerificationSubject
-from flareward.services.verification.models import VerificationView
+from lumora.services.verification.domain.models import VerificationOutcome, VerificationSubject
+from lumora.services.verification.models import VerificationView
 
 
 class EngineeringReviewSubject(BaseModel):

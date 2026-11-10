@@ -190,7 +190,7 @@ Do NOT approve based on the Coder's summary of changes — verify every claim by
 
 ### 9. Identity Object Compliance (STRICT)
 
-The `platform` module uses a structured `Identity` object (`flareward.services.identity.domain.Identity` — with fields `type`, `id`, `display_name`) for resource ownership instead of flat `user_id` strings.
+The `platform` module uses a structured `Identity` object (`lumora.services.identity.domain.Identity` — with fields `type`, `id`, `display_name`) for resource ownership instead of flat `user_id` strings.
 
 **In `platform/` code** — any new or modified code that handles ownership or scoping of blueprints, resources, sessions, shares, or templates MUST use `Identity`, not a flat `user_id` string:
 - Service methods accepting `user_id: str` for ownership where `identity: Identity` is the established pattern = **MAJOR**

@@ -1,80 +1,85 @@
-# Flareward naming and namespace cutover
+# Lumora naming and namespace cutover
 
-Flareward is the platform's public name. Use `Flareward` in product text,
-`flareward` in Python and machine-readable identifiers, and `FLAREWARD_` for
-platform environment variables. The repository folder can have any local name. This checkout is now at
-`/Users/odaiodeh/IdeaProjects/Flareward`, with `origin` set to
-`git@github.com:odaiodeh/Flareward.git`; `main` tracks `origin/main`.
+Lumora is the platform's public name. The name combines **lumen** (light) and
+**aurora** (dawn), representing intelligence bringing ideas into reality.
+Its tagline is **From intent to reality.**
+
+Use `Lumora` in product text, `lumora` in Python and machine-readable identifiers,
+and `LUMORA_` for platform environment variables. Capability implementations
+continue to use the top-level `plugins` package.
 
 ## Canonical names
 
 | Surface | Name |
 | --- | --- |
-| Product, UI, API description | Flareward |
-| Core source and imports | `platform/src/flareward/`, `flareward.*` |
+| Product, UI, API description | Lumora |
+| Core source and imports | `platform/src/lumora/`, `lumora.*` |
 | Capability implementation source and imports | `platform/src/plugins/`, `plugins.*` |
-| Python distribution and API/worker command | `flareward-platform` |
-| Developer distribution, command and fallback script | `flareward-dev`, `tools/dev/flareward-dev` |
-| UI package | `flareward-ui` |
-| Application configuration | `FLAREWARD_*` |
-| Dedicated test configuration | `FLAREWARD_TEST_*`, `FLAREWARD_E2E_*` |
-| Images | `flareward-platform`, `flareward-receiver`, `flareward-sandbox`, `flareward-codex` |
-| Independent test stack and kind cluster | `flareward-e2e` |
+| Python distribution and API/worker command | `lumora-platform` |
+| Developer distribution, command and fallback script | `lumora-dev`, `tools/dev/lumora-dev` |
+| UI package | `lumora-ui` |
+| Application configuration | `LUMORA_*` |
+| Dedicated test configuration | `LUMORA_TEST_*`, `LUMORA_E2E_*` |
+| Images | `lumora-platform`, `lumora-receiver`, `lumora-sandbox`, `lumora-codex` |
+| New dedicated test stack and kind cluster | `lumora-e2e` |
 
-Installed capability plugins use the top-level `plugins` package. The core's
-`flareward.plugins` module owns the pure manifest contract; it does not contain
-concrete capability implementations. Composition roots select installed plugins.
-The generic `global_utils` shared infrastructure package and the external
-`runengine` package keep their own names.
+The core's `lumora.plugins` module owns the pure manifest contract. Only bootstrap
+selects concrete capability implementations. The generic `global_utils` shared
+infrastructure package and the external `runengine` package keep their own names.
 
 ## Installing and configuring
 
-This is a namespace and runtime-contract cutover, without old-name aliases.
-For an existing development environment, uninstall the old distribution before
-installing the renamed packages:
+This replaces the previous Flareward namespace without compatibility aliases.
+Update an existing development environment before running the renamed entry points:
 
 ```sh
-.venv/bin/python -m pip uninstall unifai-platform unifai-dev
+.venv/bin/python -m pip uninstall flareward-platform flareward-dev
 .venv/bin/python -m pip install -e ./packages/service-support -e './platform[dev]' -e ./tools/dev
 ```
 
-Rename `UNIFAI_*` settings to `FLAREWARD_*` in private environment files, deployment
-secrets and process configuration. Change installed module references from
-`unifai.*` to `flareward.*`, and plugin references to `plugins.*`. API, worker and
-receivers must use the same installed modules, configuration and rebuilt images.
+Rename `FLAREWARD_*` settings to `LUMORA_*` in private environment files, deployment
+secrets and process configuration. Replace `flareward.*` module references with
+`lumora.*`; `plugins.*` stays unchanged. Environments still using the earlier
+UnifAI names need the equivalent `UNIFAI_*` and `unifai.*` cutover too.
+API, workers and receivers must use matched installed modules and rebuilt images.
 See [platform startup](../platform/README.md) and
 [the dedicated infrastructure guide](../platform/tests/infra/README.md).
 
-New defaults use the Flareward database, queue, storage/log paths, capability
-identifiers, markers and test resource names. Existing databases, volumes, queues,
-credentials, signed grants and published revisions are not renamed or deleted by
-this source change. Recreate publications and grants for this fresh platform;
-do not resume old histories using renamed workers. If retaining a deployment's
-existing data location, configure its database/storage/queue explicitly and plan
-a separate data conversion rather than substituting strings in stored records.
+New defaults use Lumora database, queue, storage/log paths, capability identifiers,
+markers and test resource names. Existing databases, volumes, queues, credentials,
+signed grants, histories and published revisions are not renamed or deleted.
+Recreate publications and grants for this fresh platform; do not resume old
+histories using renamed workers. To retain an existing data location, configure
+its database/storage/queue explicitly and plan a separate data conversion.
 Do not run old and renamed workers against the same active task queue.
 
 ## External identities and historical records
 
-A source rename does not rename external repositories, GitHub secrets, registry
-namespaces, domains, Slack channels or existing Docker/Kubernetes resources.
-The active repository is now `odaiodeh/Flareward`; GitHub redirects its prior
-`odaiodeh/UnifAI-ADLC` address. The original community repository and private
-certificate repository retain their actual `UnifAI` addresses, as does the
-`UNIFAI_SECRETS_TOKEN` GitHub secret.
-Jenkins credential IDs (`github-unifai-token`, `images.paas.registry-unifai`),
-the existing Vault path and downstream Jenkins job also retain their actual
-external identities. The certificate checkout directory is `ui/Flareward-secrets`; original certificate
-filenames are copied to generic `server.pem` / `server.key` paths in the image.
-Existing external deployment/support links remain their actual addresses until
-operators migrate those services. Renamed deployment manifests target Flareward
-release/image/storage names and require provisioning those resources before use.
-The checkout move preserves uncommitted work and repairs local Python/Node
-environment paths and the owned idle test gateway mount. Reopen the new folder
-in Codex and the IDE. No commit, push, deployment, credential rotation or data
-deletion is performed by this cutover.
+The local checkout is `/Users/odaiodeh/IdeaProjects/Lumora`, and `origin` uses
+`git@github.com:odaiodeh/Lumora.git` for fetch and push. GitHub serves
+`odaiodeh/Lumora` and redirects the old Flareward URL to the same repository.
+`main` continues to track `origin/main`. The checkout move preserves the complete
+uncommitted worktree and existing Git history, without an old-folder alias.
+Generated Python/Node paths were repaired and editable packages reinstalled.
+Reopen the Lumora folder in Codex and the IDE so saved workspace selections follow
+this move. No commit or push was performed. See the
+[checkout verification](evidence/2026-11-10-lumora-checkout.md).
+
+Existing external domains, GitHub secrets, registry credentials, Vault paths and
+Jenkins jobs retain their actual identities. The original community repository
+and private certificate repository retain their `UnifAI` addresses, as does the
+`UNIFAI_SECRETS_TOKEN` secret. The certificate checkout directory is now
+`ui/Lumora-secrets`; original certificate filenames are copied to generic
+`server.pem` / `server.key` image paths. Renamed deployment manifests require
+provisioning the corresponding release/image/storage resources before use.
+
+Existing Docker stacks and Kubernetes clusters retain their resource names.
+The owned idle OpenShell gateway was recreated with its new absolute state mounts,
+existing database and mTLS identities; other services were not stopped or changed. New defaults use `lumora-e2e`; do not start another stack on occupied
+ports. Explicitly select existing owned services when reusing them for checks.
+Fresh remote runs require rebuilt Lumora receivers, matched gateway configuration
+and explicit image selection. Old images do not verify the renamed source.
 
 Files in `docs/evidence/` describe their original tested snapshots. Preserve old
 names, image digests, source manifests and captured media in historical evidence.
-A later rename does not change what an earlier test executed. New evidence uses
-the current names. Historical references are not compatibility entry points.
+New evidence uses current names. Historical records are not compatibility paths.

@@ -6,7 +6,7 @@ from pydantic import SecretStr
 from runengine.adapters.coordination.config import LocalHostConfig
 from runengine.invocation.config import ProcessRunnerConfig, ThreadRunnerConfig
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
 
 
 def session_settings(database: str, redis_uri: str) -> PlatformSettings:
@@ -16,7 +16,7 @@ def session_settings(database: str, redis_uri: str) -> PlatformSettings:
         interactions="disabled",
         authentication="session",
         secret_key=SecretStr("native-cookie-fixture"),
-        mongo_uri=SecretStr(os.environ["FLAREWARD_TEST_MONGO_URI"]),
+        mongo_uri=SecretStr(os.environ["LUMORA_TEST_MONGO_URI"]),
         mongo_database=database,
         redis_uri=SecretStr(redis_uri),
         execution_profiles={

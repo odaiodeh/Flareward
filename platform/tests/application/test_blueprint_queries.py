@@ -5,16 +5,16 @@ from unittest.mock import create_autospec
 import pytest
 from support.blueprints import inline_blueprint, library_elements
 
-from flareward.programs.templates.authoring import BlueprintAuthoringService
-from flareward.programs.templates.contracts import (
+from lumora.programs.templates.authoring import BlueprintAuthoringService
+from lumora.programs.templates.contracts import (
     BlueprintDocument,
     BlueprintPage,
     BlueprintResolution,
     BlueprintResolutionSource,
 )
-from flareward.programs.templates.queries import BlueprintQueryService
-from flareward.programs.templates.schema import blueprint_schemas
-from flareward.services.identity.domain import Identity
+from lumora.programs.templates.queries import BlueprintQueryService
+from lumora.programs.templates.schema import blueprint_schemas
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

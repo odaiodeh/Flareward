@@ -3,14 +3,14 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.executions.domain.preferences import ExecutionProfileCatalog
-from flareward.executions.domain.profile_access import (
+from lumora.executions.domain.preferences import ExecutionProfileCatalog
+from lumora.executions.domain.profile_access import (
     OwnerProfileRule,
     ProfileAccessPolicy,
     ProfileGrant,
 )
-from flareward.executions.profile_access import ExecutionProfileAccess
-from flareward.services.identity.domain import Identity
+from lumora.executions.profile_access import ExecutionProfileAccess
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

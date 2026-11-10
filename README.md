@@ -1,6 +1,12 @@
-# Flareward
+# Lumora
 
-Flareward is a platform for composing and executing agentic development workflows.
+**From intent to reality.**
+
+Lumora combines **lumen** (light) and **aurora** (dawn). The name represents
+a new beginning: intelligence bringing ideas into reality, from the first intent
+to a delivered outcome.
+
+Lumora is a platform for composing and executing agentic development workflows.
 Configured capabilities perform work; reusable Programs coordinate those capabilities
 and other Programs through typed contracts and a shared execution lifecycle.
 
@@ -24,29 +30,29 @@ run. Specifications, factories and builders remain the capability construction p
 ## Architecture
 
 ```text
-+---------------------------- UI -----------------------------+
-| Resources | Programs library/canvas | Executions | Reviews  |
-| Optional Sessions | Results and retained artifacts           |
-+------------------------------+------------------------------+
-                               | HTTP
-+------------------------------v------------------------------+
-| Flareward application: authoring, admission, Program contracts, |
-| construction, verification, review and artifact services     |
-| Domain values and application-owned ports                   |
-+------------------------------+------------------------------+
-                               | adapters
-+------------------------------v------------------------------+
-| Run Engine | Storage | Identity | Capability integrations    |
-| Coordination and graphs | Invocation and environment reuse  |
-+------------------------------+------------------------------+
-                               |
-+------------------------------v------------------------------+
-| Temporal | Workers | Thread/process | Kubernetes | OpenShell |
-| Coding agents | Models | Tools | External services           |
-+-------------------------------------------------------------+
++------------------------------ UI ------------------------------+
+| Resources | Programs library/canvas | Executions | Reviews     |
+| Optional Sessions | Results and retained artifacts             |
++--------------------------------+-------------------------------+
+                                 | HTTP
++--------------------------------v-------------------------------+
+| Lumora: authoring, admission, Program contracts,               |
+| construction, verification, review and artifact services       |
+| Domain values and application-owned ports                      |
++--------------------------------+-------------------------------+
+                                 | adapters
++--------------------------------v-------------------------------+
+| Run Engine | Storage | Identity | Capability integrations      |
+| Coordination and graphs | Invocation and environment reuse     |
++--------------------------------+-------------------------------+
+                                 |
++--------------------------------v-------------------------------+
+| Temporal | Workers | Thread/process | Kubernetes | OpenShell   |
+| Coding agents | Models | Tools | External services             |
++----------------------------------------------------------------+
 ```
 
-Flareward owns product policy, typed work contracts and authoritative business records.
+Lumora owns product policy, typed work contracts and authoritative business records.
 Run Engine owns scheduling, coordination, native waits, invocation and environments.
 An agent's successful exit is distinct from independent verification and authorized
 human acceptance. Git revisions are supported identities; the core remains generic.
@@ -55,7 +61,7 @@ human acceptance. Git revisions are supported identities; the core remains gener
 
 | Directory | Responsibility |
 | --- | --- |
-| `platform/` | Feature-owned core (`flareward`) and optional capability plugins (`plugins`), API, workers and tests |
+| `platform/` | Feature-owned core (`lumora`) and optional capability plugins (`plugins`), API, workers and tests |
 | `ui/` | React canvas, catalogs, execution workbench and shared API clients |
 | `identity/` | Authentication, users, teams and directory integration |
 | `packages/service-support/` | Infrastructure utilities shared by platform and Identity (`global_utils` package) |
@@ -70,7 +76,7 @@ have been removed; platform administration and consent use the platform API.
 
 ## Start and develop
 
-- [Flareward naming, package installation and configuration cutover](docs/branding.md)
+- [Lumora naming, package installation and configuration cutover](docs/branding.md)
 
 - [Platform setup and API/worker commands](platform/README.md)
 - [UI setup](ui/README.md)

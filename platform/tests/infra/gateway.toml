@@ -14,14 +14,14 @@ allow_unauthenticated_users = false
 signing_key_path = "/etc/openshell/pki/signing.pem"
 public_key_path = "/etc/openshell/pki/public.pem"
 kid_path = "/etc/openshell/pki/kid"
-gateway_id = "flareward-e2e"
+gateway_id = "lumora-e2e"
 ttl_secs = 0
 
 [openshell.drivers.docker]
-default_image = "flareward-sandbox:rename-20261109"
+default_image = "lumora-sandbox:rename-20261110"
 supervisor_image = "ghcr.io/nvidia/openshell/supervisor:0.0.103"
 image_pull_policy = "IfNotPresent"
-sandbox_namespace = "flareward-e2e"
+sandbox_namespace = "lumora-e2e"
 grpc_endpoint = "https://host.openshell.internal:8090"
 guest_tls_ca = "{{STATE_DIR}}/pki/ca.crt"
 guest_tls_cert = "{{STATE_DIR}}/pki/guest.crt"

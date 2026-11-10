@@ -1,13 +1,13 @@
 import logging
 from typing import Any, ClassVar
 
-from flareward.elements.behaviors.llm_capable import LlmCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.node import BaseNode
-from flareward.elements.workloads.domain import AgentResult, Task
-from flareward.programs.graph.capabilities.messaging import GraphMessagingMixin
-from flareward.programs.graph.capabilities.workloads import GraphWorkloadMixin
-from flareward.programs.graph.state.state_view import StateView
+from lumora.elements.behaviors.llm_capable import LlmCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.node import BaseNode
+from lumora.elements.workloads.domain import AgentResult, Task
+from lumora.programs.graph.capabilities.messaging import GraphMessagingMixin
+from lumora.programs.graph.capabilities.workloads import GraphWorkloadMixin
+from lumora.programs.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 

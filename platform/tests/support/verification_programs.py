@@ -1,9 +1,9 @@
 """Reusable program definitions without transport, database or execution SDK imports."""
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     LiteralBinding,
@@ -12,8 +12,8 @@ from flareward.programs.domain.models import (
     ProgramCallStep,
     ProgramRef,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 
 
 def verification_resources() -> tuple[ResourceDefinition, ...]:

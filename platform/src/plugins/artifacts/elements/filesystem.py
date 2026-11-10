@@ -12,17 +12,17 @@ from pathlib import Path
 from typing import BinaryIO
 from uuid import uuid4
 
-from flareward.async_work import await_owned
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.artifacts.domain.models import ContentIdentity
-from flareward.services.artifacts.ports import (
+from lumora.async_work import await_owned
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.artifacts.domain.models import ContentIdentity
+from lumora.services.artifacts.ports import (
     ArtifactConflict,
     ArtifactIntegrityError,
     ArtifactLimitExceeded,
     ArtifactStorageError,
     FileSource,
 )
-from flareward.services.workspaces.domain.files import WorkspaceFile
+from lumora.services.workspaces.domain.files import WorkspaceFile
 from plugins.workspaces import WorkspacePaths
 
 

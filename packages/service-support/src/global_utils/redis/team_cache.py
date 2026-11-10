@@ -1,5 +1,5 @@
 """
-Redis-backed cache for user **team** memberships (Flareward internal teams).
+Redis-backed cache for user **team** memberships (Lumora internal teams).
 
 Follows the same pattern as
 ``shared-resources/identity/utils/user_groups_cache.py`` (JSON blob under

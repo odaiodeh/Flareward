@@ -3,9 +3,9 @@
 import asyncio
 from datetime import UTC, datetime
 
-from flareward.services.identity.domain import Identity
-from flareward.services.sharing.domain.models import ShareDirection, ShareStatus
-from flareward.services.sharing.notifications import ShareNotificationsRepository
+from lumora.services.identity.domain import Identity
+from lumora.services.sharing.domain.models import ShareDirection, ShareStatus
+from lumora.services.sharing.notifications import ShareNotificationsRepository
 
 
 async def verify_notification_repository(repository: ShareNotificationsRepository) -> None:

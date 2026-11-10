@@ -1,6 +1,6 @@
-# Flareward program platform
+# Lumora program platform
 
-Flareward builds reusable Programs from configured Elements and other Programs.
+Lumora builds reusable Programs from configured Elements and other Programs.
 A graph and a registered backend coordinator are implementations of the same
 Program model, publication process and execution lifecycle.
 FastAPI exposes application use cases; Run Engine supplies execution infrastructure.
@@ -22,12 +22,12 @@ contracts, storage formats, and forwarding aliases are removal targets. Preserve
 useful specifications, factories, builders, resources, and application behavior
 through the canonical new implementation.
 
-Program definitions and pure bindings are owned by `flareward.programs.domain`.
+Program definitions and pure bindings are owned by `lumora.programs.domain`.
 Program authoring, publication, registrations and runtime/repository ports are
-owned by `flareward.programs`. Import placement and step metadata from their
+owned by `lumora.programs`. Import placement and step metadata from their
 domain owners. Execution context/lifecycle/placement values live in
-`flareward.executions.domain`; submission, control, prepared snapshots and mutable runtime
-context holders live in `flareward.executions`. Replaced Program/execution
+`lumora.executions.domain`; submission, control, prepared snapshots and mutable runtime
+context holders live in `lumora.executions`. Replaced Program/execution
 packages and the old core context module have no compatibility facade; rebuild
 installed receivers after module changes using the test infrastructure guide.
 
@@ -66,12 +66,12 @@ This local development mode uses memory storage and the Local host. Its
 coordination does not survive process loss.
 
 ```sh
-export FLAREWARD_HOST='{"runner_type":"local"}'
-export FLAREWARD_STORAGE=memory
-export FLAREWARD_AUTHENTICATION=development
-export FLAREWARD_DEVELOPMENT_USER=alice
-export FLAREWARD_INTERACTIONS=disabled
-.venv/bin/flareward-platform serve --host 127.0.0.1 --port 13457
+export LUMORA_HOST='{"runner_type":"local"}'
+export LUMORA_STORAGE=memory
+export LUMORA_AUTHENTICATION=development
+export LUMORA_DEVELOPMENT_USER=alice
+export LUMORA_INTERACTIONS=disabled
+.venv/bin/lumora-platform serve --host 127.0.0.1 --port 13457
 ```
 
 For the normal authenticated UI, use session authentication and the shared
@@ -84,24 +84,24 @@ namespace, task queue, and receiver settings. The dedicated test stack uses
 localhost:7234; production/development service addresses are deployment inputs.
 
 ```sh
-export FLAREWARD_HOST='{"runner_type":"temporal","endpoint":"127.0.0.1:7234","namespace":"default","task_queue":"flareward-programs-dev"}'
+export LUMORA_HOST='{"runner_type":"temporal","endpoint":"127.0.0.1:7234","namespace":"default","task_queue":"lumora-programs-dev"}'
 ```
 
 Start the API and worker in separate terminals with the same configuration:
 
 ```sh
-.venv/bin/flareward-platform serve --host 127.0.0.1 --port 13457
+.venv/bin/lumora-platform serve --host 127.0.0.1 --port 13457
 ```
 
 ```sh
-.venv/bin/flareward-platform worker
+.venv/bin/lumora-platform worker
 ```
 
 Choose persistent storage, authentication, credentials, and interaction backends
 explicitly for the deployment. See the development guide for Mongo, Redis,
 configuration encryption, profiles, installed modules, and UI proxy settings.
 
-Generic event-start sources are opt-in with `FLAREWARD_EVENT_SOURCES_ENABLED=true`
+Generic event-start sources are opt-in with `LUMORA_EVENT_SOURCES_ENABLED=true`
 and Mongo storage. Human-managed sources pin a published Program and private
 execution template; deliveries use a separate source key and the normal execution
 service. Automatic workflow scopes require managed credential provisioning too.
@@ -113,13 +113,13 @@ for bounded consent, redelivery, revocation and Local/Temporal recovery scope.
 Build from the repository root with the approved Run Engine source checkout:
 
 ```sh
-docker build --build-context run_engine=../run-engine -f platform/Dockerfile -t flareward-platform:local .
-.venv/bin/python platform/tests/infra/verify_images.py --platform --image flareward-platform:local
-docker run --rm -i --entrypoint python flareward-platform:local - < platform/tests/infra/smoke_platform.py
+docker build --build-context run_engine=../run-engine -f platform/Dockerfile -t lumora-platform:local .
+.venv/bin/python platform/tests/infra/verify_images.py --platform --image lumora-platform:local
+docker run --rm -i --entrypoint python lumora-platform:local - < platform/tests/infra/smoke_platform.py
 ```
 
 The image uses Python 3.14, runs as UID/GID 1000 and has one entrypoint:
-`flareward-platform`. Its default arguments serve FastAPI on port 13457. Pass `worker`
+`lumora-platform`. Its default arguments serve FastAPI on port 13457. Pass `worker`
 to start native durable coordination. The old `mas` command, role-switching shell
 entrypoint, WSGI launcher and old worker module launcher are removed. Refresh an
 existing editable install to remove its obsolete console script.
@@ -160,14 +160,14 @@ Human Review must be verified through their corresponding implementation slices.
 ```
 
 Select real-service, UI-client, and remote cases using the test guide and explicit
-Flareward infrastructure settings. Paid model tests remain opt-in.
+Lumora infrastructure settings. Paid model tests remain opt-in.
 
 ## Source ownership and adding capabilities
 
-The single source root is `src/`. Core features are `flareward.elements`,
+The single source root is `src/`. Core features are `lumora.elements`,
 `resources`, `programs`, `executions` and `services.<feature>`; each owns its
-values, ports, services and adapters locally. `flareward.api` is transport;
-`flareward.bootstrap` selects implementations and owns their lifetimes.
+values, ports, services and adapters locally. `lumora.api` is transport;
+`lumora.bootstrap` selects implementations and owns their lifetimes.
 
 Add a capability under `src/plugins/<capability>/`. Keep its configuration,
 specification, factory and implementation together; substantial plugins can use
@@ -181,8 +181,8 @@ Declare `PLUGIN = PluginDefinition(key=..., version=..., elements=(...),
 programs=(...))` in `plugin.py`. Element modules expose their specification classes;
 Program modules expose `APPLICATION_PROGRAMS`. The composition root installs both
 into the existing registries, without constructing provider clients during discovery.
-`FLAREWARD_PLUGINS` is an explicit JSON list of installed manifest modules; when set it
-replaces the defaults in `flareward.bootstrap.settings.plugins.DEFAULT_PLUGINS`.
+`LUMORA_PLUGINS` is an explicit JSON list of installed manifest modules; when set it
+replaces the defaults in `lumora.bootstrap.settings.plugins.DEFAULT_PLUGINS`.
 Install the selected modules and their optional SDK dependencies on API, worker and
 receivers as appropriate. Core code must not import a concrete plugin.
 

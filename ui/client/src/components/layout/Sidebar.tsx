@@ -79,7 +79,7 @@ export default function Sidebar() {
               transition={{ duration: 0.2 }}
               className="font-heading font-bold text-xl text-white"
             >
-              Flareward
+              Lumora
             </motion.span>
           )}
         </div>

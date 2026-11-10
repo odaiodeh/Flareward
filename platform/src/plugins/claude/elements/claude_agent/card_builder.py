@@ -4,9 +4,9 @@ Card builder for Claude Agent Node.
 Builds element card from local configuration (model, tools, capabilities).
 """
 
-from flareward.elements.cards.interface import CardBuilder
-from flareward.elements.cards.models import CardBuildInput
-from flareward.elements.domain.cards import Capability, ElementCard, Skill
+from lumora.elements.cards.interface import CardBuilder
+from lumora.elements.cards.models import CardBuildInput
+from lumora.elements.domain.cards import Capability, ElementCard, Skill
 
 
 class ClaudeAgentCardBuilder(CardBuilder):

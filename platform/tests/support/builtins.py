@@ -1,9 +1,9 @@
 """Portable curated-resource scenarios shared by policy and actual-store tests."""
 
-from flareward.resources.authoring import ResourceRecord
-from flareward.resources.domain.builtins import BuiltinResourceDescriptor
-from flareward.resources.domain.models import Resource
-from flareward.services.identity.domain import Identity
+from lumora.resources.authoring import ResourceRecord
+from lumora.resources.domain.builtins import BuiltinResourceDescriptor
+from lumora.resources.domain.models import Resource
+from lumora.services.identity.domain import Identity
 
 ADMIN = Identity.user("curator")
 

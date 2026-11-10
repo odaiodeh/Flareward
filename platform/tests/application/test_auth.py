@@ -7,10 +7,10 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.services.auth.credentials.models import RecoveryResult, StoredCredential, TokenSet
-from flareward.services.auth.credentials.ports import CredentialStore, ServerConfigStore
-from flareward.services.auth.ports import AuthStrategy
-from flareward.services.auth.service import AuthService, AuthStrategyRegistry
+from lumora.services.auth.credentials.models import RecoveryResult, StoredCredential, TokenSet
+from lumora.services.auth.credentials.ports import CredentialStore, ServerConfigStore
+from lumora.services.auth.ports import AuthStrategy
+from lumora.services.auth.service import AuthService, AuthStrategyRegistry
 
 
 @pytest.fixture

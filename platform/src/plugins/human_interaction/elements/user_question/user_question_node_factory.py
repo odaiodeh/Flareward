@@ -1,5 +1,5 @@
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.human_interaction.elements.user_question.config import UserQuestionNodeConfig
 from plugins.human_interaction.elements.user_question.identifiers import Identifier
 from plugins.human_interaction.elements.user_question.user_question import (

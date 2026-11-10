@@ -35,8 +35,8 @@ Git/HTTP/storage, not a live provider or remote sandbox. See
 [the checkpoint](../../../../docs/evidence/2026-11-08-git-completion.md).
 
 Factory execution defaults to disabled. Receiver/operator settings may supply
-`FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED=true` and an absolute
-`FLAREWARD_PYTHON_CHECK_DIRECTORY`. Resource configuration cannot enable it. The flag
+`LUMORA_PYTHON_CHECK_EXECUTION_ENABLED=true` and an absolute
+`LUMORA_PYTHON_CHECK_DIRECTORY`. Resource configuration cannot enable it. The flag
 is an operator authorization assertion, not evidence of physical isolation. Do
 not enable it for live/untrusted code on a trusted host merely to make a test pass.
 `-I -S` disables import/user configuration, not OS/filesystem/network access.
@@ -64,8 +64,8 @@ Focused tests:
 .venv/bin/python -m pytest platform/tests/adapters/test_python_function_checks.py \
   platform/tests/application/test_python_function_program.py \
   platform/tests/application/test_program_checks.py platform/tests/domain/test_artifacts.py -q
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
-FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
 .venv/bin/python -m pytest platform/tests/integration/verification/test_program_checks.py -q
 ```
 
@@ -79,7 +79,7 @@ necessary. Do not claim prompt preemption or increase observation timeouts witho
 inspecting actual state. See the [engine request](../../../../integrations/run-engine-invocation-cancellation-request.md).
 For current-image remote checks, use `integration/deployment/test_program_checks.py`
 with explicit `--platform-backends=k8s --platform-hosts=local`, dedicated service
-URIs, kubeconfig/context and a freshly verified `FLAREWARD_TEST_K8S_IMAGE`. Its shared
+URIs, kubeconfig/context and a freshly verified `LUMORA_TEST_K8S_IMAGE`. Its shared
 `prepared_verifier(..., target=...)` disables local candidate evaluation and keeps
 dispatcher settings separate from the receiver-local directory. Run Engine adds `RUNENGINE_PARAMS` to the declared
 pod environment; compare names without printing that payload. The child environment

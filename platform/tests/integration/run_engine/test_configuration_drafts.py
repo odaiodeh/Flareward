@@ -13,8 +13,8 @@ from support.draft_configuration import (
 from support.scenarios import publish, run
 from support.secrets import MemorySecretStore
 
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody
-from flareward.programs.service import ProgramContractError
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.fixture

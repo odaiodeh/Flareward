@@ -5,14 +5,14 @@ import asyncio
 import pytest
 from pydantic import ValidationError
 
-from flareward.programs.authoring import CanvasPosition, ProgramConflict, ProgramPresentation
-from flareward.programs.domain.models import (
+from lumora.programs.authoring import CanvasPosition, ProgramConflict, ProgramPresentation
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     ProgramDefinition,
 )
-from flareward.programs.ports import ProgramRepository
-from flareward.services.identity.domain import Identity
+from lumora.programs.ports import ProgramRepository
+from lumora.services.identity.domain import Identity
 
 
 def definition(program_id: str, owner: Identity | None = None) -> ProgramDefinition:

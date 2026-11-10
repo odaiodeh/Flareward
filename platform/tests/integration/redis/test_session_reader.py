@@ -4,8 +4,8 @@ from uuid import uuid4
 
 import pytest
 
-from flareward.services.auth.adapters.redis_sessions import RedisSessionReader
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.services.auth.adapters.redis_sessions import RedisSessionReader
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 @pytest.mark.parametrize("decode", [True, False])

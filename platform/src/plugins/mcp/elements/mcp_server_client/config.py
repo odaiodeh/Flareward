@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import Field, HttpUrl
 
-from flareward.elements.hints import (
+from lumora.elements.hints import (
     ActionHint,
     AuthHint,
     CardContext,
@@ -17,7 +17,7 @@ from flareward.elements.hints import (
     SelectionType,
     combine_hints,
 )
-from flareward.elements.providers.base_config import ProviderBaseConfig
+from lumora.elements.providers.base_config import ProviderBaseConfig
 from plugins.mcp.elements.mcp_server_client.identifiers import Identifier
 from plugins.mcp.elements.mcp_server_client.transport.enums import McpTransportType
 

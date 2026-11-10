@@ -8,14 +8,14 @@ from support.blueprint_http import library_api
 from support.blueprints import external_blueprint
 from support.library_resources import seed_private_agent_resources
 
-from flareward.programs.domain.models import PathBinding
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
-from flareward.resources.domain.builtins import (
+from lumora.programs.domain.models import PathBinding
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
+from lumora.resources.domain.builtins import (
     identity_to_key,
 )
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.identity.domain import Identity
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.identity.domain import Identity
 
 
 async def seed_library(database, owner, cipher):

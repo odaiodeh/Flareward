@@ -1,6 +1,6 @@
 # Deployment ownership
 
-`platform` owns the HTTP and worker releases. Both install `flareward-platform` and
+`platform` owns the HTTP and worker releases. Both install `lumora-platform` and
 use its `serve` / `worker` commands. `identity` authenticates humans; `ui` proxies
 `/api` to platform and `/identity/api` to Identity. Shared Mongo/Redis/Temporal are
 external infrastructure, not imported application components.

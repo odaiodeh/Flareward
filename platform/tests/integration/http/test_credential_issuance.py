@@ -13,10 +13,10 @@ from support.review_api import review_settings
 from support.server import api_process
 from support.verification import verification_policy
 
-from flareward.bootstrap.settings.platform_settings import VerificationAuthorityConfig
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.settings.platform_settings import VerificationAuthorityConfig
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("purpose", ["review", "verification"])

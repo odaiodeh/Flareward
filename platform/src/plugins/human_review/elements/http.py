@@ -10,16 +10,16 @@ import httpx
 from pydantic import AnyHttpUrl, Field, SecretStr, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from flareward.async_work import await_owned
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.access.credentials import (
+from lumora.async_work import await_owned
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.access.credentials import (
     WorkflowCredentialSource,
     WorkflowCredentialUnavailable,
 )
-from flareward.services.reviews.access import ReviewGrant, review_credential_key
-from flareward.services.reviews.contracts import CloseReview, OpenReview
-from flareward.services.reviews.domain.models import ReviewRecord
-from flareward.services.reviews.ports import (
+from lumora.services.reviews.access import ReviewGrant, review_credential_key
+from lumora.services.reviews.contracts import CloseReview, OpenReview
+from lumora.services.reviews.domain.models import ReviewRecord
+from lumora.services.reviews.ports import (
     ReviewConflict,
     ReviewCredentialError,
     ReviewMissing,
@@ -29,7 +29,7 @@ from flareward.services.reviews.ports import (
 
 class ReviewTransportSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="FLAREWARD_REVIEW_", extra="ignore", hide_input_in_errors=True
+        env_prefix="LUMORA_REVIEW_", extra="ignore", hide_input_in_errors=True
     )
     endpoint: AnyHttpUrl
     access_directory: Path | None = None

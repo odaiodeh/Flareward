@@ -1,6 +1,6 @@
 # Independent platform test infrastructure
 
-Run commands from the Flareward repository root. This stack belongs to Flareward and
+Run commands from the Lumora repository root. This stack belongs to Lumora and
 does not require Run Engine's Compose files, cluster, gateway, or local credentials.
 Docker Desktop, `kind`, and `kubectl` are needed for the selected remote backends.
 The dispatcher uses Python 3.14 and the committed Run Engine baseline described
@@ -18,12 +18,12 @@ evidence is still required when the selected remote gate runs.
 ```sh
 .venv/bin/python -m pip install -e '../run-engine[kubernetes,openshell,temporal]'
 .venv/bin/python -m pip install -e './platform[e2e]'
-export FLAREWARD_E2E_STATE_DIR="$PWD/platform/tests/infra/.state"
-.venv/bin/python platform/tests/infra/prepare.py --state-dir "$FLAREWARD_E2E_STATE_DIR"
+export LUMORA_E2E_STATE_DIR="$PWD/platform/tests/infra/.state"
+.venv/bin/python platform/tests/infra/prepare.py --state-dir "$LUMORA_E2E_STATE_DIR"
 docker compose --file platform/tests/infra/compose.yaml up -d --wait
-export FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018
-export FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15
-export FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234
+export LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018
+export LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15
+export LUMORA_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234
 ```
 
 The default stack exposes Mongo on 27018, Redis on 6380, and Temporal on 7234,
@@ -33,7 +33,7 @@ out, diagnose the dedicated stack before rerunning; raising test timeouts does
 not establish correctness. Do not restart the user's whole Docker environment or
 stop unrelated containers to recover this stack.
 These ports differ from the usual development services. Core
-ports can be overridden through `FLAREWARD_E2E_{MONGO,REDIS,TEMPORAL}_PORT`; update
+ports can be overridden through `LUMORA_E2E_{MONGO,REDIS,TEMPORAL}_PORT`; update
 the corresponding test URIs too. Inspect existing resources before starting a
 stack. Never stop another project's services to free a port.
 
@@ -45,13 +45,13 @@ standalone Mongo fails closed. The optional test profile adds a separate single-
 replica set without restarting the ordinary Mongo, Redis or Temporal services:
 
 ```sh
-FLAREWARD_E2E_STATE_DIR="$PWD/platform/tests/infra/.state" docker compose --file platform/tests/infra/compose.yaml --profile transactions up -d --wait --no-deps mongo-transactions
-export FLAREWARD_TEST_MONGO_TRANSACTION_URI='mongodb://127.0.0.1:27019/?directConnection=true'
+LUMORA_E2E_STATE_DIR="$PWD/platform/tests/infra/.state" docker compose --file platform/tests/infra/compose.yaml --profile transactions up -d --wait --no-deps mongo-transactions
+export LUMORA_TEST_MONGO_TRANSACTION_URI='mongodb://127.0.0.1:27019/?directConnection=true'
 ```
 
 Inspect existing container/port ownership first. The replica advertises its dedicated
 network name; host-side tests use `directConnection=true`. The port can be overridden
-with `FLAREWARD_E2E_MONGO_TRANSACTION_PORT`. Its health check initializes only its own
+with `LUMORA_E2E_MONGO_TRANSACTION_PORT`. Its health check initializes only its own
 replica and waits for a writable primary. This is not failover/load acceptance.
 Ordinary Mongo remains on 27018 for the explicit unsupported-storage refusal test.
 The transaction fixture and ordinary fixture share isolated database/client cleanup;
@@ -65,7 +65,7 @@ certificates, and signing keys in the ignored state directory. Certificates expi
 after seven days. Repeating preparation preserves existing keys; incomplete or
 expired PKI is refused. For rotation, first confirm no active sandbox use, prepare
 a fresh ignored state directory, then recreate only `gateway` with `--no-deps` and
-that `FLAREWARD_E2E_STATE_DIR`. Mongo, Redis and Temporal need no restart. Keep private
+that `LUMORA_E2E_STATE_DIR`. Mongo, Redis and Temporal need no restart. Keep private
 files out of commits, images, logs, and test results.
 The state path must be absolute: the Docker driver binds generated state into
 its sibling sandbox containers at the same path.
@@ -78,8 +78,8 @@ code or receiver fixtures. Use a fresh tag for parallel runs and update the imag
 settings consistently. The following tags match the checked-in gateway default.
 
 ```sh
-docker build --build-context flareward="$PWD" --build-context run_engine="$PWD/../run-engine" --file platform/tests/infra/Dockerfile.receiver --tag flareward-receiver:rename-20261109 platform/tests/infra
-docker build --build-arg RECEIVER_BASE=ghcr.io/nvidia/openshell-community/sandboxes/base:latest --build-arg RECEIVER_USER=sandbox --build-context flareward="$PWD" --build-context run_engine="$PWD/../run-engine" --file platform/tests/infra/Dockerfile.receiver --tag flareward-sandbox:rename-20261109 platform/tests/infra
+docker build --build-context lumora="$PWD" --build-context run_engine="$PWD/../run-engine" --file platform/tests/infra/Dockerfile.receiver --tag lumora-receiver:rename-20261110 platform/tests/infra
+docker build --build-arg RECEIVER_BASE=ghcr.io/nvidia/openshell-community/sandboxes/base:latest --build-arg RECEIVER_USER=sandbox --build-context lumora="$PWD" --build-context run_engine="$PWD/../run-engine" --file platform/tests/infra/Dockerfile.receiver --tag lumora-sandbox:rename-20261110 platform/tests/infra
 .venv/bin/python platform/tests/infra/verify_images.py
 ```
 
@@ -108,11 +108,11 @@ Create a dedicated cluster with a dedicated kubeconfig. These commands do not
 switch the user's global Kubernetes context.
 
 ```sh
-kind create cluster --name flareward-e2e --config platform/tests/infra/kind.yaml --kubeconfig "$FLAREWARD_E2E_STATE_DIR/kubeconfig"
-kind load docker-image flareward-receiver:rename-20261109 --name flareward-e2e
-export FLAREWARD_TEST_KUBECONFIG="$FLAREWARD_E2E_STATE_DIR/kubeconfig"
-export FLAREWARD_TEST_K8S_CONTEXT=kind-flareward-e2e
-export FLAREWARD_TEST_K8S_IMAGE=flareward-receiver:rename-20261109
+kind create cluster --name lumora-e2e --config platform/tests/infra/kind.yaml --kubeconfig "$LUMORA_E2E_STATE_DIR/kubeconfig"
+kind load docker-image lumora-receiver:rename-20261110 --name lumora-e2e
+export LUMORA_TEST_KUBECONFIG="$LUMORA_E2E_STATE_DIR/kubeconfig"
+export LUMORA_TEST_K8S_CONTEXT=kind-lumora-e2e
+export LUMORA_TEST_K8S_IMAGE=lumora-receiver:rename-20261110
 ```
 
 The fixture uses an isolated SDK client and creates a unique namespace per case.
@@ -135,9 +135,9 @@ authentication nor disabled TLS.
 
 ```sh
 docker compose --file platform/tests/infra/compose.yaml --profile openshell up -d
-export FLAREWARD_TEST_OPENSHELL_ENDPOINT=127.0.0.1:8090
-export FLAREWARD_TEST_OPENSHELL_IMAGE=flareward-sandbox:rename-20261109
-export FLAREWARD_TEST_OPENSHELL_PKI="$FLAREWARD_E2E_STATE_DIR/pki"
+export LUMORA_TEST_OPENSHELL_ENDPOINT=127.0.0.1:8090
+export LUMORA_TEST_OPENSHELL_IMAGE=lumora-sandbox:rename-20261110
+export LUMORA_TEST_OPENSHELL_PKI="$LUMORA_E2E_STATE_DIR/pki"
 ```
 
 Gateway bind, published port, and the supervisor callback must all use port 8090
@@ -149,7 +149,7 @@ diagnose a startup failure.
 
 The fixture owns a unique workspace (OpenShell limits its name to 19 characters),
 checks physical sandbox absence, and removes that workspace after draining work.
-Run Engine owns invocation and retained-environment sandbox lifetimes. Flareward
+Run Engine owns invocation and retained-environment sandbox lifetimes. Lumora
 does not implement another sandbox manager.
 
 Normal `test_candidate_policies.py` cases use the existing OpenShell profile and
@@ -217,7 +217,7 @@ created for this run. Never use a global Docker prune or delete another cluster.
 
 ```sh
 docker compose --file platform/tests/infra/compose.yaml --profile openshell down
-kind delete cluster --name flareward-e2e --kubeconfig "$FLAREWARD_E2E_STATE_DIR/kubeconfig"
+kind delete cluster --name lumora-e2e --kubeconfig "$LUMORA_E2E_STATE_DIR/kubeconfig"
 ```
 
 The ignored state directory retains keys and gateway state for reuse. Remove it
@@ -232,16 +232,16 @@ Build the OpenShell receiver as above, then its dedicated derivative:
 
 ```sh
 docker build --file platform/tests/infra/Dockerfile.codex \
-  --tag flareward-codex:rename-20261109 platform/tests/infra
+  --tag lumora-codex:rename-20261110 platform/tests/infra
 .venv/bin/python platform/tests/infra/verify_images.py \
-  --image flareward-codex:rename-20261109
-export FLAREWARD_TEST_OPENSHELL_IMAGE=flareward-codex:rename-20261109
-kind load docker-image flareward-codex:rename-20261109 --name flareward-e2e
-export FLAREWARD_TEST_K8S_IMAGE=flareward-codex:rename-20261109
+  --image lumora-codex:rename-20261110
+export LUMORA_TEST_OPENSHELL_IMAGE=lumora-codex:rename-20261110
+kind load docker-image lumora-codex:rename-20261110 --name lumora-e2e
+export LUMORA_TEST_K8S_IMAGE=lumora-codex:rename-20261110
 ```
 
-Supply `FLAREWARD_TEST_OPENAI_API_KEY` privately, or save it in the ignored file
-`platform/tests/infra/.state/llm/FLAREWARD_TEST_OPENAI_API_KEY` with directory mode
+Supply `LUMORA_TEST_OPENAI_API_KEY` privately, or save it in the ignored file
+`platform/tests/infra/.state/llm/LUMORA_TEST_OPENAI_API_KEY` with directory mode
 0700 and file mode 0600. Do not include the value in shell history, command-line
 arguments, source files, Docker arguments or logs. The key alone enables no paid
 tests; explicitly select:
@@ -263,7 +263,7 @@ The test creates saved coding resources, imports their references through a
 blueprint, publishes a graph, shares one environment between writing and testing
 steps, and reads the resulting files through a deterministic evidence element.
 The receiver receives only the credential file path through
-`FLAREWARD_CODEX_API_KEY_FILE`; the CLI reads the key locally. Kubernetes uses the
+`LUMORA_CODEX_API_KEY_FILE`; the CLI reads the key locally. Kubernetes uses the
 existing fixture's private Secret mount and an engine-owned named environment.
 Both coding agents and the deterministic file reader bind to that environment,
 so they share a pod; completion checks physical pod/Job cleanup before deleting
@@ -274,7 +274,7 @@ It is deliberately not adopted as an owned named environment, which Run Engine
 rejects. This does not verify automatic secret provisioning into newly created
 OpenShell sandboxes. Both variants verify the receiver image and namespace, and
 Temporal additionally replays history. The remote fixture explicitly selects
-receiver-only `FLAREWARD_CODEX_SANDBOX_MODE=danger-full-access` and relies on the
+receiver-only `LUMORA_CODEX_SANDBOX_MODE=danger-full-access` and relies on the
 selected container's external isolation. The tested OpenShell host blocks nested
 user namespaces and also enforces its filesystem and network policy. The kind
 fixture does not enforce an egress policy or certify the nested CLI sandbox.

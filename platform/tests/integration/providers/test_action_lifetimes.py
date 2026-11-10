@@ -6,9 +6,9 @@ import httpx
 import pytest
 from a2a.types import AgentCapabilities, AgentCard
 
-from flareward.services.actions.contracts import ActionContext
-from flareward.services.actions.service import ActionsService
-from flareward.services.identity.domain import Identity
+from lumora.services.actions.contracts import ActionContext
+from lumora.services.actions.service import ActionsService
+from lumora.services.identity.domain import Identity
 from plugins.actions.providers.a2a.get_agent_card.get_agent_card import GetAgentCardAction
 from plugins.actions.providers.a2a.validate_connection.validate_connection import (
     ValidateConnectionAction,

@@ -4,8 +4,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-from flareward.resources.domain.references import ProviderRef
-from flareward.services.workspaces.domain.files import WorkspaceMode
+from lumora.resources.domain.references import ProviderRef
+from lumora.services.workspaces.domain.files import WorkspaceMode
 
 
 class ReasoningEffort(StrEnum):

@@ -4,11 +4,11 @@ import os
 from pathlib import Path
 from typing import Any
 
-from flareward.elements.coding.contracts import CodingInput, CodingOutcome
-from flareward.elements.coding.operation import CodingOperation
-from flareward.elements.factory import BaseFactory
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.coding.contracts import CodingInput, CodingOutcome
+from lumora.elements.coding.operation import CodingOperation
+from lumora.elements.factory import BaseFactory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.codex.adapter import CodexCodingAgent
 from plugins.codex.config import CodexConfig
 from plugins.codex.identifiers import TYPE_KEY, CodexSandboxMode
@@ -21,11 +21,9 @@ class CodexFactory(BaseFactory[CodexConfig, CodingOperation]):
     def create(self, cfg: CodexConfig, **dependencies: Any) -> CodingOperation:
         agent = CodexCodingAgent(
             cfg,
-            workspace_root=Path(
-                os.environ.get("FLAREWARD_WORKSPACE_ROOT", "/tmp/flareward-workspaces")
-            ),
+            workspace_root=Path(os.environ.get("LUMORA_WORKSPACE_ROOT", "/tmp/lumora-workspaces")),
             sandbox_mode=CodexSandboxMode(
-                os.environ.get("FLAREWARD_CODEX_SANDBOX_MODE", CodexSandboxMode.WORKSPACE_WRITE)
+                os.environ.get("LUMORA_CODEX_SANDBOX_MODE", CodexSandboxMode.WORKSPACE_WRITE)
             ),
         )
         return CodingOperation(

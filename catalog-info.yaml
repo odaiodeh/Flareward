@@ -1,8 +1,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: flareward
-  title: Flareward
+  name: lumora
+  title: Lumora
   description: Composable platform for designing, executing, and verifying agentic development workflows.
   annotations:
     servicenow.com/appcode: UNI-001
@@ -19,7 +19,7 @@ metadata:
       icon: chat
 spec:
   type: service
-  system: flareward
+  system: lumora
   lifecycle: implementation
   owner: group:redhat/automation-and-tools
   contacts:

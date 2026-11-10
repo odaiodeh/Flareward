@@ -1,6 +1,6 @@
 ---
 name: debug-program-events
-description: Diagnose Flareward event-source authority, frozen Program templates, duplicate delivery, private errors and native restart/replay.
+description: Diagnose Lumora event-source authority, frozen Program templates, duplicate delivery, private errors and native restart/replay.
 ---
 
 # Diagnose Program event starts
@@ -11,7 +11,7 @@ Use the [evidence index](../../../docs/evidence/README.md) for the selected proo
 do not load entire guides or archives. This is root admission through the existing
 execution service, not another scheduler or environment lifecycle.
 
-- `FLAREWARD_EVENT_SOURCES_ENABLED` requires Mongo. Humans create/list/inspect/revoke
+- `LUMORA_EVENT_SOURCES_ENABLED` requires Mongo. Humans create/list/inspect/revoke
   immutable, bounded sources. A source pins its Program and complete private
   preparation; new drafts/resources must not retarget it.
 - Creation returns a purpose-separated source key once. Only its hash persists.
@@ -48,7 +48,7 @@ execution service, not another scheduler or environment lifecycle.
 
 Use `support/event_sources.py` for the shared Memory/Mongo store contract;
 `application/test_program_events.py` for approval/refusal and canonical admission;
-`integration/flareward.executions.adapters.run_engine.shared/test_execution_templates.py` for actual frozen graph
+`integration/lumora.executions.adapters.run_engine.shared/test_execution_templates.py` for actual frozen graph
 binding and policy/ownership refusal. `integration/http/test_program_events.py`
 uses actual API/Mongo/Redis, both purposes and thread/process nested review.
 `deployment/test_program_events.py` covers accepted redelivery without a worker,

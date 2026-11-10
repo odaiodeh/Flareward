@@ -5,8 +5,8 @@ from support.scenarios import publish, run
 from support.state_nodes import ELEMENT_SPECIFICATIONS, Mutation, state_graph
 from support.typed_programs import APPLICATION_PROGRAMS
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.programs.domain.models import (
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     PathBinding,

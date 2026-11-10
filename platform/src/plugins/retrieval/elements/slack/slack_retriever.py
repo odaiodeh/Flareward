@@ -4,8 +4,8 @@ import httpx
 from global_utils.constants import INTERNAL_AUTH_HEADER
 from pydantic import HttpUrl
 
-from flareward.elements.ports.retrieval import BaseRetriever
-from flareward.elements.ports.retrieval_identity import RetrievalIdentity
+from lumora.elements.ports.retrieval import BaseRetriever
+from lumora.elements.ports.retrieval_identity import RetrievalIdentity
 
 
 class SlackRetriever(BaseRetriever):

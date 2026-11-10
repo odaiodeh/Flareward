@@ -9,27 +9,27 @@ from runengine.invocation.config import ProcessRunnerConfig, ThreadRunnerConfig
 from support.receivers import ContextSpec, element_runtime
 from support.scenarios import publish, resource
 
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.executions.models import StartExecution
-from flareward.executions.service import ExecutionService
-from flareward.programs.domain.models import (
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.executions.models import StartExecution
+from lumora.executions.service import ExecutionService
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     ElementStep,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
 )
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture
 async def receiving(platform, application, monkeypatch, tmp_path):
     audit_file = tmp_path / "receiver.jsonl"
-    monkeypatch.setenv("FLAREWARD_TEST_RECEIVER_AUDIT", str(audit_file))
+    monkeypatch.setenv("LUMORA_TEST_RECEIVER_AUDIT", str(audit_file))
     application.elements.register_spec_class(ContextSpec)
     compiler = ProgramCompiler(
         platform.programs,

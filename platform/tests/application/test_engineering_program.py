@@ -16,11 +16,11 @@ from support.engineering_runtime import CandidateExecution, ServiceRuntime
 from support.operations import operation_bundle
 from support.scenarios import publish
 
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.domain.models import ReviewDecision
-from flareward.services.verification.check_service import CheckRunService
-from flareward.services.verification.domain.models import CheckRequirement, CheckVerdict
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.domain.models import ReviewDecision
+from lumora.services.verification.check_service import CheckRunService
+from lumora.services.verification.domain.models import CheckRequirement, CheckVerdict
 from plugins.adlc.programs.program import (
     APPLICATION_PROGRAMS,
     EngineeringCandidate,
@@ -96,7 +96,7 @@ async def test_pending_review_captures_accepted_evidence_before_a_human_decides(
 
     async def inspect_before_response(name, *, timeout=None):
         record = await runtime.reviews.for_reviewer(
-            name.removeprefix("flareward.review."), Identity.user("reviewer")
+            name.removeprefix("lumora.review."), Identity.user("reviewer")
         )
         assert record.status == "pending" and record.response is None
         subject = EngineeringReviewSubject.model_validate(record.specification.subject)

@@ -2,19 +2,19 @@
 
 from collections import deque
 
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.contracts import OpenReview, SubmitReview
-from flareward.services.reviews.service import ReviewService
-from flareward.services.verification.access_models import (
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.contracts import OpenReview, SubmitReview
+from lumora.services.reviews.service import ReviewService
+from lumora.services.verification.access_models import (
     VerificationAccessScope,
     VerificationAction,
     VerificationActor,
 )
-from flareward.services.verification.check_ports import StartCheckRun
-from flareward.services.verification.check_service import CheckRunService
-from flareward.services.verification.domain.check_runs import CheckRunObservation, CheckRunStatus
-from flareward.services.verification.models import StartVerification
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.check_ports import StartCheckRun
+from lumora.services.verification.check_service import CheckRunService
+from lumora.services.verification.domain.check_runs import CheckRunObservation, CheckRunStatus
+from lumora.services.verification.models import StartVerification
+from lumora.services.verification.service import VerificationService
 from support.check_runs import (
     MemoryCheckRunRepository,
     ScriptedCheckRunner,
@@ -114,7 +114,7 @@ class ServiceRuntime:
         return result.model_dump(mode="json")
 
     async def receive(self, name, *, timeout=None):
-        review_id = name.removeprefix("flareward.review.")
+        review_id = name.removeprefix("lumora.review.")
         review = await self.reviews.inspect(review_id, review_actor(self.owner))
         await self.reviews.respond(
             review_id,

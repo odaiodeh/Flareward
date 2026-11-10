@@ -6,9 +6,9 @@ import { createProgramEventSource, deliverProgramEvent, getProgramEventSource, g
 import { inspectProgramExecution, type ProgramRef } from '../client/src/api/programs';
 
 export default async function verifyProgramEvents() {
-  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
-  const cookie = process.env.FLAREWARD_TEST_UI_HUMAN_COOKIE;
-  const reference = process.env.FLAREWARD_TEST_UI_PROGRAM_REFERENCE;
+  const endpoint = process.env.LUMORA_TEST_UI_API_URL;
+  const cookie = process.env.LUMORA_TEST_UI_HUMAN_COOKIE;
+  const reference = process.env.LUMORA_TEST_UI_PROGRAM_REFERENCE;
   assert.ok(endpoint && cookie && reference);
   axios.defaults.baseURL = endpoint; axios.defaults.headers.common.Cookie = cookie;
   const program: ProgramRef = JSON.parse(reference);

@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.elements.tools.domain.models import ToolDefinition
+from lumora.elements.tools.domain.models import ToolDefinition
 
 
 def test_tool_schema_owns_nested_values_and_empty_defaults_are_independent():

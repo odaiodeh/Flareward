@@ -2,8 +2,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from flareward.elements.agents.constants import StrategyType
-from flareward.elements.hints import (
+from lumora.elements.agents.constants import StrategyType
+from lumora.elements.hints import (
     ApiHint,
     CardContext,
     CardHint,
@@ -11,9 +11,9 @@ from flareward.elements.hints import (
     SelectionType,
     combine_hints,
 )
-from flareward.elements.node_config import NodeBaseConfig
-from flareward.resources.domain.references import LLMRef, ProviderRef, RetrieverRef, ToolRef
-from flareward.services.interactions.tools.models import HITLMode
+from lumora.elements.node_config import NodeBaseConfig
+from lumora.resources.domain.references import LLMRef, ProviderRef, RetrieverRef, ToolRef
+from lumora.services.interactions.tools.models import HITLMode
 from plugins.agents.elements.custom_agent.identifiers import Identifier
 
 

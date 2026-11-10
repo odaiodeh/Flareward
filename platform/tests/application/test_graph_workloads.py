@@ -2,9 +2,9 @@
 
 from support.workloads import workload_contract
 
-from flareward.programs.graph.state.graph_state import Channel, GraphState
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph.workloads import GraphWorkloadStorage
+from lumora.programs.graph.state.graph_state import Channel, GraphState
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph.workloads import GraphWorkloadStorage
 
 
 def test_closed_channel_names_cover_the_base_graph_state():

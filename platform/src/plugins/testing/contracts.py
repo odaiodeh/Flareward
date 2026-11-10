@@ -5,8 +5,8 @@ from typing import Self
 
 from pydantic import Field, JsonValue, model_validator
 
-from flareward.models import Model
-from flareward.services.artifacts.domain.models import InlineContent
+from lumora.models import Model
+from lumora.services.artifacts.domain.models import InlineContent
 
 
 class FunctionArguments(Model):

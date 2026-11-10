@@ -1,8 +1,8 @@
 from collections.abc import AsyncGenerator
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.ports.llm import BaseLLM
-from flareward.elements.tools.domain.models import ToolDefinition
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.ports.llm import BaseLLM
+from lumora.elements.tools.domain.models import ToolDefinition
 
 
 class MockLLM(BaseLLM):

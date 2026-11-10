@@ -26,7 +26,7 @@ class TestTmuxGracefulStop:
             MagicMock(returncode=1),  # has-session → not running (exited)
         ]
 
-        mgr.graceful_stop("flareward-dev", timeout=5)
+        mgr.graceful_stop("lumora-dev", timeout=5)
 
         send_keys_calls = [
             c for c in mock_run.call_args_list
@@ -66,7 +66,7 @@ class TestTmuxGracefulStop:
         tmux_mod.time.monotonic = lambda: next(timestamps, 100.0)
 
         try:
-            mgr.graceful_stop("flareward-dev", timeout=5)
+            mgr.graceful_stop("lumora-dev", timeout=5)
         finally:
             tmux_mod.time.monotonic = original_monotonic
 
@@ -85,7 +85,7 @@ class TestTmuxGracefulStop:
         mgr = TmuxSessionManager()
         mock_run.return_value = MagicMock(returncode=1)  # has-session → not running
 
-        mgr.graceful_stop("flareward-dev")
+        mgr.graceful_stop("lumora-dev")
 
         assert mock_run.call_count == 1
 
@@ -95,4 +95,4 @@ class TestForegroundGracefulStop:
         from devtool.adapters.foreground import ForegroundSessionManager
 
         mgr = ForegroundSessionManager()
-        mgr.graceful_stop("flareward-dev")
+        mgr.graceful_stop("lumora-dev")

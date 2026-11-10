@@ -4,11 +4,11 @@ import pytest
 from support.graph_routes import conditional_values
 from support.typed_programs import APPLICATION_PROGRAMS
 
-from flareward.programs.authoring import ProgramIssueCode
-from flareward.programs.domain.models import JoinPolicy, ProgramDefinition
-from flareward.programs.graph_flow import GraphFlow
-from flareward.programs.interfaces import BindingContractError
-from flareward.programs.service import ProgramContractError
+from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.domain.models import JoinPolicy, ProgramDefinition
+from lumora.programs.graph_flow import GraphFlow
+from lumora.programs.interfaces import BindingContractError
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.fixture(autouse=True)

@@ -7,9 +7,9 @@ from jsonschema import ValidationError as SchemaValidationError
 from jsonschema import validate as validate_json
 from pydantic import HttpUrl
 
-from flareward.elements.ports.tool import BaseTool
-from flareward.services.auth.credentials.credential import AuthCredential
-from flareward.services.interactions.tools.models import ToolAccessMode
+from lumora.elements.ports.tool import BaseTool
+from lumora.services.auth.credentials.credential import AuthCredential
+from lumora.services.interactions.tools.models import ToolAccessMode
 from plugins.mcp.elements.mcp_server_client.mcp_server_client import McpServerClient
 from plugins.mcp.elements.mcp_server_client.transport.enums import McpTransportType
 

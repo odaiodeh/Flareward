@@ -12,12 +12,12 @@ from pydantic import (
     field_validator,
 )
 
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.services.identity.domain import Identity
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.services.identity.domain import Identity
 
-__runengine_contract__ = "flareward-test-typed-programs-v1"
+__runengine_contract__ = "lumora-test-typed-programs-v1"
 
 
 class TypedConfig(BaseModel):

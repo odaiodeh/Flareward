@@ -12,23 +12,23 @@ from support.credentials import CredentialSpec
 from support.elements import element_registry
 from support.scenarios import resource
 
-from flareward.bootstrap.credentials import receiver_auth
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import (
+from lumora.bootstrap.credentials import receiver_auth
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
     ProgramDefinition,
 )
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.auth.credentials.models import StoredCredential
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.auth.credentials.models import StoredCredential
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -36,11 +36,11 @@ async def test_native_receiver_uses_human_credentials_for_team_owned_child(
     mongo_database, monkeypatch, profile
 ):
     encryption_key = Fernet.generate_key().decode()
-    monkeypatch.setenv("FLAREWARD_CREDENTIALS", "mongo")
-    monkeypatch.setenv("FLAREWARD_INTERACTIONS", "disabled")
-    monkeypatch.setenv("FLAREWARD_MONGO_URI", os.environ["FLAREWARD_TEST_MONGO_URI"])
-    monkeypatch.setenv("FLAREWARD_MONGO_DATABASE", mongo_database.name)
-    monkeypatch.setenv("FLAREWARD_CREDENTIAL_ENCRYPTION_KEY", encryption_key)
+    monkeypatch.setenv("LUMORA_CREDENTIALS", "mongo")
+    monkeypatch.setenv("LUMORA_INTERACTIONS", "disabled")
+    monkeypatch.setenv("LUMORA_MONGO_URI", os.environ["LUMORA_TEST_MONGO_URI"])
+    monkeypatch.setenv("LUMORA_MONGO_DATABASE", mongo_database.name)
+    monkeypatch.setenv("LUMORA_CREDENTIAL_ENCRYPTION_KEY", encryption_key)
     settings = PlatformSettings(
         host=LocalHostConfig(),
         storage="mongo",

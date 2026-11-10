@@ -10,18 +10,18 @@ from support.credential_material import MemoryCredentialMaterial
 from support.reviews import review_policy
 from support.verification import verification_policy
 
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
-from flareward.services.access.catalog import WorkflowAccessDescriptor
-from flareward.services.access.executions import ExecutionGrantAuthority
-from flareward.services.access.issuance import CredentialIssuance
-from flareward.services.artifacts.workflow_access import ArtifactWorkflowAccessService
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.access import ReviewAccessRepository, ReviewAccessService
-from flareward.services.verification.access import VerificationAccessService
-from flareward.services.verification.ports import VerificationAccessRepository
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
+from lumora.services.access.catalog import WorkflowAccessDescriptor
+from lumora.services.access.executions import ExecutionGrantAuthority
+from lumora.services.access.issuance import CredentialIssuance
+from lumora.services.artifacts.workflow_access import ArtifactWorkflowAccessService
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.access import ReviewAccessRepository, ReviewAccessService
+from lumora.services.verification.access import VerificationAccessService
+from lumora.services.verification.ports import VerificationAccessRepository
 
 
 def test_catalog_reuses_request_contracts_without_root_or_side_effects():

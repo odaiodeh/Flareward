@@ -8,18 +8,18 @@ import pytest
 from support.scenarios import publish
 from support.scheduling import schedule_request
 
-from flareward.executions.adapters.memory.execution_repository import MemoryExecutionRepository
-from flareward.executions.domain.budgets import WorkLimits
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase, SubmissionState
-from flareward.executions.domain.preferences import ExecutionProfileCatalog
-from flareward.executions.models import PreparedExecution
-from flareward.executions.ports import ProgramExecutionGateway
-from flareward.programs.domain.models import ApplicationDefinition, ProgramRef
-from flareward.services.identity.domain import Identity
-from flareward.services.scheduling.admission import ScheduledAdmission, scheduled_execution_id
-from flareward.services.scheduling.models import ScheduleDefinition, ScheduleStatus
-from flareward.services.scheduling.programs import (
+from lumora.executions.adapters.memory.execution_repository import MemoryExecutionRepository
+from lumora.executions.domain.budgets import WorkLimits
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase, SubmissionState
+from lumora.executions.domain.preferences import ExecutionProfileCatalog
+from lumora.executions.models import PreparedExecution
+from lumora.executions.ports import ProgramExecutionGateway
+from lumora.programs.domain.models import ApplicationDefinition, ProgramRef
+from lumora.services.identity.domain import Identity
+from lumora.services.scheduling.admission import ScheduledAdmission, scheduled_execution_id
+from lumora.services.scheduling.models import ScheduleDefinition, ScheduleStatus
+from lumora.services.scheduling.programs import (
     ProgramSchedule,
     ProgramScheduleBackend,
     ProgramScheduleConflict,
@@ -29,8 +29,8 @@ from flareward.services.scheduling.programs import (
     program_schedule_id,
     stage_schedule,
 )
-from flareward.services.sessions.adapters.memory.session_store import MemorySessionStore
-from flareward.services.sessions.execution.session_store import SessionStore
+from lumora.services.sessions.adapters.memory.session_store import MemorySessionStore
+from lumora.services.sessions.execution.session_store import SessionStore
 
 
 async def test_schedule_prepares_pinned_program_with_staged_identity_without_submitting(

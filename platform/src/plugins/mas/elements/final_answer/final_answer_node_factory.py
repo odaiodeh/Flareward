@@ -1,5 +1,5 @@
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.mas.elements.final_answer.config import FinalAnswerNodeConfig
 from plugins.mas.elements.final_answer.final_answer import FinalAnswerNode
 from plugins.mas.elements.final_answer.identifiers import Identifier

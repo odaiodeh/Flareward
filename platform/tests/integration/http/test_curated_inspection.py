@@ -13,10 +13,10 @@ from support.native_settings import session_settings
 from support.server import api_process
 from support.ui_clients import run_contracts
 
-from flareward.bootstrap.credentials import receiver_auth
-from flareward.bootstrap.settings.receiver_settings import CredentialBackend
-from flareward.services.auth.credentials.models import StoredCredential
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.bootstrap.credentials import receiver_auth
+from lumora.bootstrap.settings.receiver_settings import CredentialBackend
+from lumora.services.auth.credentials.models import StoredCredential
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 async def test_native_curated_inspection_distinguishes_base_and_overlay_views(
@@ -24,7 +24,7 @@ async def test_native_curated_inspection_distinguishes_base_and_overlay_views(
 ):
     settings = session_settings(transaction_database.name, redis_uri).model_copy(
         update={
-            "mongo_uri": SecretStr(os.environ["FLAREWARD_TEST_MONGO_TRANSACTION_URI"]),
+            "mongo_uri": SecretStr(os.environ["LUMORA_TEST_MONGO_TRANSACTION_URI"]),
             "library": True,
             "edit_locks": True,
             "credentials": CredentialBackend.MONGO,
@@ -148,10 +148,10 @@ async def test_native_curated_inspection_distinguishes_base_and_overlay_views(
                 "curated_inspection",
                 {
                     **os.environ,
-                    "FLAREWARD_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
-                    "FLAREWARD_TEST_UI_ADMIN_COOKIE": admin["Cookie"],
-                    "FLAREWARD_TEST_UI_OWNER_COOKIE": reader["Cookie"],
-                    "FLAREWARD_TEST_UI_CURATED_RESOURCE": node["rid"],
+                    "LUMORA_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
+                    "LUMORA_TEST_UI_ADMIN_COOKIE": admin["Cookie"],
+                    "LUMORA_TEST_UI_OWNER_COOKIE": reader["Cookie"],
+                    "LUMORA_TEST_UI_CURATED_RESOURCE": node["rid"],
                 },
             )
             assert "Curated inspection production clients passed" in output

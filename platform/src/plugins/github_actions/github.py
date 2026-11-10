@@ -10,15 +10,15 @@ from pydantic import (
     ValidationError,
 )
 
-from flareward.services.verification.check_ports import (
+from lumora.services.verification.check_ports import (
     CheckProviderUnavailable,
 )
-from flareward.services.verification.domain.check_runs import (
+from lumora.services.verification.domain.check_runs import (
     CheckRun,
     CheckRunObservation,
     CheckRunStatus,
 )
-from flareward.services.verification.domain.models import CheckVerdict
+from lumora.services.verification.domain.models import CheckVerdict
 from plugins.git.domain.repositories import GitCommitId, GitRevision
 from plugins.github_actions.github_config import GitHubCheckConfiguration
 from plugins.github_actions.github_http import GitHubActionsAPI
@@ -85,9 +85,9 @@ class GitHubActionsCheckRunner:
                 "ref": self._config.workflow_ref,
                 "return_run_details": True,
                 "inputs": {
-                    "flareward_intent": run.intent_id,
-                    "flareward_plan": run.plan.plan_id,
-                    "flareward_check": run.check,
+                    "lumora_intent": run.intent_id,
+                    "lumora_plan": run.plan.plan_id,
+                    "lumora_check": run.check,
                     "candidate_commit": revision.commit,
                 },
             },
@@ -107,7 +107,7 @@ class GitHubActionsCheckRunner:
     @staticmethod
     def _title(run: CheckRun) -> str:
         revision = GitRevision.model_validate(run.plan.subject.identity)
-        return f"flareward-{run.intent_id}-{revision.commit}"
+        return f"lumora-{run.intent_id}-{revision.commit}"
 
     def _observation(self, data: GitHubRun, run: CheckRun) -> CheckRunObservation:
         if (

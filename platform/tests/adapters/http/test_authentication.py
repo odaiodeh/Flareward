@@ -6,7 +6,7 @@ import httpx
 from fastapi import FastAPI, Request
 from support.identity import session_cookie as cookie
 
-from flareward.api.authentication import SessionAuthenticator
+from lumora.api.authentication import SessionAuthenticator
 
 
 class Sessions:

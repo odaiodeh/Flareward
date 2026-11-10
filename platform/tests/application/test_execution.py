@@ -7,31 +7,31 @@ from unittest.mock import create_autospec
 import pytest
 from support.scenarios import publish
 
-from flareward.executions.adapters.memory.execution_repository import MemoryExecutionRepository
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.domain.budgets import WorkLimits
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import (
+from lumora.executions.adapters.memory.execution_repository import MemoryExecutionRepository
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.budgets import WorkLimits
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import (
     ExecutionFailure,
     ExecutionPhase,
     ExecutionRecord,
     FailureKind,
     SubmissionState,
 )
-from flareward.executions.domain.preferences import ExecutionProfileCatalog
-from flareward.executions.models import PreparedExecution, StartExecution
-from flareward.executions.ports import (
+from lumora.executions.domain.preferences import ExecutionProfileCatalog
+from lumora.executions.models import PreparedExecution, StartExecution
+from lumora.executions.ports import (
     ExecutionCancellation,
     ExecutionLocationUnavailable,
     ExecutionMissing,
     ProgramExecutionGateway,
     SubmissionUnconfirmed,
 )
-from flareward.executions.service import ExecutionService
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
-from flareward.services.access.credentials import WorkflowCredentialUnavailable
-from flareward.services.identity.domain import Identity
+from lumora.executions.service import ExecutionService
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
+from lumora.services.access.credentials import WorkflowCredentialUnavailable
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

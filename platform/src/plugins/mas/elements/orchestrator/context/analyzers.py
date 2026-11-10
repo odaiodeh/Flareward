@@ -7,7 +7,7 @@ Provides focused analysis services:
 - ProgressTracker: Monitors progress metrics
 """
 
-from flareward.elements.workloads.domain import WorkItemStatus, WorkPlan
+from lumora.elements.workloads.domain import WorkItemStatus, WorkPlan
 from plugins.mas.elements.orchestrator.context.models import (
     FutilityIndicator,
     ProgressMetrics,

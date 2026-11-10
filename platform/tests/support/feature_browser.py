@@ -8,11 +8,11 @@ from pathlib import Path
 from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import SecretStr
 
-from flareward.bootstrap.asgi import create_app as platform_app
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.models import CheckRequirement
+from lumora.bootstrap.asgi import create_app as platform_app
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.models import CheckRequirement
 from plugins.adlc.programs.coding import CodingFileWork
 from plugins.adlc.programs.program import EngineeringCandidate
 from plugins.artifacts.elements.specification import ELEMENT_SPECIFICATIONS as ARTIFACTS
@@ -93,8 +93,8 @@ async def serve(assets: Path, directory: Path) -> None:
             environment={
                 **browser.environment,
                 "PATH": str(executable.parent) + os.pathsep + os.environ.get("PATH", ""),
-                "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": "true",
-                "FLAREWARD_PYTHON_CHECK_DIRECTORY": str(directory / "check-workspaces"),
+                "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": "true",
+                "LUMORA_PYTHON_CHECK_DIRECTORY": str(directory / "check-workspaces"),
             },
         ) as api:
             config = await saved_coding_candidate(

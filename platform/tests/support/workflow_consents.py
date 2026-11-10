@@ -4,9 +4,9 @@ from datetime import datetime
 
 import pytest
 
-from flareward.executions.domain.consent import WorkflowConsent
-from flareward.services.access.consent import WorkflowConsentStore
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.consent import WorkflowConsent
+from lumora.services.access.consent import WorkflowConsentStore
+from lumora.services.identity.domain import Identity
 
 
 class MemoryWorkflowConsents:

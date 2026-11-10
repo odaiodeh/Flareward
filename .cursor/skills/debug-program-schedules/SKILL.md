@@ -1,9 +1,9 @@
 ---
 name: debug-program-schedules
-description: Diagnose Flareward native program schedules, reused Temporal workflow IDs, stale calendar edits, tick admission, and schedule-history replay.
+description: Diagnose Lumora native program schedules, reused Temporal workflow IDs, stale calendar edits, tick admission, and schedule-history replay.
 ---
 
-# Diagnose native Flareward schedules
+# Diagnose native Lumora schedules
 
 Read [the native schedule contract](../../../docs/program-platform-development.md#native-program-schedules)
 and [the test infrastructure guide](../../../platform/tests/infra/README.md).
@@ -57,7 +57,7 @@ Check the boundary indicated by the evidence:
   root. Preserve the original human credential binding and immutable snapshot.
 - Replay failure: preload the same installed worker modules, use the original
   namespace, and select the exact native generation for current-source histories.
-  Flareward's fresh formats have no old-worker compatibility promise. Do not weaken replay restrictions or
+  Lumora's fresh formats have no old-worker compatibility promise. Do not weaken replay restrictions or
   replace a generation pin with a latest-workflow lookup.
 - Timer budget changes: manual actions bypass the automatic budget. Metadata/input
   edits preserve its live remainder; rearming a completed series resets its counted

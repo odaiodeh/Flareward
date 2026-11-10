@@ -69,7 +69,7 @@ temporal:
 
 logging:
   storage:
-    volumeName: "flareward-logging-volume"
+    volumeName: "lumora-logging-volume"
     requestedSize: 100Gi
     className: aws-efs-tier-c1
     accessModes:

@@ -1,7 +1,7 @@
 from typing import ClassVar
 
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.mcp.elements.mcp_server_client.card_builder import McpProviderCardBuilder
 from plugins.mcp.elements.mcp_server_client.config import McpProviderConfig
 from plugins.mcp.elements.mcp_server_client.identifiers import META, Identifier

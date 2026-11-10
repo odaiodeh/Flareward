@@ -4,12 +4,12 @@ import pytest
 from runengine.invocation.config import ProcessRunnerConfig, ThreadRunnerConfig
 from support.scenarios import echo_graph, publish
 
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.models import PreparedExecution, StartExecution
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.identity.domain import Identity
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.models import PreparedExecution, StartExecution
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

@@ -1,4 +1,4 @@
-"""Actual database contracts; opt in with FLAREWARD_TEST_MONGO_URI."""
+"""Actual database contracts; opt in with LUMORA_TEST_MONGO_URI."""
 
 import asyncio
 import os
@@ -10,22 +10,22 @@ from support.elements import element_registry
 from support.execution_claims import assert_submission_claim_contract
 from support.session_store_contracts import assert_query_and_delete_contracts
 
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
-from flareward.executions.models import PreparedExecution, SubmissionClaim
-from flareward.executions.ports import ExecutionLocationUnavailable
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition, ProgramRef
-from flareward.services.identity.domain import Identity
-from flareward.services.sessions.adapters.mongo.session_store import MongoSessionStore
-from flareward.services.sessions.domain.status import SessionStatus
-from flareward.services.sessions.execution.program_sessions import (
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
+from lumora.executions.models import PreparedExecution, SubmissionClaim
+from lumora.executions.ports import ExecutionLocationUnavailable
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition, ProgramRef
+from lumora.services.identity.domain import Identity
+from lumora.services.sessions.adapters.mongo.session_store import MongoSessionStore
+from lumora.services.sessions.domain.status import SessionStatus
+from lumora.services.sessions.execution.program_sessions import (
     CreateProgramSession,
     StartSessionTurn,
 )
-from flareward.services.sessions.records import SessionRecord
+from lumora.services.sessions.records import SessionRecord
 
 
 async def test_mongo_session_queries_and_guarded_deletion(mongo_database):
@@ -127,7 +127,7 @@ async def test_mongo_lifespan_reconciles_session_and_retains_result_across_resta
         interactions="disabled",
         authentication="development",
         development_user="owner",
-        mongo_uri=os.environ["FLAREWARD_TEST_MONGO_URI"],
+        mongo_uri=os.environ["LUMORA_TEST_MONGO_URI"],
         mongo_database=mongo_database.name,
         application_modules=("support.programs",),
         reconcile_interval=0.05,
@@ -213,7 +213,7 @@ async def test_fresh_local_host_preserves_unreachable_active_record_and_can_shut
         interactions="disabled",
         authentication="development",
         development_user="owner",
-        mongo_uri=os.environ["FLAREWARD_TEST_MONGO_URI"],
+        mongo_uri=os.environ["LUMORA_TEST_MONGO_URI"],
         mongo_database=mongo_database.name,
         application_modules=("support.programs",),
     )

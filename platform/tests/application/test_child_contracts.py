@@ -5,17 +5,17 @@ from support.programs import ComposedConfig, composed_program
 from support.typed_programs import APPLICATION_PROGRAMS as TYPED_PROGRAMS
 from support.typed_programs import TypedInput
 
-from flareward.programs.authoring import ProgramIssueCode
-from flareward.programs.composition.programs import APPLICATION_PROGRAMS
-from flareward.programs.domain.models import (
+from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.composition.programs import APPLICATION_PROGRAMS
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     LiteralBinding,
     PathBinding,
     ProgramBody,
     ProgramDefinition,
 )
-from flareward.programs.registry import ApplicationRegistration
-from flareward.programs.service import ProgramContractError
+from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.fixture(autouse=True)

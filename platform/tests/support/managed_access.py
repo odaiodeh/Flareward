@@ -11,12 +11,12 @@ from cryptography.fernet import Fernet
 from pydantic import SecretStr
 from runengine.adapters.coordination.config import TemporalHostConfig
 
-from flareward.bootstrap.settings.platform_settings import (
+from lumora.bootstrap.settings.platform_settings import (
     PlatformSettings,
     VerificationAuthorityConfig,
 )
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
 from support.identity import authenticated_cookie
 from support.review_api import review_settings
 from support.server import api_process
@@ -72,10 +72,10 @@ def managed_access_settings(
 
 def managed_access_environment(base: str) -> dict[str, str]:
     return {
-        "FLAREWARD_REVIEW_ENDPOINT": base,
-        "FLAREWARD_REVIEW_ALLOW_INSECURE": "true",
-        "FLAREWARD_VERIFICATION_ENDPOINT": base,
-        "FLAREWARD_VERIFICATION_ALLOW_INSECURE": "true",
+        "LUMORA_REVIEW_ENDPOINT": base,
+        "LUMORA_REVIEW_ALLOW_INSECURE": "true",
+        "LUMORA_VERIFICATION_ENDPOINT": base,
+        "LUMORA_VERIFICATION_ALLOW_INSECURE": "true",
     }
 
 

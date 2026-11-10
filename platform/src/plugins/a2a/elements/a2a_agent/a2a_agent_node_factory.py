@@ -6,10 +6,10 @@ for registry-based auth methods (SSO servers), or from the raw bearer_token
 for manually-entered access tokens.
 """
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
-from flareward.services.auth.credentials.credential import AuthCredential
-from flareward.services.auth.credentials.models import StaticAuthMethod
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
+from lumora.services.auth.credentials.credential import AuthCredential
+from lumora.services.auth.credentials.models import StaticAuthMethod
 from plugins.a2a.elements.a2a_agent.a2a_agent_node import A2AAgentNode
 from plugins.a2a.elements.a2a_agent.config import A2AAgentNodeConfig
 from plugins.a2a.elements.a2a_agent.identifiers import Identifier

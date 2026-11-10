@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 
 @dataclass(frozen=True)

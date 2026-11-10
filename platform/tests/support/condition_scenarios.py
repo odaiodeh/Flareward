@@ -2,15 +2,15 @@
 
 from pydantic import JsonValue
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ConditionalRoute,
     ElementStep,
     GraphDefinition,
     GraphWritePolicy,
     PathBinding,
 )
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.categories import ResourceCategory
 from support.scenarios import resource
 
 

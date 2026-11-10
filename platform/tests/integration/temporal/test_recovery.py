@@ -7,11 +7,11 @@ from support.scenarios import publish, resource
 from support.temporal import replay, worker_process
 from temporalio.api.enums.v1 import EventType, TimeoutType
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.resources.domain.categories import ResourceCategory
 
 
 async def test_killed_invocation_is_redelivered_without_repeating_business_effect(

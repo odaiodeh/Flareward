@@ -5,8 +5,8 @@ from support.graph_routes import conditional_values
 from support.scenarios import publish, run
 from support.typed_programs import APPLICATION_PROGRAMS
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.programs.domain.models import ConditionalRoute, JoinPolicy
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.domain.models import ConditionalRoute, JoinPolicy
 
 
 @pytest.fixture(autouse=True)

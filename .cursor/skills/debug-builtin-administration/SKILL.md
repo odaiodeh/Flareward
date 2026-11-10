@@ -1,20 +1,20 @@
 ---
 name: debug-builtin-administration
-description: Diagnose or extend Flareward curated resource publication, administration, dependency visibility, private configuration, version conflicts and editor leases.
+description: Diagnose or extend Lumora curated resource publication, administration, dependency visibility, private configuration, version conflicts and editor leases.
 ---
 
 # Diagnose curated resource administration
 
 Trace the Repository Management screen through `api/resources.ts`, native
-`flareward.api.builtin_administration`, application `BuiltinAdministration`
-and `flareward.resources.adapters.mongo.builtin_administration`. Canonical administration routes are
+`lumora.api.builtin_administration`, application `BuiltinAdministration`
+and `lumora.resources.adapters.mongo.builtin_administration`. Canonical administration routes are
 `/api/administration/resources`; the old built-in Flask routes/service are removed.
 Ordinary resource reads and caller overlays still use the native resource service.
 
 Human authority is distinct from selected workspace ownership. Application
 `AdministratorAccess` decides authority through the persisted directory and explicit
-flareward.bootstrap policy. An empty persisted list denies everyone; directory failure cannot
-restore flareward.bootstrap access. Never derive human authority from `userId`, team selection
+lumora.bootstrap policy. An empty persisted list denies everyone; directory failure cannot
+restore lumora.bootstrap access. Never derive human authority from `userId`, team selection
 or workflow bearers. The inbound human principal rejects bearer-plus-cookie requests.
 
 Custom and curated saves share `ResourceConfiguration` and installed schemas,
@@ -48,7 +48,7 @@ Focused policy tests are `application/test_builtin_administration.py`, resource
 configuration/encryption tests and architecture guards. Native acceptance uses:
 
 ```sh
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_MONGO_TRANSACTION_URI='mongodb://127.0.0.1:27019/?directConnection=true' FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/mongo/test_builtin_administration.py platform/tests/integration/mongo/test_builtin_standalone.py platform/tests/integration/http/test_builtin_administration.py --ui-clients -q
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 LUMORA_TEST_MONGO_TRANSACTION_URI='mongodb://127.0.0.1:27019/?directConnection=true' LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/mongo/test_builtin_administration.py platform/tests/integration/mongo/test_builtin_standalone.py platform/tests/integration/http/test_builtin_administration.py --ui-clients -q
 ```
 
 The actual-store cases cover rollback on an index failure and competing publication/

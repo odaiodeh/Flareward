@@ -7,10 +7,10 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from flareward.elements.agents.constants import ToolNames
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.workloads.domain import WorkItemKind
-from flareward.services.interactions.tools.models import ToolAccessMode
+from lumora.elements.agents.constants import ToolNames
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.workloads.domain import WorkItemKind
+from lumora.services.interactions.tools.models import ToolAccessMode
 
 
 class AssignItemArgs(BaseModel):

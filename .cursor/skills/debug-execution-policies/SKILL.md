@@ -1,13 +1,13 @@
 ---
 name: debug-execution-policies
-description: Diagnose owner-scoped execution-profile access and Flareward OpenShell startup policies, egress enforcement and retained-environment policy ownership.
+description: Diagnose owner-scoped execution-profile access and Lumora OpenShell startup policies, egress enforcement and retained-environment policy ownership.
 ---
 
 # Diagnose execution policies
 
 For owner/profile permission failures, start with
 [owner-scoped profiles](../../../docs/program-platform-development.md#owner-scoped-execution-profiles).
-`FLAREWARD_PROFILE_ACCESS` is separate from OpenShell network/process policy files.
+`LUMORA_PROFILE_ACCESS` is separate from OpenShell network/process policy files.
 No access policy means the installed deployment catalog; a configured policy
 denies unmatched owners unless an explicit default grant exists. Match user/team
 type and stable id, not display name. Duplicate owners or unknown profile names
@@ -33,7 +33,7 @@ and the selected deployment's existing profiles. This workflow is for Run Engine
 OpenShell placement. The retired sandbox element/tool proxy is not a control point.
 
 `PlatformSettings.execution_policy_files` maps installed OpenShell profile names to
-absolute JSON paths. `flareward.bootstrap.settings.execution_policies.load_execution_profiles` loads them
+absolute JSON paths. `lumora.bootstrap.settings.execution_policies.load_execution_profiles` loads them
 off-loop at API startup, before client allocation. Inline/file conflicts fail.
 The compiler detaches the data; editing a file does not mutate existing requests
 or named environments. Restart the API to load changes for new submissions.
@@ -50,9 +50,9 @@ pairing `sandbox_id` with policy/file is rejected rather than silently ignored.
 The current portable network subset is hosts/ports and executable paths. A full
 URL, embedded port, path/method filter or unknown field is not supported by this
 adapter. Keep SDK translation in Run Engine; keep file loading in composition.
-Do not add SDK models to Flareward domain or application ports.
+Do not add SDK models to Lumora domain or application ports.
 
-For actual enforcement, prepare [Flareward's independent test infrastructure](../../../platform/tests/infra/README.md)
+For actual enforcement, prepare [Lumora's independent test infrastructure](../../../platform/tests/infra/README.md)
 and refresh the sandbox image after installed-source changes. Use:
 
 ```sh

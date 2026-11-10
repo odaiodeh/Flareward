@@ -10,15 +10,15 @@ from support.check_runs import check_policy, source_policy, source_request
 from support.program_checks import verifier_definition
 from support.verification import MemoryVerificationRepository, VerificationClock
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionFailure, ExecutionPhase, ExecutionRecord
-from flareward.executions.ports import SubmissionUnconfirmed
-from flareward.programs.domain.models import ProgramRevision
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import VerificationActor
-from flareward.services.verification.check_ports import CheckProviderUnavailable
-from flareward.services.verification.domain.check_runs import CheckRun, CheckRunStatus
-from flareward.services.verification.program_checks import (
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionFailure, ExecutionPhase, ExecutionRecord
+from lumora.executions.ports import SubmissionUnconfirmed
+from lumora.programs.domain.models import ProgramRevision
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import VerificationActor
+from lumora.services.verification.check_ports import CheckProviderUnavailable
+from lumora.services.verification.domain.check_runs import CheckRun, CheckRunStatus
+from lumora.services.verification.program_checks import (
     CheckProgramArtifacts,
     CheckProgramExecutions,
     CheckProgramResult,
@@ -26,7 +26,7 @@ from flareward.services.verification.program_checks import (
     ProgramCheckConfiguration,
     ProgramCheckRunner,
 )
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.service import VerificationService
 
 
 @pytest.fixture

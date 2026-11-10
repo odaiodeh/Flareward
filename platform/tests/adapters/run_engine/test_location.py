@@ -4,8 +4,8 @@ import pytest
 from pydantic import ValidationError
 from runengine.adapters.coordination.config import LocalHostConfig, TemporalHostConfig
 
-from flareward.executions.adapters.run_engine.outbound.location import host_location
-from flareward.executions.models import PreparedExecution
+from lumora.executions.adapters.run_engine.outbound.location import host_location
+from lumora.executions.models import PreparedExecution
 
 
 @pytest.mark.parametrize(

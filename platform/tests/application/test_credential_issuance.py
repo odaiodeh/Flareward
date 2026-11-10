@@ -7,14 +7,14 @@ import pytest
 from support.credential_material import MemoryCredentialMaterial
 from support.credential_renewals import RenewalCase
 
-from flareward.services.access.executions import ExecutionAccessUnavailable
-from flareward.services.access.issuance import (
+from lumora.services.access.executions import ExecutionAccessUnavailable
+from lumora.services.access.issuance import (
     CredentialIssuanceClosed,
     CredentialIssuanceConflict,
     CredentialMaterialRetirement,
     CredentialMaterialUnavailable,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture(params=["review", "verification"])

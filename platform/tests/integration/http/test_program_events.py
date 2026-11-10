@@ -11,10 +11,10 @@ from support.managed_workflow import review_verification_graph, workflow_require
 from support.review_programs import review_definition
 from support.verification import verification_request
 
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.services.access.issuance import CredentialReservation
-from flareward.services.reviews.domain.models import ReviewRecord
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.services.access.issuance import CredentialReservation
+from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.specification import (
     ELEMENT_SPECIFICATIONS as REVIEW_SPECIFICATIONS,
 )
@@ -230,9 +230,7 @@ async def test_event_source_runs_typed_operations_and_review_with_private_scoped
         assert issued["credential"] not in registration["data"]
         observed = json.dumps([r.json() for r in submitted] + [result.json()]) + api.log.read_text()
         assert issued["credential"] not in observed
-        assert (
-            "flareward-review-v1." not in observed and "flareward-verification-v1." not in observed
-        )
+        assert "lumora-review-v1." not in observed and "lumora-verification-v1." not in observed
 
 
 async def test_event_schema_and_program_contract_errors_are_private_before_admission(

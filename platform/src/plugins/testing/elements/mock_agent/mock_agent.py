@@ -1,6 +1,6 @@
-from flareward.elements.node import BaseNode
-from flareward.programs.graph.state.graph_state import Channel
-from flareward.programs.graph.state.state_view import StateView
+from lumora.elements.node import BaseNode
+from lumora.programs.graph.state.graph_state import Channel
+from lumora.programs.graph.state.state_view import StateView
 
 
 class MockAgentNode(BaseNode):

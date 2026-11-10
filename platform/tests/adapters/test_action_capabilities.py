@@ -3,7 +3,7 @@
 import asyncio
 from unittest.mock import create_autospec
 
-from flareward.services.actions.contracts import ActionSettings
+from lumora.services.actions.contracts import ActionSettings
 from plugins.actions.llms.openai.capabilities import ModelCapabilities
 
 

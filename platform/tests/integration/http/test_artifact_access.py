@@ -7,12 +7,12 @@ from fastapi import HTTPException
 from support.artifact_workflow import ArtifactWorkflowCase, MemoryArtifactWorkflowRepository
 from support.artifacts import chunks, publication
 
-from flareward.api.app import create_app
-from flareward.services.artifacts.access import ArtifactAccessService
-from flareward.services.artifacts.adapters.access import SQLiteArtifactAccessRepository
-from flareward.services.artifacts.adapters.filesystem import FileArtifactRepository
-from flareward.services.artifacts.service import ArtifactService
-from flareward.services.identity.domain import Identity
+from lumora.api.app import create_app
+from lumora.services.artifacts.access import ArtifactAccessService
+from lumora.services.artifacts.adapters.access import SQLiteArtifactAccessRepository
+from lumora.services.artifacts.adapters.filesystem import FileArtifactRepository
+from lumora.services.artifacts.service import ArtifactService
+from lumora.services.identity.domain import Identity
 
 
 async def test_transfer_grants_remain_scoped_and_revocation_persists(platform, tmp_path):

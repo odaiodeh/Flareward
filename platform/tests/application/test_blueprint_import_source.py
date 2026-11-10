@@ -5,13 +5,13 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.programs.templates.authoring import BlueprintAuthoringService
-from flareward.programs.templates.contracts import (
+from lumora.programs.templates.authoring import BlueprintAuthoringService
+from lumora.programs.templates.contracts import (
     BlueprintDocument,
     BlueprintResolution,
     BlueprintResolutionSource,
 )
-from flareward.programs.templates.resolution import BlueprintImportSource
+from lumora.programs.templates.resolution import BlueprintImportSource
 
 
 @pytest.fixture

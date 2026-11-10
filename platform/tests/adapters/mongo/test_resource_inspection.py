@@ -7,14 +7,14 @@ import pytest
 from pydantic import ValidationError
 from pymongo.errors import PyMongoError
 
-from flareward.elements.exceptions import ElementInspectionError
-from flareward.elements.validation import ElementValidationResult
-from flareward.resources.adapters.mongo.resource_inspection import StoredResourceProbe
-from flareward.resources.builtin_aware_service import BuiltinAwareResourceService
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.errors import ResourceStorageError
-from flareward.resources.probes import InspectionContext
-from flareward.services.identity.domain import Identity
+from lumora.elements.exceptions import ElementInspectionError
+from lumora.elements.validation import ElementValidationResult
+from lumora.resources.adapters.mongo.resource_inspection import StoredResourceProbe
+from lumora.resources.builtin_aware_service import BuiltinAwareResourceService
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.errors import ResourceStorageError
+from lumora.resources.probes import InspectionContext
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

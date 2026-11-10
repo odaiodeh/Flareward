@@ -12,10 +12,10 @@ from pydantic import SecretStr, ValidationError
 from runengine.invocation.errors import InvocationInfrastructureError
 from support.telemetry import span_attributes, trace_collector
 
-from flareward.bootstrap import tracing as tracing_bootstrap
-from flareward.bootstrap.settings.receiver_settings import ReceiverSettings
-from flareward.bootstrap.tracing import receiver_tracing
-from flareward.services.tracing.adapters.langfuse import otel
+from lumora.bootstrap import tracing as tracing_bootstrap
+from lumora.bootstrap.settings.receiver_settings import ReceiverSettings
+from lumora.bootstrap.tracing import receiver_tracing
+from lumora.services.tracing.adapters.langfuse import otel
 
 
 def tracing_settings(base_url):

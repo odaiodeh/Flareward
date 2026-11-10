@@ -1,7 +1,7 @@
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.openai_compatible.elements.openai_compatible.config import (
     OpenAICompatibleConfig,
 )

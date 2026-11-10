@@ -8,13 +8,13 @@ from pydantic import ValidationError
 from support.elements import DependencyFactory, element_registry
 from support.scenarios import bundle, resource
 
-from flareward.async_work import await_owned
-from flareward.elements.construction.builder import ElementBundleBuilder
-from flareward.elements.construction.resolver import (
+from lumora.async_work import await_owned
+from lumora.elements.construction.builder import ElementBundleBuilder
+from lumora.elements.construction.resolver import (
     BundleResolutionError,
     ElementBundleResolver,
 )
-from flareward.resources.domain.bundles import ElementBundle
+from lumora.resources.domain.bundles import ElementBundle
 
 
 @pytest.fixture

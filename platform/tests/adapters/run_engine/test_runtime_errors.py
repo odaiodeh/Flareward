@@ -8,19 +8,19 @@ from runengine.invocation.errors import InvocationContractError, InvocationInfra
 from support.elements import element_registry
 from support.scenarios import bundle
 
-from flareward.executions.adapters.run_engine.outbound.errors import application_errors
-from flareward.executions.adapters.run_engine.outbound.runtime import (
+from lumora.executions.adapters.run_engine.outbound.errors import application_errors
+from lumora.executions.adapters.run_engine.outbound.runtime import (
     ChildProgramExecution,
     RunEngineProgramRuntime,
 )
-from flareward.executions.adapters.run_engine.shared.models import (
+from lumora.executions.adapters.run_engine.shared.models import (
     ElementSpecifications,
     ProgramPlacement,
 )
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionFailure, FailureKind
-from flareward.executions.ports import ExecutionError
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionFailure, FailureKind
+from lumora.executions.ports import ExecutionError
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("operation", ["invoke", "receive", "sleep"])

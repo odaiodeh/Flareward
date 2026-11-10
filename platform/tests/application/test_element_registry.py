@@ -3,7 +3,7 @@
 import pytest
 from support.elements import EchoSpec
 
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.categories import ResourceCategory
 
 
 class ConflictingEchoSpec(EchoSpec):

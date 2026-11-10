@@ -6,11 +6,11 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
-from flareward.elements.coding.contracts import CodingInput
-from flareward.programs.composition.scope import ChildCalls
-from flareward.programs.domain.models import PathBinding
-from flareward.programs.ports import ChildContract, ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
+from lumora.elements.coding.contracts import CodingInput
+from lumora.programs.composition.scope import ChildCalls
+from lumora.programs.domain.models import PathBinding
+from lumora.programs.ports import ChildContract, ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
 from plugins.adlc.programs.design import (
     AcceptanceCriteria,
     DesignOutcome,

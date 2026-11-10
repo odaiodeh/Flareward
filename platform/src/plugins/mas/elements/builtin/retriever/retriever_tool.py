@@ -8,8 +8,8 @@ from typing import Any
 from global_utils.utils.util import to_snake_case
 from pydantic import BaseModel, Field
 
-from flareward.elements.ports.retrieval import BaseRetriever
-from flareward.elements.ports.tool import BaseTool
+from lumora.elements.ports.retrieval import BaseRetriever
+from lumora.elements.ports.tool import BaseTool
 
 
 class RetrieverToolArgs(BaseModel):

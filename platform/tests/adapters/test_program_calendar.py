@@ -7,10 +7,10 @@ from runengine.adapters.coordination.config import TemporalHostConfig
 from runengine.core.refs import FunctionRef
 from temporalio.client import Client, ScheduleDescription, ScheduleHandle
 
-from flareward.bootstrap.scheduling import admit_scheduled_execution
-from flareward.services.identity.domain import Identity
-from flareward.services.scheduling.adapters.temporal.programs import TemporalProgramSchedules
-from flareward.services.scheduling.programs import ProgramScheduleError
+from lumora.bootstrap.scheduling import admit_scheduled_execution
+from lumora.services.identity.domain import Identity
+from lumora.services.scheduling.adapters.temporal.programs import TemporalProgramSchedules
+from lumora.services.scheduling.programs import ProgramScheduleError
 
 
 async def test_calendar_connection_failure_is_safe_infrastructure_failure(monkeypatch):

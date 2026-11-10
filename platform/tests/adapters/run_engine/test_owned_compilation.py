@@ -6,11 +6,11 @@ from runengine.invocation.config import K8sRunnerConfig, ProcessRunnerConfig, Th
 from support.operations import operation_graph
 from support.scenarios import publish
 
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.adapters.run_engine.shared.models import ProgramPayload
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramRevision
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.adapters.run_engine.shared.models import ProgramPayload
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramRevision
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def compiler(application):
         {
             "thread": ThreadRunnerConfig(),
             "process": ProcessRunnerConfig(),
-            "sandbox": K8sRunnerConfig(image="flareward-receiver:fixture"),
+            "sandbox": K8sRunnerConfig(image="lumora-receiver:fixture"),
         },
         "thread",
     )

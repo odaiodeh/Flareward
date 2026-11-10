@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.mcp.elements.mcp_server_client.config import McpProviderConfig
 from plugins.mcp.elements.mcp_server_client.identifiers import Identifier
 from plugins.mcp.elements.mcp_server_client.mcp_provider import McpProvider

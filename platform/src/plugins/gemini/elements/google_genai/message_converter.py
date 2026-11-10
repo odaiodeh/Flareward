@@ -24,7 +24,7 @@ from uuid import uuid4
 
 from google.genai import types
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
+from lumora.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
 
 
 @dataclass(frozen=True)

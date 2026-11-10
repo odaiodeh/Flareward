@@ -1,6 +1,6 @@
 ---
 name: debug-human-reviews
-description: Diagnose Flareward business Human Review authorization, immutable decisions, engine wakeups, restart recovery and reviewer UI behavior. Tool approval tickets are a separate mechanism.
+description: Diagnose Lumora business Human Review authorization, immutable decisions, engine wakeups, restart recovery and reviewer UI behavior. Tool approval tickets are a separate mechanism.
 ---
 
 # Diagnose Human Review
@@ -19,14 +19,14 @@ execution service. The coordinator invokes open/inspect effects and waits throug
 `ProgramRuntime.receive`; message data is never an approval.
 
 For lost issuance responses, use the existing human endpoint with `Idempotency-Key`
-and configured `FLAREWARD_RECOVERABLE_CREDENTIAL_ISSUANCE`/encryption key. The same
+and configured `LUMORA_RECOVERABLE_CREDENTIAL_ISSUANCE`/encryption key. The same
 owner/purpose/key/request/human recovers one original token; changed intent conflicts,
 and revoked/expired identities cannot revive. Inspect safe metadata/tombstones,
 never ciphertext/token values. The API upkeep retires encrypted material separately
 from grant audit. Shared `HumanPrincipal` rejects bearer-plus-cookie grant management.
 
 For managed trusted-filesystem delivery, inspect the absolute private
-`FLAREWARD_WORKFLOW_CREDENTIAL_DIRECTORY` binding and safe reservation `delivery_key`.
+`LUMORA_WORKFLOW_CREDENTIAL_DIRECTORY` binding and safe reservation `delivery_key`.
 The API needs recoverable issuance and its vault key; the receiver needs only the
 directory/source binding. Normal factories resolve through `WorkflowCredentialSource`;
 a configured source failure must not fall back to an operator file. Inspect
@@ -111,8 +111,8 @@ Run focused application/architecture cases first, then actual adapters:
 
 ```sh
 .venv/bin/python -m pytest platform/tests/application/test_reviews.py platform/tests/application/test_review_program.py platform/tests/architecture -q
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest platform/tests/integration/reviews/test_workflow.py platform/tests/integration/temporal/test_reviews.py -q
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/ui/test_editor_client.py -k human_review --ui-clients -q
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 LUMORA_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7234 .venv/bin/python -m pytest platform/tests/integration/reviews/test_workflow.py platform/tests/integration/temporal/test_reviews.py -q
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 .venv/bin/python -m pytest platform/tests/integration/ui/test_editor_client.py -k human_review --ui-clients -q
 ```
 
 The native fixtures use real signed-cookie owner/reviewer users, separate API and
@@ -127,7 +127,7 @@ For an actual App check, build `ui/tests/build-workspace-browser.mjs` as describ
 in [session UI diagnostics](../debug-session-ui/SKILL.md), then use a fresh directory:
 
 ```sh
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 PYTHONPATH=platform/src:platform/tests .venv/bin/python -m support.review_browser --assets /tmp/flareward-review-browser-assets --directory /tmp/flareward-review-browser-run
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 PYTHONPATH=platform/src:platform/tests .venv/bin/python -m support.review_browser --assets /tmp/lumora-review-browser-assets --directory /tmp/lumora-review-browser-run
 ```
 
 Open the printed test login URL, select the pending occurrence, inspect its subject,

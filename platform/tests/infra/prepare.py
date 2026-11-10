@@ -36,7 +36,7 @@ def prepare(directory: Path) -> None:
     directory.mkdir(parents=True, mode=0o700, exist_ok=True)
     directory.chmod(0o700)
     ca_key = ec.generate_private_key(ec.SECP256R1())
-    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Flareward local test CA")])
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "Lumora local test CA")])
     now = datetime.now(UTC)
     ca = (
         x509.CertificateBuilder()
@@ -79,7 +79,7 @@ def prepare(directory: Path) -> None:
         builder = (
             x509.CertificateBuilder()
             .subject_name(
-                x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "flareward-e2e-" + name)])
+                x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "lumora-e2e-" + name)])
             )
             .issuer_name(ca_name)
             .public_key(key.public_key())
@@ -136,7 +136,7 @@ def prepare(directory: Path) -> None:
     values["public.pem"] = signing.public_key().public_bytes(
         serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
     )
-    values["kid"] = ("flareward-e2e-" + uuid4().hex).encode()
+    values["kid"] = ("lumora-e2e-" + uuid4().hex).encode()
     for name, value in values.items():
         path = directory / name
         with path.open("xb") as output:

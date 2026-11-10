@@ -7,7 +7,7 @@ from zipfile import ZipFile, ZipInfo
 
 import httpx
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 from plugins.github_actions.github_config import GitHubCheckConfiguration
 from support.check_runs import check_policy
 
@@ -82,9 +82,9 @@ class GitHubProtocol:
             assert body["ref"] == "checks-v1" and body["return_run_details"] is True
             assert body["inputs"]["candidate_commit"] == "b" * 40
             assert set(body["inputs"]) == {
-                "flareward_intent",
-                "flareward_plan",
-                "flareward_check",
+                "lumora_intent",
+                "lumora_plan",
+                "lumora_check",
                 "candidate_commit",
             }
             self.runs.append(
@@ -93,8 +93,8 @@ class GitHubProtocol:
                     "workflow_id": 42,
                     "run_attempt": 1,
                     "event": "workflow_dispatch",
-                    "display_title": "flareward-"
-                    + body["inputs"]["flareward_intent"]
+                    "display_title": "lumora-"
+                    + body["inputs"]["lumora_intent"]
                     + "-"
                     + body["inputs"]["candidate_commit"],
                     "head_sha": "c" * 40,

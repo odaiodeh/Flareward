@@ -1,6 +1,6 @@
 # Program platform: active plan
 
-Updated 2026-11-09. Read [status](status.md) and relevant source; the
+Updated 2026-11-10. Read [status](status.md) and relevant source; the
 [target checklist](architecture/README.md#architecture-acceptance-checklist) defines completion.
 The stored overall goal remains paused. The user explicitly authorized the repository
 reorganization below; this task does not resume or complete the larger goal.
@@ -11,7 +11,7 @@ reorganization below; this task does not resume or complete the larger goal.
 construction and product flows, make component ownership visible in the directory
 structure, and verify the cutover without compatibility aliases.
 
-- `platform/src/flareward`: feature-owned Elements, Resources, Programs, Executions,
+- `platform/src/lumora`: feature-owned Elements, Resources, Programs, Executions,
   shared product services, FastAPI transport and composition roots. Local domain,
   ports, services and adapters; no global domain/application directory split.
 - `platform/src/plugins`: capability-owned plugins, optionally contributing
@@ -28,10 +28,12 @@ structure, and verify the cutover without compatibility aliases.
 - Update active README/skills/tooling/deployment references; leave historical evidence
   snapshot-specific. No commit/push/staging unless the user requests it.
 
-The additional user-authorized [Flareward naming cutover](branding.md) is complete
-within its [recorded verification scope](evidence/2026-11-09-flareward-rename.md). It updates
+The additional user-authorized [Lumora naming cutover](branding.md) updates
 core/imports, capability `plugins`, CLI/configuration, UI and deployment names.
 Historical evidence and actual external service identities remain snapshot-specific.
+[Current rename evidence](evidence/2026-11-10-lumora-rename.md) records its own checks;
+prior Flareward images remain historical. The [checkout/remote move](evidence/2026-11-10-lumora-checkout.md)
+is also complete, with preserved uncommitted work and repaired tooling paths.
 
 ## Accepted product prerequisite
 
@@ -58,7 +60,7 @@ repair/check/review and retained work through one published revision.
 
 Boundaries: Elements construct through specs/factories/builders; Programs compose
 through typed runtime ports. Run Engine owns scheduling/waits/invocation/environment
-lifetimes. Flareward owns authority, accepted outcomes and business records. Git is an
+lifetimes. Lumora owns authority, accepted outcomes and business records. Git is an
 optional capability; ordinary results remain typed data. Preserve exact candidate
 -> independent checks -> approval -> delivery receipt -> validation semantics.
 Do not add Git/ADLC-specific compiler branches or another scheduler/registry.
@@ -84,7 +86,7 @@ Required carry-over obligations remain:
 Use focused tests/static checks during implementation; coherent integration gates
 at milestones. Batch Docker/Temporal/Kubernetes/OpenShell/browser work, with full
 final coverage. Rebuild matched images after installed code changes; historical
-images do not prove the current source. Use dedicated Flareward infrastructure only.
+images do not prove the current source. Use dedicated Lumora infrastructure only.
 Poll confirmed-live handles; observation timeout does not justify duplicate runs.
 No implicit paid calls. Record scope, source/image identities and limitations in
 focused [evidence](evidence/README.md). Keep status <=100 and plan <=120 lines;

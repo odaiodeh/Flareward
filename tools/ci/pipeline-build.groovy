@@ -12,7 +12,7 @@ properties([
         booleanParam(name: 'set_image_candidate', defaultValue: false, description: 'Set images with latest tag'),
         
         // 🚀 Deployment Parameters
-        booleanParam(name: 'deploy_flareward', defaultValue: false, description: 'True - Deploy Flareward, False - Only build images and upload to image-paas'),
+        booleanParam(name: 'deploy_lumora', defaultValue: false, description: 'True - Deploy Lumora, False - Only build images and upload to image-paas'),
         choice(name: 'deploy_type', choices: ['FRESH_INSTALL', 'APPLICATION_UPGRADE'], description: 'Deployment type'),
         choice(name: 'deploy_location', choices: ['STAGING', 'PRODUCTION'], description: 'Deployment environment'),
         booleanParam(name: 'debug_mode', defaultValue: false, description: 'True - create pods with debug mode')
@@ -28,7 +28,7 @@ def buildParams = [
     NodeToRun          : "tag-slave",
     DevRoot            : "/root/workspace/${env.JOB_NAME}",
     ImageRegistry      : "images.paas.redhat.com",
-    ImageRegistryPath  : "flareward",
+    ImageRegistryPath  : "lumora",
     ImageRegistryCreds : "images.paas.registry-unifai",
 
     CredMainRepoURL    : "github.com",
@@ -143,7 +143,7 @@ pipeline {
                         branches: [[name: "${buildParams.CredMainRepoBranch}"]],
                         doGenerateSubmoduleConfigurations: false,
                         //extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "${buildParams.DevRoot}/${params.BRANCH}"]],
-                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "Flareward-secrets"]],
+                        extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: "Lumora-secrets"]],
                         submoduleCfg: [],
                         userRemoteConfigs: [[
                             credentialsId: "${buildParams.CredCredentialsId}",
@@ -217,7 +217,7 @@ pipeline {
 
         stage('Deploy Application') {
             when {
-                expression { return params.deploy_flareward }
+                expression { return params.deploy_lumora }
             }
             steps {
                 script {

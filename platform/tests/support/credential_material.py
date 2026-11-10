@@ -4,7 +4,7 @@ from datetime import datetime
 
 from pydantic import SecretStr
 
-from flareward.services.access.issuance import (
+from lumora.services.access.issuance import (
     CredentialIssuanceClosed,
     CredentialIssuanceConflict,
     CredentialMaterial,

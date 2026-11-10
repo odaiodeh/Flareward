@@ -22,18 +22,18 @@ Build matched receiver/Codex images at the coherent milestone and verify them wi
 well as runtime code. After a host-only helper correction, distinguish that older
 full snapshot from a fresh `--platform` comparison of production/runtime sources;
 never claim changed execution source matches an old image. Test profile helpers
-must retain concrete SDK flareward.bootstrap.settings classes; a base `ExecutorConfig` can serialize with
+must retain concrete SDK lumora.bootstrap.settings classes; a base `ExecutorConfig` can serialize with
 warnings when placed in the operator settings union.
 
 With current dedicated services, valid mTLS files, an explicitly selected image,
 and an authorized private key binding:
 
 ```sh
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
-FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
-FLAREWARD_TEST_OPENSHELL_ENDPOINT=127.0.0.1:8090 \
-FLAREWARD_TEST_OPENSHELL_PKI=/absolute/current-state/pki \
-FLAREWARD_TEST_OPENSHELL_IMAGE=flareward-codex:your-current-source-tag \
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
+LUMORA_TEST_OPENSHELL_ENDPOINT=127.0.0.1:8090 \
+LUMORA_TEST_OPENSHELL_PKI=/absolute/current-state/pki \
+LUMORA_TEST_OPENSHELL_IMAGE=lumora-codex:your-current-source-tag \
 .venv/bin/python -m pytest \
   platform/tests/integration/deployment/test_live_feature.py \
   --live-coding --platform-backends=openshell --platform-hosts=local -q \

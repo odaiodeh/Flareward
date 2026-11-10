@@ -5,7 +5,7 @@ description: Navigate the retained Identity authentication and team service.
 
 Identity remains a separate Flask service under `identity/`, with `bootstrap/`
 composition, `config/` settings, HTTP adapters, `utils/auth_manager.py`, `teams/`
-and `directory/`. These are Identity's own packages, not `flareward.bootstrap`.
+and `directory/`. These are Identity's own packages, not `lumora.bootstrap`.
 The shared helper source is `packages/service-support/src/global_utils`.
 
 Identity writes server-side sessions under `identity:session:<id>` and signs the

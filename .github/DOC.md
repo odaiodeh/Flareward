@@ -11,7 +11,7 @@ For Jenkins-based build and deployment pipelines, see [ci/README.md](../ci/READM
 ### Shared Patterns
 
 - **Failure Analysis** — Three workflows (`backup-dbs.yaml`, `security-container-vulnerability-scanning.yaml`, `security-pip-auditing.yaml`) include an `analyze` job that triggers on any job failure. It uses [gha-failure-analysis](https://github.com/calebevans/gha-failure-analysis) with a Gemini LLM to automatically analyze the failure logs and produce a human-readable summary.
-- **Self-hosted runners** — Some workflows run on self-hosted `linux` runners (labeled `linux`) that have access to both GitHub and the internal company network. See [Flareward team infrastructure](#flareward-team-infrastructure) for details.
+- **Self-hosted runners** — Some workflows run on self-hosted `linux` runners (labeled `linux`) that have access to both GitHub and the internal company network. See [Lumora team infrastructure](#lumora-team-infrastructure) for details.
 
 #### Failure Analysis Setup
 
@@ -97,7 +97,7 @@ Builds container images for each component and scans them with [Trivy](https://g
 | `identity` | `identity/Dockerfile` | `.` |
 | `ui` | `ui/deployment/Dockerfile` | `.` |
 
-The UI build requires certificates from the existing private `redhat-community-ai-tools/UnifAI-secrets` repository (accessed via `UNIFAI_SECRETS_TOKEN`, checked out locally as `ui/Flareward-secrets`).
+The UI build requires certificates from the existing private `redhat-community-ai-tools/UnifAI-secrets` repository (accessed via `UNIFAI_SECRETS_TOKEN`, checked out locally as `ui/Lumora-secrets`).
 
 #### `security-pip-auditing.yaml` — PIP Dependency Security Scanning
 
@@ -307,7 +307,7 @@ Extracts token usage from Cursor CLI JSON output, estimates costs using per-mode
 
 ### Important Notes
 
-- Since every deployment is a bit different, the existing workflows won't necessarily work out of the box for deployments different from the one currently in use. Users wanting to deploy Flareward in their own clusters should be aware of the infra and networking to either fit the workflow to their needs or create a new workflow that fits it.
+- Since every deployment is a bit different, the existing workflows won't necessarily work out of the box for deployments different from the one currently in use. Users wanting to deploy Lumora in their own clusters should be aware of the infra and networking to either fit the workflow to their needs or create a new workflow that fits it.
 - When using runners, the `runs-on` field refers to **labels**, not runner names. Ensure matching labels exist before running workflows.
 - Environment-specific variables (like `QDRANT_URL`, `MONGO_URI`, `API_URL`) must be configured in GitHub repository settings under **Environments**.
 
@@ -379,6 +379,6 @@ For more details, see the [GitHub documentation on self-hosted runners](https://
 
 Since the GitHub runners can't reach GitLab directly, we use a VM running on CNV. To make GitLab "accessible" to this runner, we need to set a deploy key at the target repo (go to repository > deploy keys and set the VM public key as the deploy key). This allows the VM to perform actions on the target repo without needing to specify credentials.
 
-### Flareward Team Infrastructure
+### Lumora Team Infrastructure
 
-In the case of the Flareward team, the lab structure is a bit "special" — the code resides in a public GitHub repo whereas all the deployment resources reside inside the company intranet. To overcome this we have a self-hosted runner with access to both domains, so the code is downloaded from GitHub (for example in order to run a workflow) and then all actions are run against the internal resources.
+In the case of the Lumora team, the lab structure is a bit "special" — the code resides in a public GitHub repo whereas all the deployment resources reside inside the company intranet. To overcome this we have a self-hosted runner with access to both domains, so the code is downloaded from GitHub (for example in order to run a workflow) and then all actions are run against the internal resources.

@@ -4,14 +4,14 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.node import BaseNode
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import ElementStep, GraphDefinition, PathBinding
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.factory import BaseFactory
+from lumora.elements.node import BaseNode
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import ElementStep, GraphDefinition, PathBinding
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 
 
 class Mutation(StrEnum):

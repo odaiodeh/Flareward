@@ -9,16 +9,16 @@ from support.elements import DependencyConfig, DependencySpec, EchoConfig, EchoS
 from support.resolution import resolve_configurations
 from support.secrets import MemorySecretStore, SecretToolConfig
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.configuration.meta import ElementConfigMeta
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.elements.exceptions import ElementInspectionError
-from flareward.elements.validation import BaseElementValidator, ValidatorReport
-from flareward.programs.templates.authoring import BlueprintAuthoringService
-from flareward.programs.templates.collector import BlueprintConfigCollector
-from flareward.programs.templates.contracts import BlueprintDocument, BlueprintResolutionSource
-from flareward.programs.templates.inspection import BlueprintInspectionService
-from flareward.services.identity.domain import Identity
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.configuration.meta import ElementConfigMeta
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.elements.exceptions import ElementInspectionError
+from lumora.elements.validation import BaseElementValidator, ValidatorReport
+from lumora.programs.templates.authoring import BlueprintAuthoringService
+from lumora.programs.templates.collector import BlueprintConfigCollector
+from lumora.programs.templates.contracts import BlueprintDocument, BlueprintResolutionSource
+from lumora.programs.templates.inspection import BlueprintInspectionService
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

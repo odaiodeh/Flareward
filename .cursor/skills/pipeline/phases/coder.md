@@ -47,7 +47,7 @@ If reusable logic exists, USE IT. Do NOT duplicate.
 
 The `platform` module uses a structured `Identity` object for resource ownership instead of flat `user_id` strings. When writing code in `platform/`:
 
-- Use `Identity` (`from flareward.services.identity.domain import Identity`) for all ownership and scoping of blueprints, resources, sessions, shares, schedules, and templates.
+- Use `Identity` (`from lumora.services.identity.domain import Identity`) for all ownership and scoping of blueprints, resources, sessions, shares, schedules, and templates.
 - At the FastAPI boundary, derive the human from the authenticated session and
   authorize an optional selected team scope. New UI/API contracts follow the target
   architecture; no dual legacy wire contract is required. Do not preserve old Flask
@@ -90,5 +90,5 @@ Before listing changes, provide:
 After all changes, provide:
 - **Reuse summary**: list existing components leveraged.
 - **Architecture check**: confirm dependency direction is correct, no business logic leakage.
-- **Identity migration gaps**: list any files outside `platform/` where ownership-related code uses flat `user_id` instead of the `Identity` object. For each, state the file path, the usage, and that it is a candidate for future migration to `flareward.services.identity.domain.Identity`. If none, state "None — all ownership code uses Identity."
+- **Identity migration gaps**: list any files outside `platform/` where ownership-related code uses flat `user_id` instead of the `Identity` object. For each, state the file path, the usage, and that it is a candidate for future migration to `lumora.services.identity.domain.Identity`. If none, state "None — all ownership code uses Identity."
 - **Files changed**: total count of new and modified files.

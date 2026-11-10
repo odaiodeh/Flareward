@@ -37,7 +37,7 @@ class YamlRegistryLoader:
         with open(yaml_path) as fh:
             raw = yaml.safe_load(fh)
 
-        env_val = os.environ.get("FLAREWARD_LOCAL_AUTH", "").strip().lower()
+        env_val = os.environ.get("LUMORA_LOCAL_AUTH", "").strip().lower()
         if env_val:
             local_auth = env_val in ("true", "1", "yes")
         else:
@@ -60,7 +60,7 @@ class YamlRegistryLoader:
             python_max=python_max,
             node_min=node_min,
             log_dir=Path(
-                raw.get("logging", {}).get("directory", "/tmp/flareward-dev/logs")
+                raw.get("logging", {}).get("directory", "/tmp/lumora-dev/logs")
             ),
         )
 

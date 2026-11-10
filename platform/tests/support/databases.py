@@ -8,13 +8,13 @@ from uuid import uuid4
 from pymongo import AsyncMongoClient
 from pymongo.asynchronous.database import AsyncDatabase
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 
 @asynccontextmanager
 async def isolated_mongo(uri: str) -> AsyncIterator[AsyncDatabase[dict[str, Any]]]:
     client: AsyncMongoClient[dict[str, Any]] = AsyncMongoClient(uri, serverSelectionTimeoutMS=5000)
-    database = client[f"flareward_platform_test_{uuid4().hex}"]
+    database = client[f"lumora_platform_test_{uuid4().hex}"]
 
     async def cleanup() -> None:
         try:

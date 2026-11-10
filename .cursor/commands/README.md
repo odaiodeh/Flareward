@@ -1,6 +1,6 @@
 # Cursor Commands
 
-Custom Cursor IDE commands for the Flareward project. Invoke with `/` in the Cursor chat.
+Custom Cursor IDE commands for the Lumora project. Invoke with `/` in the Cursor chat.
 
 ## Primary Command
 
@@ -32,7 +32,7 @@ The unified development workflow featuring design, review, implementation, code 
 ```
 /pipeline design-only --adr Add caching layer for vector search
 /pipeline full GENIE-1234
-/pipeline code-review-only platform/src/flareward/programs/
+/pipeline code-review-only platform/src/lumora/programs/
 /pipeline implement docs/designs/caching-adr.md
 /pipeline debug "PipelineExecutor fails with empty source list"
 ```
@@ -160,4 +160,4 @@ These commands are superseded by `/pipeline` modes. They remain functional but w
 ---
 
 **Last Updated:** June 2026
-**Project:** Flareward
+**Project:** Lumora

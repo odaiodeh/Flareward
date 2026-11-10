@@ -2,24 +2,24 @@ import logging
 from copy import deepcopy
 from typing import Any, ClassVar
 
-from flareward.elements.agents.config import AgentConfig
-from flareward.elements.agents.constants import StrategyType
-from flareward.elements.agents.execution import ExecutionMode
-from flareward.elements.agents.hitl_config import HITLHandlerConfig
-from flareward.elements.behaviors.agent_capable import AgentCapableMixin
-from flareward.elements.behaviors.hitl_capable import HITLCapableMixin
-from flareward.elements.behaviors.llm_capable import LlmCapableMixin
-from flareward.elements.behaviors.retriever_capable import RetrieverCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.node import BaseNode
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.ports.tool_provider import ToolProvider
-from flareward.elements.tools.config import ExecutorConfig
-from flareward.elements.workloads.domain import AgentResult, Task
-from flareward.programs.graph.capabilities.messaging import GraphMessagingMixin
-from flareward.programs.graph.capabilities.workloads import GraphWorkloadMixin
-from flareward.programs.graph.state.state_view import StateView
-from flareward.services.interactions.tools.models import HITLMode
+from lumora.elements.agents.config import AgentConfig
+from lumora.elements.agents.constants import StrategyType
+from lumora.elements.agents.execution import ExecutionMode
+from lumora.elements.agents.hitl_config import HITLHandlerConfig
+from lumora.elements.behaviors.agent_capable import AgentCapableMixin
+from lumora.elements.behaviors.hitl_capable import HITLCapableMixin
+from lumora.elements.behaviors.llm_capable import LlmCapableMixin
+from lumora.elements.behaviors.retriever_capable import RetrieverCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.node import BaseNode
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.ports.tool_provider import ToolProvider
+from lumora.elements.tools.config import ExecutorConfig
+from lumora.elements.workloads.domain import AgentResult, Task
+from lumora.programs.graph.capabilities.messaging import GraphMessagingMixin
+from lumora.programs.graph.capabilities.workloads import GraphWorkloadMixin
+from lumora.programs.graph.state.state_view import StateView
+from lumora.services.interactions.tools.models import HITLMode
 from plugins.mas.elements.builtin.retriever import RetrieverTool
 from plugins.mas.elements.builtin.time import GetCurrentTimeTool
 

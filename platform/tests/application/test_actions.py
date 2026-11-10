@@ -11,16 +11,16 @@ from support.action_scenarios import (
     InvalidOutputAction,
 )
 
-from flareward.resources.domain.categories import AuthErrorCode
-from flareward.services.actions.auth.discovery.action import DiscoveryAction
-from flareward.services.actions.contracts import ActionContext, ActionType
-from flareward.services.actions.service import (
+from lumora.resources.domain.categories import AuthErrorCode
+from lumora.services.actions.auth.discovery.action import DiscoveryAction
+from lumora.services.actions.contracts import ActionContext, ActionType
+from lumora.services.actions.service import (
     ActionExecutionFailed,
     ActionInputInvalid,
     ActionMissing,
     ActionsService,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 def context(user="alice"):

@@ -10,11 +10,11 @@ from support.programs import ComposedConfig, composed_program
 from support.scenarios import publish, run
 from support.typed_programs import APPLICATION_PROGRAMS, TypedInput, definition
 
-from flareward.executions.adapters.run_engine.inbound.programs import execute_program
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.programs.composition.programs import APPLICATION_PROGRAMS as CONTROLS
-from flareward.programs.domain.models import (
+from lumora.executions.adapters.run_engine.inbound.programs import execute_program
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.composition.programs import APPLICATION_PROGRAMS as CONTROLS
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     LiteralBinding,
@@ -22,7 +22,7 @@ from flareward.programs.domain.models import (
     ProgramBody,
     ProgramCallStep,
 )
-from flareward.programs.registry import ApplicationRegistration
+from lumora.programs.registry import ApplicationRegistration
 
 
 @pytest.fixture(autouse=True)

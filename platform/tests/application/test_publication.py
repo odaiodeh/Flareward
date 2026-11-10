@@ -3,10 +3,10 @@
 import pytest
 from support.scenarios import publish
 
-from flareward.programs.authoring import CanvasPosition, ProgramConflict, ProgramPresentation
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.programs.service import ProgramContractError
-from flareward.services.identity.domain import Identity
+from lumora.programs.authoring import CanvasPosition, ProgramConflict, ProgramPresentation
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.service import ProgramContractError
+from lumora.services.identity.domain import Identity
 
 
 async def test_published_configuration_remains_detached_from_drafts_and_readers(application):

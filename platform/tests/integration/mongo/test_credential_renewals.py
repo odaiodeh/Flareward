@@ -7,8 +7,8 @@ import pytest
 from support.credential_renewals import RenewalCase
 from support.verification import VerificationClock
 
-from flareward.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
-from flareward.services.verification.adapters.mongo.verification_access import (
+from lumora.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
+from lumora.services.verification.adapters.mongo.verification_access import (
     MongoVerificationAccessRepository,
 )
 

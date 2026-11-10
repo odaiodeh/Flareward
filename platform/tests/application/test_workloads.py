@@ -2,9 +2,9 @@
 
 from support.workloads import MemoryWorkloadStorage, workload_contract
 
-from flareward.elements.agents.delegation_policy import PermissiveDelegationPolicy
-from flareward.elements.workloads.streaming_hook import WorkPlanStreamingHook
-from flareward.elements.workloads.unified_service import UnifiedWorkloadService
+from lumora.elements.agents.delegation_policy import PermissiveDelegationPolicy
+from lumora.elements.workloads.streaming_hook import WorkPlanStreamingHook
+from lumora.elements.workloads.unified_service import UnifiedWorkloadService
 
 
 def test_workload_services_without_a_graph():

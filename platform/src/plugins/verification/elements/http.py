@@ -10,20 +10,20 @@ import httpx
 from pydantic import AnyHttpUrl, Field, SecretStr, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from flareward.async_work import await_owned
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.access.credentials import (
+from lumora.async_work import await_owned
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.access.credentials import (
     WorkflowCredentialSource,
     WorkflowCredentialUnavailable,
 )
-from flareward.services.verification.access_models import (
+from lumora.services.verification.access_models import (
     VerificationAccessGrant,
     verification_credential_key,
 )
-from flareward.services.verification.check_ports import StartCheckRun
-from flareward.services.verification.domain.check_runs import CheckRun
-from flareward.services.verification.models import StartVerification, VerificationView
-from flareward.services.verification.ports import (
+from lumora.services.verification.check_ports import StartCheckRun
+from lumora.services.verification.domain.check_runs import CheckRun
+from lumora.services.verification.models import StartVerification, VerificationView
+from lumora.services.verification.ports import (
     VerificationConflict,
     VerificationCredentialError,
     VerificationMissing,
@@ -33,7 +33,7 @@ from flareward.services.verification.ports import (
 
 class VerificationTransportSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="FLAREWARD_VERIFICATION_", extra="ignore", hide_input_in_errors=True
+        env_prefix="LUMORA_VERIFICATION_", extra="ignore", hide_input_in_errors=True
     )
     endpoint: AnyHttpUrl
     access_directory: Path | None = None

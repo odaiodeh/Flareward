@@ -4,8 +4,8 @@ import pytest
 from pydantic import ValidationError
 from runengine.adapters.coordination.config import LocalHostConfig
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.executions.domain.budgets import WorkLimits
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.executions.domain.budgets import WorkLimits
 
 
 def test_work_limits_refuse_nondurable_platform_storage():

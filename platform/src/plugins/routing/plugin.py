@@ -1,6 +1,6 @@
 """Explicit feature-owned plugin contributions."""
 
-from flareward.plugins.models import PluginDefinition
+from lumora.plugins.models import PluginDefinition
 
 PLUGIN = PluginDefinition(
     key="routing",

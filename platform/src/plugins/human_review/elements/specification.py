@@ -4,13 +4,13 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ProviderRef
-from flareward.services.reviews.contracts import CloseReview, ReviewHandle
-from flareward.services.reviews.domain.models import ReviewRecord
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ProviderRef
+from lumora.services.reviews.contracts import CloseReview, ReviewHandle
+from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.http import HTTPReviewGateway, ReviewTransportSettings
 from plugins.human_review.elements.operations import (
     CloseReviewOperation,

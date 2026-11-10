@@ -7,8 +7,8 @@ from support.artifacts import chunks, publication
 from support.identity import authenticated_cookie
 from support.server import api_process
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 @pytest.mark.e2e

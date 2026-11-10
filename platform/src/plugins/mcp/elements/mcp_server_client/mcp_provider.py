@@ -6,8 +6,8 @@ import logging
 from mcp.types import Tool
 from pydantic import HttpUrl
 
-from flareward.services.auth.credentials.credential import AuthCredential
-from flareward.services.auth.errors import AuthNotConfiguredError
+from lumora.services.auth.credentials.credential import AuthCredential
+from lumora.services.auth.errors import AuthNotConfiguredError
 from plugins.mcp.elements.mcp_proxy.mcp_proxy_tool import McpProxyTool
 from plugins.mcp.elements.mcp_server_client.mcp_server_client import McpServerClient
 from plugins.mcp.elements.mcp_server_client.provider_tool_registry import (

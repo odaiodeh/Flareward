@@ -75,7 +75,7 @@ services:
     env_file: .env
     venv:
       strategy: none
-    launch: flareward-platform worker
+    launch: lumora-platform worker
   platform:
     directory: platform
     port: 8002
@@ -88,17 +88,17 @@ services:
     - temporal
     env_file: .env
     env_entries:
-      FLAREWARD_HOST: '{"runner_type":"local"}'
-      FLAREWARD_AUTHENTICATION: session
-      FLAREWARD_SECRET_KEY: <AUTO_GENERATE>
-      FLAREWARD_IDENTITY_URL: http://127.0.0.1:13456
-      FLAREWARD_REDIS_URI: redis://127.0.0.1:6379/0
-      FLAREWARD_FRONTEND_URL: http://127.0.0.1:5000
+      LUMORA_HOST: '{"runner_type":"local"}'
+      LUMORA_AUTHENTICATION: session
+      LUMORA_SECRET_KEY: <AUTO_GENERATE>
+      LUMORA_IDENTITY_URL: http://127.0.0.1:13456
+      LUMORA_REDIS_URI: redis://127.0.0.1:6379/0
+      LUMORA_FRONTEND_URL: http://127.0.0.1:5000
     venv:
       strategy: toml
       pip_extras: dev
       global_utils_extra: identity-client
-    launch: flareward-platform serve --host 127.0.0.1 --port 8002
+    launch: lumora-platform serve --host 127.0.0.1 --port 8002
 groups:
   all:
   - platform
@@ -116,4 +116,4 @@ groups:
   ui:
   - ui
 logging:
-  directory: /tmp/flareward-dev/logs
+  directory: /tmp/lumora-dev/logs

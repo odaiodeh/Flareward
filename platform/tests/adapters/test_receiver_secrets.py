@@ -6,11 +6,11 @@ from pydantic_settings import SettingsError
 from runengine.invocation.config import K8sRunnerConfig
 from runengine.invocation.errors import InvocationInfrastructureError
 
-from flareward.bootstrap.settings.interaction_settings import InteractionSettings
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.bootstrap.settings.receiver_settings import ReceiverSettings
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.adapters.run_engine.inbound.settings import load_receiver_settings
+from lumora.bootstrap.settings.interaction_settings import InteractionSettings
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.settings.receiver_settings import ReceiverSettings
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.adapters.run_engine.inbound.settings import load_receiver_settings
 
 
 @pytest.mark.parametrize("settings_class", [ReceiverSettings, WorkerSettings, PlatformSettings])
@@ -34,18 +34,18 @@ def mounted_secrets(tmp_path, monkeypatch):
     directory = tmp_path / "receiver-secrets"
     directory.mkdir(mode=0o700)
     values = {
-        "FLAREWARD_TRACING": "langfuse",
-        "FLAREWARD_LANGFUSE_PUBLIC_KEY": "file-public",
-        "FLAREWARD_LANGFUSE_SECRET_KEY": "file-private",
-        "FLAREWARD_CREDENTIAL_ENCRYPTION_KEY": "file-encryption",
-        "FLAREWARD_INTERACTIONS": "disabled",
+        "LUMORA_TRACING": "langfuse",
+        "LUMORA_LANGFUSE_PUBLIC_KEY": "file-public",
+        "LUMORA_LANGFUSE_SECRET_KEY": "file-private",
+        "LUMORA_CREDENTIAL_ENCRYPTION_KEY": "file-encryption",
+        "LUMORA_INTERACTIONS": "disabled",
     }
     for name, value in values.items():
         path = directory / name
         path.write_text(value)
         path.chmod(0o600)
         monkeypatch.delenv(name, raising=False)
-    monkeypatch.setenv("FLAREWARD_SECRETS_DIR", str(directory))
+    monkeypatch.setenv("LUMORA_SECRETS_DIR", str(directory))
     return directory
 
 
@@ -65,10 +65,10 @@ def test_receiver_worker_and_server_share_the_existing_file_secret_source(
 
 def test_normal_precedence_and_per_invocation_rotation_are_preserved(mounted_secrets, monkeypatch):
     original = ReceiverSettings()
-    (mounted_secrets / "FLAREWARD_LANGFUSE_SECRET_KEY").write_text("rotated-private")
+    (mounted_secrets / "LUMORA_LANGFUSE_SECRET_KEY").write_text("rotated-private")
     assert ReceiverSettings().langfuse_secret_key.get_secret_value() == "rotated-private"
     assert original.langfuse_secret_key.get_secret_value() == "file-private"
-    monkeypatch.setenv("FLAREWARD_LANGFUSE_SECRET_KEY", "environment-private")
+    monkeypatch.setenv("LUMORA_LANGFUSE_SECRET_KEY", "environment-private")
     assert ReceiverSettings().langfuse_secret_key.get_secret_value() == "environment-private"
     assert (
         ReceiverSettings(
@@ -84,7 +84,7 @@ def test_configured_unavailable_directory_is_refused(tmp_path, monkeypatch, dire
     if directory == "file":
         path.write_text("must-not-be-logged")
     monkeypatch.setenv(
-        "FLAREWARD_SECRETS_DIR", directory if directory in {"relative", ""} else str(path)
+        "LUMORA_SECRETS_DIR", directory if directory in {"relative", ""} else str(path)
     )
     with pytest.raises(SettingsError, match="existing absolute directory") as error:
         ReceiverSettings()
@@ -94,7 +94,7 @@ def test_configured_unavailable_directory_is_refused(tmp_path, monkeypatch, dire
 def test_explicit_standard_secrets_directory_keeps_its_precedence(mounted_secrets, tmp_path):
     explicit = tmp_path / "explicit"
     explicit.mkdir()
-    (explicit / "FLAREWARD_LANGFUSE_SECRET_KEY").write_text("explicit-file-private")
+    (explicit / "LUMORA_LANGFUSE_SECRET_KEY").write_text("explicit-file-private")
     settings = ReceiverSettings(_secrets_dir=explicit, interactions="disabled")
     assert settings.langfuse_secret_key.get_secret_value() == "explicit-file-private"
     assert settings.tracing == "disabled"
@@ -103,10 +103,10 @@ def test_explicit_standard_secrets_directory_keeps_its_precedence(mounted_secret
 async def test_interaction_effects_share_secret_sources_and_invalid_settings_are_private(
     mounted_secrets,
 ):
-    (mounted_secrets / "FLAREWARD_REDIS_URI").write_text("redis://:private-password@redis:6379/0")
+    (mounted_secrets / "LUMORA_REDIS_URI").write_text("redis://:private-password@redis:6379/0")
     settings = await load_receiver_settings(InteractionSettings)
     assert settings.redis_uri.get_secret_value() == "redis://:private-password@redis:6379/0"
-    (mounted_secrets / "FLAREWARD_LANGFUSE_BASE_URL").write_text("private-invalid-url")
+    (mounted_secrets / "LUMORA_LANGFUSE_BASE_URL").write_text("private-invalid-url")
     with pytest.raises(InvocationInfrastructureError) as error:
         await load_receiver_settings(ReceiverSettings)
     assert not error.value.retryable
@@ -116,9 +116,9 @@ async def test_interaction_effects_share_secret_sources_and_invalid_settings_are
 @pytest.mark.parametrize(
     "name",
     [
-        "FLAREWARD_LANGFUSE_SECRET_KEY",
-        "flareward_credential_encryption_key",
-        "FLAREWARD_MONGO_URI",
+        "LUMORA_LANGFUSE_SECRET_KEY",
+        "lumora_credential_encryption_key",
+        "LUMORA_MONGO_URI",
         "SECRET_KEY",
     ],
 )

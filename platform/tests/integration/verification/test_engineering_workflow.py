@@ -11,11 +11,11 @@ from support.engineering_api import engineering_api, policies
 from support.engineering_programs import artifact_candidate_body, engineering_configuration
 from support.http_programs import publish_program
 
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import (
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     OperationStep,
@@ -23,11 +23,11 @@ from flareward.programs.domain.models import (
     ProgramCallStep,
     ProgramDefinition,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.reviews.domain.models import ReviewRecord
-from flareward.services.verification.domain.check_runs import CheckRun
-from flareward.services.verification.domain.models import VerificationSubject
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.reviews.domain.models import ReviewRecord
+from lumora.services.verification.domain.check_runs import CheckRun
+from lumora.services.verification.domain.models import VerificationSubject
 from plugins.adlc.programs.program import (
     EngineeringInput,
     EngineeringResult,
@@ -265,10 +265,8 @@ async def test_engineering_repair_and_review_standalone_and_embedded(
                 json.dumps([started.json(), observed.json()])
                 + (tmp_path / "engineering-api.log").read_text()
             )
-            assert (
-                "flareward-review-v1." not in public and "flareward-verification-v1." not in public
-            )
-            assert "flareward-artifact-workflow-v1." not in public
+            assert "lumora-review-v1." not in public and "lumora-verification-v1." not in public
+            assert "lumora-artifact-workflow-v1." not in public
             assert (
                 await mongo_database.artifact_workflow_access_grants.count_documents({})
                 == run_number

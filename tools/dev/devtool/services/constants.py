@@ -1,3 +1,3 @@
 """Application-layer constants shared across services."""
 
-SESSION_NAME: str = "flareward-dev"
+SESSION_NAME: str = "lumora-dev"

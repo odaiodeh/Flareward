@@ -10,17 +10,17 @@ from support.http_probe import http_probe
 from support.http_programs import execute_program, publish_program
 from support.scenarios import resource
 
-from flareward.bootstrap.settings.execution_policies import load_execution_profiles
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.bootstrap.settings.execution_policies import load_execution_profiles
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
     PathBinding,
     ProgramDefinition,
 )
-from flareward.resources.domain.bundles import ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ async def remote_backend(remote_backend, endpoints, tmp_path, restricted):
     if remote_backend.name != "openshell":
         pytest.skip("This policy contract applies to OpenShell")
     policy = json.loads(
-        files("flareward.bootstrap.settings")
+        files("lumora.bootstrap.settings")
         .joinpath("policies/openshell-restricted.json")
         .read_text()
     )

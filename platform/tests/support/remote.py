@@ -9,21 +9,21 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.elements.node import BaseNode
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.elements.specification import BaseElementSpec
-from flareward.executions.domain.context import ExecutionContext
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ToolRef
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.elements.node import BaseNode
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.elements.specification import BaseElementSpec
+from lumora.executions.domain.context import ExecutionContext
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ToolRef
 from support.approval import ApprovalSpec
 from support.elements import DependencySpec, TextResource
 from support.network_probe import NetworkProbeSpec
 
-__runengine_contract__ = "flareward-test-remote-v1"
+__runengine_contract__ = "lumora-test-remote-v1"
 
 
 class RemoteConfig(BaseModel):
@@ -43,9 +43,9 @@ class ReceiverProbe:
         while dependency is not None:
             values.append(dependency.value)
             dependency = dependency.dependency
-        marker = Path("/opt/flareward-e2e-receiver")
+        marker = Path("/opt/lumora-e2e-receiver")
         root = context.root_execution_id
-        reuse_file = Path("/tmp") / ("flareward-reuse-" + hashlib.sha256(root.encode()).hexdigest())
+        reuse_file = Path("/tmp") / ("lumora-reuse-" + hashlib.sha256(root.encode()).hexdigest())
         reused = reuse_file.exists()
         if not reused:
             reuse_file.write_text(key)
@@ -54,7 +54,7 @@ class ReceiverProbe:
             "pid": os.getpid(),
             "system": platform.system(),
             # Descriptive fixture context, not authorization or physical attestation.
-            "namespace": os.environ.get("FLAREWARD_TEST_NAMESPACE"),
+            "namespace": os.environ.get("LUMORA_TEST_NAMESPACE"),
             "image_marker": marker.read_text() if marker.exists() else None,
             "dependencies": values,
             "environment_reused": reused,

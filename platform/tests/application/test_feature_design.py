@@ -9,7 +9,7 @@ from support.feature_design import APPLICATION_PROGRAMS as DESIGNERS
 from support.feature_design import design_definition
 from support.scenarios import publish
 
-from flareward.services.reviews.domain.models import ReviewDecision
+from lumora.services.reviews.domain.models import ReviewDecision
 from plugins.adlc.programs.design import (
     APPLICATION_PROGRAMS,
     DesignOutcome,

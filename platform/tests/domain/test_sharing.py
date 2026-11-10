@@ -6,8 +6,8 @@ import pytest
 from pydantic import ValidationError
 from support.sharing import invitation
 
-from flareward.services.identity.domain import Identity
-from flareward.services.sharing.domain.models import ShareInvite, matches_share_identity
+from lumora.services.identity.domain import Identity
+from lumora.services.sharing.domain.models import ShareInvite, matches_share_identity
 
 
 @pytest.mark.parametrize("created", [datetime(2026, 1, 1), "2026-01-01T00:00:00Z"])

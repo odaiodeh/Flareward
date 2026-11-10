@@ -2,7 +2,7 @@
 
 from support.construction_values import dependency_chain
 
-from flareward.resources.domain.bundles import BundleEntry, ElementBundle
+from lumora.resources.domain.bundles import BundleEntry, ElementBundle
 
 
 def test_deep_dependency_bundle_round_trip():

@@ -5,16 +5,16 @@ from datetime import timedelta
 import pytest
 from support.reporting import NOW, OWNER, TEAM, execution, executions
 
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.services.access.administrators import (
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.services.access.administrators import (
     AdministratorAccessUnavailable,
     AdministratorPolicy,
 )
-from flareward.services.administration.adapters.mongo.administrators import (
+from lumora.services.administration.adapters.mongo.administrators import (
     MongoAdministratorDirectory,
 )
-from flareward.services.reporting.adapters.mongo.reporting import MongoReportingReader
-from flareward.services.reporting.service import ReportingUnavailable
+from lumora.services.reporting.adapters.mongo.reporting import MongoReportingReader
+from lumora.services.reporting.service import ReportingUnavailable
 
 
 async def test_root_reporting_pagination_time_scope_and_private_payloads(mongo_database):

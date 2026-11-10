@@ -5,9 +5,9 @@ import asyncio
 import pytest
 from support.python_checks import ADDITION, SUBTRACTION, evaluation_input
 
-from flareward.elements.operation import OperationContext
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
+from lumora.elements.operation import OperationContext
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
 from plugins.testing.contracts import PythonFunctionConfig
 from plugins.testing.python_functions import PythonFunctionEvaluation
 from plugins.testing.specification import PythonFunctionFactory
@@ -33,9 +33,9 @@ def context():
 async def test_controlled_python_checks_are_independent_and_clean(
     tmp_path, context, source, values, failure, monkeypatch
 ):
-    monkeypatch.setenv("FLAREWARD_PRIVATE_TEST_CREDENTIAL", "synthetic-private-value")
+    monkeypatch.setenv("LUMORA_PRIVATE_TEST_CREDENTIAL", "synthetic-private-value")
     config = PythonFunctionConfig(function="add")
-    source = b"import os\nassert 'FLAREWARD_PRIVATE_TEST_CREDENTIAL' not in os.environ\n" + source
+    source = b"import os\nassert 'LUMORA_PRIVATE_TEST_CREDENTIAL' not in os.environ\n" + source
     operation = PythonFunctionEvaluation(config, tmp_path)
     request = evaluation_input(source)
     result = await operation.execute(request, context)
@@ -100,6 +100,6 @@ async def test_deadline_or_cancellation_reaps_the_owned_process(
 
 
 def test_normal_factory_requires_receiver_authorization(monkeypatch):
-    monkeypatch.setenv("FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED", "false")
+    monkeypatch.setenv("LUMORA_PYTHON_CHECK_EXECUTION_ENABLED", "false")
     with pytest.raises(ValueError, match="not enabled"):
         PythonFunctionFactory().create(PythonFunctionConfig(function="add"))

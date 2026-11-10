@@ -51,7 +51,7 @@ Explain WHY the issue occurs, not just WHERE.
 |----------|----------|
 | Architecture violation | Wrong dependency direction, business logic in adapter, domain depending on infrastructure |
 | Logic error | Wrong condition, missing case, off-by-one, incorrect state transition |
-| Integration error | Wrong API usage, missing flareward.bootstrap.settings, type mismatch, incorrect serialization |
+| Integration error | Wrong API usage, missing lumora.bootstrap.settings, type mismatch, incorrect serialization |
 | Data flow error | Wrong transformation, lost data between layers, incorrect mapping |
 | Performance issue | N+1 queries, unnecessary allocations, blocking calls, missing caching, excessive serialization |
 

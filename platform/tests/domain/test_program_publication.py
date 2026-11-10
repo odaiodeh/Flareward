@@ -3,14 +3,14 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.programs.domain.models import (
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     ProgramCallStep,
     ProgramDefinition,
     ProgramRevision,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize(

@@ -8,7 +8,7 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 from plugins.git.domain.repositories import RepositoryId
 
 
@@ -45,7 +45,7 @@ class GitBinding(BaseModel):
 
 class GitSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="FLAREWARD_GIT_",
+        env_prefix="LUMORA_GIT_",
         extra="ignore",
         hide_input_in_errors=True,
         populate_by_name=True,
@@ -53,7 +53,7 @@ class GitSettings(BaseSettings):
     repositories: dict[RepositoryId, GitBinding] = Field(default_factory=dict)
     timeout_seconds: float = Field(default=120, ge=1, le=1800)
     workspace_root: Path = Field(
-        default=Path("/tmp/flareward-workspaces"), validation_alias="FLAREWARD_WORKSPACE_ROOT"
+        default=Path("/tmp/lumora-workspaces"), validation_alias="LUMORA_WORKSPACE_ROOT"
     )
 
     @model_validator(mode="after")

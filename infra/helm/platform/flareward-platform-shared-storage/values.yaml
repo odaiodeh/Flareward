@@ -1,5 +1,5 @@
 storage:
-  volumeName: flareward-platform-shared-storage
+  volumeName: lumora-platform-shared-storage
   requestedSize: 50Gi
   className: aws-efs-tier-c1
   accessModes:

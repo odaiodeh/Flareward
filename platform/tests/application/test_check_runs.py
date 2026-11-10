@@ -13,26 +13,26 @@ from support.check_runs import (
 )
 from support.verification import MemoryVerificationRepository, VerificationClock
 
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import (
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import (
     VerificationAccessScope,
     VerificationAction,
     VerificationActor,
 )
-from flareward.services.verification.check_ports import (
+from lumora.services.verification.check_ports import (
     CheckSubmissionRejected,
     ResolveCheckRun,
     StartCheckRun,
 )
-from flareward.services.verification.check_service import CheckRunService
-from flareward.services.verification.domain.check_runs import CheckRunStatus
-from flareward.services.verification.domain.models import CheckVerdict, VerificationOutcome
-from flareward.services.verification.ports import (
+from lumora.services.verification.check_service import CheckRunService
+from lumora.services.verification.domain.check_runs import CheckRunStatus
+from lumora.services.verification.domain.models import CheckVerdict, VerificationOutcome
+from lumora.services.verification.ports import (
     VerificationConflict,
     VerificationMissing,
     VerificationStorageError,
 )
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.service import VerificationService
 
 
 @pytest.fixture

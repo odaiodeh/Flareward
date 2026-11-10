@@ -19,10 +19,10 @@ from support.telemetry import trace_collector
 from support.temporal import replay, worker_process
 from temporalio.client import Client
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
 
 
 def pytest_addoption(parser):
@@ -39,9 +39,9 @@ def pytest_generate_tests(metafunc):
         if selected and (not set(names) <= {"k8s", "openshell"} or len(names) != len(set(names))):
             raise pytest.UsageError("Select distinct k8s,openshell platform backends")
         if selected:
-            required = ["FLAREWARD_TEST_MONGO_URI", "FLAREWARD_TEST_REDIS_URI"]
+            required = ["LUMORA_TEST_MONGO_URI", "LUMORA_TEST_REDIS_URI"]
             if "temporal" in metafunc.config.getoption("--platform-hosts").split(","):
-                required.append("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+                required.append("LUMORA_TEST_TEMPORAL_ENDPOINT")
             missing = [name for name in required if not os.environ.get(name)]
             if missing:
                 raise pytest.UsageError(
@@ -69,20 +69,20 @@ async def remote_backend(request):
 
 @pytest.fixture
 async def deployed_remote(remote_backend, deployment_host, mongo_database, tmp_path):
-    redis_uri = os.environ["FLAREWARD_TEST_REDIS_URI"]
+    redis_uri = os.environ["LUMORA_TEST_REDIS_URI"]
     host = (
         LocalHostConfig()
         if deployment_host == "local"
         else TemporalHostConfig(
-            endpoint=os.environ["FLAREWARD_TEST_TEMPORAL_ENDPOINT"],
-            task_queue="flareward-remote-" + uuid4().hex,
+            endpoint=os.environ["LUMORA_TEST_TEMPORAL_ENDPOINT"],
+            task_queue="lumora-remote-" + uuid4().hex,
             invocation_timeout_seconds=180,
         )
     )
     secret, identity_id = uuid4().hex, uuid4().hex
     settings = PlatformSettings(
         host=host,
-        mongo_uri=SecretStr(os.environ["FLAREWARD_TEST_MONGO_URI"]),
+        mongo_uri=SecretStr(os.environ["LUMORA_TEST_MONGO_URI"]),
         mongo_database=mongo_database.name,
         storage="mongo",
         authentication="session",
@@ -137,13 +137,13 @@ async def deployed_remote(remote_backend, deployment_host, mongo_database, tmp_p
 
 @pytest.fixture
 async def calendar_deployment(secret_settings, tmp_path):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
     if not endpoint:
         pytest.skip("Set the Temporal endpoint for native calendar deployment contracts")
     settings = secret_settings.model_copy(
         update={
             "host": TemporalHostConfig(
-                endpoint=endpoint, task_queue="flareward-calendar-" + uuid4().hex
+                endpoint=endpoint, task_queue="lumora-calendar-" + uuid4().hex
             ),
             "application_modules": ("support.programs",),
             "element_modules": ("support.elements",),
@@ -166,20 +166,20 @@ async def configured_remote(remote_backend, deployment_host, mongo_database, tmp
         LocalHostConfig()
         if deployment_host == "local"
         else TemporalHostConfig(
-            endpoint=os.environ["FLAREWARD_TEST_TEMPORAL_ENDPOINT"],
-            task_queue="flareward-secrets-" + uuid4().hex,
+            endpoint=os.environ["LUMORA_TEST_TEMPORAL_ENDPOINT"],
+            task_queue="lumora-secrets-" + uuid4().hex,
         )
     )
     public_key, secret_key = "public-" + uuid4().hex, "private-" + uuid4().hex
     async with trace_collector() as collector, AsyncExitStack() as owned:
         values = {
-            "FLAREWARD_TRACING": "langfuse",
-            "FLAREWARD_LANGFUSE_PUBLIC_KEY": public_key,
-            "FLAREWARD_LANGFUSE_SECRET_KEY": secret_key,
-            "FLAREWARD_LANGFUSE_BASE_URL": collector.base_url.replace(
+            "LUMORA_TRACING": "langfuse",
+            "LUMORA_LANGFUSE_PUBLIC_KEY": public_key,
+            "LUMORA_LANGFUSE_SECRET_KEY": secret_key,
+            "LUMORA_LANGFUSE_BASE_URL": collector.base_url.replace(
                 "127.0.0.1", "host.docker.internal"
             ),
-            "FLAREWARD_TRACING_TIMEOUT": "5",
+            "LUMORA_TRACING_TIMEOUT": "5",
         }
         target = await owned.enter_async_context(
             remote_backend.configured(
@@ -189,12 +189,12 @@ async def configured_remote(remote_backend, deployment_host, mongo_database, tmp
         settings = PlatformSettings(
             host=host,
             storage="mongo",
-            mongo_uri=SecretStr(os.environ["FLAREWARD_TEST_MONGO_URI"]),
+            mongo_uri=SecretStr(os.environ["LUMORA_TEST_MONGO_URI"]),
             mongo_database=mongo_database.name,
             interactions="disabled",
             authentication="development",
             development_user="owner",
-            receiver_module="flareward.bootstrap.receiver",
+            receiver_module="lumora.bootstrap.receiver",
             element_modules=("support.tracing_elements",),
             execution_profiles={"remote": target},
             default_execution_profile="remote",

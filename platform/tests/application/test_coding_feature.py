@@ -15,16 +15,16 @@ from support.feature_design import design_definition
 from support.operations import operation_resources
 from support.scenarios import publish
 
-from flareward.programs.domain.models import (
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     LiteralBinding,
     OperationStep,
     ProgramBody,
 )
-from flareward.programs.ports import ChildExecution, ProgramRuntime
-from flareward.services.reviews.domain.models import ReviewDecision
-from flareward.services.verification.domain.models import CheckVerdict
+from lumora.programs.ports import ChildExecution, ProgramRuntime
+from lumora.services.reviews.domain.models import ReviewDecision
+from lumora.services.verification.domain.models import CheckVerdict
 from plugins.adlc.programs.design import (
     APPLICATION_PROGRAMS as DESIGN_PROGRAMS,
 )

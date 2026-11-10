@@ -18,7 +18,7 @@ ui:
     SUPPORT_LINK: "https://redhat-internal.slack.com/app_redirect?channel=forum-unifai"
 
   image:
-    repository: images.paas.redhat.com/flareward/ui
+    repository: images.paas.redhat.com/lumora/ui
     tag: "latest"
     pullPolicy: Always
 

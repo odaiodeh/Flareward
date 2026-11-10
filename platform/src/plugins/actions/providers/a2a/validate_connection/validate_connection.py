@@ -16,16 +16,16 @@ from typing import Any
 import anyio
 from pydantic import Field, HttpUrl
 
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.actions.contracts import (
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.actions.contracts import (
     ActionContext,
     ActionType,
     BaseAction,
     BaseActionInput,
     BaseActionOutput,
 )
-from flareward.services.auth.credentials.models import StaticAuthMethod
-from flareward.services.auth.service import AuthService
+from lumora.services.auth.credentials.models import StaticAuthMethod
+from lumora.services.auth.service import AuthService
 from plugins.a2a.elements.a2a_agent.identifiers import Identifier as NodeIdentifier
 from plugins.a2a.elements.a2a_client import A2AClient
 from plugins.a2a.elements.a2a_client.identifiers import Identifier as ProviderIdentifier

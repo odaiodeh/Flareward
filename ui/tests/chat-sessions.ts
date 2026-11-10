@@ -12,8 +12,8 @@ import {
 } from '../client/src/api/sessions';
 import { readSessionEvents } from '../client/src/api/session-stream';
 
-const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
-assert.ok(endpoint, 'FLAREWARD_TEST_UI_API_URL must identify an isolated native test API');
+const endpoint = process.env.LUMORA_TEST_UI_API_URL;
+assert.ok(endpoint, 'LUMORA_TEST_UI_API_URL must identify an isolated native test API');
 axios.defaults.baseURL = endpoint;
 
 export default async function verifyChatClients() {

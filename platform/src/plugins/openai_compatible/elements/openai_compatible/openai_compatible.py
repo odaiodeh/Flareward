@@ -17,13 +17,13 @@ from typing import Any
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionToolParam
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.models.errors import provider_errors
-from flareward.elements.models.name_sanitizer import build_name_maps, map_name
-from flareward.elements.models.tool_name_restorer import restore_tool_names
-from flareward.elements.ports.llm import BaseLLM
-from flareward.elements.tools.domain.models import ToolDefinition
-from flareward.services.tracing import NoOpTracingService, TracingService
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.models.errors import provider_errors
+from lumora.elements.models.name_sanitizer import build_name_maps, map_name
+from lumora.elements.models.tool_name_restorer import restore_tool_names
+from lumora.elements.ports.llm import BaseLLM
+from lumora.elements.tools.domain.models import ToolDefinition
+from lumora.services.tracing import NoOpTracingService, TracingService
 from plugins.openai_compatible.elements.openai_compatible.message_converter import (
     OpenAIMessageConverter,
 )

@@ -1,8 +1,8 @@
 from typing import ClassVar
 
-from flareward.elements.hints import HiddenHint
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.hints import HiddenHint
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.mas.elements.final_answer.config import FinalAnswerNodeConfig
 from plugins.mas.elements.final_answer.final_answer import FinalAnswerNode
 from plugins.mas.elements.final_answer.final_answer_node_factory import (

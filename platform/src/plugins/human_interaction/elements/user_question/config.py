@@ -1,6 +1,6 @@
 from typing import Literal
 
-from flareward.elements.node_config import NodeBaseConfig
+from lumora.elements.node_config import NodeBaseConfig
 from plugins.human_interaction.elements.user_question.identifiers import Identifier
 
 

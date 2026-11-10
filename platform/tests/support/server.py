@@ -18,7 +18,7 @@ async def api_process(
     settings: BaseModel,
     log: Path,
     *,
-    factory: str = "flareward.bootstrap.asgi:create_app",
+    factory: str = "lumora.bootstrap.asgi:create_app",
     health_path: str = "/api/health/health",
     environment: Callable[[str], Mapping[str, str]] | None = None,
     listener: socket.socket | None = None,

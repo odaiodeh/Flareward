@@ -78,7 +78,7 @@ class LocalVenvManager(VenvManager):
                 f"Python version mismatch for {service.name}!\n"
                 f"  Detected interpreter: {python_minor}\n"
                 f"  Venv Python: {venv_python} ({venv_ver})\n"
-                f"  Recreate with: flareward-dev venv setup {service.name}"
+                f"  Recreate with: lumora-dev venv setup {service.name}"
             )
 
     def exists(self, service: ServiceInfo, root: Path) -> bool:
@@ -102,7 +102,7 @@ class LocalVenvManager(VenvManager):
         if not self.exists(service, root):
             raise RuntimeError(
                 f"No venv found for {service.name}. "
-                f"Run 'flareward-dev venv setup {service.name}' first."
+                f"Run 'lumora-dev venv setup {service.name}' first."
             )
 
         self._install_deps(service, python, root, svc_dir, log_file)

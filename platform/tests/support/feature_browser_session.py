@@ -10,8 +10,8 @@ from uuid import uuid4
 
 from pymongo import AsyncMongoClient
 
-from flareward.async_work import await_owned
-from flareward.services.identity.domain import Identity
+from lumora.async_work import await_owned
+from lumora.services.identity.domain import Identity
 from support.engineering_api import EngineeringAPI
 from support.native_settings import session_settings
 from support.server import api_process
@@ -43,7 +43,7 @@ async def feature_browser_session(
     assets: Path, directory: Path
 ) -> AsyncIterator[FeatureBrowserSession]:
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    database = "flareward_feature_browser_" + uuid4().hex
+    database = "lumora_feature_browser_" + uuid4().hex
     cookie_file = directory / "owner-cookie"
     environment = {
         "PLACEMENT_BROWSER_ASSETS": str(assets.resolve()),
@@ -52,8 +52,8 @@ async def feature_browser_session(
     }
     previous = {name: os.environ.get(name) for name in environment}
     os.environ.update(environment)
-    mongo = AsyncMongoClient(os.environ["FLAREWARD_TEST_MONGO_URI"])
-    redis_uri = os.environ["FLAREWARD_TEST_REDIS_URI"]
+    mongo = AsyncMongoClient(os.environ["LUMORA_TEST_MONGO_URI"])
+    redis_uri = os.environ["LUMORA_TEST_REDIS_URI"]
     try:
         async with api_process(
             session_settings(database, redis_uri),
@@ -68,8 +68,8 @@ async def feature_browser_session(
                 redis_uri,
                 cookie_file,
                 {
-                    "FLAREWARD_IDENTITY_URL": str(identity.base_url).rstrip("/"),
-                    "FLAREWARD_ADMIN_CONFIG_DATABASE": database,
+                    "LUMORA_IDENTITY_URL": str(identity.base_url).rstrip("/"),
+                    "LUMORA_ADMIN_CONFIG_DATABASE": database,
                 },
             )
     finally:

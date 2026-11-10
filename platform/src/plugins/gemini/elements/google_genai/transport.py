@@ -7,7 +7,7 @@ from contextvars import ContextVar
 import httpx
 from google.genai.types import HttpOptions
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 
 class GenAITransport:

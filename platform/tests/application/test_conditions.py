@@ -2,7 +2,7 @@
 
 import pytest
 
-from flareward.elements.condition import ConditionResultError, normalize_condition_result
+from lumora.elements.condition import ConditionResultError, normalize_condition_result
 
 
 @pytest.mark.parametrize(

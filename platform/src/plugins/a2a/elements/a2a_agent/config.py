@@ -24,7 +24,7 @@ from typing import Literal
 from a2a.types import AgentCard
 from pydantic import Field, HttpUrl
 
-from flareward.elements.hints import (
+from lumora.elements.hints import (
     ActionHint,
     AuthHint,
     CardContext,
@@ -38,9 +38,9 @@ from flareward.elements.hints import (
     SelectionType,
     combine_hints,
 )
-from flareward.elements.node_config import NodeBaseConfig
-from flareward.resources.domain.references import RetrieverRef
-from flareward.services.auth.credentials.models import StaticAuthMethod
+from lumora.elements.node_config import NodeBaseConfig
+from lumora.resources.domain.references import RetrieverRef
+from lumora.services.auth.credentials.models import StaticAuthMethod
 from plugins.a2a.elements.a2a_agent.identifiers import Identifier
 
 

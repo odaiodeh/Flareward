@@ -15,11 +15,11 @@ from support.review_programs import review_definition
 from support.temporal import replay, worker_process
 from temporalio.client import Client, ScheduleActionExecutionStartWorkflow
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.programs.domain.models import ProgramDefinition
-from flareward.services.reviews.domain.models import ReviewRecord
-from flareward.services.scheduling.adapters.temporal.observation import TemporalExecutionObservation
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.domain.models import ProgramDefinition
+from lumora.services.reviews.domain.models import ReviewRecord
+from lumora.services.scheduling.adapters.temporal.observation import TemporalExecutionObservation
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 
 
@@ -27,19 +27,19 @@ from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 async def test_scheduled_consent_survives_worker_restart_and_rejects_revoked_ticks(
     application, mongo_database, redis_uri, tmp_path, profile
 ):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
     if not endpoint:
         pytest.skip("Select the dedicated Temporal endpoint for scheduled workflow access")
     for spec in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(spec)
-    host = TemporalHostConfig(endpoint=endpoint, task_queue="flareward-consent-" + uuid4().hex)
+    host = TemporalHostConfig(endpoint=endpoint, task_queue="lumora-consent-" + uuid4().hex)
     async with managed_access_api(mongo_database.name, redis_uri, tmp_path, host=host) as api:
         worker = WorkerSettings.model_validate(api.settings.model_dump(mode="python"))
         native = await Client.connect(endpoint, namespace=host.namespace)
         deployment = CalendarDeployment(api.settings, worker, native)
         environment = {
-            "FLAREWARD_REVIEW_ENDPOINT": str(api.http.base_url),
-            "FLAREWARD_REVIEW_ALLOW_INSECURE": "true",
+            "LUMORA_REVIEW_ENDPOINT": str(api.http.base_url),
+            "LUMORA_REVIEW_ALLOW_INSECURE": "true",
         }
         async with worker_process(
             worker, tmp_path / "worker-first.log", environment=environment
@@ -157,7 +157,7 @@ async def test_scheduled_consent_survives_worker_restart_and_rejects_revoked_tic
                             f"/api/program-schedules/{schedule_id}/trigger", headers=api.human
                         )
                     ).status_code == 403
-                    handle = native.get_schedule_handle("flareward-program-schedule-" + schedule_id)
+                    handle = native.get_schedule_handle("lumora-program-schedule-" + schedule_id)
                     # Even a direct native trigger cannot bypass persisted revocation.
                     await handle.trigger()
                     description = await wait_calendar(
@@ -183,6 +183,6 @@ async def test_scheduled_consent_survives_worker_restart_and_rejects_revoked_tic
                         await mongo_database.workflow_credential_material.count_documents({}) == 1
                     )
                     assert await mongo_database.program_reviews.count_documents({}) == 1
-                    assert "flareward-review-v1." not in api.log.read_text()
+                    assert "lumora-review-v1." not in api.log.read_text()
             finally:
                 await deployment.close_schedules()

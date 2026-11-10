@@ -6,9 +6,9 @@ from support.draft_configuration import CredentialConfig
 from support.operations import operation_graph
 from support.value_operations import ELEMENT_SPECIFICATIONS, ArraySpec, value_graph
 
-from flareward.programs.authoring import ProgramIssueCode
-from flareward.programs.contracts import BindingProjection
-from flareward.programs.domain.models import (
+from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.contracts import BindingProjection
+from lumora.programs.domain.models import (
     GraphDefinition,
     LiteralBinding,
     PathBinding,
@@ -16,8 +16,8 @@ from flareward.programs.domain.models import (
     ProgramCallStep,
     ProgramDefinition,
 )
-from flareward.programs.interfaces import BindingContractError, InterfaceContract
-from flareward.programs.service import ProgramContractError
+from lumora.programs.interfaces import BindingContractError, InterfaceContract
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.mark.parametrize(

@@ -1,11 +1,11 @@
 import logging
 from typing import ClassVar
 
-from flareward.elements.node import BaseNode
-from flareward.elements.workloads.domain import AgentResult
-from flareward.programs.graph.capabilities.messaging import GraphMessagingMixin
-from flareward.programs.graph.state.graph_state import Channel
-from flareward.programs.graph.state.state_view import StateView
+from lumora.elements.node import BaseNode
+from lumora.elements.workloads.domain import AgentResult
+from lumora.programs.graph.capabilities.messaging import GraphMessagingMixin
+from lumora.programs.graph.state.graph_state import Channel
+from lumora.programs.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 

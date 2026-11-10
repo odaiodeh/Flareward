@@ -1,6 +1,6 @@
 from typing import Any
 
-from flareward.elements.factory import BaseFactory
+from lumora.elements.factory import BaseFactory
 from plugins.agents.elements.custom_agent.config import CustomAgentNodeConfig
 from plugins.agents.elements.custom_agent.custom_agent import CustomAgentNode
 from plugins.agents.elements.custom_agent.identifiers import Identifier

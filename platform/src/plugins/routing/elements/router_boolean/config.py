@@ -2,8 +2,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from flareward.elements.condition_config import BaseConditionConfig
-from flareward.elements.hints import CardContext, CardHint
+from lumora.elements.condition_config import BaseConditionConfig
+from lumora.elements.hints import CardContext, CardHint
 from plugins.routing.elements.router_boolean.identifiers import Identifier
 
 

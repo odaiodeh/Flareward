@@ -6,21 +6,21 @@ from unittest.mock import create_autospec
 import pytest
 from support.reporting import NOW, OWNER, TEAM
 
-from flareward.programs.domain.models import (
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     ProgramDefinition,
     ProgramRef,
     ProgramRevision,
 )
-from flareward.programs.ports import ProgramRepository
-from flareward.services.access.administrators import (
+from lumora.programs.ports import ProgramRepository
+from lumora.services.access.administrators import (
     AdministratorAccessUnavailable,
     AdministratorDirectory,
     AdministratorPolicy,
 )
-from flareward.services.identity.domain import Identity
-from flareward.services.reporting.models import ProgramUsage, SystemReport, TimeRange
-from flareward.services.reporting.service import (
+from lumora.services.identity.domain import Identity
+from lumora.services.reporting.models import ProgramUsage, SystemReport, TimeRange
+from lumora.services.reporting.service import (
     ReportingReader,
     ReportingService,
     ReportingUnavailable,

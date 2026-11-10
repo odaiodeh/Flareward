@@ -107,7 +107,7 @@ Sibling Comparison: "matches siblings" or "weaker than siblings — missing X".
 
 ### Composition Roots
 
-[Relevant excerpts from flareward.bootstrap/container files showing how ports are wired to concrete adapters for the scoped domains. Include only bindings relevant to scoped files.]
+[Relevant excerpts from lumora.bootstrap/container files showing how ports are wired to concrete adapters for the scoped domains. Include only bindings relevant to scoped files.]
 ```
 
 ## Rules for Producers (Scout)

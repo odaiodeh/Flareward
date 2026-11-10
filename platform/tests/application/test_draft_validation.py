@@ -7,18 +7,18 @@ from support.operations import operation_graph
 from support.scenarios import publish
 from support.secrets import MemorySecretStore, secret_definition
 
-from flareward.programs.authoring import ProgramConflict, ProgramIssueCode
-from flareward.programs.composition.programs import APPLICATION_PROGRAMS
-from flareward.programs.domain.models import (
+from lumora.programs.authoring import ProgramConflict, ProgramIssueCode
+from lumora.programs.composition.programs import APPLICATION_PROGRAMS
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     ProgramCallStep,
     ProgramDefinition,
     ProgramRevision,
 )
-from flareward.programs.service import ProgramContractError
-from flareward.resources.secrets import is_secret_reference
-from flareward.services.identity.domain import Identity
+from lumora.programs.service import ProgramContractError
+from lumora.resources.secrets import is_secret_reference
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture(autouse=True)

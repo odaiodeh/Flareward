@@ -5,15 +5,15 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.programs.templates.authoring import BlueprintAuthoringService
-from flareward.resources.authoring import ResourceAuthoringService
-from flareward.services.collaboration.editing import (
+from lumora.programs.templates.authoring import BlueprintAuthoringService
+from lumora.resources.authoring import ResourceAuthoringService
+from lumora.services.collaboration.editing import (
     EditEntityKind,
     EditLease,
     EditLockStore,
     TeamEditService,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

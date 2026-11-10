@@ -1,7 +1,7 @@
 backend:
   image:
 
-    repository: images.paas.redhat.com/flareward/sharedresources/identity
+    repository: images.paas.redhat.com/lumora/sharedresources/identity
     tag: "latest"
     pullPolicy: Always
   env:

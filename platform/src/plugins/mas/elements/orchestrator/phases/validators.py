@@ -1,9 +1,9 @@
-from flareward.programs.graph.models import AdjacentNodes
+from lumora.programs.graph.models import AdjacentNodes
 
 """Orchestrator-specific phase validators."""
 
-from flareward.elements.agents.phases.models import PhaseValidationContext
-from flareward.elements.workloads.domain import WorkItemKind, WorkItemStatus, WorkPlan
+from lumora.elements.agents.phases.models import PhaseValidationContext
+from lumora.elements.workloads.domain import WorkItemKind, WorkItemStatus, WorkPlan
 
 
 class AllocationValidator:

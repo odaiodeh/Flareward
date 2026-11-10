@@ -3,7 +3,7 @@
 The UI uses `/identity/api` for Identity login, users and teams; `/api` is the
 platform FastAPI API. Vite and nginx proxy both through one browser origin, so the
 signed session cookie can be used by both services. Set the same `SECRET_KEY` in
-Identity and platform (`FLAREWARD_SECRET_KEY`) and point both at the same Redis.
+Identity and platform (`LUMORA_SECRET_KEY`) and point both at the same Redis.
 The platform verifies the signed session against Identity's Redis session record.
 Never treat a user ID in a query/body as authority or forward browser cookies into
 untrusted execution environments.

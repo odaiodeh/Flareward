@@ -4,14 +4,14 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ProviderRef
-from flareward.services.verification.check_ports import CheckRunHandle, StartCheckRun
-from flareward.services.verification.domain.check_runs import CheckRun
-from flareward.services.verification.models import VerificationView
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ProviderRef
+from lumora.services.verification.check_ports import CheckRunHandle, StartCheckRun
+from lumora.services.verification.domain.check_runs import CheckRun
+from lumora.services.verification.models import VerificationView
 from plugins.verification.elements.check_operations import (
     RefreshCheckOperation,
     StartCheckOperation,

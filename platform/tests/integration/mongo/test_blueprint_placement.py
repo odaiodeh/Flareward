@@ -5,7 +5,7 @@ from runengine.invocation.config import K8sRunnerConfig
 from support.blueprint_http import library_api
 from support.blueprints import inline_blueprint
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize(

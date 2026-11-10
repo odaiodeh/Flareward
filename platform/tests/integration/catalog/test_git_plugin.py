@@ -1,8 +1,8 @@
 """Optional capability installation exposes schemas through the existing catalog."""
 
-from flareward.bootstrap.elements import installed_elements
-from flareward.elements.catalog.service import CatalogService
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.bootstrap.elements import installed_elements
+from lumora.elements.catalog.service import CatalogService
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.git.elements.specification import (
     CheckoutGitSpec,
     GitRepositorySpec,

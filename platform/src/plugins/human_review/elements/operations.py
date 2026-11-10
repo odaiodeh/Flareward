@@ -2,15 +2,15 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.services.reviews.contracts import (
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.services.reviews.contracts import (
     CloseReview,
     OpenReview,
     ReviewHandle,
     ReviewSettings,
 )
-from flareward.services.reviews.domain.models import ReviewRecord
-from flareward.services.reviews.ports import ReviewGateway
+from lumora.services.reviews.domain.models import ReviewRecord
+from lumora.services.reviews.ports import ReviewGateway
 
 
 class RequestReview(BaseModel):

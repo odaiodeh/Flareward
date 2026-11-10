@@ -6,15 +6,15 @@ import os
 import pytest
 from support.artifacts import chunks, publication
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.artifacts.domain.models import BlobArtifactRef
-from flareward.services.artifacts.ports import (
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.artifacts.domain.models import BlobArtifactRef
+from lumora.services.artifacts.ports import (
     ArtifactConflict,
     ArtifactCredentialError,
     ArtifactIntegrityError,
 )
-from flareward.services.identity.domain import Identity
-from flareward.services.workspaces.domain.files import WorkspaceFile, WorkspaceLayout, WorkspaceMode
+from lumora.services.identity.domain import Identity
+from lumora.services.workspaces.domain.files import WorkspaceFile, WorkspaceLayout, WorkspaceMode
 from plugins.artifacts.elements.filesystem import WorkspaceFileSystem
 
 

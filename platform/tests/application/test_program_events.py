@@ -12,12 +12,12 @@ from support.scenarios import publish
 from support.verification import VerificationClock
 from support.workflow_consents import MemoryWorkflowConsents
 
-from flareward.executions.adapters.memory.execution_repository import MemoryExecutionRepository
-from flareward.executions.domain.budgets import WorkLimits
-from flareward.executions.domain.events import ProgramEvent
-from flareward.executions.domain.placement import PreparedProgramPlacement
-from flareward.executions.domain.preferences import ExecutionProfileCatalog
-from flareward.executions.events import (
+from lumora.executions.adapters.memory.execution_repository import MemoryExecutionRepository
+from lumora.executions.domain.budgets import WorkLimits
+from lumora.executions.domain.events import ProgramEvent
+from lumora.executions.domain.placement import PreparedProgramPlacement
+from lumora.executions.domain.preferences import ExecutionProfileCatalog
+from lumora.executions.events import (
     CreateEventSource,
     EventAuthenticationError,
     EventSourceConflict,
@@ -25,13 +25,13 @@ from flareward.executions.events import (
     ProgramEventService,
     RotateEventCredential,
 )
-from flareward.executions.models import PreparedExecution
-from flareward.executions.ports import ExecutionRequestConflict, ProgramExecutionGateway
-from flareward.executions.service import ExecutionService
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
-from flareward.services.access.consent import WorkflowConsents
-from flareward.services.identity.domain import Identity
+from lumora.executions.models import PreparedExecution
+from lumora.executions.ports import ExecutionRequestConflict, ProgramExecutionGateway
+from lumora.executions.service import ExecutionService
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
+from lumora.services.access.consent import WorkflowConsents
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

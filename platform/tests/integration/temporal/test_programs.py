@@ -1,4 +1,4 @@
-"""Actual Flareward coordination, child runs, bindings, and history replay on Temporal."""
+"""Actual Lumora coordination, child runs, bindings, and history replay on Temporal."""
 
 import asyncio
 
@@ -9,10 +9,10 @@ from support.scenarios import echo_graph, publish
 from support.temporal import replay
 from temporalio.api.enums.v1 import EventType
 
-from flareward.bootstrap.worker import compose_worker
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import (
+from lumora.bootstrap.worker import compose_worker
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     PathBinding,

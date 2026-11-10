@@ -2,7 +2,7 @@ from typing import Any, Dict, Literal, Optional
 
 from pydantic import Field
 
-from flareward.elements.hints import (
+from lumora.elements.hints import (
     ActionHint,
     CardContext,
     CardHint,
@@ -11,7 +11,7 @@ from flareward.elements.hints import (
     SelectionType,
     combine_hints,
 )
-from flareward.elements.models.base_config import BaseLLMConfig
+from lumora.elements.models.base_config import BaseLLMConfig
 from plugins.openai.elements.openai.identifiers import Identifier
 
 

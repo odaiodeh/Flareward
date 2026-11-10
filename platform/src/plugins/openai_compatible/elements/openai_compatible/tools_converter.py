@@ -10,7 +10,7 @@ from __future__ import annotations
 from openai.types.chat import ChatCompletionToolParam
 from openai.types.shared_params import FunctionDefinition
 
-from flareward.elements.tools.domain.models import ToolDefinition
+from lumora.elements.tools.domain.models import ToolDefinition
 
 
 class OpenAIToolsConverter:

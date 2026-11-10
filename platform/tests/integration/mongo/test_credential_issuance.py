@@ -10,22 +10,22 @@ from cryptography.fernet import Fernet
 from support.credential_renewals import RenewalCase
 from support.verification import VerificationClock
 
-from flareward.services.access.adapters.mongo.credential_material import MongoCredentialMaterial
-from flareward.services.access.adapters.workflow_credentials import FileWorkflowCredentials
-from flareward.services.access.executions import ExecutionAccessUnavailable
-from flareward.services.access.issuance import (
+from lumora.services.access.adapters.mongo.credential_material import MongoCredentialMaterial
+from lumora.services.access.adapters.workflow_credentials import FileWorkflowCredentials
+from lumora.services.access.executions import ExecutionAccessUnavailable
+from lumora.services.access.issuance import (
     CredentialIssuanceClosed,
     CredentialMaterial,
     CredentialMaterialRetirement,
     CredentialMaterialUnavailable,
 )
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
-from flareward.services.reviews.ports import ReviewCredentialError
-from flareward.services.verification.adapters.mongo.verification_access import (
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
+from lumora.services.reviews.ports import ReviewCredentialError
+from lumora.services.verification.adapters.mongo.verification_access import (
     MongoVerificationAccessRepository,
 )
-from flareward.services.verification.ports import VerificationCredentialError
+from lumora.services.verification.ports import VerificationCredentialError
 
 
 @pytest.fixture(params=["review", "verification"])

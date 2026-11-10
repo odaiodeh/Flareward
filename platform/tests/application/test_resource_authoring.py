@@ -5,24 +5,24 @@ from unittest.mock import create_autospec
 import pytest
 from support.secrets import MemoryCipher
 
-from flareward.executions.domain.preferences import ResourceExecutionDefaults
-from flareward.resources.authoring import (
+from lumora.executions.domain.preferences import ResourceExecutionDefaults
+from lumora.resources.authoring import (
     ResourceAuthoringRepository,
     ResourceAuthoringService,
     ResourceRecord,
 )
-from flareward.resources.domain.builtins import BuiltinResourceDescriptor
-from flareward.resources.domain.bundles import ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.models import Resource
-from flareward.resources.errors import (
+from lumora.resources.domain.builtins import BuiltinResourceDescriptor
+from lumora.resources.domain.bundles import ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.models import Resource
+from lumora.resources.errors import (
     BuiltInWriteProtectedError,
     ResourceAccessDeniedError,
     ResourceConflictError,
     ResourceInUseError,
 )
-from flareward.resources.field_encryption import ResourceFieldEncryption
-from flareward.services.identity.domain import Identity
+from lumora.resources.field_encryption import ResourceFieldEncryption
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

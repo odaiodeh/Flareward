@@ -5,18 +5,18 @@ import json
 import pytest
 from support.scenarios import publish, run
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     OperationStep,
     PathBinding,
     ProgramCallStep,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.git.elements.specification import ELEMENT_SPECIFICATIONS
 
 
@@ -27,9 +27,9 @@ async def test_graph_resolves_candidate_and_code_child_materializes_it(
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
     root = tmp_path / "compute"
-    monkeypatch.setenv("FLAREWARD_WORKSPACE_ROOT", str(root))
+    monkeypatch.setenv("LUMORA_WORKSPACE_ROOT", str(root))
     monkeypatch.setenv(
-        "FLAREWARD_GIT_REPOSITORIES",
+        "LUMORA_GIT_REPOSITORIES",
         json.dumps(
             {
                 "source": {

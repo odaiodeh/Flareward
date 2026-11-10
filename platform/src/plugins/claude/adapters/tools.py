@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from claude_agent_sdk import SdkMcpTool
 
-from flareward.elements.ports.tool import BaseTool
+from lumora.elements.ports.tool import BaseTool
 
 
 class ClaudeSDKConverter:

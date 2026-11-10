@@ -4,19 +4,19 @@ from datetime import timedelta
 
 import pytest
 
-from flareward.elements.domain.cards import ElementCard
-from flareward.elements.messaging.protocol.exceptions import (
+from lumora.elements.domain.cards import ElementCard
+from lumora.elements.messaging.protocol.exceptions import (
     IEMAdjacencyException,
     IEMValidationException,
 )
-from flareward.elements.messaging.protocol.interfaces import MessengerMiddleware
-from flareward.elements.messaging.protocol.models import ElementAddress
-from flareward.elements.messaging.protocol.packets import SystemPacket
-from flareward.programs.graph.messaging import GraphInterMessenger, get_outgoing_targets
-from flareward.programs.graph.models import AdjacentNodes, StepContext
-from flareward.programs.graph.state.graph_state import Channel, GraphState
-from flareward.programs.graph.state.state_view import StateView
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.messaging.protocol.interfaces import MessengerMiddleware
+from lumora.elements.messaging.protocol.models import ElementAddress
+from lumora.elements.messaging.protocol.packets import SystemPacket
+from lumora.programs.graph.messaging import GraphInterMessenger, get_outgoing_targets
+from lumora.programs.graph.models import AdjacentNodes, StepContext
+from lumora.programs.graph.state.graph_state import Channel, GraphState
+from lumora.programs.graph.state.state_view import StateView
+from lumora.resources.domain.categories import ResourceCategory
 
 
 def context(uid: str, *targets: str) -> StepContext:

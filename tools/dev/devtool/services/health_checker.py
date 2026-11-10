@@ -119,7 +119,7 @@ class HealthChecker:
                 desc += f" \u2192 {' + '.join(affected)} affected"
             issues.append(StatusIssue(
                 description=desc,
-                fix=f"flareward-dev infra start {infra_name}",
+                fix=f"lumora-dev infra start {infra_name}",
                 affected=affected,
             ))
 
@@ -135,13 +135,13 @@ class HealthChecker:
             if sh.status is ServiceStatus.UNHEALTHY:
                 issues.append(StatusIssue(
                     description=f"{sh.name} health endpoint failing on port {sh.port}",
-                    fix=f"flareward-dev restart {sh.name}",
+                    fix=f"lumora-dev restart {sh.name}",
                     affected=[sh.name],
                 ))
             else:
                 issues.append(StatusIssue(
                     description=f"{sh.name} not responding on port {sh.port}",
-                    fix=f"flareward-dev restart {sh.name}",
+                    fix=f"lumora-dev restart {sh.name}",
                     affected=[sh.name],
                 ))
 

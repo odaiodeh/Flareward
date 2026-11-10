@@ -5,8 +5,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from support.event_sources import assert_event_source_store_contract, source_registration
 
-from flareward.executions.adapters.mongo.event_sources import MongoEventSources
-from flareward.executions.events import EventSourceUnavailable
+from lumora.executions.adapters.mongo.event_sources import MongoEventSources
+from lumora.executions.events import EventSourceUnavailable
 
 
 async def test_mongo_event_source_contract(mongo_database):
@@ -28,7 +28,7 @@ async def test_mongo_event_source_contract(mongo_database):
             now=datetime.now(UTC) - timedelta(hours=3),
         )
     rows = [row async for row in mongo_database.program_event_sources.find({})]
-    assert all("flareward-event-v1." not in row["data"] for row in rows)
+    assert all("lumora-event-v1." not in row["data"] for row in rows)
 
 
 async def test_corrupt_source_metadata_is_unavailable_not_approval(mongo_database):

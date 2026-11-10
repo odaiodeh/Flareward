@@ -2,7 +2,7 @@ from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, Extra, Field
 
-from flareward.elements.hints import CardContext, CardHint, SecretHint
+from lumora.elements.hints import CardContext, CardHint, SecretHint
 from plugins.gemini.elements.google_genai.identifiers import Identifier
 
 

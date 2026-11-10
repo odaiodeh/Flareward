@@ -3,16 +3,16 @@
 import asyncio
 from datetime import datetime
 
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.access import (
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.access import (
     ReviewAction,
     ReviewActor,
     ReviewScope,
     StoredReviewGrant,
 )
-from flareward.services.reviews.contracts import OpenReview, ReviewPolicy, ReviewSettings
-from flareward.services.reviews.domain.models import ReviewRecord, ReviewStatus
-from flareward.services.reviews.ports import ReviewMissing, ReviewUnavailable
+from lumora.services.reviews.contracts import OpenReview, ReviewPolicy, ReviewSettings
+from lumora.services.reviews.domain.models import ReviewRecord, ReviewStatus
+from lumora.services.reviews.ports import ReviewMissing, ReviewUnavailable
 
 
 class MemoryReviews:

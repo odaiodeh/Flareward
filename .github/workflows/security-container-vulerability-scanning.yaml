@@ -47,14 +47,14 @@ jobs:
           ref: main
           token: ${{ secrets.UNIFAI_SECRETS_TOKEN }}
           persist-credentials: false
-          path: ui/Flareward-secrets
+          path: ui/Lumora-secrets
           
 
       - name: check repo exist
         if: ${{ matrix.component == 'ui' }}
         run: |
-          ls -la ui | grep Flareward-secrets
-          ls -la ui/Flareward-secrets
+          ls -la ui | grep Lumora-secrets
+          ls -la ui/Lumora-secrets
       
       - name: Checkout pinned Run Engine source
         if: ${{ matrix.component == 'platform' }}

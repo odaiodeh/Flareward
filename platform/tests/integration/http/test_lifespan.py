@@ -10,16 +10,16 @@ from runengine.adapters.coordination.config import LocalHostConfig, TemporalHost
 from runengine.invocation.config import K8sRunnerConfig, ThreadRunnerConfig
 from support.elements import element_registry
 
-from flareward.api.app import create_app
-from flareward.api.dependencies import authenticated
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import (
+from lumora.api.app import create_app
+from lumora.api.dependencies import authenticated
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import (
     AuthenticationKind,
     PlatformSettings,
     StorageKind,
 )
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.services.identity.domain import Identity
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.services.identity.domain import Identity
 
 
 def settings():

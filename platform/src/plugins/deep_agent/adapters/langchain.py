@@ -27,8 +27,8 @@ from langchain_core.tools import BaseTool as LangChainBaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from pydantic import ConfigDict
 
-from flareward.elements.messaging.domain.messages import ChatMessage
-from flareward.elements.tools.domain.models import ToolDefinition
+from lumora.elements.messaging.domain.messages import ChatMessage
+from lumora.elements.tools.domain.models import ToolDefinition
 from plugins.deep_agent.adapters.messages import LangChainConverter
 
 _EMPTY_PARAMS: dict[str, Any] = {"type": "object", "properties": {}}
@@ -69,7 +69,7 @@ class BaseLLMChatModelAdapter(BaseChatModel):
 
     @property
     def _llm_type(self) -> str:
-        return f"flareward-{self.llm.name}"
+        return f"lumora-{self.llm.name}"
 
     def _generate(
         self,

@@ -13,11 +13,11 @@ from support.elements import element_registry
 from support.interaction_http import pending
 from support.scenarios import resource
 
-from flareward.api.app import create_app
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.api.app import create_app
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     ElementStep,
     GraphDefinition,
@@ -25,22 +25,22 @@ from flareward.programs.domain.models import (
     ProgramCallStep,
     ProgramDefinition,
 )
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.interactions.adapters.redis_store import RedisInteractionStore
-from flareward.services.interactions.adapters.wire import root_key
-from flareward.services.interactions.rules import ApprovalRuleChange
-from flareward.services.interactions.tools.models import ApprovalOverrides
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.interactions.adapters.redis_store import RedisInteractionStore
+from lumora.services.interactions.adapters.wire import root_key
+from lumora.services.interactions.rules import ApprovalRuleChange
+from lumora.services.interactions.tools.models import ApprovalOverrides
 
 
 @pytest.fixture
 async def interacting(monkeypatch):
-    uri = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    uri = os.environ.get("LUMORA_TEST_REDIS_URI")
     if not uri:
-        pytest.skip("Set FLAREWARD_TEST_REDIS_URI for actual cross-process interaction contracts")
-    monkeypatch.setenv("FLAREWARD_REDIS_URI", uri)
-    monkeypatch.setenv("FLAREWARD_APPROVAL_TIMEOUT", "30")
+        pytest.skip("Set LUMORA_TEST_REDIS_URI for actual cross-process interaction contracts")
+    monkeypatch.setenv("LUMORA_REDIS_URI", uri)
+    monkeypatch.setenv("LUMORA_APPROVAL_TIMEOUT", "30")
     async with owned_redis(uri, decode_responses=True) as client:
         await client.ping()
         roots = []
@@ -267,7 +267,7 @@ async def test_rule_revision_fences_delayed_updates_and_preserves_execution_repl
     newest = ApprovalRuleChange(action="auto_approve", tool_name="newest").apply(baseline)
     delayed = ApprovalRuleChange(action="auto_reject", tool_name="delayed").apply(baseline)
     per_execution = ApprovalRuleChange(action="auto_reject", node_uid="local").apply(baseline)
-    async with owned_redis(os.environ["FLAREWARD_TEST_REDIS_URI"], decode_responses=True) as client:
+    async with owned_redis(os.environ["LUMORA_TEST_REDIS_URI"], decode_responses=True) as client:
         store = RedisInteractionStore(client)
         await store.save_rules(root, newest, revision=2)
         await store.save_rules(root, delayed, revision=1)
@@ -331,7 +331,7 @@ async def test_session_rules_survive_turns_and_child_events_keep_root_identity(
     ]
     assert (await pending(http, root))["request"] == ticket["request"]
     # Losing the live cache does not erase the durable session default.
-    async with owned_redis(os.environ["FLAREWARD_TEST_REDIS_URI"], decode_responses=True) as client:
+    async with owned_redis(os.environ["LUMORA_TEST_REDIS_URI"], decode_responses=True) as client:
         await client.delete(root_key(root) + ":rules")
         await services.sessions.reconcile_pending()
         restored = await RedisInteractionStore(client).load_rules(root)
@@ -508,7 +508,7 @@ async def test_live_rule_update_is_seen_by_the_next_tool_request(interacting):
 
 async def test_unanswered_approval_times_out_to_rejection(interacting, monkeypatch):
     http, _, _ = interacting
-    monkeypatch.setenv("FLAREWARD_APPROVAL_TIMEOUT", "0.2")
+    monkeypatch.setenv("LUMORA_APPROVAL_TIMEOUT", "0.2")
     root = await submit(interacting)
     async with asyncio.timeout(5):
         result = await http.get(f"/api/executions/{root}/result")
@@ -569,7 +569,7 @@ async def test_trimmed_stream_cursor_is_explicitly_rejected(interacting):
     await http.get(f"/api/executions/{root}/result")
     original = await http.get(f"/api/executions/{root}/stream")
     cursors = [line[4:] for line in original.text.splitlines() if line.startswith("id: ")]
-    async with owned_redis(os.environ["FLAREWARD_TEST_REDIS_URI"], decode_responses=True) as client:
+    async with owned_redis(os.environ["LUMORA_TEST_REDIS_URI"], decode_responses=True) as client:
         await client.xtrim(root_key(root) + ":events", maxlen=1, approximate=False)
     stale = await http.get(f"/api/executions/{root}/stream", params={"after": cursors[0]})
     assert stale.status_code == 409

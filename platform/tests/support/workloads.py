@@ -1,9 +1,9 @@
 """An owned-port double and shared workload behavior, independent of graph state."""
 
-from flareward.elements.workloads.domain.thread import Thread
-from flareward.elements.workloads.domain.workspace import Workspace
-from flareward.elements.workloads.storage import WorkloadStorage
-from flareward.elements.workloads.unified_service import UnifiedWorkloadService
+from lumora.elements.workloads.domain.thread import Thread
+from lumora.elements.workloads.domain.workspace import Workspace
+from lumora.elements.workloads.storage import WorkloadStorage
+from lumora.elements.workloads.unified_service import UnifiedWorkloadService
 
 
 class MemoryWorkloadStorage:

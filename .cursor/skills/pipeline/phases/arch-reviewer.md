@@ -320,7 +320,7 @@ Number findings sequentially within this section. Same block format. For multi-f
 **Fix →** {remediation}
 ```
 
-Example: `#### 🟡 1. [Duplication] Session cookie flareward.bootstrap.settings duplicated across 4 services`
+Example: `#### 🟡 1. [Duplication] Session cookie lumora.bootstrap.settings duplicated across 4 services`
 
 Omit this section entirely if there are zero warnings.
 

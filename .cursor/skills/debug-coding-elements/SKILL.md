@@ -1,6 +1,6 @@
 ---
 name: debug-coding-elements
-description: Implement or debug Flareward coding-agent CLI elements, remote images and policies, protected credentials, and explicit Kubernetes/OpenShell live workflow tests.
+description: Implement or debug Lumora coding-agent CLI elements, remote images and policies, protected credentials, and explicit Kubernetes/OpenShell live workflow tests.
 ---
 
 Read the [coding contract and ownership](../../../docs/program-platform-development.md#coding-agents-and-codex-cli)
@@ -29,7 +29,7 @@ preserve fingerprint validation and substitution tests. See
 Keep generic review/inspection independent of Engineering; reviewer assignment is
 not another owner's artifact authority.
 
-Keep coding work behind `flareward.elements.coding.contracts.CodingAgent`; `CodingOperation` owns typed input/result translation, and the outer
+Keep coding work behind `lumora.elements.coding.contracts.CodingAgent`; `CodingOperation` owns typed input/result translation, and the outer
 `plugins.codex` adapter owns subprocess details. Register `CodexSpec`
 through the existing catalog/factory/builder path as `operations/codex_coding`;
 do not restore the removed Codex node. Graphs use `OperationStep` bindings and
@@ -88,14 +88,14 @@ helpers too; copying only the CLI binary can let model calls succeed while all
 editing commands fail. Smoke-test namespace support in the actual sandbox before
 paid calls. On the tested host, nested namespaces are denied, so the externally
 isolated OpenShell fixture explicitly sets receiver-only
-`FLAREWARD_CODEX_SANDBOX_MODE=danger-full-access`. Keep workspace-write as the default
-and never silently downgrade it or expose this choice in resource flareward.bootstrap.settings. A supplied OpenShell policy replaces image
+`LUMORA_CODEX_SANDBOX_MODE=danger-full-access`. Keep workspace-write as the default
+and never silently downgrade it or expose this choice in resource lumora.bootstrap.settings. A supplied OpenShell policy replaces image
 policy, including filesystem and process fields. Give Python receiver services
 and Codex API calls separate endpoint/binary rules. Existing sandbox IDs retain
 the policy of their external owner.
 
 Use existing configuration-secret storage when the receiving environment can
-reach it, or the operator-only `FLAREWARD_CODEX_API_KEY_FILE` binding. The pinned
+reach it, or the operator-only `LUMORA_CODEX_API_KEY_FILE` binding. The pinned
 0.0.103 test runtime did not reach Mongo through native sockets; an HTTP endpoint
 allow-list is not proof of database transport. Do not put a plaintext key in a
 runner profile to work around that. Keep credential resolution at the
@@ -129,8 +129,8 @@ be adopted as owned named environments.
 Select Kubernetes and OpenShell independently with `--platform-backends`; both
 use the same saved-operation-resource/publication/coding scenario. Load the Codex
 derivative into the dedicated kind cluster and select it through
-`FLAREWARD_TEST_K8S_IMAGE`. Kubernetes uses the shared backend fixture's private
-Secret mount, with `FLAREWARD_CODEX_API_KEY_FILE` derived from the receiver settings
+`LUMORA_TEST_K8S_IMAGE`. Kubernetes uses the shared backend fixture's private
+Secret mount, with `LUMORA_CODEX_API_KEY_FILE` derived from the receiver settings
 directory. Bind both coding steps and the physical file reader to an engine-owned
 named environment so they share one pod; repeated profile selection alone creates
 separate invocation pods. Temporal retained environments need the worker's durable

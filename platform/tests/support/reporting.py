@@ -2,10 +2,10 @@
 
 from datetime import UTC, datetime, timedelta
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.identity.domain import Identity
 
 NOW = datetime(2026, 11, 5, 12, tzinfo=UTC)
 OWNER = Identity.user("same")

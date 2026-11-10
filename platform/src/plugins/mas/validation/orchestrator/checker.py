@@ -5,14 +5,14 @@ Validates orchestrator delegation patterns, return paths, and finalization requi
 Leverages existing topology utilities to avoid duplication (SOLID principles).
 """
 
-from flareward.programs.graph.graph_plan import GraphPlan
-from flareward.programs.graph.models.workflow import Step
-from flareward.programs.graph.state.graph_state import Channel
-from flareward.programs.graph.topology.finalizer_analyzer import FinalizerAnalyzer
-from flareward.programs.graph.topology.graph_builder import EdgeType, GraphAnalyzer
-from flareward.programs.graph.topology.hierarchy_analyzer import HierarchyAnalyzer
-from flareward.programs.graph.topology.models import EdgeRelation
-from flareward.programs.graph.validation.models import (
+from lumora.programs.graph.graph_plan import GraphPlan
+from lumora.programs.graph.models.workflow import Step
+from lumora.programs.graph.state.graph_state import Channel
+from lumora.programs.graph.topology.finalizer_analyzer import FinalizerAnalyzer
+from lumora.programs.graph.topology.graph_builder import EdgeType, GraphAnalyzer
+from lumora.programs.graph.topology.hierarchy_analyzer import HierarchyAnalyzer
+from lumora.programs.graph.topology.models import EdgeRelation
+from lumora.programs.graph.validation.models import (
     MessageCode,
     MessageSeverity,
     ValidationMessage,

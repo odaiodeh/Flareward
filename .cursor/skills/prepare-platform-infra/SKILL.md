@@ -1,19 +1,19 @@
 ---
 name: prepare-platform-infra
-description: Prepare or diagnose Flareward's independent Docker, kind, and certificate-authenticated OpenShell test infrastructure and receiver images.
+description: Prepare or diagnose Lumora's independent Docker, kind, and certificate-authenticated OpenShell test infrastructure and receiver images.
 ---
 
-# Prepare independent Flareward test infrastructure
+# Prepare independent Lumora test infrastructure
 
 Use [the maintained infrastructure guide](../../../platform/tests/infra/README.md)
 for commands, paths, and variables. Inspect the selected fixture and existing
 resources before allocating infrastructure. Use this repository's Compose,
 Dockerfile, PKI preparation, and kind configuration. Run Engine remains the
-execution provider; these files provide Flareward's independent deployment.
+execution provider; these files provide Lumora's independent deployment.
 
 Preserve these verified integration details:
 
-- Use explicit source build contexts and install wheels for Run Engine, Flareward,
+- Use explicit source build contexts and install wheels for Run Engine, Lumora,
   and shared utilities. Never copy `.env`, credential directories, or local PKI
   into an image. Receiver images need installed program/element modules; dispatcher
   SDKs belong at the dispatcher.
@@ -73,7 +73,7 @@ services, delete pre-existing clusters, or run broad Docker cleanup. Reuse prepa
 resources while an authorized test matrix is active; do not replace image tags or
 PKI underneath it.
 
-After preparation, execute a real application invocation through Flareward's public
+After preparation, execute a real application invocation through Lumora's public
 API and selected backend. Distinguish gateway health, sandbox readiness, receiver
 imports, program completion, replay, and cleanup; each proves a different boundary.
 Record versions, images, selected endpoints, and limitations without claiming

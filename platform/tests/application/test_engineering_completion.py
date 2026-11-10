@@ -13,13 +13,13 @@ from support.engineering_runtime import ServiceRuntime
 from support.scenarios import publish
 from support.verification import MemoryVerificationRepository
 
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody
-from flareward.programs.ports import ChildExecution
-from flareward.programs.service import ProgramContractError
-from flareward.services.reviews.domain.models import ReviewDecision
-from flareward.services.verification.check_service import CheckRunService, RegisteredCheckRunner
-from flareward.services.verification.domain.models import CheckVerdict
-from flareward.services.verification.service import VerificationService
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.ports import ChildExecution
+from lumora.programs.service import ProgramContractError
+from lumora.services.reviews.domain.models import ReviewDecision
+from lumora.services.verification.check_service import CheckRunService, RegisteredCheckRunner
+from lumora.services.verification.domain.models import CheckVerdict
+from lumora.services.verification.service import VerificationService
 from plugins.adlc.programs.program import (
     APPLICATION_PROGRAMS,
     EngineeringConfig,

@@ -11,27 +11,27 @@ from fastapi import FastAPI
 from pymongo import AsyncMongoClient
 from runengine.invocation.config import ExecutorConfig
 
-from flareward.api.app import create_app as http_app
-from flareward.api.dependencies import HttpServices
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.services.artifacts.access_models import ArtifactActor
-from flareward.services.artifacts.domain.models import BlobArtifactRef
-from flareward.services.artifacts.service import ArtifactService
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
-from flareward.services.verification.check_ports import CheckRunnerPolicy
-from flareward.services.verification.check_service import CheckRunService, RegisteredCheckRunner
-from flareward.services.verification.domain.check_runs import (
+from lumora.api.app import create_app as http_app
+from lumora.api.dependencies import HttpServices
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.services.artifacts.access_models import ArtifactActor
+from lumora.services.artifacts.domain.models import BlobArtifactRef
+from lumora.services.artifacts.service import ArtifactService
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
+from lumora.services.verification.check_ports import CheckRunnerPolicy
+from lumora.services.verification.check_service import CheckRunService, RegisteredCheckRunner
+from lumora.services.verification.domain.check_runs import (
     CheckRun,
     CheckRunObservation,
     CheckRunStatus,
 )
-from flareward.services.verification.domain.models import CheckRequirement, CheckVerdict
-from flareward.services.verification.models import VerificationPolicy
-from flareward.services.verification.program_checks import ProgramCheckConfiguration
-from flareward.services.verification.reports import CheckReportCollector
+from lumora.services.verification.domain.models import CheckRequirement, CheckVerdict
+from lumora.services.verification.models import VerificationPolicy
+from lumora.services.verification.program_checks import ProgramCheckConfiguration
+from lumora.services.verification.reports import CheckReportCollector
 from support.check_program_publication import CheckProgramSetup
 from support.identity import authenticated_cookie
 from support.managed_access import managed_access_environment, managed_access_settings
@@ -102,9 +102,9 @@ async def engineering_api(
     def receiver_environment(base: str) -> dict[str, str]:
         return {
             **managed_access_environment(base),
-            "FLAREWARD_ARTIFACT_ENDPOINT": base,
-            "FLAREWARD_ARTIFACT_ALLOW_INSECURE": "true",
-            "FLAREWARD_WORKSPACE_ROOT": str(workspace),
+            "LUMORA_ARTIFACT_ENDPOINT": base,
+            "LUMORA_ARTIFACT_ALLOW_INSECURE": "true",
+            "LUMORA_WORKSPACE_ROOT": str(workspace),
             **(environment or {}),
         }
 

@@ -8,16 +8,16 @@ import pytest
 from support.artifacts import chunks, inline_content
 from support.operations import operation_context
 
-from flareward.services.artifacts.domain.models import ArtifactRecord, BlobArtifactRef
-from flareward.services.artifacts.ports import (
+from lumora.services.artifacts.domain.models import ArtifactRecord, BlobArtifactRef
+from lumora.services.artifacts.ports import (
     ArtifactGateway,
     ArtifactIntegrityError,
     ArtifactLimitExceeded,
     FileSource,
     WorkspaceFiles,
 )
-from flareward.services.artifacts.preparation import InlineWorkspacePreparation
-from flareward.services.workspaces.domain.files import ArtifactFile, InlineFile, WorkspaceFile
+from lumora.services.artifacts.preparation import InlineWorkspacePreparation
+from lumora.services.workspaces.domain.files import ArtifactFile, InlineFile, WorkspaceFile
 from plugins.artifacts.elements.content_operations import (
     LoadArtifactContent,
     PublishFileContent,

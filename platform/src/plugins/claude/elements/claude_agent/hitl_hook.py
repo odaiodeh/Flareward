@@ -16,8 +16,8 @@ etc.) that are NOT in our domain tool registry.
 import logging
 from typing import Any
 
-from flareward.elements.agents.approvals import HITLToolGatekeeper
-from flareward.services.interactions.tools.models import ApprovalDecision, ToolAccessMode
+from lumora.elements.agents.approvals import HITLToolGatekeeper
+from lumora.services.interactions.tools.models import ApprovalDecision, ToolAccessMode
 
 logger = logging.getLogger(__name__)
 

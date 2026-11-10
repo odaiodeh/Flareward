@@ -4,6 +4,10 @@ Start with [current status](../status.md) and [the active plan](../plan.md). Rea
 Records describe their tested snapshot; they are not live plans or authorization.
 ## Latest checkpoint
 
+- [2026-11-10: Lumora checkout and Git remote](2026-11-10-lumora-checkout.md): canonical GitHub identity, preserved worktree, repaired tooling and owned infrastructure mounts.
+
+- [2026-11-10: Lumora naming](2026-11-10-lumora-rename.md): product meaning/tagline, core/configuration/CLI/UI rename and current verification scope.
+
 - [2026-11-09: checkout and Git remote](2026-11-09-checkout-rename.md): `Flareward` folder, `origin`, retained tracking, environment repair and focused verification.
 
 - [2026-11-09: Flareward naming](2026-11-09-flareward-rename.md): product/core/plugin namespaces, configuration, CLI/UI and matched Local/Temporal/Kubernetes/OpenShell verification.

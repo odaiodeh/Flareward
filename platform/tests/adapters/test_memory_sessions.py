@@ -2,7 +2,7 @@
 
 from support.session_store_contracts import assert_query_and_delete_contracts
 
-from flareward.services.sessions.adapters.memory.session_store import MemorySessionStore
+from lumora.services.sessions.adapters.memory.session_store import MemorySessionStore
 
 
 async def test_memory_session_queries_and_guarded_deletion():

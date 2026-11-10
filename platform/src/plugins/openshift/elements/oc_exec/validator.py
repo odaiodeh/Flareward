@@ -2,7 +2,7 @@
 
 import openshift_client as oc
 
-from flareward.elements.validation import (
+from lumora.elements.validation import (
     BaseElementValidator,
     ValidationCode,
     ValidationContext,

@@ -13,11 +13,11 @@ from support.draft_configuration import (
 from support.elements import element_registry
 from support.secrets import secret_definition
 
-from flareward.api.app import create_app
-from flareward.bootstrap.platform import compose_platform
-from flareward.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.identity.domain import Identity
+from lumora.api.app import create_app
+from lumora.bootstrap.platform import compose_platform
+from lumora.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -134,7 +134,7 @@ async def test_secret_references_keep_old_revisions_and_payloads_private(
         mongo_database, FieldCipher(secret_settings.credential_encryption_key.get_secret_value())
     )
     with pytest.raises(PermissionError):
-        await store.get(Identity.user("another-owner"), "flareward-secret:v1:" + values[0]["_id"])
+        await store.get(Identity.user("another-owner"), "lumora-secret:v1:" + values[0]["_id"])
 
 
 @pytest.mark.parametrize("stage", ["construction", "execution"])

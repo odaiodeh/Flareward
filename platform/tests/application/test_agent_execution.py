@@ -8,22 +8,22 @@ from unittest.mock import create_autospec
 import pytest
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.agents.config import AgentConfig
-from flareward.elements.agents.domain.models import AgentAction, StepType
-from flareward.elements.agents.execution import AgentActionExecutor, AgentIterator
-from flareward.elements.agents.execution.handlers import AutoExecutionHandler
-from flareward.elements.agents.parsers import ToolCallParser
-from flareward.elements.agents.strategies import ReActStrategy
-from flareward.elements.behaviors.agent_capable import AgentCapableMixin
-from flareward.elements.behaviors.llm_capable import LlmCapableMixin
-from flareward.elements.behaviors.streaming_capable import StreamingCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
-from flareward.elements.ports.llm import BaseLLM
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.tools.executor import ToolExecutorManager
-from flareward.elements.tools.policies import RetryPolicy
-from flareward.services.interactions.tools.models import ToolAccessMode
-from flareward.services.tracing import NoOpTracingService, ObservationHandle
+from lumora.elements.agents.config import AgentConfig
+from lumora.elements.agents.domain.models import AgentAction, StepType
+from lumora.elements.agents.execution import AgentActionExecutor, AgentIterator
+from lumora.elements.agents.execution.handlers import AutoExecutionHandler
+from lumora.elements.agents.parsers import ToolCallParser
+from lumora.elements.agents.strategies import ReActStrategy
+from lumora.elements.behaviors.agent_capable import AgentCapableMixin
+from lumora.elements.behaviors.llm_capable import LlmCapableMixin
+from lumora.elements.behaviors.streaming_capable import StreamingCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
+from lumora.elements.ports.llm import BaseLLM
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.tools.executor import ToolExecutorManager
+from lumora.elements.tools.policies import RetryPolicy
+from lumora.services.interactions.tools.models import ToolAccessMode
+from lumora.services.tracing import NoOpTracingService, ObservationHandle
 
 
 class NoArguments(BaseModel):

@@ -12,14 +12,14 @@ RUN if ! command -v git >/dev/null; then \
 COPY --from=run_engine /pyproject.toml /opt/run-engine/pyproject.toml
 COPY --from=run_engine /README.md /opt/run-engine/README.md
 COPY --from=run_engine /src/ /opt/run-engine/src/
-COPY --from=flareward /packages/service-support/pyproject.toml /opt/service-support/pyproject.toml
-COPY --from=flareward /packages/service-support/src/ /opt/service-support/src/
-COPY --from=flareward /platform/pyproject.toml /opt/flareward/pyproject.toml
-COPY --from=flareward /platform/src/ /opt/flareward/src/
-RUN pip install --no-cache-dir /opt/run-engine /opt/service-support "/opt/flareward[api,credentials,blueprints,telemetry]"
+COPY --from=lumora /packages/service-support/pyproject.toml /opt/service-support/pyproject.toml
+COPY --from=lumora /packages/service-support/src/ /opt/service-support/src/
+COPY --from=lumora /platform/pyproject.toml /opt/lumora/pyproject.toml
+COPY --from=lumora /platform/src/ /opt/lumora/src/
+RUN pip install --no-cache-dir /opt/run-engine /opt/service-support "/opt/lumora[api,credentials,blueprints,telemetry]"
 
-COPY --from=flareward /platform/tests/support/ /opt/test-fixtures/support/
-RUN python -c "from pathlib import Path; Path('/opt/flareward-e2e-receiver').write_text('flareward-platform-e2e-v1')"
+COPY --from=lumora /platform/tests/support/ /opt/test-fixtures/support/
+RUN python -c "from pathlib import Path; Path('/opt/lumora-e2e-receiver').write_text('lumora-platform-e2e-v1')"
 ENV PYTHONPATH=/opt/test-fixtures
 
 ARG RECEIVER_USER=1000:1000

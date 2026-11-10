@@ -2,11 +2,11 @@
 
 from datetime import UTC, datetime, timedelta
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
-from flareward.services.sessions.domain.dto import SessionListFilter
-from flareward.services.sessions.execution.session_store import SessionStore
-from flareward.services.sessions.records import SessionRecord
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
+from lumora.services.sessions.domain.dto import SessionListFilter
+from lumora.services.sessions.execution.session_store import SessionStore
+from lumora.services.sessions.records import SessionRecord
 
 
 async def assert_query_and_delete_contracts(store: SessionStore) -> None:

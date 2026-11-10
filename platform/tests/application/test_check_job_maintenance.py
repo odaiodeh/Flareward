@@ -6,10 +6,10 @@ import pytest
 from support.check_jobs import assert_pending_job_queries, check_job_scenario
 from support.check_runs import source_request
 
-from flareward.services.access.executions import ExecutionAccessUnavailable
-from flareward.services.verification.check_ports import StartCheckRun
-from flareward.services.verification.domain.check_runs import CheckJobState, CheckRunStatus
-from flareward.services.verification.domain.models import CheckRequirement
+from lumora.services.access.executions import ExecutionAccessUnavailable
+from lumora.services.verification.check_ports import StartCheckRun
+from lumora.services.verification.domain.check_runs import CheckJobState, CheckRunStatus
+from lumora.services.verification.domain.models import CheckRequirement
 
 
 async def started(case, key="candidate"):

@@ -3,7 +3,7 @@
 from pydantic import SecretStr
 from support.processes import settings_environment
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
 
 
 def test_worker_journal_path_survives_process_environment_serialization(tmp_path, monkeypatch):
@@ -16,7 +16,7 @@ def test_worker_journal_path_survives_process_environment_serialization(tmp_path
     )
     environment = settings_environment(settings)
     for name, value in environment.items():
-        if name.startswith("FLAREWARD_"):
+        if name.startswith("LUMORA_"):
             monkeypatch.setenv(name, value)
     restored = WorkerSettings()
     assert restored.environment_sqlite == settings.environment_sqlite

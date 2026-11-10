@@ -10,11 +10,11 @@ from runengine.bootstrap.hosts import RunHostBuilder
 from runengine.invocation.config import ProcessRunnerConfig, ThreadRunnerConfig
 from temporalio.client import Client
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.adapters.memory.execution_repository import MemoryExecutionRepository
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
-from flareward.executions.service import ExecutionService
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.adapters.memory.execution_repository import MemoryExecutionRepository
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
+from lumora.executions.service import ExecutionService
 
 
 @dataclass(frozen=True)
@@ -26,12 +26,12 @@ class DurableRuntime:
 
 @pytest.fixture
 async def durable(application):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
     if not endpoint:
-        pytest.skip("Set FLAREWARD_TEST_TEMPORAL_ENDPOINT for real durable worker contracts")
+        pytest.skip("Set LUMORA_TEST_TEMPORAL_ENDPOINT for real durable worker contracts")
     config = TemporalHostConfig(
         endpoint=endpoint,
-        task_queue="flareward-platform-test-" + uuid4().hex,
+        task_queue="lumora-platform-test-" + uuid4().hex,
         invocation_heartbeat_timeout_seconds=0.5,
     )
     compiler = ProgramCompiler(

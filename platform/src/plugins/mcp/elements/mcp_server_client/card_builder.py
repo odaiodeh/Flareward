@@ -1,24 +1,24 @@
 """
 Card builder for MCP Provider.
 
-Extracts tool_names from flareward.bootstrap.settings as skills.
+Extracts tool_names from lumora.bootstrap.settings as skills.
 """
 
-from flareward.elements.cards.interface import CardBuilder
-from flareward.elements.cards.models import CardBuildInput
-from flareward.elements.domain.cards import ElementCard, Skill
+from lumora.elements.cards.interface import CardBuilder
+from lumora.elements.cards.models import CardBuildInput
+from lumora.elements.domain.cards import ElementCard, Skill
 
 
 class McpProviderCardBuilder(CardBuilder):
     """
     MCP Provider builds its card with tools as skills.
 
-    Tool names come from flareward.bootstrap.settings.tool_names (list of str).
+    Tool names come from lumora.bootstrap.settings.tool_names (list of str).
     Each tool name becomes a skill.
     """
 
     def build(self, input: CardBuildInput) -> ElementCard:
-        """Build card with tools from flareward.bootstrap.settings."""
+        """Build card with tools from lumora.bootstrap.settings."""
         skills = self._extract_tools_as_skills(input.config)
 
         return ElementCard(
@@ -34,7 +34,7 @@ class McpProviderCardBuilder(CardBuilder):
         )
 
     def _extract_tools_as_skills(self, config) -> list[Skill]:
-        """Extract tool_names from flareward.bootstrap.settings as skills."""
+        """Extract tool_names from lumora.bootstrap.settings as skills."""
         skills: list[Skill] = []
 
         tool_names = config.tool_names

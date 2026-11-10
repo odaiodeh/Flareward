@@ -1,5 +1,5 @@
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.mas.elements.orchestrator.config import OrchestratorNodeConfig
 from plugins.mas.elements.orchestrator.identifiers import META, Identifier
 from plugins.mas.elements.orchestrator.orchestrator_node import OrchestratorNode

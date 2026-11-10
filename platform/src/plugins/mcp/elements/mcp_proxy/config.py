@@ -2,9 +2,9 @@ from typing import Literal
 
 from pydantic import Field
 
-from flareward.elements.hints import CardContext, CardHint
-from flareward.elements.tools.configuration.base_config import BaseToolConfig
-from flareward.resources.domain.references import ProviderRef
+from lumora.elements.hints import CardContext, CardHint
+from lumora.elements.tools.configuration.base_config import BaseToolConfig
+from lumora.resources.domain.references import ProviderRef
 from plugins.mcp.elements.mcp_proxy.identifiers import Identifier
 
 

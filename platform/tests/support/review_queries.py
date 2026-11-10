@@ -4,9 +4,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.domain.models import ReviewRecord
-from flareward.services.reviews.ports import ReviewMissing, ReviewRepository
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.domain.models import ReviewRecord
+from lumora.services.reviews.ports import ReviewMissing, ReviewRepository
 from support.reviews import review_request
 
 

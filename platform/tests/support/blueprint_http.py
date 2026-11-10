@@ -5,8 +5,8 @@ from dataclasses import replace
 
 import httpx
 
-from flareward.api.app import create_app
-from flareward.bootstrap.platform import compose_platform
+from lumora.api.app import create_app
+from lumora.bootstrap.platform import compose_platform
 from support.blueprints import library_elements
 
 

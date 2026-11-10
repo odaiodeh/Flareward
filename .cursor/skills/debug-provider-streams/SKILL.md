@@ -1,11 +1,11 @@
 ---
 name: debug-provider-streams
-description: Diagnose Flareward async LLM stream ownership, early consumer exit, cancellation, and provider error translation using real SDK transports without live model calls.
+description: Diagnose Lumora async LLM stream ownership, early consumer exit, cancellation, and provider error translation using real SDK transports without live model calls.
 ---
 
 # Diagnose provider stream lifecycle
 
-Use the repository Python 3.14 environment and declared `flareward[openai,gemini]`
+Use the repository Python 3.14 environment and declared `lumora[openai,gemini]`
 extras. Start with the actual SDK transports, not mocked model methods:
 
 ```sh

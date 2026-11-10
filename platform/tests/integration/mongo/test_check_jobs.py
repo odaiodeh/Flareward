@@ -3,8 +3,8 @@
 import pytest
 from support.check_jobs import assert_pending_job_queries, check_job_scenario
 
-from flareward.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
-from flareward.services.verification.ports import VerificationStorageError
+from lumora.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
+from lumora.services.verification.ports import VerificationStorageError
 
 
 async def test_mongo_pending_job_queries_and_state_projections(mongo_database):

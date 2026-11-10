@@ -3,16 +3,16 @@
 import pytest
 from support.scenarios import bundle, echo_graph, publish, run
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import (
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     PathBinding,
     ProgramCallStep,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

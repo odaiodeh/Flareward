@@ -2,14 +2,14 @@
 
 from pydantic import BaseModel, ConfigDict, JsonValue, ValidationError, model_validator
 
-from flareward.elements.coding.contracts import CodingInput, CodingOutcome
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.files import ProgramFileInputs
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
-from flareward.services.verification.domain.models import VerificationSubject
-from flareward.services.workspaces.domain.files import ArtifactFile, InputFile
+from lumora.elements.coding.contracts import CodingInput, CodingOutcome
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.files import ProgramFileInputs
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
+from lumora.services.verification.domain.models import VerificationSubject
+from lumora.services.workspaces.domain.files import ArtifactFile, InputFile
 from plugins.adlc.programs.program import (
     EngineeringCandidate,
     EngineeringWork,
@@ -58,7 +58,7 @@ class CodingGitCandidate:
                 for report in evidence.reports:
                     source = ArtifactFile(
                         artifact=report.content,
-                        path=".flareward/reports/" + report.content.artifact_id,
+                        path=".lumora/reports/" + report.content.artifact_id,
                     )
                     if source.path in files and files[source.path] != source:
                         raise ValueError("Repair reports conflict with configured workspace inputs")

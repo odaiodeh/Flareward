@@ -2,13 +2,13 @@
 
 from dataclasses import dataclass
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.programs.adapters.memory.program_repository import MemoryProgramRepository
-from flareward.programs.registry import ApplicationRegistry
-from flareward.programs.service import ProgramService
-from flareward.resources.secrets import ConfigurationSecretStore
-from flareward.services.identity.domain import Identity
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.programs.adapters.memory.program_repository import MemoryProgramRepository
+from lumora.programs.registry import ApplicationRegistry
+from lumora.programs.service import ProgramService
+from lumora.resources.secrets import ConfigurationSecretStore
+from lumora.services.identity.domain import Identity
 from support.elements import element_registry
 from support.programs import APPLICATION_PROGRAMS
 

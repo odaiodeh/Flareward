@@ -7,9 +7,9 @@ from typing import Any
 import paramiko
 from pydantic import BaseModel, ConfigDict, Field
 
-from flareward.async_work import await_owned
-from flareward.elements.ports.tool import BaseTool
-from flareward.services.interactions.tools.models import ToolAccessMode
+from lumora.async_work import await_owned
+from lumora.elements.ports.tool import BaseTool
+from lumora.services.interactions.tools.models import ToolAccessMode
 
 
 class CommandInput(BaseModel):

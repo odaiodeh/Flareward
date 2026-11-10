@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.services.artifacts.domain.models import BlobArtifactRef
+from lumora.services.artifacts.domain.models import BlobArtifactRef
 from plugins.git.domain.repositories import GitRevision
 
 

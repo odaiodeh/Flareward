@@ -11,8 +11,8 @@ from support.http_programs import publish_program
 from support.program_check_api import prepared_verifier
 from support.python_checks import ADDITION, SUBTRACTION, addition_cases
 
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.services.verification.domain.models import VerificationSubject
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.services.verification.domain.models import VerificationSubject
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

@@ -52,7 +52,7 @@ Files not matching any prefix (e.g. `.github/`, `docs/`, `tools/dev/`, `ci/`, `c
 For each Python file in scope:
 1. Read its import statements to find PORTS (ABCs it implements or depends on)
 2. Include port definition files in the review scope
-3. Include composition root wiring (`flareward.bootstrap/` or `container.py`)
+3. Include composition root wiring (`lumora.bootstrap/` or `container.py`)
 4. Re-resolve domains for newly added files
 
 ### Step 4: Load Domain Context
@@ -64,7 +64,7 @@ For each resolved domain, load ONLY that domain's skill and references:
    (contains: architecture, contracts, established patterns, cross-component relationships)
    - 2a. If any loaded component reference contains an **Established Patterns** table, extract it for the evidence pack suppression list.
    - 2b. If the component reference links to a **recipe** for this type of change (e.g. `add-new-node.md`), read the recipe's **Reviewer Checklist** — specifically any **"DO NOT flag"** rows. Include these as additional suppressions.
-3. (Optional) If baseline knowledge about existing endpoints, port wiring, or MongoDB collections is needed beyond what the domain SKILL.md provides, consult `.cursor/flareward-dev-guide/docs/services/<service>.md` at the specific section.
+3. (Optional) If baseline knowledge about existing endpoints, port wiring, or MongoDB collections is needed beyond what the domain SKILL.md provides, consult `.cursor/lumora-dev-guide/docs/services/<service>.md` at the specific section.
 
 Do NOT load domains that are not in the resolved list.
 
@@ -104,7 +104,7 @@ Use the import matrix from `.cursor/rules/engineering-standards.md` as the refer
 For each port (ABC/interface) referenced by scoped files:
 1. Identify the port definition file and its methods
 2. Find concrete adapter(s) that implement it
-3. Locate the injection site (composition root / flareward.bootstrap / container.py)
+3. Locate the injection site (composition root / lumora.bootstrap / container.py)
 
 ### Task 2b: Factory / Builder Call-Site Analysis
 
@@ -175,7 +175,7 @@ Report: file pairs, divergent field names, majority convention, and provenance.
 
 ### Task 6: Composition Root Extraction
 
-Read the composition root files relevant to the scoped domains (e.g. `flareward.bootstrap/`, `container.py`). Include the relevant bindings/wiring in the evidence pack so judges can verify injection correctness.
+Read the composition root files relevant to the scoped domains (e.g. `lumora.bootstrap/`, `container.py`). Include the relevant bindings/wiring in the evidence pack so judges can verify injection correctness.
 
 ### Task 7: Committed Artifacts Scan
 

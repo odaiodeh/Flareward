@@ -6,19 +6,19 @@ import pytest
 from pydantic import BaseModel, Field, SecretStr
 from support.secrets import MemoryCipher
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.hints import ReadOnlyHint
-from flareward.resources.authoring import (
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.hints import ReadOnlyHint
+from lumora.resources.authoring import (
     BuiltinConfigurationRepository,
     ResourceAuthoringRepository,
     ResourceAuthoringService,
     ResourceRecord,
 )
-from flareward.resources.domain.builtins import BuiltinResourceDescriptor
-from flareward.resources.domain.models import Resource
-from flareward.resources.errors import ResourceConflictError
-from flareward.resources.field_encryption import ResourceFieldEncryption
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.builtins import BuiltinResourceDescriptor
+from lumora.resources.domain.models import Resource
+from lumora.resources.errors import ResourceConflictError
+from lumora.resources.field_encryption import ResourceFieldEncryption
+from lumora.services.identity.domain import Identity
 
 
 class Configuration(BaseModel):

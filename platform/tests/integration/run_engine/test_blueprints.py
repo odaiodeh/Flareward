@@ -9,29 +9,29 @@ from runengine.invocation.config import K8sRunnerConfig, ProcessRunnerConfig, Th
 from runengine.programs.graph.inputs import GraphProgramInput
 from support.scenarios import run
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.executions.adapters.memory.execution_repository import MemoryExecutionRepository
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
-from flareward.executions.adapters.run_engine.shared.models import ProgramPayload
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.preferences import ExecutionSelection, ResourceExecutionDefaults
-from flareward.executions.service import ExecutionService
-from flareward.programs.adapters.memory.program_repository import MemoryProgramRepository
-from flareward.programs.blueprints import BlueprintProgramImporter
-from flareward.programs.domain.models import PathBinding
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.programs.registry import ApplicationRegistry
-from flareward.programs.service import ProgramService
-from flareward.programs.templates.resolver import BlueprintResolver
-from flareward.programs.templates.schema import blueprint_schemas
-from flareward.resources.domain.models import Resource
-from flareward.resources.ports import ResourceReader
-from flareward.services.identity.scope import CallerScope
-from flareward.services.sessions.adapters.memory.session_store import MemorySessionStore
-from flareward.services.sessions.domain.status import SessionStatus
-from flareward.services.sessions.execution.program_sessions import (
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.executions.adapters.memory.execution_repository import MemoryExecutionRepository
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
+from lumora.executions.adapters.run_engine.shared.models import ProgramPayload
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.preferences import ExecutionSelection, ResourceExecutionDefaults
+from lumora.executions.service import ExecutionService
+from lumora.programs.adapters.memory.program_repository import MemoryProgramRepository
+from lumora.programs.blueprints import BlueprintProgramImporter
+from lumora.programs.domain.models import PathBinding
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.programs.registry import ApplicationRegistry
+from lumora.programs.service import ProgramService
+from lumora.programs.templates.resolver import BlueprintResolver
+from lumora.programs.templates.schema import blueprint_schemas
+from lumora.resources.domain.models import Resource
+from lumora.resources.ports import ResourceReader
+from lumora.services.identity.scope import CallerScope
+from lumora.services.sessions.adapters.memory.session_store import MemorySessionStore
+from lumora.services.sessions.domain.status import SessionStatus
+from lumora.services.sessions.execution.program_sessions import (
     CreateProgramSession,
     ProgramSessionService,
     StartSessionTurn,

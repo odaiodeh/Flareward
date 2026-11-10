@@ -1,12 +1,12 @@
 """Shared saved-resource setup through native APIs or explicit storage boundaries."""
 
-from flareward.resources.domain.builtins import (
+from lumora.resources.domain.builtins import (
     BuiltinResourceDescriptor,
     BuiltinUserConfig,
     identity_to_key,
 )
-from flareward.resources.domain.models import Resource
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.models import Resource
+from lumora.services.identity.domain import Identity
 
 
 async def seed_operation_resources(http, *, profile="thread"):

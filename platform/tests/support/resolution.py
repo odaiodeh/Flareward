@@ -3,10 +3,10 @@
 from collections.abc import Iterable
 from types import SimpleNamespace
 
-from flareward.elements.configuration.meta import ElementConfigMeta
-from flareward.programs.templates.contracts import BlueprintResolution
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.construction import ResourceSpec, StepDef
+from lumora.elements.configuration.meta import ElementConfigMeta
+from lumora.programs.templates.contracts import BlueprintResolution
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.construction import ResourceSpec, StepDef
 
 
 def resolve_configurations(

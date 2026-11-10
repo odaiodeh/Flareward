@@ -1,6 +1,6 @@
 ---
 name: debug-native-tracing
-description: Diagnose Flareward native receiver tracing, OTLP export, session correlation, concurrent ownership, and cancellation cleanup.
+description: Diagnose Lumora native receiver tracing, OTLP export, session correlation, concurrent ownership, and cancellation cleanup.
 ---
 
 # Diagnose native receiver tracing
@@ -43,7 +43,7 @@ Collector rejection must not trigger business retries after successful effects.
 Distinguish a verified OTLP request from verified Langfuse persistence, cost
 aggregation, and UI behavior. Rebuild receiving images after installed-code changes.
 
-For remote settings, use `FLAREWARD_SECRETS_DIR` and Pydantic's existing file source.
+For remote settings, use `LUMORA_SECRETS_DIR` and Pydantic's existing file source.
 Files use environment-variable names. Explicit/environment/dotenv values retain
 precedence, including empty environment placeholders. An unavailable selected
 directory fails; invoke-side reads are off-loop and private diagnostics stay out
@@ -55,6 +55,6 @@ integration can use a pre-provisioned sandbox with private files and an opaque
 outside graph execution. Managed OpenShell file provisioning is a separate gap.
 The remote private-settings scenario checks authenticated export, repeated use,
 absence of raw/encoded keys in execution records and history, replay, and cleanup.
-Use `FLAREWARD_RECEIVER_MODULE=flareward.bootstrap.receiver` when only remote receivers need
+Use `LUMORA_RECEIVER_MODULE=lumora.bootstrap.receiver` when only remote receivers need
 the built-in services. Profile `env` maps are serialized and reject declared
 private settings; directory paths and secret names may travel as references.

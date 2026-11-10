@@ -6,9 +6,9 @@ from unittest.mock import ANY, create_autospec
 import pytest
 from support.sharing import invitation
 
-from flareward.services.identity.domain import Identity
-from flareward.services.sharing.domain.models import ShareStatus
-from flareward.services.sharing.notifications import (
+from lumora.services.identity.domain import Identity
+from lumora.services.sharing.domain.models import ShareStatus
+from lumora.services.sharing.notifications import (
     ShareConflict,
     ShareNotifications,
     ShareNotificationsRepository,

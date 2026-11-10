@@ -8,7 +8,7 @@ from starlette.routing import Route
 
 
 def create_app():
-    evidence = os.environ.get("FLAREWARD_TEST_MCP_EVIDENCE", "wire-evidence")
+    evidence = os.environ.get("LUMORA_TEST_MCP_EVIDENCE", "wire-evidence")
     calls = []
     server = FastMCP("Evidence", stateless_http=True, json_response=True, log_level="ERROR")
 

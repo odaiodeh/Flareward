@@ -8,9 +8,9 @@ import pytest
 from google.genai import types
 from support.llm_wire import LLMProtocol, ModelWire
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.models.errors import LLMProviderError
-from flareward.elements.tools.domain.models import ToolDefinition
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.models.errors import LLMProviderError
+from lumora.elements.tools.domain.models import ToolDefinition
 from plugins.gemini.elements.google_genai.google_genai import GoogleGenAILLM
 from plugins.openai.elements.openai.openai import OpenAILLM
 from plugins.openai_compatible.elements.openai_compatible.openai_compatible import (

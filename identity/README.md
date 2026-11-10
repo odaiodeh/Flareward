@@ -5,7 +5,7 @@ A few notes:
 2. currently we only used directly a flask server with the auth manager.
 
 
-![Alt text](flareward_authentication.png "flareward Authentication flow")
+![Alt text](lumora_authentication.png "lumora Authentication flow")
 
 
 the flow chart was created using the site [sequencediagram](https://sequencediagram.org/)
@@ -13,7 +13,7 @@ the chart text is below:
 
 
 ```
-Flareward Authentication process
+Lumora Authentication process
 
 User->Nginx: get UI client files (frontend_url)
 Nginx->User: send UI client files

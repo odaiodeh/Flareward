@@ -1,4 +1,4 @@
-# Flareward program platform: target architecture
+# Lumora program platform: target architecture
 
 Canonical product, package, plugin and configuration names are defined in
 [the naming cutover](../branding.md). Capability implementations use `plugins.*`.
@@ -92,7 +92,7 @@ These are logical boundaries, not a requirement for one microservice per box.
                                       |
                                       v
 +----------------------------------------------------------------------------+
-| FLAREWARD APPLICATION                                                      |
+| LUMORA APPLICATION                                                      |
 |                                                                            |
 |  +----------------------------------------------------------------------+  |
 |  | AUTHORING                                                            |  |
@@ -156,7 +156,7 @@ The upward arrow is dependency direction: adapters implement ports owned by the
 application. Runtime calls go from application services through those ports.
 The composition root alone selects and wires concrete implementations.
 
-Flareward owns application semantics, permissions, contracts, decisions, and business
+Lumora owns application semantics, permissions, contracts, decisions, and business
 outcomes. Run Engine owns execution mechanics. ADLC-specific work management and
 acceptance sit above generic program composition. Other kinds of programs must
 not be forced to adopt software-engineering concepts.
@@ -810,7 +810,7 @@ does not silently change existing references or executions.
 
 ```text
 +----------------------------------------------------------------------------+
-| FLAREWARD WORKER RECEIVER                                                  |
+| LUMORA WORKER RECEIVER                                                  |
 |                                                                            |
 | Validate envelope and authority                                            |
 |              |                                                             |
@@ -832,7 +832,7 @@ does not silently change existing references or executions.
 | Plugin | Integration behavior and owned subprocess/protocol |
 | Application | Artifact access, review authority and business acceptance |
 
-Flareward owns behavior and constructed invocation resources. Plugins own their
+Lumora owns behavior and constructed invocation resources. Plugins own their
 integration protocols and subprocesses. Run Engine owns physical environments,
 grants, borrowing, dispatch, and cleanup. Publish durable outputs before relying
 on them surviving environment destruction.
@@ -856,11 +856,11 @@ programs, isolated coding, controlled reuse, and predictable cleanup.
 
 | Concept | Meaning | Owner |
 | --- | --- | --- |
-| Execution profile | Approved configuration describing how invocations execute: backend, installed implementation/image, resource/isolation/network policy, and supported capabilities | Deployment configuration and Flareward admission policy |
+| Execution profile | Approved configuration describing how invocations execute: backend, installed implementation/image, resource/isolation/network policy, and supported capabilities | Deployment configuration and Lumora admission policy |
 | Named environment binding | Program-local name selecting a reusable environment backed by a compatible profile | Declaring program revision and its owning execution |
 | Live environment | Actual process/container/pod/sandbox instance and its engine-managed binding/grants | Run Engine and its backend adapter |
 | Workspace | Mutable files used by a task; can be inside an environment but has separate concurrency and handoff semantics | Application work policy and operation configuration |
-| Artifact | Published durable output that remains usable after compute is destroyed | Flareward artifact services and storage adapters |
+| Artifact | Published durable output that remains usable after compute is destroyed | Lumora artifact services and storage adapters |
 
 A profile selects execution characteristics; selecting the same profile twice
 does not by itself select the same live environment. Explicit named bindings
@@ -878,14 +878,14 @@ with separately constructed clients and agent configurations.
                                       |
                                       v
 +----------------------------------------------------------------------------+
-| FLAREWARD APPLICATION                                                      |
+| LUMORA APPLICATION                                                      |
 | Operation requirements + saved preferences + tenant policy                 |
 | Resolve compatible placement; reject unavailable or forbidden choices      |
 +----------------------------------------------------------------------------+
                                       |
                                       v
 +----------------------------------------------------------------------------+
-| FLAREWARD ENGINE ADAPTER                                                   |
+| LUMORA ENGINE ADAPTER                                                   |
 | Translate public selections into engine targets and bindings               |
 | Persist concrete execution settings before submission                      |
 +----------------------------------------------------------------------------+
@@ -954,7 +954,7 @@ operation/service boundary.
 ```
 
 Run Engine owns provisioning, binding, grants/borrowing, dispatch, release, and
-cleanup reconciliation. Flareward decides which bindings are permitted to be shared.
+cleanup reconciliation. Lumora decides which bindings are permitted to be shared.
 Children receive only explicitly imported environment bindings with local aliases;
 access to one environment does not grant every parent environment or credential.
 
@@ -965,7 +965,7 @@ retain their external owner's deletion responsibility.
 
 On completion, failure, timeout, or cancellation, follow engine ownership and
 drain/release semantics. Cleanup uncertainty is observable and reconciled through
-engine/backend mechanisms; do not invent another environment manager in Flareward.
+engine/backend mechanisms; do not invent another environment manager in Lumora.
 A human-review wait does not silently destroy an intentionally retained parent
 environment. Idle release/recreation requires an explicit supported lifetime
 policy and durable workspace handoff.
@@ -991,13 +991,13 @@ for current APIs, UI behavior, precedence, and limitations.
 ## Human-in-the-loop: engine pause and continuation are explicit
 
 Yes: human review and custom HITL behavior must use Run Engine coordination
-through Flareward runtime ports. Do not implement a second pause/resume scheduler.
+through Lumora runtime ports. Do not implement a second pause/resume scheduler.
 There are two distinct mechanisms:
 
 | Mechanism | Intended use | Ownership |
 | --- | --- | --- |
-| Graph pre-node interrupt/resume | Operational pause before a selected graph node | Engine checkpoints and suspends traversal; Flareward controls access and maps public commands |
-| Durable program wait | Human Review, structured input, external decisions and custom program interactions | Flareward validates/persists the interaction; engine messages/timers suspend and continue coordination |
+| Graph pre-node interrupt/resume | Operational pause before a selected graph node | Engine checkpoints and suspends traversal; Lumora controls access and maps public commands |
+| Durable program wait | Human Review, structured input, external decisions and custom program interactions | Lumora validates/persists the interaction; engine messages/timers suspend and continue coordination |
 
 A graph resume payload alone is not an authorized business approval. Human Review
 is a registered, versioned application program, exposed as a reusable UI block.
@@ -1047,7 +1047,7 @@ declared lifetime. Temporal supplies restart-durable coordination; Local waiting
 is in-memory. Pausing stops progress at a defined boundary; it cannot undo an
 external action already sent.
 
-Current-state distinction: Flareward has runtime message waiting and existing tool
+Current-state distinction: Lumora has runtime message waiting and existing tool
 approval behavior. The dedicated Human Review program is planned. The compiler
 does not currently enable graph pre-node interrupts. See the development guide's
 [Human Review design](../program-platform-development.md#human-review)
@@ -1218,16 +1218,16 @@ tool call. Preserve that distinction in contracts and UI.
 
 The repository is feature-first. Domain values, ports, use cases and adapters
 stay near their owning feature. This is a source layout, not a new execution model.
-`flareward` owns platform policy and contracts; `plugins` contributes installed
+`lumora` owns platform policy and contracts; `plugins` contributes installed
 capabilities through the existing specifications, factories, builders and Program
-registry. Concrete plugins are selected only in `flareward.bootstrap`.
+registry. Concrete plugins are selected only in `lumora.bootstrap`.
 
 ```text
-Flareward/
+Lumora/
 +-- platform/
 |   +-- pyproject.toml
 |   +-- src/
-|   |   +-- flareward/
+|   |   +-- lumora/
 |   |   |   +-- elements/        # Catalog, specs, construction, typed invocation
 |   |   |   +-- resources/       # Saved configurations, references, bundles
 |   |   |   +-- programs/        # One Program model, registry, graph, controls

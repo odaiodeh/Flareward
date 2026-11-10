@@ -4,13 +4,13 @@ import asyncio
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.ports import ChildContract, ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.ports import ChildContract, ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
 from support.recovery import RecoveryConfig, recovery_program
 
-__runengine_contract__ = "flareward-test-programs-v1"
+__runengine_contract__ = "lumora-test-programs-v1"
 
 
 class GreetingConfig(BaseModel):

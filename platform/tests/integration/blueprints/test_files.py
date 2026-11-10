@@ -2,7 +2,7 @@
 
 import pytest
 
-from flareward.programs.templates.input.files import BlueprintFileLoader
+from lumora.programs.templates.input.files import BlueprintFileLoader
 
 
 @pytest.mark.parametrize(

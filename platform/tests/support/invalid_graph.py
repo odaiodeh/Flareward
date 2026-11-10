@@ -1,7 +1,7 @@
 """Portable negative graph declaration, installed only by its explicit admission test."""
 
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.routing.elements.router_boolean.router_condition_factory import (
     RouterBooleanConditionFactory,
 )

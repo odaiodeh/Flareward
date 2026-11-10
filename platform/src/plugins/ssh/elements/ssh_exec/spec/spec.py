@@ -1,6 +1,6 @@
-from flareward.elements.specification import BaseElementSpec
-from flareward.elements.tools.configuration.card_builder import ToolCardBuilder
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.specification import BaseElementSpec
+from lumora.elements.tools.configuration.card_builder import ToolCardBuilder
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.ssh.elements.ssh_exec.config import SshExecToolConfig
 from plugins.ssh.elements.ssh_exec.identifiers import META, Identifier
 from plugins.ssh.elements.ssh_exec.ssh_exec_factory import SshExecToolFactory

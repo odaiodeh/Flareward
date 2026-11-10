@@ -5,8 +5,8 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from flareward.elements.condition_config import BaseConditionConfig
-from flareward.elements.hints import CardContext, CardHint
+from lumora.elements.condition_config import BaseConditionConfig
+from lumora.elements.hints import CardContext, CardHint
 from plugins.routing.elements.threshold.identifiers import Identifier
 
 

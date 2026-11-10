@@ -8,13 +8,13 @@ from support.artifact_workflow import (
     managed_artifact_lifecycle,
 )
 
-from flareward.services.access.issuance import (
+from lumora.services.access.issuance import (
     CredentialIssuance,
     CredentialIssuanceClosed,
     CredentialMaterialRetirement,
 )
-from flareward.services.artifacts.ports import ArtifactCredentialError, ArtifactStorageError
-from flareward.services.identity.domain import Identity
+from lumora.services.artifacts.ports import ArtifactCredentialError, ArtifactStorageError
+from lumora.services.identity.domain import Identity
 
 
 async def test_managed_artifact_lifecycle():

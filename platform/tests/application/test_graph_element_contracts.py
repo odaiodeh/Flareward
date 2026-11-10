@@ -4,11 +4,11 @@ import pytest
 from support.elements import DependencySpec, EchoSpec
 from support.operations import TextConfig, TextFactory, TextSpec
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.specification import BaseElementSpec
-from flareward.programs.graph.validation.channel.matrix_builder import MatrixBuilder
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.specification import BaseElementSpec
+from lumora.programs.graph.validation.channel.matrix_builder import MatrixBuilder
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 
 
 def test_graph_channels_are_separate_from_typed_operation_contracts():

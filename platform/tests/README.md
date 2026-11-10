@@ -10,7 +10,7 @@ and do not repeat green heavy gates without a relevant reason. The user's
 governs selection; the suite examples below are not a per-edit checklist.
 
 Generic element cold-import checks also initialize catalog/construction without
-loading `flareward.programs.graph`. Graph channel declarations specialize `GraphElementSpec`;
+loading `lumora.programs.graph`. Graph channel declarations specialize `GraphElementSpec`;
 `application/test_graph_element_contracts.py` checks separation, metadata validity
 and dependency-versus-workflow semantics. Adapter payload tests distinguish an
 operation key from graph context. The shared typed-operation fixture deliberately
@@ -19,14 +19,14 @@ injection. Actual graph/code thread/process cases exercise that boundary.
 
 Program/domain boundary checks cold-import definitions and pure bindings without
 loading application services, plugins or SDKs. Retired import paths must remain
-unavailable. Program services/ports/registrations live under `flareward.programs`;
+unavailable. Program services/ports/registrations live under `lumora.programs`;
 shared values come directly from domain owners. Image verification also checks
 the installed canonical imports and absent old namespaces before remote execution.
-Execution values cold-import from `flareward.executions.domain` without loading application
+Execution values cold-import from `lumora.executions.domain` without loading application
 delivery models or mutable runtime holders. `domain/test_execution_context.py`
 checks explicit identity, rejected unknown fields/live objects, and separation of
 team ownership from the acting credential user. Submission/services/ports and
-receiver-local holders live in `flareward.executions`.
+receiver-local holders live in `lumora.executions`.
 
 Core composition shares installed pure child programs/definitions in
 `support/composition.py`. `application/test_composition.py` controls child lifetimes
@@ -287,9 +287,9 @@ change or at completion, rather than after each edit.
   the app while the test owns its lifespan.
 - `integration/` tests the actual Run Engine, native FastAPI composition, existing
   blueprint resolver/factories, and persistence adapters. Its fixture owns and
-  closes each Local host. Mongo tests require `FLAREWARD_TEST_MONGO_URI` and create
+  closes each Local host. Mongo tests require `LUMORA_TEST_MONGO_URI` and create
   uniquely named databases that the fixture removes afterward. Redis tests require
-  `FLAREWARD_TEST_REDIS_URI` and remove only their unique execution keys. Both exercise
+  `LUMORA_TEST_REDIS_URI` and remove only their unique execution keys. Both exercise
   actual thread and process receiver boundaries.
   Redis interaction scenarios additionally verify execution-bound decisions,
   child event roots, same request IDs across turns, persistent defaults, cache
@@ -342,7 +342,7 @@ change or at completion, rather than after each edit.
   loop, preserving human/team identity separation.
   Infrastructure fixtures share the production owned Redis scope, including pool
   cleanup after socket closure; cancellation ownership also has an adapter test.
-- `integration/temporal/` uses `FLAREWARD_TEST_TEMPORAL_ENDPOINT` with unique queues.
+- `integration/temporal/` uses `LUMORA_TEST_TEMPORAL_ENDPOINT` with unique queues.
   It exercises actual coordination, child projection, history replay, CLI worker
   crashes and replacement, and durable message waits. The HTTP restart test also
   uses Mongo and rejects coordinator configuration drift before reconnecting to
@@ -375,7 +375,7 @@ change or at completion, rather than after each edit.
   while keeping raw/encoded keys out of execution records and history. Each
   backend/host pair has seven cases. Without an
   explicit backend selection remote cases skip; selected unavailable backends fail.
-  The [independent infrastructure guide](infra/README.md) provides Flareward-owned
+  The [independent infrastructure guide](infra/README.md) provides Lumora-owned
   Docker services, images, mTLS gateway, and a dedicated kind kubeconfig.
   `test_openshell_policies.py` uses those same API, worker and backend fixtures.
   It runs an installed HTTP-probe element with operator-file policy data and checks
@@ -447,10 +447,10 @@ Run from the repository root:
 .venv/bin/python -m pytest platform/tests/application platform/tests/architecture -q
 .venv/bin/python -m pytest platform/tests -q
 .venv/bin/python -m pytest platform/tests/integration/providers -q -W default
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27017 .venv/bin/python -m pytest platform/tests -q
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27017 \
-FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6379/0 \
-FLAREWARD_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7233 \
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27017 .venv/bin/python -m pytest platform/tests -q
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27017 \
+LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6379/0 \
+LUMORA_TEST_TEMPORAL_ENDPOINT=127.0.0.1:7233 \
 .venv/bin/python -m pytest platform/tests -q
 ```
 
@@ -485,7 +485,7 @@ With the independent Mongo and Redis test endpoints configured, run:
 An explicit API-client selection fails if its Mongo endpoint, Node runtime or
 installed UI dependencies are missing. Without `--ui-clients`, the optional UI
 cases skip.
-The `sessions` case additionally requires an isolated `FLAREWARD_TEST_REDIS_URI`;
+The `sessions` case additionally requires an isolated `LUMORA_TEST_REDIS_URI`;
 selecting all UI clients therefore needs both Mongo and Redis.
 The fixture uses the production ASGI assembly and real HTTP/Mongo. The Node
 runner compiles and calls the existing `catalog.ts`, `resources.ts`,

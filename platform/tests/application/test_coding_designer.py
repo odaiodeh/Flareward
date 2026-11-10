@@ -9,12 +9,12 @@ from support.artifacts import inline_content
 from support.operations import operation_bundle
 from support.verification import VerificationClock
 
-from flareward.elements.coding.contracts import CodingInput
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.ports import ProgramRuntime
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.domain.models import ReviewResponse
-from flareward.services.workspaces.domain.files import ArtifactFile, InlineFile
+from lumora.elements.coding.contracts import CodingInput
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.ports import ProgramRuntime
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.domain.models import ReviewResponse
+from lumora.services.workspaces.domain.files import ArtifactFile, InlineFile
 from plugins.adlc.programs.design import DesignFeedback, DesignRevision
 from plugins.adlc.programs.designer import (
     APPLICATION_PROGRAMS,

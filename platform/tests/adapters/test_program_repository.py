@@ -3,7 +3,7 @@
 import pytest
 from support.program_store_contracts import PROGRAM_STORE_CONTRACTS
 
-from flareward.programs.adapters.memory.program_repository import MemoryProgramRepository
+from lumora.programs.adapters.memory.program_repository import MemoryProgramRepository
 
 
 @pytest.mark.parametrize("contract", PROGRAM_STORE_CONTRACTS)

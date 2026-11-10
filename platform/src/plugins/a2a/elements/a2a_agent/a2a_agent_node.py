@@ -9,14 +9,14 @@ from typing import Any, ClassVar
 from a2a.types import AgentCard
 from pydantic import HttpUrl
 
-from flareward.elements.behaviors.retriever_capable import RetrieverCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.node import BaseNode
-from flareward.elements.workloads.domain import AgentResult, Task
-from flareward.programs.graph.capabilities.messaging import GraphMessagingMixin
-from flareward.programs.graph.capabilities.workloads import GraphWorkloadMixin
-from flareward.programs.graph.state.state_view import StateView
-from flareward.services.auth.credentials.credential import AuthCredential
+from lumora.elements.behaviors.retriever_capable import RetrieverCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.node import BaseNode
+from lumora.elements.workloads.domain import AgentResult, Task
+from lumora.programs.graph.capabilities.messaging import GraphMessagingMixin
+from lumora.programs.graph.capabilities.workloads import GraphWorkloadMixin
+from lumora.programs.graph.state.state_view import StateView
+from lumora.services.auth.credentials.credential import AuthCredential
 from plugins.a2a.elements.a2a_client import A2AProvider
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class A2AAgentNode(GraphWorkloadMixin, GraphMessagingMixin, RetrieverCapableMixi
     - Open/Closed: Extensible via retriever and workspace services
     - Liskov Substitution: Can replace CustomAgent in workflows
     - Interface Segregation: Only uses needed mixins (no LLM/Agent)
-    - Dependency Inversion: Creates A2AProvider internally from flareward.bootstrap.settings
+    - Dependency Inversion: Creates A2AProvider internally from lumora.bootstrap.settings
 
     Architecture:
     - Creates A2A Provider from base_url and agent_card

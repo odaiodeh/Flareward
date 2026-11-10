@@ -9,14 +9,14 @@ from runengine.core.refs import FunctionRef
 from runengine.invocation.errors import InvocationContractError, InvocationInfrastructureError
 from runengine.invocation.models import InvocationOutcome, InvocationRequest
 
-from flareward.bootstrap.work_budgets import admit_work
-from flareward.executions.adapters.run_engine.inbound.interactions import cancel_waits
-from flareward.executions.adapters.run_engine.inbound.programs import execute_program
-from flareward.executions.adapters.run_engine.outbound.budgets import BudgetedOperations
-from flareward.executions.adapters.run_engine.shared.models import WorkBudgetBinding
-from flareward.executions.domain.budgets import WorkLimits
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.work_budgets import admit_work
+from lumora.executions.adapters.run_engine.inbound.interactions import cancel_waits
+from lumora.executions.adapters.run_engine.inbound.programs import execute_program
+from lumora.executions.adapters.run_engine.outbound.budgets import BudgetedOperations
+from lumora.executions.adapters.run_engine.shared.models import WorkBudgetBinding
+from lumora.executions.domain.budgets import WorkLimits
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("operation", ["execute", "invoke", "start_child"])

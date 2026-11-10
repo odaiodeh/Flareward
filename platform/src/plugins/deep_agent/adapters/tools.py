@@ -3,7 +3,7 @@ from __future__ import annotations
 from langchain_core.tools import BaseTool as LangChainBaseTool
 from langchain_core.tools import StructuredTool
 
-from flareward.elements.ports.tool import BaseTool
+from lumora.elements.ports.tool import BaseTool
 
 
 class LangChainToolsConverter:

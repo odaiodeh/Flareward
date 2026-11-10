@@ -126,7 +126,7 @@ export default function AboutDialog({ open, onOpenChange }: AboutDialogProps) {
                 <path d="M3 12H7M17 12H21M12 3V7M12 17V21M5 19L8 16M16 8L19 5M19 19L16 16M5 5L8 8" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            About Flareward
+            About Lumora
           </DialogTitle>
         </DialogHeader>
 

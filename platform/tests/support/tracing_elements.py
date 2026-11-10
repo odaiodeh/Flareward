@@ -5,12 +5,12 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.node import BaseNode
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.tracing import TracingService
+from lumora.elements.factory import BaseFactory
+from lumora.elements.node import BaseNode
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.tracing import TracingService
 
 
 class TraceConfig(BaseModel):

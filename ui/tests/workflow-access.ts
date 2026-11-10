@@ -6,10 +6,10 @@ import { listReviews, respondToReview } from '../client/src/api/reviews';
 import { workflowAccessCatalog } from '../client/src/api/workflow-access';
 
 export default async function verifyWorkflowAccess() {
-  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
-  const human = process.env.FLAREWARD_TEST_UI_HUMAN_COOKIE;
-  const reviewer = process.env.FLAREWARD_TEST_UI_REVIEW_COOKIE;
-  const reference = process.env.FLAREWARD_TEST_UI_PROGRAM_REFERENCE;
+  const endpoint = process.env.LUMORA_TEST_UI_API_URL;
+  const human = process.env.LUMORA_TEST_UI_HUMAN_COOKIE;
+  const reviewer = process.env.LUMORA_TEST_UI_REVIEW_COOKIE;
+  const reference = process.env.LUMORA_TEST_UI_PROGRAM_REFERENCE;
   assert.ok(endpoint && human && reviewer && reference);
   axios.defaults.baseURL = endpoint;
   axios.defaults.headers.common.Cookie = human;
@@ -17,7 +17,7 @@ export default async function verifyWorkflowAccess() {
   assert.ok(catalog.some(item => item.purpose === 'review@1'));
   assert.equal(JSON.stringify(catalog).includes('root_execution_id'), false);
   const program: ProgramRef = JSON.parse(reference);
-  const session = process.env.FLAREWARD_TEST_UI_PROGRAM_SESSION;
+  const session = process.env.LUMORA_TEST_UI_PROGRAM_SESSION;
   const root = session ? 'client-session-access' : 'client-manual-access';
   const access: WorkflowAccess = {
     purpose: 'review@1', scope: { policies: ['release@1'], actions: ['open', 'read', 'close'] },
@@ -52,6 +52,6 @@ export default async function verifyWorkflowAccess() {
   assert.deepEqual(execution.workflow_access_approval, approval);
   const retried = session ? await startProgramSessionTurn(session, intent) : await startProgram({ ...intent, program });
   assert.deepEqual(retried.workflow_access_approval, approval);
-  assert.equal(/flareward-review-v1\./.test(JSON.stringify([started, execution, retried])), false);
+  assert.equal(/lumora-review-v1\./.test(JSON.stringify([started, execution, retried])), false);
   console.log('Workflow access clients passed against native FastAPI');
 }

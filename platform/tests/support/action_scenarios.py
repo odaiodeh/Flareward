@@ -1,6 +1,6 @@
 """Application-only action fixtures shared by service and HTTP contracts."""
 
-from flareward.services.actions.contracts import (
+from lumora.services.actions.contracts import (
     ActionContext,
     ActionType,
     BaseAction,

@@ -14,7 +14,7 @@ export default function PageHeader() {
           <Sparkles className="w-6 h-6 text-primary" />
         </div>
         <h1 className="text-3xl font-bold text-white">
-          Get to Know Flareward
+          Get to Know Lumora
         </h1>
       </div>
       <p className="text-gray-400 text-lg max-w-5xl">

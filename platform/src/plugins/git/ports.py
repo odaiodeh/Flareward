@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from flareward.executions.domain.context import ExecutionContext
+from lumora.executions.domain.context import ExecutionContext
 from plugins.git.domain.repositories import GitFile, GitFileContent, GitRevision
 
 

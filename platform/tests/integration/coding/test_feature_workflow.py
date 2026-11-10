@@ -18,11 +18,11 @@ from support.feature_api import feature_workflow_access, publish_feature
 from support.python_checks import python_verifier_definition
 from support.review_api import pending_review
 
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.check_runs import CheckRun
-from flareward.services.verification.domain.models import CheckRequirement
-from flareward.services.workspaces.domain.files import InlineFile
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.check_runs import CheckRun
+from lumora.services.verification.domain.models import CheckRequirement
+from lumora.services.workspaces.domain.files import InlineFile
 from plugins.adlc.programs.coding import CodingFileWork
 from plugins.adlc.programs.design import DesignProposal
 from plugins.adlc.programs.designer import CodingDesignerConfig, CodingDesignWork
@@ -68,7 +68,7 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             "plugins.testing.specification",
         ),
         library=True,
-        factory="flareward.bootstrap.asgi:create_app",
+        factory="lumora.bootstrap.asgi:create_app",
         verification_policies={"engineering@1": policy},
         check_programs={
             "program@1": CheckProgramSetup(
@@ -79,8 +79,8 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
         },
         environment={
             "PATH": str(codex_cli.parent) + os.pathsep + os.environ.get("PATH", ""),
-            "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": "true",
-            "FLAREWARD_PYTHON_CHECK_DIRECTORY": str(tmp_path / "check-workspaces"),
+            "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": "true",
+            "LUMORA_PYTHON_CHECK_DIRECTORY": str(tmp_path / "check-workspaces"),
         },
     ) as api:
         config = await saved_coding_candidate(
@@ -247,10 +247,10 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
         )
         workspaces = [path for path in all_workspaces if (path / "answer.py").exists()]
         assert len(workspaces) == 2 and workspaces[0] != workspaces[1]
-        restored = [path for path in workspaces if (path / ".flareward/reports").is_dir()]
+        restored = [path for path in workspaces if (path / ".lumora/reports").is_dir()]
         assert len(restored) == 1
         assert (
-            restored[0] / ".flareward/reports" / failed.reports[0].content.artifact_id
+            restored[0] / ".lumora/reports" / failed.reports[0].content.artifact_id
         ).read_bytes() == report.content
         assert all(not Path((path / "home").read_text()).exists() for path in all_workspaces)
         accepted = await api.http.post(
@@ -288,6 +288,4 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
         assert await mongo_database.workflow_credential_material.count_documents({}) == 3
         assert not list((tmp_path / "managed-workflow-access").rglob("*.json"))
         public = json.dumps(observed.json()) + api.log.read_text()
-        assert (
-            "private-test-token" not in public and "flareward-artifact-workflow-v1." not in public
-        )
+        assert "private-test-token" not in public and "lumora-artifact-workflow-v1." not in public

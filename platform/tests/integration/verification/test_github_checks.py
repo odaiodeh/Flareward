@@ -12,27 +12,27 @@ from support.execution_access import ExecutionAuthority
 from support.github_checks import GitHubProtocol, github_configuration
 from support.verification import MemoryVerificationRepository, VerificationClock
 
-from flareward.api.app import create_app
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access import VerificationAccessService
-from flareward.services.verification.access_models import (
+from lumora.api.app import create_app
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access import VerificationAccessService
+from lumora.services.verification.access_models import (
     VerificationAccessRequest,
     VerificationAccessScope,
     VerificationAction,
     VerificationActor,
 )
-from flareward.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
-from flareward.services.verification.adapters.mongo.verification_access import (
+from lumora.services.verification.adapters.mongo.check_runs import MongoCheckRunRepository
+from lumora.services.verification.adapters.mongo.verification_access import (
     MongoVerificationAccessRepository,
 )
-from flareward.services.verification.adapters.mongo.verification_repository import (
+from lumora.services.verification.adapters.mongo.verification_repository import (
     MongoVerificationRepository,
 )
-from flareward.services.verification.check_ports import CheckProviderUnavailable, StartCheckRun
-from flareward.services.verification.check_service import CheckRunService, RegisteredCheckRunner
-from flareward.services.verification.domain.check_runs import CheckRunStatus
-from flareward.services.verification.domain.models import VerificationOutcome
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.check_ports import CheckProviderUnavailable, StartCheckRun
+from lumora.services.verification.check_service import CheckRunService, RegisteredCheckRunner
+from lumora.services.verification.domain.check_runs import CheckRunStatus
+from lumora.services.verification.domain.models import VerificationOutcome
+from lumora.services.verification.service import VerificationService
 from plugins.github_actions.github import GitHubActionsCheckRunner
 
 

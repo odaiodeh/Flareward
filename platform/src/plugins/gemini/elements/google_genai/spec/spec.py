@@ -1,5 +1,5 @@
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.gemini.elements.google_genai.config import GoogleGenAIConfig
 from plugins.gemini.elements.google_genai.google_genai_factory import GoogleGenAIFactory
 from plugins.gemini.elements.google_genai.identifiers import META, Identifier

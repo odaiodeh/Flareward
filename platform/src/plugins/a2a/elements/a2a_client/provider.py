@@ -14,9 +14,9 @@ from a2a.types import AgentCard, TaskState
 from global_utils.utils.async_bridge import get_async_bridge
 from pydantic import HttpUrl
 
-from flareward.elements.messaging.domain.messages import ChatMessage
-from flareward.services.auth.credentials.credential import AuthCredential
-from flareward.services.auth.errors import AuthError
+from lumora.elements.messaging.domain.messages import ChatMessage
+from lumora.services.auth.credentials.credential import AuthCredential
+from lumora.services.auth.errors import AuthError
 from plugins.a2a.elements.a2a_client.client import A2AClient, A2AClientError
 from plugins.a2a.elements.a2a_client.converter import A2AConverter
 from plugins.a2a.elements.a2a_client.result import A2AResult

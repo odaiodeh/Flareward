@@ -2,10 +2,10 @@
 
 from datetime import timedelta
 
-from flareward.programs.domain.models import PathBinding, ProgramRef
-from flareward.services.scheduling.models import ScheduleDefinition
-from flareward.services.scheduling.programs import CreateProgramSchedule
-from flareward.services.sessions.execution.program_sessions import CreateProgramSession
+from lumora.programs.domain.models import PathBinding, ProgramRef
+from lumora.services.scheduling.models import ScheduleDefinition
+from lumora.services.scheduling.programs import CreateProgramSchedule
+from lumora.services.sessions.execution.program_sessions import CreateProgramSession
 
 
 def schedule_request(program: ProgramRef, *, enabled: bool = False) -> CreateProgramSchedule:

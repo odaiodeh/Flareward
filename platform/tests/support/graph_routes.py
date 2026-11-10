@@ -1,7 +1,7 @@
 """Conditional value-flow definitions shared by application and native execution tests."""
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     ConditionalRoute,
     GraphDefinition,
@@ -11,8 +11,8 @@ from flareward.programs.domain.models import (
     ProgramBody,
     ProgramCallStep,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 
 
 def conditional_values(

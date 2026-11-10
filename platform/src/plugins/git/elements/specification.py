@@ -4,12 +4,12 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ProviderRef
-from flareward.services.workspaces.domain.files import WorkspaceMode
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ProviderRef
+from lumora.services.workspaces.domain.files import WorkspaceMode
 from plugins.git.domain.repositories import (
     GitFile,
     GitFileContent,

@@ -85,7 +85,7 @@ class TestFindPython:
     @patch("shutil.which", return_value=None)
     def test_env_override_not_found_raises(self, mock_which) -> None:
         resolver = LocalPythonResolver()
-        with pytest.raises(RuntimeError, match="FLAREWARD_PYTHON="):
+        with pytest.raises(RuntimeError, match="LUMORA_PYTHON="):
             resolver.find_python(
                 (3, 11), (3, 13), env_override="missing-python",
             )

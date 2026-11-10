@@ -20,20 +20,20 @@ from support.sharing import invitation
 from support.ui_clients import run_contracts
 from temporalio.client import Client
 
-from flareward.async_work import await_owned
-from flareward.bootstrap.settings.interaction_settings import InteractionBackend
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.domain.budgets import WorkLimits
-from flareward.executions.domain.profile_access import (
+from lumora.async_work import await_owned
+from lumora.bootstrap.settings.interaction_settings import InteractionBackend
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.domain.budgets import WorkLimits
+from lumora.executions.domain.profile_access import (
     OwnerProfileRule,
     ProfileAccessPolicy,
     ProfileGrant,
 )
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.interactions.adapters.wire import root_key
-from flareward.services.scheduling.programs import program_schedule_id
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.interactions.adapters.wire import root_key
+from lumora.services.scheduling.programs import program_schedule_id
 from plugins.human_review.elements.specification import (
     ELEMENT_SPECIFICATIONS as REVIEW_SPECIFICATIONS,
 )
@@ -55,8 +55,8 @@ def ui_node(request):
 
 @pytest.fixture
 def ui_mongo(ui_node):
-    if not os.environ.get("FLAREWARD_TEST_MONGO_URI"):
-        pytest.fail("UI API clients require an isolated FLAREWARD_TEST_MONGO_URI", pytrace=False)
+    if not os.environ.get("LUMORA_TEST_MONGO_URI"):
+        pytest.fail("UI API clients require an isolated LUMORA_TEST_MONGO_URI", pytrace=False)
 
 
 async def test_graph_references_and_session_output_contracts(ui_node):
@@ -67,14 +67,12 @@ async def test_graph_references_and_session_output_contracts(ui_node):
 async def test_schedule_consent_typescript_client_uses_private_authority(
     ui_node, ui_mongo, application, mongo_database, redis_uri, tmp_path
 ):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
     if not endpoint:
         pytest.skip("Select the dedicated Temporal endpoint for native schedule clients")
     for specification in REVIEW_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
-    host = TemporalHostConfig(
-        endpoint=endpoint, task_queue="flareward-consent-client-" + uuid4().hex
-    )
+    host = TemporalHostConfig(endpoint=endpoint, task_queue="lumora-consent-client-" + uuid4().hex)
     async with managed_access_api(mongo_database.name, redis_uri, tmp_path, host=host) as api:
         native = await Client.connect(endpoint, namespace=host.namespace)
         deployment = CalendarDeployment(
@@ -101,10 +99,10 @@ async def test_schedule_consent_typescript_client_uses_private_authority(
                 "consent",
                 {
                     **os.environ,
-                    "FLAREWARD_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
-                    "FLAREWARD_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
-                    "FLAREWARD_TEST_UI_PROGRAM_REFERENCE": reference.model_dump_json(),
-                    "FLAREWARD_TEST_UI_SCHEDULE_KEY": key,
+                    "LUMORA_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
+                    "LUMORA_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
+                    "LUMORA_TEST_UI_PROGRAM_REFERENCE": reference.model_dump_json(),
+                    "LUMORA_TEST_UI_SCHEDULE_KEY": key,
                 },
             )
             assert "Schedule consent clients passed against native FastAPI" in output
@@ -133,9 +131,9 @@ async def test_program_event_typescript_clients_use_canonical_execution(
             "events",
             {
                 **os.environ,
-                "FLAREWARD_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
-                "FLAREWARD_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
-                "FLAREWARD_TEST_UI_PROGRAM_REFERENCE": reference.model_dump_json(),
+                "LUMORA_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
+                "LUMORA_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
+                "LUMORA_TEST_UI_PROGRAM_REFERENCE": reference.model_dump_json(),
             },
         )
         assert "Program event clients passed against native FastAPI" in output
@@ -163,11 +161,11 @@ async def test_workflow_access_typescript_clients_use_native_admission(
         )
         environment = {
             **os.environ,
-            "FLAREWARD_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
-            "FLAREWARD_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
-            "FLAREWARD_TEST_UI_REVIEW_COOKIE": api.reviewer["Cookie"],
-            "FLAREWARD_TEST_UI_PROGRAM_REFERENCE": reference.model_dump_json(),
-            "FLAREWARD_TEST_UI_PROGRAM_SESSION": "",
+            "LUMORA_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
+            "LUMORA_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
+            "LUMORA_TEST_UI_REVIEW_COOKIE": api.reviewer["Cookie"],
+            "LUMORA_TEST_UI_PROGRAM_REFERENCE": reference.model_dump_json(),
+            "LUMORA_TEST_UI_PROGRAM_SESSION": "",
         }
         if session:
             created = await api.http.post(
@@ -176,7 +174,7 @@ async def test_workflow_access_typescript_clients_use_native_admission(
                 json={"program": reference.model_dump(mode="json")},
             )
             assert created.status_code == 201, created.text
-            environment["FLAREWARD_TEST_UI_PROGRAM_SESSION"] = created.json()["run_id"]
+            environment["LUMORA_TEST_UI_PROGRAM_SESSION"] = created.json()["run_id"]
         output = await run_contracts(ui_node, "access", environment)
         assert "Workflow access clients passed against native FastAPI" in output
         assert await mongo_database.workflow_credential_material.count_documents({}) == 1
@@ -218,9 +216,9 @@ async def test_human_review_typescript_clients_resume_a_native_workflow(
             "reviews",
             {
                 **os.environ,
-                "FLAREWARD_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
-                "FLAREWARD_TEST_UI_REVIEW_COOKIE": api.reviewer["Cookie"],
-                "FLAREWARD_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
+                "LUMORA_TEST_UI_API_URL": str(api.http.base_url).rstrip("/") + "/api",
+                "LUMORA_TEST_UI_REVIEW_COOKIE": api.reviewer["Cookie"],
+                "LUMORA_TEST_UI_HUMAN_COOKIE": api.human["Cookie"],
             },
         )
         assert "Human Review clients passed against native FastAPI" in output
@@ -277,11 +275,11 @@ async def test_existing_typescript_editor_clients_use_native_services(
             invitation("ui-foreign"),
         ):
             await mongo_database.shares.insert_one(invite.model_dump(mode="json"))
-    redis_uri = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    redis_uri = os.environ.get("LUMORA_TEST_REDIS_URI")
     if suite == "sessions":
         if not redis_uri:
             pytest.fail(
-                "UI session streams require an isolated FLAREWARD_TEST_REDIS_URI", pytrace=False
+                "UI session streams require an isolated LUMORA_TEST_REDIS_URI", pytrace=False
             )
         settings = settings.model_copy(
             update={
@@ -294,7 +292,7 @@ async def test_existing_typescript_editor_clients_use_native_services(
         async with api_process(settings, tmp_path / "api.log") as http:
             environment = {
                 **os.environ,
-                "FLAREWARD_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
+                "LUMORA_TEST_UI_API_URL": str(http.base_url).rstrip("/") + "/api",
             }
             output = await run_contracts(ui_node, suite, environment)
             assert "clients passed against native FastAPI" in output

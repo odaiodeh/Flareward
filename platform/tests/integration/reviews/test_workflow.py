@@ -9,10 +9,10 @@ from support.credential_renewals import retired_credential
 from support.review_api import review_api
 from support.review_programs import review_definition, review_graph
 
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
-from flareward.services.reviews.domain.models import ReviewRecord
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
+from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 
 

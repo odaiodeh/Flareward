@@ -7,12 +7,12 @@ from support.scenarios import publish, run
 from support.typed_programs import APPLICATION_PROGRAMS
 from support.value_operations import ELEMENT_SPECIFICATIONS, ArraySpec, LengthSpec, value_graph
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.adapters.run_engine.shared.models import ProgramPayload
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.programs.composition.programs import APPLICATION_PROGRAMS as CONTROLS
-from flareward.programs.domain.models import (
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.adapters.run_engine.shared.models import ProgramPayload
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.composition.programs import APPLICATION_PROGRAMS as CONTROLS
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     JoinPolicy,

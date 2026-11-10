@@ -4,10 +4,10 @@ from functools import partial
 
 import httpx
 
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.programs.domain.models import PathBinding
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.services.sessions.records import SessionRecord
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.programs.domain.models import PathBinding
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.services.sessions.records import SessionRecord
 from support.agent_session import AgentRole, session_blueprint
 from support.resource_http import create_resource
 

@@ -25,18 +25,18 @@ from deepagents.backends.protocol import BackendProtocol
 from langchain_core.messages import AIMessage, BaseMessage
 from langchain_core.tools import BaseTool as LangChainBaseTool
 
-from flareward.async_work import await_owned
-from flareward.elements.behaviors.hitl_capable import HITLCapableMixin
-from flareward.elements.behaviors.retriever_capable import RetrieverCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.node import BaseNode
-from flareward.elements.ports.llm import BaseLLM
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.ports.tool_provider import ToolProvider
-from flareward.elements.workloads.domain import AgentResult, Task
-from flareward.programs.graph.capabilities.messaging import GraphMessagingMixin
-from flareward.programs.graph.capabilities.workloads import GraphWorkloadMixin
-from flareward.services.interactions.tools.models import HITLMode, RequestOrigin
+from lumora.async_work import await_owned
+from lumora.elements.behaviors.hitl_capable import HITLCapableMixin
+from lumora.elements.behaviors.retriever_capable import RetrieverCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.node import BaseNode
+from lumora.elements.ports.llm import BaseLLM
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.ports.tool_provider import ToolProvider
+from lumora.elements.workloads.domain import AgentResult, Task
+from lumora.programs.graph.capabilities.messaging import GraphMessagingMixin
+from lumora.programs.graph.capabilities.workloads import GraphWorkloadMixin
+from lumora.services.interactions.tools.models import HITLMode, RequestOrigin
 from plugins.deep_agent.adapters.langchain import BaseLLMChatModelAdapter
 from plugins.deep_agent.adapters.messages import LangChainConverter, normalise_content
 from plugins.deep_agent.adapters.tools import LangChainToolsConverter
@@ -221,7 +221,7 @@ class DeepAgentNode(
         """Derive a session-scoped working directory.
 
         Priority:
-        1. Explicit ``cwd`` override from flareward.bootstrap.settings
+        1. Explicit ``cwd`` override from lumora.bootstrap.settings
         2. ``{shared_storage}/{session_id}/{node_uid}/`` for session persistence
         3. Temp directory as last resort
         """

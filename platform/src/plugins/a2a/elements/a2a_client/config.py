@@ -22,7 +22,7 @@ from typing import Any, Dict, Literal, Optional
 from a2a.types import AgentCard
 from pydantic import Field, HttpUrl
 
-from flareward.elements.hints import (
+from lumora.elements.hints import (
     ActionHint,
     AuthHint,
     CardContext,
@@ -36,8 +36,8 @@ from flareward.elements.hints import (
     SelectionType,
     combine_hints,
 )
-from flareward.elements.providers.base_config import ProviderBaseConfig
-from flareward.services.auth.credentials.models import StaticAuthMethod
+from lumora.elements.providers.base_config import ProviderBaseConfig
+from lumora.services.auth.credentials.models import StaticAuthMethod
 from plugins.a2a.elements.a2a_client.identifiers import Identifier
 
 

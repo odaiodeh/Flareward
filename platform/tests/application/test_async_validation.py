@@ -5,14 +5,14 @@ import asyncio
 import pytest
 from support.elements import DependencyConfig, DependencySpec
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.configuration.meta import ElementConfigMeta
-from flareward.elements.validation import (
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.configuration.meta import ElementConfigMeta
+from lumora.elements.validation import (
     BaseElementValidator,
     ValidationContext,
     ValidatorReport,
 )
-from flareward.elements.validation_services.service import ElementValidationService
+from lumora.elements.validation_services.service import ElementValidationService
 
 
 def metadata(rid, dependency=None):

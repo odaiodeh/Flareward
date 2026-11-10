@@ -9,19 +9,19 @@ from runengine.adapters.coordination.config import LocalHostConfig
 from support.scenarios import publish, run
 from support.server import api_process
 
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     LiteralBinding,
     OperationStep,
     PathBinding,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.adlc.programs.coding import APPLICATION_PROGRAMS, CodingFileCandidateConfig
 from plugins.artifacts.elements.specification import (
     ELEMENT_SPECIFICATIONS,
@@ -51,10 +51,10 @@ async def test_coding_candidate_survives_workspace_removal_and_api_restart(
     coding_key.chmod(0o600)
     access_file = credentials / "artifact"
     monkeypatch.setenv("PATH", str(codex_cli.parent) + os.pathsep + os.environ.get("PATH", ""))
-    monkeypatch.setenv("FLAREWARD_WORKSPACE_ROOT", str(compute))
-    monkeypatch.setenv("FLAREWARD_CODEX_API_KEY_FILE", str(coding_key))
-    monkeypatch.setenv("FLAREWARD_ARTIFACT_ACCESS_FILE", str(access_file))
-    monkeypatch.setenv("FLAREWARD_ARTIFACT_ALLOW_INSECURE", "true")
+    monkeypatch.setenv("LUMORA_WORKSPACE_ROOT", str(compute))
+    monkeypatch.setenv("LUMORA_CODEX_API_KEY_FILE", str(coding_key))
+    monkeypatch.setenv("LUMORA_ARTIFACT_ACCESS_FILE", str(access_file))
+    monkeypatch.setenv("LUMORA_ARTIFACT_ALLOW_INSECURE", "true")
     settings = PlatformSettings(
         host=LocalHostConfig(),
         storage="memory",
@@ -150,7 +150,7 @@ async def test_coding_candidate_survives_workspace_removal_and_api_restart(
         token = issued.json()["credential"]
         access_file.write_text(token)
         access_file.chmod(0o600)
-        monkeypatch.setenv("FLAREWARD_ARTIFACT_ENDPOINT", str(http.base_url))
+        monkeypatch.setenv("LUMORA_ARTIFACT_ENDPOINT", str(http.base_url))
         inputs = (
             {"task": {"prompt": "durable candidate"}, "attempt": 0}
             if producer_kind == "engineering_candidate"
@@ -179,7 +179,7 @@ async def test_coding_candidate_survives_workspace_removal_and_api_restart(
         ),
     )
     async with api_process(settings, tmp_path / "consumer-api.log") as http:
-        monkeypatch.setenv("FLAREWARD_ARTIFACT_ENDPOINT", str(http.base_url))
+        monkeypatch.setenv("LUMORA_ARTIFACT_ENDPOINT", str(http.base_url))
         restored = await run(
             platform, consumer, {"artifact": reference, "path": "restored/answer.txt"}, uuid4().hex
         )

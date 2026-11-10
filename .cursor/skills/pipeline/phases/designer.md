@@ -55,7 +55,7 @@ Before writing any design, answer all of the following. Address each explicitly 
 - If yes, verify compatibility with any timeout/cancellation primitives already in use (e.g., `anyio.fail_after` vs `asyncio.wait_for` cannot be mixed across cancel-scope boundaries).
 
 ### Template / Seed Data Integrity Check (for template features)
-- Does a seed JSON or fixture reference resources by external `$ref` (UUID pointer) rather than inline flareward.bootstrap.settings?
+- Does a seed JSON or fixture reference resources by external `$ref` (UUID pointer) rather than inline lumora.bootstrap.settings?
 - Templates must embed all non-system resource configs inline so materialisation creates independent copies per user. Flag any `$ref`-only entries as a design risk.
 
 ## Architectural Constraints

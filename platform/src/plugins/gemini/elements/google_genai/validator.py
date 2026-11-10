@@ -15,8 +15,8 @@ from google.api_core.exceptions import (
 )
 from google.genai.errors import ClientError, ServerError
 
-from flareward.elements.models.validation_codes import LLMValidationCode
-from flareward.elements.validation import (
+from lumora.elements.models.validation_codes import LLMValidationCode
+from lumora.elements.validation import (
     BaseElementValidator,
     ValidationCode,
     ValidationContext,

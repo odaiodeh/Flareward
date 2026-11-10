@@ -11,21 +11,21 @@ helmDefaults:
 
 releases:
 
-  - name: flareward-mongodb
+  - name: lumora-mongodb
     chart: ./shared-resources/mongodb
     wait: true
     timeout: 300
     values:
       - {{- toYaml .Values.mongodb | nindent 8 }}
 
-  - name: flareward-redis-config
+  - name: lumora-redis-config
     chart: ./shared-resources/redis-config
     wait: true
 
-  - name: flareward-redis
+  - name: lumora-redis
     chart: ./shared-resources/redis
     needs:
-      - flareward-redis-config
+      - lumora-redis-config
     wait: true
     values:
       - {{- toYaml .Values.redis | nindent 8 }}
@@ -36,28 +36,28 @@ releases:
         args:
         - "./scripts/redis-presync.sh"
 
-  - name: flareward-redis-insight
+  - name: lumora-redis-insight
     chart: ./shared-resources/redis-insight
     needs:
-      - flareward-redis
+      - lumora-redis
     wait: true
     values:
      - {{- toYaml (index .Values "redis-insight") | nindent 8 }}
 
-  - name: flareward-temporal
+  - name: lumora-temporal
     chart: ./shared-resources/temporal
     wait: true
     values:
      - {{- toYaml .Values.temporal | nindent 8 }}
 
-  - name: flareward-shared-config
+  - name: lumora-shared-config
     chart: ./shared-resources/shared-config
     wait: true
     needs:
-      - flareward-mongodb
-      - flareward-redis
-      - flareward-redis-insight
-      - flareward-temporal
+      - lumora-mongodb
+      - lumora-redis
+      - lumora-redis-insight
+      - lumora-temporal
     hooks:
       - events: ["postsync"]
         showlogs: true
@@ -65,7 +65,7 @@ releases:
         args:
         - "./scripts/shared-resources-postsync.sh"
 
-  - name: flareward-logging
+  - name: lumora-logging
     chart: ./shared-resources/logging
     # currently wait: true is commentd out as the logging pod isn't implemented yet, this comment will stay here as a placeholder so we won't forget it.
     values:

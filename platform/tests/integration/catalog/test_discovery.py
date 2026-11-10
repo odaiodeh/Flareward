@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from support.elements import EchoSpec
 
-from flareward.bootstrap.plugin_discovery import SpecDiscoverer
+from lumora.bootstrap.plugin_discovery import SpecDiscoverer
 from plugins.testing.elements.mock_agent.spec.spec import MockAgentNodeElementSpec
 
 
@@ -27,7 +27,7 @@ def test_discovery_does_not_adopt_a_loaded_class_that_only_claims_an_installed_m
 
 @pytest.fixture
 def discovery_package(tmp_path, monkeypatch):
-    name = "flareward_discovery_" + uuid4().hex
+    name = "lumora_discovery_" + uuid4().hex
     root = tmp_path / name
     specification = root / "tools" / "example" / "spec"
     specification.mkdir(parents=True)
@@ -49,7 +49,7 @@ def discovery_package(tmp_path, monkeypatch):
         ("raise ImportError('Incompatible installed SDK', name='dependency')", ImportError),
         ("raise ValueError('Invalid plugin declaration')", ValueError),
         ("import plugins.missing_internal_module", ModuleNotFoundError),
-        ("import flareward.missing_internal_module", ModuleNotFoundError),
+        ("import lumora.missing_internal_module", ModuleNotFoundError),
     ],
 )
 def test_broken_installed_plugins_fail_discovery_instead_of_disappearing(
@@ -65,13 +65,13 @@ def test_broken_installed_plugins_fail_discovery_instead_of_disappearing(
 
 def test_an_uninstalled_optional_dependency_keeps_its_adapter_unavailable(discovery_package):
     name, root, source = discovery_package
-    source.write_text("import flareward_optional_dependency_that_is_not_installed")
+    source.write_text("import lumora_optional_dependency_that_is_not_installed")
     assert SpecDiscoverer(root, package=name).discover() == []
 
 
 def test_explicit_optional_modules_use_the_same_scoped_discovery(discovery_package):
     name, root, source = discovery_package
-    source.write_text("import flareward_optional_dependency_that_is_not_installed")
+    source.write_text("import lumora_optional_dependency_that_is_not_installed")
     assert SpecDiscoverer(root, package=name).discover_modules([f"{name}.tools.example.spec"]) == []
 
 
@@ -88,4 +88,4 @@ def test_abstract_spec_bases_are_not_discovered_but_concrete_descendants_are(dis
 
 
 def test_graph_contract_module_has_no_installable_base_specifications():
-    assert SpecDiscoverer().discover_modules(["flareward.programs.graph_elements"]) == []
+    assert SpecDiscoverer().discover_modules(["lumora.programs.graph_elements"]) == []

@@ -1,6 +1,6 @@
 # Shared Storage (Helm)
 
-Cross-cutting PVC patterns used by Flareward charts.
+Cross-cutting PVC patterns used by Lumora charts.
 
 ## Owns
 

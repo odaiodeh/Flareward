@@ -1,6 +1,6 @@
 """Persisted workspace values retain typed results, artifacts, variables and retry limits."""
 
-from flareward.elements.workloads.domain import AgentResult, WorkItem, Workspace, WorkspaceArtifact
+from lumora.elements.workloads.domain import AgentResult, WorkItem, Workspace, WorkspaceArtifact
 
 
 def test_workspace_roundtrip_preserves_the_context_used_by_all_accessors():

@@ -2,7 +2,7 @@
 
 import httpx
 
-from flareward.programs.domain.models import ProgramDefinition, ProgramRef
+from lumora.programs.domain.models import ProgramDefinition, ProgramRef
 
 
 async def publish_program(

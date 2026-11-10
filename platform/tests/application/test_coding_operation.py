@@ -8,16 +8,16 @@ import pytest
 from pydantic import ValidationError
 from support.operations import operation_context
 
-from flareward.elements.coding.contracts import (
+from lumora.elements.coding.contracts import (
     CodingAgentError,
     CodingInput,
     CodingRequest,
     CodingResult,
     WorkspacePreparation,
 )
-from flareward.elements.coding.operation import CodingOperation
-from flareward.services.artifacts.domain.models import BlobArtifactRef
-from flareward.services.workspaces.domain.files import ArtifactFile, WorkspaceMode
+from lumora.elements.coding.operation import CodingOperation
+from lumora.services.artifacts.domain.models import BlobArtifactRef
+from lumora.services.workspaces.domain.files import ArtifactFile, WorkspaceMode
 
 
 @dataclass

@@ -8,17 +8,17 @@ platform_server:
       cpu: '1'
       memory: 2Gi
   image:
-    repository: images.paas.redhat.com/flareward/platform
+    repository: images.paas.redhat.com/lumora/platform
     tag: latest
   service:
     type: ClusterIP
     port: '8003'
   env:
-    FLAREWARD_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"flareward-programs-v2"}'
-    FLAREWARD_MONGO_URI: mongodb://mongodb:27017
-    FLAREWARD_STORAGE: mongo
-    FLAREWARD_AUTHENTICATION: session
-    FLAREWARD_HTTP_WORKERS: '1'
+    LUMORA_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"lumora-programs-v2"}'
+    LUMORA_MONGO_URI: mongodb://mongodb:27017
+    LUMORA_STORAGE: mongo
+    LUMORA_AUTHENTICATION: session
+    LUMORA_HTTP_WORKERS: '1'
 platform_temporal_worker:
   replicaCount: 1
   resources:
@@ -29,17 +29,17 @@ platform_temporal_worker:
       cpu: '1'
       memory: 2Gi
   image:
-    repository: images.paas.redhat.com/flareward/platform
+    repository: images.paas.redhat.com/lumora/platform
     tag: latest
   service:
     type: ClusterIP
     port: '8003'
   env:
-    FLAREWARD_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"flareward-programs-v2"}'
-    FLAREWARD_MONGO_URI: mongodb://mongodb:27017
-    FLAREWARD_STORAGE: mongo
+    LUMORA_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"lumora-programs-v2"}'
+    LUMORA_MONGO_URI: mongodb://mongodb:27017
+    LUMORA_STORAGE: mongo
 storage:
-  volumeName: flareward-platform-shared-storage
+  volumeName: lumora-platform-shared-storage
   requestedSize: 50Gi
   className: aws-efs-tier-c1
   accessModes:

@@ -5,16 +5,16 @@ import asyncio
 import pytest
 from support.scenarios import echo_graph, finish_session, publish
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.ports import ExecutionMissing
-from flareward.programs.domain.models import ApplicationDefinition, PathBinding
-from flareward.services.sessions.domain.status import SessionStatus
-from flareward.services.sessions.execution.program_sessions import (
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.ports import ExecutionMissing
+from lumora.programs.domain.models import ApplicationDefinition, PathBinding
+from lumora.services.sessions.domain.status import SessionStatus
+from lumora.services.sessions.execution.program_sessions import (
     CreateProgramSession,
     StartSessionTurn,
 )
-from flareward.services.sessions.execution.session_store import SessionConflict
-from flareward.services.sessions.records import SessionInteraction
+from lumora.services.sessions.execution.session_store import SessionConflict
+from lumora.services.sessions.records import SessionInteraction
 
 
 async def test_structured_session_reuses_arbitrary_data_bindings_without_chat(platform, sessions):

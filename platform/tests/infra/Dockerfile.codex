@@ -1,4 +1,4 @@
-ARG SANDBOX_IMAGE=flareward-sandbox:rename-20261109
+ARG SANDBOX_IMAGE=lumora-sandbox:rename-20261110
 FROM ${SANDBOX_IMAGE}
 USER root
 ARG CODEX_VERSION=0.166.0

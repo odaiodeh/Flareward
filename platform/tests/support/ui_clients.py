@@ -4,7 +4,7 @@ import asyncio
 import subprocess
 from pathlib import Path
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 ROOT = Path(__file__).resolve().parents[3]
 

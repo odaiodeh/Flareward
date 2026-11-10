@@ -7,10 +7,10 @@ from support.credential_renewals import retired_credential
 from support.review_api import review_api, review_settings
 from support.review_programs import review_definition
 
-from flareward.services.access.credentials import OpaqueCredentials
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.access import ReviewGrant, StoredReviewGrant
-from flareward.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
+from lumora.services.access.credentials import OpaqueCredentials
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.access import ReviewGrant, StoredReviewGrant
+from lumora.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 
 

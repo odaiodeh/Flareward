@@ -1,7 +1,7 @@
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.web.elements.web_fetch.config import WebFetchToolConfig
 from plugins.web.elements.web_fetch.identifiers import Identifier
 from plugins.web.elements.web_fetch.web_fetch import WebFetchTool

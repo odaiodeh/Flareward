@@ -8,8 +8,8 @@ import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from flareward.async_work import await_owned
-from flareward.elements.operation import BaseOperation, OperationContext
+from lumora.async_work import await_owned
+from lumora.elements.operation import BaseOperation, OperationContext
 from plugins.processes import network_environment
 from plugins.testing.contracts import (
     EvaluationFailure,

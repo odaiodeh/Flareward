@@ -6,26 +6,26 @@ from typing import Annotated, ClassVar, Literal
 
 from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, JsonValue, SecretStr
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.specification import BaseElementSpec
-from flareward.programs.domain.models import (
+from lumora.elements.factory import BaseFactory
+from lumora.elements.specification import BaseElementSpec
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     ProgramDefinition,
 )
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import (
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import (
     BundleEntry,
     ElementBundle,
     ResourceDefinition,
     ResourceKey,
 )
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
 from support.operations import operation_graph
 
-__runengine_contract__ = "flareward-test-draft-configuration-v1"
+__runengine_contract__ = "lumora-test-draft-configuration-v1"
 
 
 class CredentialConfig(BaseModel):

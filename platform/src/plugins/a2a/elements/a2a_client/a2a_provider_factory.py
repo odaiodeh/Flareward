@@ -4,9 +4,9 @@ A2A Provider Factory
 
 from typing import Any
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
-from flareward.services.auth.credentials.models import StaticAuthMethod
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
+from lumora.services.auth.credentials.models import StaticAuthMethod
 from plugins.a2a.elements.a2a_client.config import A2AProviderConfig
 from plugins.a2a.elements.a2a_client.identifiers import Identifier
 from plugins.a2a.elements.a2a_client.provider import A2AProvider
@@ -26,7 +26,7 @@ class A2AProviderFactory(BaseFactory[A2AProviderConfig, A2AProvider]):
 
     @staticmethod
     def _resolve_headers(cfg: A2AProviderConfig) -> dict[str, str] | None:
-        """Build static HTTP headers from flareward.bootstrap.settings auth fields (not SSO store)."""
+        """Build static HTTP headers from lumora.bootstrap.settings auth fields (not SSO store)."""
         headers: dict[str, str] = {}
         if cfg.additional_headers:
             # Coerce to str for httpx (config allows Dict[str, Any]).

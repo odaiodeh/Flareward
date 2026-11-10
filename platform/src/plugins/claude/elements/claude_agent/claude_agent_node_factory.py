@@ -2,8 +2,8 @@
 Claude Agent Node Factory
 """
 
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.elements.factory import BaseFactory
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.elements.factory import BaseFactory
 from plugins.claude.elements.claude_agent.claude_agent_node import ClaudeAgentNode
 from plugins.claude.elements.claude_agent.config import ClaudeAgentNodeConfig
 from plugins.claude.elements.claude_agent.identifiers import Identifier

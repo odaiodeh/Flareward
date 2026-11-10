@@ -6,21 +6,21 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ProviderRef
-from flareward.services.artifacts.domain.models import (
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ProviderRef
+from lumora.services.artifacts.domain.models import (
     ArtifactNamespace,
     BlobArtifactRef,
     InlineContent,
 )
-from flareward.services.artifacts.preparation import (
+from lumora.services.artifacts.preparation import (
     ArtifactWorkspacePreparation,
     InlineWorkspacePreparation,
 )
-from flareward.services.workspaces.domain.files import InlineFile, WorkspaceFile, WorkspaceMode
+from lumora.services.workspaces.domain.files import InlineFile, WorkspaceFile, WorkspaceMode
 from plugins.artifacts.elements.content_operations import (
     LoadArtifactContent,
     PublishFileContent,
@@ -67,7 +67,7 @@ class LoadContentConfig(ArtifactStoreConfig, ContentTransferConfig):
 
 def _workspace_files(max_bytes: int) -> WorkspaceFileSystem:
     return WorkspaceFileSystem(
-        Path(os.environ.get("FLAREWARD_WORKSPACE_ROOT", "/tmp/flareward-workspaces")),
+        Path(os.environ.get("LUMORA_WORKSPACE_ROOT", "/tmp/lumora-workspaces")),
         max_bytes=max_bytes,
     )
 

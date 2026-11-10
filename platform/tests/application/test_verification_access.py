@@ -11,16 +11,16 @@ from support.verification import (
     verification_request,
 )
 
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access import VerificationAccessService
-from flareward.services.verification.access_models import (
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access import VerificationAccessService
+from lumora.services.verification.access_models import (
     VerificationAccessRequest,
     VerificationAccessScope,
     VerificationAction,
     VerificationActor,
 )
-from flareward.services.verification.ports import VerificationCredentialError, VerificationMissing
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.ports import VerificationCredentialError, VerificationMissing
+from lumora.services.verification.service import VerificationService
 
 
 def scope(root="root", actions=frozenset(VerificationAction), policies=frozenset({"release@1"})):
@@ -47,7 +47,7 @@ async def test_credentials_are_purpose_scoped_hashed_expiring_and_revocable():
     assert credential not in repository.records[issued.grant.grant_id].model_dump_json()
     assert (await service.list(Identity.team("owner"))) == []
     for invalid in (
-        credential.replace("flareward-verification", "flareward-artifact"),
+        credential.replace("lumora-verification", "lumora-artifact"),
         credential[:-1] + ("A" if credential[-1] != "A" else "B"),
     ):
         with pytest.raises(VerificationCredentialError):

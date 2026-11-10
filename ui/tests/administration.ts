@@ -5,8 +5,8 @@ import { checkAdminAccess, getAdminConfig, updateAdminConfigSection } from '../c
 import { checkUserApproval, approveUser } from '../client/src/api/termsApproval';
 
 export default async function administrationClients() {
-  const endpoint = process.env.FLAREWARD_TEST_UI_API_URL;
-  const cookie = process.env.FLAREWARD_TEST_UI_ADMIN_COOKIE;
+  const endpoint = process.env.LUMORA_TEST_UI_API_URL;
+  const cookie = process.env.LUMORA_TEST_UI_ADMIN_COOKIE;
   assert.ok(endpoint && cookie);
   api.defaults.baseURL = endpoint;
   api.defaults.headers.common.Cookie = cookie;

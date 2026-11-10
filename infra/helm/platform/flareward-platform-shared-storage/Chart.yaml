@@ -1,5 +1,5 @@
 apiVersion: v2
-name: flareward-platform-shared-storage
+name: lumora-platform-shared-storage
 description: A Helm chart for provisioning shared storage PVC for the platform temporal-worker
 
 type: application

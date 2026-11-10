@@ -1,12 +1,12 @@
 """Ordinary operations request trusted checks without acquiring verifier authority."""
 
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.services.verification.check_ports import (
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.services.verification.check_ports import (
     CheckRunGateway,
     CheckRunHandle,
     StartCheckRun,
 )
-from flareward.services.verification.domain.check_runs import CheckRun
+from lumora.services.verification.domain.check_runs import CheckRun
 
 
 class StartCheckOperation(BaseOperation[StartCheckRun, CheckRun]):

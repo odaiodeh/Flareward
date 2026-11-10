@@ -6,17 +6,17 @@ from unittest.mock import create_autospec
 import pytest
 from support.scenarios import echo_graph
 
-from flareward.executions.domain.placement import GraphPlacementPlan
-from flareward.executions.placement import GraphPlacementPreviewer
-from flareward.programs.blueprints import BlueprintProgramImporter
-from flareward.programs.domain.models import ProgramDefinition
-from flareward.programs.templates.authoring import BlueprintAuthoringService
-from flareward.programs.templates.contracts import (
+from lumora.executions.domain.placement import GraphPlacementPlan
+from lumora.executions.placement import GraphPlacementPreviewer
+from lumora.programs.blueprints import BlueprintProgramImporter
+from lumora.programs.domain.models import ProgramDefinition
+from lumora.programs.templates.authoring import BlueprintAuthoringService
+from lumora.programs.templates.contracts import (
     BlueprintDocument,
     BlueprintResolution,
     BlueprintResolutionSource,
 )
-from flareward.programs.templates.placement import BlueprintPlacementService
+from lumora.programs.templates.placement import BlueprintPlacementService
 
 
 @pytest.fixture

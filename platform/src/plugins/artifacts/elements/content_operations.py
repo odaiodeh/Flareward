@@ -1,18 +1,18 @@
 """Small file handoff keeps storage authority outside the producing environment."""
 
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.services.artifacts.domain.models import (
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.services.artifacts.domain.models import (
     BlobArtifactRef,
     ContentIdentity,
     InlineContent,
 )
-from flareward.services.artifacts.inline_content import collect_content, content_chunks
-from flareward.services.artifacts.ports import (
+from lumora.services.artifacts.inline_content import collect_content, content_chunks
+from lumora.services.artifacts.ports import (
     ArtifactGateway,
     ArtifactLimitExceeded,
     WorkspaceFiles,
 )
-from flareward.services.workspaces.domain.files import InlineFile, WorkspaceFile
+from lumora.services.workspaces.domain.files import InlineFile, WorkspaceFile
 from plugins.artifacts.elements.operations import PublishedArtifact, file_publication
 
 

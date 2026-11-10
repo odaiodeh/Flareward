@@ -5,9 +5,9 @@ from support.program_authoring import assert_unfinished_program_lifecycle
 from support.program_store_contracts import PROGRAM_STORE_CONTRACTS, definition
 from support.server import api_process
 
-from flareward.programs.adapters.mongo.program_repository import MongoProgramRepository
-from flareward.programs.authoring import ProgramPresentation, ProgramStorageError
-from flareward.services.identity.domain import Identity
+from lumora.programs.adapters.mongo.program_repository import MongoProgramRepository
+from lumora.programs.authoring import ProgramPresentation, ProgramStorageError
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

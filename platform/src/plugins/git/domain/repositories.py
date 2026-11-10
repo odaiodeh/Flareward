@@ -5,8 +5,8 @@ from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from flareward.services.artifacts.domain.models import InlineContent
-from flareward.services.workspaces.domain.files import WorkspaceFile
+from lumora.services.artifacts.domain.models import InlineContent
+from lumora.services.workspaces.domain.files import WorkspaceFile
 
 RepositoryId = Annotated[str, Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")]
 GitCommitId = Annotated[str, Field(pattern=r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")]

@@ -10,9 +10,9 @@ import pytest
 from pydantic import ValidationError
 from support.repositories import LocalRepository
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
-from flareward.services.workspaces.domain.files import WorkspaceLayout, WorkspaceMode
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
+from lumora.services.workspaces.domain.files import WorkspaceLayout, WorkspaceMode
 from plugins.git.domain.repositories import GitFile
 from plugins.git.elements.adapter import GitCLIRepository
 from plugins.git.elements.config import GitBinding, GitObjectFormat, GitSettings
@@ -130,7 +130,7 @@ async def test_git_preserves_only_approved_transport_and_its_owned_environment(
     git_case, monkeypatch
 ):
     monkeypatch.setenv("HTTPS_PROXY", "http://receiver-proxy.invalid:3128")
-    monkeypatch.setenv("FLAREWARD_PRIVATE_MATERIAL", "private-test-material")
+    monkeypatch.setenv("LUMORA_PRIVATE_MATERIAL", "private-test-material")
     monkeypatch.setenv("CODEX_API_KEY", "private-provider-key")
     spawn = asyncio.create_subprocess_exec
     captured = []
@@ -138,9 +138,7 @@ async def test_git_preserves_only_approved_transport_and_its_owned_environment(
     async def inspect(*arguments, **options):
         environment = options["env"]
         assert environment["HTTPS_PROXY"] == "http://receiver-proxy.invalid:3128"
-        assert (
-            "FLAREWARD_PRIVATE_MATERIAL" not in environment and "CODEX_API_KEY" not in environment
-        )
+        assert "LUMORA_PRIVATE_MATERIAL" not in environment and "CODEX_API_KEY" not in environment
         captured.append(True)
         return await spawn(*arguments, **options)
 

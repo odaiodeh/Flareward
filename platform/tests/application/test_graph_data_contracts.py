@@ -3,8 +3,8 @@
 import pytest
 from support.typed_programs import APPLICATION_PROGRAMS
 
-from flareward.programs.authoring import ProgramIssueCode
-from flareward.programs.domain.models import (
+from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     LiteralBinding,
@@ -13,8 +13,8 @@ from flareward.programs.domain.models import (
     ProgramCallStep,
     ProgramDefinition,
 )
-from flareward.programs.interfaces import BindingContractError, InterfaceContract
-from flareward.programs.service import ProgramContractError
+from lumora.programs.interfaces import BindingContractError, InterfaceContract
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.fixture(autouse=True)

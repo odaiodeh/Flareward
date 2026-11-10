@@ -1,7 +1,7 @@
 apiVersion: v2
 
 name: platform
-app_name: flareward
+app_name: lumora
 module_name: platform
 description: A Helm chart for Kubernetes
 

@@ -8,9 +8,9 @@ from support.team_http import team_api
 
 @pytest.fixture
 async def editors(secret_settings):
-    uri = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    uri = os.environ.get("LUMORA_TEST_REDIS_URI")
     if not uri:
-        pytest.skip("Set FLAREWARD_TEST_REDIS_URI for native editing HTTP contracts")
+        pytest.skip("Set LUMORA_TEST_REDIS_URI for native editing HTTP contracts")
     settings = secret_settings.model_copy(update={"library": True, "edit_locks": True})
     async with team_api(settings, uri) as team:
         yield team.team_id, team.clients, team.redis

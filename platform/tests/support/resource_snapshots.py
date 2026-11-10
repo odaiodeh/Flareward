@@ -2,9 +2,9 @@
 
 import hashlib
 
-from flareward.elements.construction.snapshots import SourcedResource
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey, ResourceSourceRef
-from flareward.services.identity.domain import Identity
+from lumora.elements.construction.snapshots import SourcedResource
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey, ResourceSourceRef
+from lumora.services.identity.domain import Identity
 from support.operations import operation_graph, operation_resources
 
 

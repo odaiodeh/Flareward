@@ -7,15 +7,15 @@ from uuid import uuid4
 
 import pytest
 
-from flareward.async_work import await_owned
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.interactions.adapters.redis_gate import RedisApprovalGate
-from flareward.services.interactions.adapters.redis_store import RedisInteractionStore
-from flareward.services.interactions.adapters.wire import CREATE, request_key, root_key
-from flareward.services.interactions.models import ApprovalTicket, InteractionConflict
-from flareward.services.interactions.tools.models import (
+from lumora.async_work import await_owned
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.interactions.adapters.redis_gate import RedisApprovalGate
+from lumora.services.interactions.adapters.redis_store import RedisInteractionStore
+from lumora.services.interactions.adapters.wire import CREATE, request_key, root_key
+from lumora.services.interactions.models import ApprovalTicket, InteractionConflict
+from lumora.services.interactions.tools.models import (
     ApprovalDecision,
     ApprovalRequest,
     ApprovalResponse,
@@ -28,9 +28,9 @@ from flareward.services.interactions.tools.models import (
 
 @pytest.fixture
 async def gate_case():
-    uri = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    uri = os.environ.get("LUMORA_TEST_REDIS_URI")
     if not uri:
-        pytest.skip("Set FLAREWARD_TEST_REDIS_URI for actual Redis approval contracts")
+        pytest.skip("Set LUMORA_TEST_REDIS_URI for actual Redis approval contracts")
     root = "approval-" + uuid4().hex
     context = ExecutionContext(
         identity=Identity.user("reviewer"),

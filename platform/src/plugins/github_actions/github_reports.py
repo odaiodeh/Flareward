@@ -7,10 +7,10 @@ from contextlib import asynccontextmanager
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from flareward.services.artifacts.domain.models import ContentIdentity
-from flareward.services.verification.check_ports import CheckProviderUnavailable
-from flareward.services.verification.domain.check_runs import CheckRun, CheckRunStatus
-from flareward.services.verification.domain.models import CheckReportSource
+from lumora.services.artifacts.domain.models import ContentIdentity
+from lumora.services.verification.check_ports import CheckProviderUnavailable
+from lumora.services.verification.domain.check_runs import CheckRun, CheckRunStatus
+from lumora.services.verification.domain.models import CheckReportSource
 from plugins.git.domain.repositories import GitCommitId
 from plugins.github_actions.github import GitHubActionsCheckRunner
 from plugins.github_actions.github_config import GitHubCheckConfiguration

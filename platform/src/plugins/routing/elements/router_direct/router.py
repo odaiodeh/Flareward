@@ -1,10 +1,10 @@
 import logging
 
-from flareward.elements.condition import BaseCondition
-from flareward.elements.domain.conditions import BranchType, ConditionOutputSchema, DirectBranchDef
-from flareward.programs.graph.messaging import get_outgoing_targets
-from flareward.programs.graph.state.graph_state import Channel
-from flareward.programs.graph.state.state_view import StateView
+from lumora.elements.condition import BaseCondition
+from lumora.elements.domain.conditions import BranchType, ConditionOutputSchema, DirectBranchDef
+from lumora.programs.graph.messaging import get_outgoing_targets
+from lumora.programs.graph.state.graph_state import Channel
+from lumora.programs.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 

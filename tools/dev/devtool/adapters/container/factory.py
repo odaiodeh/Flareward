@@ -15,7 +15,7 @@ from devtool.adapters.container.podman import PodmanRuntime
 class ContainerRuntimeFactory:
     """Discovers and creates the appropriate container runtime.
 
-    Honours the ``FLAREWARD_CONTAINER_RUNTIME`` environment variable.  When set,
+    Honours the ``LUMORA_CONTAINER_RUNTIME`` environment variable.  When set,
     its value is used as the container command (e.g. ``sudo docker``) and
     auto-detection is skipped entirely.
     """
@@ -23,7 +23,7 @@ class ContainerRuntimeFactory:
     @staticmethod
     def create() -> SubprocessContainerRuntime:
         """Return the first working container runtime (podman preferred)."""
-        env_override = os.environ.get("FLAREWARD_CONTAINER_RUNTIME")
+        env_override = os.environ.get("LUMORA_CONTAINER_RUNTIME")
         if env_override:
             return ContainerRuntimeFactory._from_env(env_override)
 
@@ -38,7 +38,7 @@ class ContainerRuntimeFactory:
         raise RuntimeError(
             "No working container runtime found. Install Podman or Docker.\n"
             "If your runtime requires elevated privileges or a custom path, set\n"
-            "  export FLAREWARD_CONTAINER_RUNTIME='<command>'  "
+            "  export LUMORA_CONTAINER_RUNTIME='<command>'  "
             "(e.g. 'sudo docker')"
         )
 
@@ -49,7 +49,7 @@ class ContainerRuntimeFactory:
         if result.returncode == 0:
             return SubprocessContainerRuntime(cmd)
         raise RuntimeError(
-            f"FLAREWARD_CONTAINER_RUNTIME is set to '{value}' "
+            f"LUMORA_CONTAINER_RUNTIME is set to '{value}' "
             f"but '{value} info' failed. "
             f"Verify the command works in your terminal."
         )

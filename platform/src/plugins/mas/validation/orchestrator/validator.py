@@ -4,9 +4,9 @@ Orchestrator validation provider.
 ValidationProvider implementation for orchestrator pattern validation.
 """
 
-from flareward.programs.graph.graph_plan import GraphPlan
-from flareward.programs.graph.validation.interfaces import ValidationProvider
-from flareward.programs.graph.validation.models import ValidationReport
+from lumora.programs.graph.graph_plan import GraphPlan
+from lumora.programs.graph.validation.interfaces import ValidationProvider
+from lumora.programs.graph.validation.models import ValidationReport
 from plugins.mas.validation.orchestrator.checker import OrchestratorPatternChecker
 from plugins.mas.validation.orchestrator.models import NodeTypeConfig
 

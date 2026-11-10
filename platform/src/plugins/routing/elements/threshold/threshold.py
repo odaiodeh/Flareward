@@ -3,9 +3,9 @@
 import math
 import operator
 
-from flareward.elements.condition import BaseCondition
-from flareward.elements.domain.conditions import ConditionOutputSchema, boolean_condition_schema
-from flareward.programs.graph.state.state_view import StateView
+from lumora.elements.condition import BaseCondition
+from lumora.elements.domain.conditions import ConditionOutputSchema, boolean_condition_schema
+from lumora.programs.graph.state.state_view import StateView
 from plugins.routing.elements.threshold.config import ComparisonOperator
 
 COMPARISONS = {

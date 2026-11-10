@@ -13,19 +13,19 @@ import httpx
 from pydantic import AnyHttpUrl, Field, SecretStr, ValidationError, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from flareward.async_work import await_owned
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.access.credentials import (
+from lumora.async_work import await_owned
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.access.credentials import (
     WorkflowCredentialSource,
     WorkflowCredentialUnavailable,
 )
-from flareward.services.artifacts.access_models import ArtifactAccessGrant, ArtifactWorkflowGrant
-from flareward.services.artifacts.domain.models import (
+from lumora.services.artifacts.access_models import ArtifactAccessGrant, ArtifactWorkflowGrant
+from lumora.services.artifacts.domain.models import (
     ArtifactRecord,
     BlobArtifactRef,
     PublishArtifact,
 )
-from flareward.services.artifacts.ports import (
+from lumora.services.artifacts.ports import (
     ArtifactConflict,
     ArtifactCredentialError,
     ArtifactIntegrityError,
@@ -37,7 +37,7 @@ from flareward.services.artifacts.ports import (
 
 class ArtifactTransportSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="FLAREWARD_ARTIFACT_", extra="ignore", hide_input_in_errors=True
+        env_prefix="LUMORA_ARTIFACT_", extra="ignore", hide_input_in_errors=True
     )
     endpoint: AnyHttpUrl
     access_file: Path | None = None

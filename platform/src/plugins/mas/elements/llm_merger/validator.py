@@ -1,13 +1,13 @@
 """Validator for LLMMergerNode - checks LLM dependency is valid."""
 
-from flareward.elements.validation import (
+from lumora.elements.validation import (
     BaseElementValidator,
     ElementValidationResult,
     ValidationContext,
     ValidationMessage,
     ValidatorReport,
 )
-from flareward.resources.domain.references import Ref
+from lumora.resources.domain.references import Ref
 from plugins.mas.elements.llm_merger.config import MergerLLMNodeConfig
 
 

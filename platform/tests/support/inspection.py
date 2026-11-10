@@ -4,11 +4,11 @@ import hashlib
 
 from pydantic import Field
 
-from flareward.elements.cards.default import DefaultCardBuilder
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.domain.cards import Capability
-from flareward.elements.hints import ReadOnlyHint
-from flareward.elements.validation import (
+from lumora.elements.cards.default import DefaultCardBuilder
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.domain.cards import Capability
+from lumora.elements.hints import ReadOnlyHint
+from lumora.elements.validation import (
     BaseElementValidator,
     ValidationCode,
     ValidatorReport,

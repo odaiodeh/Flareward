@@ -18,9 +18,9 @@ from temporalio.client import (
 from temporalio.exceptions import is_cancelled_exception
 from temporalio.service import RPCError, RPCStatusCode
 
-from flareward.async_work import await_owned
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.async_work import await_owned
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
 
 
 class CalendarReadBarrier(Interceptor):
@@ -56,7 +56,7 @@ class CalendarDeployment:
 
     async def close_schedules(self) -> None:
         for schedule_id in self.schedule_ids:
-            handle = self.native.get_schedule_handle("flareward-program-schedule-" + schedule_id)
+            handle = self.native.get_schedule_handle("lumora-program-schedule-" + schedule_id)
             try:
                 description = await handle.describe()
             except RPCError as error:

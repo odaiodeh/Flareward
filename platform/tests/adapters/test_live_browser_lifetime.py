@@ -8,7 +8,7 @@ from support.engineering_api import EngineeringAPI
 from support.live_feature import LiveFeature
 from support.live_feature_browser import release_after_completion
 
-from flareward.programs.domain.models import ProgramRef
+from lumora.programs.domain.models import ProgramRef
 
 
 @pytest.mark.parametrize(

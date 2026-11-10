@@ -4,8 +4,8 @@ from support.blueprint_http import library_api
 from support.blueprints import external_blueprint, inline_blueprint
 from support.inspection import inspection_elements
 
-from flareward.resources.domain.builtins import BuiltinResourceDescriptor
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.builtins import BuiltinResourceDescriptor
+from lumora.services.identity.domain import Identity
 
 
 async def test_draft_and_saved_blueprint_probes_hydrate_credentials_without_mutating_authoring(

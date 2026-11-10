@@ -11,9 +11,9 @@ from support.scenarios import publish
 from support.verification_api import verification_api
 from support.verification_programs import check_graph, check_wait_definition
 
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord
-from flareward.executions.models import StartExecution
-from flareward.services.verification.domain.check_runs import CheckRun
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord
+from lumora.executions.models import StartExecution
+from lumora.services.verification.domain.check_runs import CheckRun
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS
 from plugins.verification.programs.waiting import APPLICATION_PROGRAMS
 

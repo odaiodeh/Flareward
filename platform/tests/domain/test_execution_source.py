@@ -3,11 +3,11 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.identity import request_digest
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.identity import request_digest
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

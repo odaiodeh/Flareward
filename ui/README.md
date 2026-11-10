@@ -1,4 +1,4 @@
-# Flareward UI
+# Lumora UI
 
 The [review-evidence checkpoint](../docs/evidence/2026-11-07-review-evidence.md)
 verifies source and admitted report previews before final approval in the actual

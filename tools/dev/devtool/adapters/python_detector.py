@@ -29,7 +29,7 @@ class LocalPythonResolver(PythonResolver):
             if not path:
                 if env_override:
                     raise RuntimeError(
-                        f"FLAREWARD_PYTHON='{env_override}' not found on PATH."
+                        f"LUMORA_PYTHON='{env_override}' not found on PATH."
                     )
                 continue
 
@@ -66,7 +66,7 @@ class LocalPythonResolver(PythonResolver):
         raise RuntimeError(
             f"No suitable Python "
             f"({python_min[0]}.{python_min[1]}–{python_max[0]}.{python_max[1]}) "
-            f"found. Install one or set FLAREWARD_PYTHON."
+            f"found. Install one or set LUMORA_PYTHON."
         )
 
     @staticmethod

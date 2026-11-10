@@ -13,25 +13,25 @@ from runengine.adapters.coordination.config import LocalHostConfig
 from support.identity import authenticated_cookie
 from support.server import api_process
 
-from flareward.async_work import await_owned
-from flareward.bootstrap.settings.platform_settings import (
+from lumora.async_work import await_owned
+from lumora.bootstrap.settings.platform_settings import (
     PlatformSettings,
     VerificationAuthorityConfig,
 )
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.models import (
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.models import (
     CheckRequirement,
     CheckVerdict,
     VerificationSubject,
 )
-from flareward.services.verification.models import (
+from lumora.services.verification.models import (
     StartVerification,
     SubmitCheckEvidence,
     VerificationPolicy,
 )
-from flareward.services.workspaces.domain.files import WorkspaceLayout, WorkspaceMode
+from lumora.services.workspaces.domain.files import WorkspaceLayout, WorkspaceMode
 from plugins.git.elements.adapter import GitCLIRepository
 from plugins.git.elements.config import GitBinding, GitSettings
 
@@ -56,7 +56,7 @@ async def test_independent_git_check_has_separate_authority_and_durable_exact_ca
         storage="mongo",
         authentication="session",
         secret_key=SecretStr("verification-cookie-fixture"),
-        mongo_uri=SecretStr(os.environ["FLAREWARD_TEST_MONGO_URI"]),
+        mongo_uri=SecretStr(os.environ["LUMORA_TEST_MONGO_URI"]),
         mongo_database=mongo_database.name,
         redis_uri=SecretStr(redis_uri),
         verification_enabled=True,

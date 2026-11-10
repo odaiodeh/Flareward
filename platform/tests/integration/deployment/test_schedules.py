@@ -16,17 +16,17 @@ from support.server import api_process
 from support.temporal import replay
 from temporalio.client import Client
 
-from flareward.bootstrap.scheduling import admit_scheduled_execution
-from flareward.executions.adapters.run_engine.shared.scheduling import ScheduledProgramInput
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.services.identity.domain import Identity
-from flareward.services.scheduling.adapters.temporal.programs import TemporalProgramSchedules
-from flareward.services.scheduling.models import (
+from lumora.bootstrap.scheduling import admit_scheduled_execution
+from lumora.executions.adapters.run_engine.shared.scheduling import ScheduledProgramInput
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.services.identity.domain import Identity
+from lumora.services.scheduling.adapters.temporal.programs import TemporalProgramSchedules
+from lumora.services.scheduling.models import (
     PromptSource,
     ScheduleDefinition,
     ScheduleOverlapPolicy,
 )
-from flareward.services.scheduling.programs import ProgramScheduleConflict, program_schedule_id
+from lumora.services.scheduling.programs import ProgramScheduleConflict, program_schedule_id
 
 
 @pytest.mark.parametrize("kind", ["graph", "process", "application", "composed"])
@@ -115,7 +115,7 @@ async def test_scheduled_program_runs_in_owning_engine_run_across_api_restart(
         await replay(deployment.native, deployment.worker, runs[0]["run_context"]["engine_handle"])
     # The calendar and worker continue while the HTTP process is absent.
     native_schedule = deployment.native.get_schedule_handle(
-        "flareward-program-schedule-" + schedule_id
+        "lumora-program-schedule-" + schedule_id
     )
     await native_schedule.trigger()
     async with asyncio.timeout(30):
@@ -231,7 +231,7 @@ async def test_native_overlap_policy_controls_running_programs(
         assert (await http.post(prefix + "/trigger")).status_code == 202
         first = (await wait_schedule_runs(http, schedule_id, 1, terminal=False))[0]
         assert (await http.post(prefix + "/trigger")).status_code == 202
-        native = deployment.native.get_schedule_handle("flareward-program-schedule-" + schedule_id)
+        native = deployment.native.get_schedule_handle("lumora-program-schedule-" + schedule_id)
         if policy == ScheduleOverlapPolicy.SKIP:
             await wait_calendar(native, lambda state: state.info.num_actions_skipped_overlap == 1)
         elif policy == ScheduleOverlapPolicy.BUFFER_ONE:
@@ -281,7 +281,7 @@ async def test_native_schedule_update_fences_concurrent_writers(calendar_deploym
         schedule_id = created.json()["definition"]["schedule_id"]
         deployment.schedule_ids.append(schedule_id)
         native = await deployment.native.get_schedule_handle(
-            "flareward-program-schedule-" + schedule_id
+            "lumora-program-schedule-" + schedule_id
         ).describe()
         arguments = await deployment.native.data_converter.decode(native.schedule.action.args)
         parameters = RunParameters.model_validate(arguments[0])

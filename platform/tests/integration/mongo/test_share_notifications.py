@@ -4,10 +4,10 @@ import pytest
 from support.share_notification_contracts import verify_notification_repository
 from support.sharing import invitation, repository_invitations
 
-from flareward.services.identity.domain import Identity
-from flareward.services.sharing.adapters.mongo.share_notifications import MongoShareNotifications
-from flareward.services.sharing.domain.models import ShareDirection
-from flareward.services.sharing.notifications import ShareStorageError
+from lumora.services.identity.domain import Identity
+from lumora.services.sharing.adapters.mongo.share_notifications import MongoShareNotifications
+from lumora.services.sharing.domain.models import ShareDirection
+from lumora.services.sharing.notifications import ShareStorageError
 
 
 async def test_mongo_notification_contract_handles_legacy_and_native_records(mongo_database):

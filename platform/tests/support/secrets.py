@@ -5,26 +5,26 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.hints import SecretHint
-from flareward.elements.node import BaseNode
-from flareward.elements.specification import BaseElementSpec
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.elements.factory import BaseFactory
+from lumora.elements.hints import SecretHint
+from lumora.elements.node import BaseNode
+from lumora.elements.specification import BaseElementSpec
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
     PathBinding,
     ProgramDefinition,
 )
-from flareward.programs.graph.state.state_view import StateView
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ToolRef
-from flareward.resources.secrets import SECRET_PREFIX
-from flareward.services.identity.domain import Identity
+from lumora.programs.graph.state.state_view import StateView
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ToolRef
+from lumora.resources.secrets import SECRET_PREFIX
+from lumora.services.identity.domain import Identity
 
-__runengine_contract__ = "flareward-test-secrets-v1"
+__runengine_contract__ = "lumora-test-secrets-v1"
 
 
 class MemorySecretStore:

@@ -10,10 +10,10 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.elements.specification import BaseElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.elements.factory import BaseFactory
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.elements.specification import BaseElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 
 
 class EvidenceConfig(BaseModel):
@@ -47,7 +47,7 @@ def read_evidence(workspace: Path) -> EvidenceRecord:
         system=platform.system(),
         hostname=socket.gethostname(),
         namespace=namespace.read_text() if namespace.is_file() else None,
-        image_marker=Path("/opt/flareward-e2e-receiver").read_text(),
+        image_marker=Path("/opt/lumora-e2e-receiver").read_text(),
     )
 
 
@@ -55,7 +55,7 @@ class EvidenceOperation(BaseOperation[EvidenceInput, EvidenceResult]):
     async def execute(self, request: EvidenceInput, context: OperationContext) -> EvidenceResult:
         namespace = hashlib.sha256(context.execution.root_execution_id.encode()).hexdigest()
         directory = Path(
-            os.environ.get("FLAREWARD_WORKSPACE_ROOT", "/tmp/flareward-workspaces")
+            os.environ.get("LUMORA_WORKSPACE_ROOT", "/tmp/lumora-workspaces")
         ).resolve()
         workspace = (directory / request.workspace).resolve()
         if not workspace.is_relative_to(directory / namespace):

@@ -12,7 +12,7 @@ from openshell import SandboxClient, TlsConfig, WorkspaceClient
 from openshell._proto import openshell_pb2
 from runengine.invocation.config import OpenShellRunnerConfig, OpenShellTLSConfig
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 from support.deployment_backend import DeploymentBackend, NetworkEndpoint
 
 WRITE_SETTINGS = """
@@ -20,7 +20,7 @@ import json
 import sys
 from pathlib import Path
 
-directory = Path('/sandbox/.flareward-receiver-settings')
+directory = Path('/sandbox/.lumora-receiver-settings')
 directory.mkdir(mode=0o700, exist_ok=True)
 for name, value in json.load(sys.stdin).items():
     path = directory / name
@@ -31,10 +31,10 @@ for name, value in json.load(sys.stdin).items():
 
 @asynccontextmanager
 async def backend() -> AsyncIterator[DeploymentBackend]:
-    pki = Path(os.environ["FLAREWARD_TEST_OPENSHELL_PKI"]).resolve()
+    pki = Path(os.environ["LUMORA_TEST_OPENSHELL_PKI"]).resolve()
     endpoint, image = (
         os.environ[name]
-        for name in ("FLAREWARD_TEST_OPENSHELL_ENDPOINT", "FLAREWARD_TEST_OPENSHELL_IMAGE")
+        for name in ("LUMORA_TEST_OPENSHELL_ENDPOINT", "LUMORA_TEST_OPENSHELL_IMAGE")
     )
     workspace = "fw-" + uuid4().hex[:12]
     paths = {
@@ -58,7 +58,7 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
                     await asyncio.sleep(0.2)
 
         environment = {
-            "FLAREWARD_INTERACTIONS": "disabled",
+            "LUMORA_INTERACTIONS": "disabled",
             "PATH": "/sandbox/.venv/bin:/usr/local/bin:/usr/bin:/bin",
             "PYTHONPATH": "/opt/test-fixtures",
         }
@@ -113,7 +113,7 @@ async def backend() -> AsyncIterator[DeploymentBackend]:
                     timeout_seconds=90,
                     env={
                         **environment,
-                        "FLAREWARD_SECRETS_DIR": "/sandbox/.flareward-receiver-settings",
+                        "LUMORA_SECRETS_DIR": "/sandbox/.lumora-receiver-settings",
                     },
                 )
             finally:

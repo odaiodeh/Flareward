@@ -7,17 +7,17 @@ from support.construction_values import dependency_chain
 from support.resource_snapshots import MemoryResourceSources
 from support.secrets import MemorySecretStore
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.elements.construction.snapshots import (
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.elements.construction.snapshots import (
     ResourceAdoption,
     ResourceSelection,
     ResourceSnapshotConflict,
     ResourceSnapshotSource,
     SavedResourceResolver,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

@@ -4,12 +4,12 @@ import json
 
 from pydantic import BaseModel, ConfigDict
 
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.factory import BaseFactory
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.auth.credentials.credential import AuthCredential
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.factory import BaseFactory
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.auth.credentials.credential import AuthCredential
 
 
 class CredentialConfig(BaseModel):

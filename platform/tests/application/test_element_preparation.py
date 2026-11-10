@@ -8,15 +8,15 @@ from support.elements import DependencyFactory, TextResource, element_registry
 from support.scenarios import resource
 from support.secrets import MemorySecretStore, SecretToolFactory
 
-from flareward.elements.construction.builder import ElementBundleBuilder
-from flareward.elements.construction.context import ElementBuildContext
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.elements.exceptions import PluginConfigurationError
-from flareward.executions.context import ExecutionContextHolder
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionFailure, FailureKind
-from flareward.executions.ports import ExecutionError
+from lumora.elements.construction.builder import ElementBundleBuilder
+from lumora.elements.construction.context import ElementBuildContext
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.elements.exceptions import PluginConfigurationError
+from lumora.executions.context import ExecutionContextHolder
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionFailure, FailureKind
+from lumora.executions.ports import ExecutionError
 
 
 @pytest.fixture

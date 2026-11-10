@@ -1,5 +1,5 @@
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.agents.elements.custom_agent.card_builder import CustomAgentCardBuilder
 from plugins.agents.elements.custom_agent.config import CustomAgentNodeConfig
 from plugins.agents.elements.custom_agent.custom_agent import CustomAgentNode

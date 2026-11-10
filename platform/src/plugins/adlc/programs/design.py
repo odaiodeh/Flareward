@@ -5,12 +5,12 @@ from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
-from flareward.programs.composition.scope import ChildCalls
-from flareward.programs.domain.models import PathBinding
-from flareward.programs.ports import ChildContract, ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.services.reviews.domain.models import ReviewDecision, ReviewResponse, ReviewStatus
-from flareward.services.verification.domain.models import VerificationSubject
+from lumora.programs.composition.scope import ChildCalls
+from lumora.programs.domain.models import PathBinding
+from lumora.programs.ports import ChildContract, ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.services.reviews.domain.models import ReviewDecision, ReviewResponse, ReviewStatus
+from lumora.services.verification.domain.models import VerificationSubject
 from plugins.adlc.programs.program import (
     AttemptRuntime,
     require_service_operation,

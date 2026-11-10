@@ -56,8 +56,8 @@ export default function Login() {
           >
             <HiSparkles className="w-8 h-8 text-white" />
           </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome to Flareward</h1>
-          <p className="text-gray-400">Sign in to continue to your dashboard</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Welcome to Lumora</h1>
+          <p className="text-gray-400">From intent to reality.</p>
         </div>
 
         <div className="w-full">

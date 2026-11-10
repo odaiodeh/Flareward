@@ -13,15 +13,15 @@ from concurrent.futures import CancelledError
 
 from global_utils.utils.async_bridge import get_async_bridge
 
-from flareward.async_work import await_owned
-from flareward.elements.validation import (
+from lumora.async_work import await_owned
+from lumora.elements.validation import (
     BaseElementValidator,
     ValidationCode,
     ValidationContext,
     ValidationMessage,
     ValidatorReport,
 )
-from flareward.services.auth.errors import AuthError
+from lumora.services.auth.errors import AuthError
 from plugins.mcp.elements.mcp_server_client.config import (
     McpAuthMethod,
     McpProviderConfig,

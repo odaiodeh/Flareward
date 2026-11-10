@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from uuid import uuid4
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 
 @dataclass

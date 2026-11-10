@@ -12,17 +12,17 @@ import httpx
 from cryptography.fernet import Fernet
 from pydantic import SecretStr
 
-from flareward.async_work import await_owned
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.programs.domain.models import (
+from lumora.async_work import await_owned
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.programs.domain.models import (
     ProgramDefinition,
     ProgramImplementation,
     ProgramRevision,
 )
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.access import ReviewGrant, review_credential_key
-from flareward.services.reviews.domain.models import ReviewRecord
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.access import ReviewGrant, review_credential_key
+from lumora.services.reviews.domain.models import ReviewRecord
 from support.identity import authenticated_cookie
 from support.native_settings import session_settings
 from support.reviews import review_policy
@@ -79,9 +79,9 @@ class ReviewAPI:
     @property
     def operator_environment(self) -> dict[str, str]:
         return {
-            "FLAREWARD_REVIEW_ENDPOINT": str(self.http.base_url),
-            "FLAREWARD_REVIEW_ACCESS_DIRECTORY": str(self.directory),
-            "FLAREWARD_REVIEW_ALLOW_INSECURE": "true",
+            "LUMORA_REVIEW_ENDPOINT": str(self.http.base_url),
+            "LUMORA_REVIEW_ACCESS_DIRECTORY": str(self.directory),
+            "LUMORA_REVIEW_ALLOW_INSECURE": "true",
         }
 
     async def publish(self, name: str, implementation: ProgramImplementation) -> ProgramRevision:
@@ -125,7 +125,7 @@ async def review_api(
     redis_uri: str,
     directory: Path,
     *,
-    factory: str = "flareward.bootstrap.asgi:create_app",
+    factory: str = "lumora.bootstrap.asgi:create_app",
     settings: PlatformSettings | None = None,
     ttl_seconds: int = 3600,
     renewable_for_seconds: int | None = None,
@@ -159,9 +159,9 @@ async def review_api(
                 log,
                 factory=factory,
                 environment=lambda base: {
-                    "FLAREWARD_REVIEW_ENDPOINT": base,
-                    "FLAREWARD_REVIEW_ACCESS_DIRECTORY": str(credentials),
-                    "FLAREWARD_REVIEW_ALLOW_INSECURE": "true",
+                    "LUMORA_REVIEW_ENDPOINT": base,
+                    "LUMORA_REVIEW_ACCESS_DIRECTORY": str(credentials),
+                    "LUMORA_REVIEW_ALLOW_INSECURE": "true",
                 },
             )
         )

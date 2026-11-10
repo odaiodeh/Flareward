@@ -5,30 +5,30 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import (
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import (
     ExecutionFailure,
     ExecutionPhase,
     ExecutionRecord,
     FailureKind,
 )
-from flareward.executions.models import StartExecution
-from flareward.executions.ports import ExecutionError
-from flareward.executions.service import ExecutionService
-from flareward.programs.domain.models import ProgramRef
-from flareward.programs.service import ProgramService
-from flareward.services.identity.domain import Identity
-from flareward.services.interactions.ports import ApprovalRulesPublisher
-from flareward.services.interactions.rules import ApprovalRuleAction, ApprovalRuleChange
-from flareward.services.interactions.tools.models import (
+from lumora.executions.models import StartExecution
+from lumora.executions.ports import ExecutionError
+from lumora.executions.service import ExecutionService
+from lumora.programs.domain.models import ProgramRef
+from lumora.programs.service import ProgramService
+from lumora.services.identity.domain import Identity
+from lumora.services.interactions.ports import ApprovalRulesPublisher
+from lumora.services.interactions.rules import ApprovalRuleAction, ApprovalRuleChange
+from lumora.services.interactions.tools.models import (
     ApprovalDecision,
     ApprovalOverrides,
     ToolAccessMode,
 )
-from flareward.services.sessions.domain.status import SessionStatus
-from flareward.services.sessions.execution.program_sessions import ProgramSessionService
-from flareward.services.sessions.execution.session_store import SessionConflict, SessionStore
-from flareward.services.sessions.records import SessionRecord
+from lumora.services.sessions.domain.status import SessionStatus
+from lumora.services.sessions.execution.program_sessions import ProgramSessionService
+from lumora.services.sessions.execution.session_store import SessionConflict, SessionStore
+from lumora.services.sessions.records import SessionRecord
 
 
 @pytest.fixture

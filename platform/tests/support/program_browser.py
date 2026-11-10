@@ -11,10 +11,10 @@ from fastapi import Request
 from fastapi.responses import FileResponse, RedirectResponse
 from pymongo import AsyncMongoClient
 
-from flareward.async_work import await_owned
-from flareward.programs.domain.models import ProgramDefinition
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
+from lumora.async_work import await_owned
+from lumora.programs.domain.models import ProgramDefinition
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
 from support.condition_scenarios import routing_graph
 from support.identity import authenticated_cookie
 from support.library_resources import seed_condition_resource, seed_operation_resources
@@ -50,9 +50,9 @@ def create_app():
 
 async def serve(assets: Path, directory: Path) -> None:
     directory.mkdir(parents=True, exist_ok=True)
-    database = "flareward_program_browser_" + uuid4().hex
+    database = "lumora_program_browser_" + uuid4().hex
     owner = Identity.user("program-owner")
-    redis_uri = os.environ["FLAREWARD_TEST_REDIS_URI"]
+    redis_uri = os.environ["LUMORA_TEST_REDIS_URI"]
     settings = session_settings(database, redis_uri).model_copy(
         update={
             "reviews_enabled": False,
@@ -65,7 +65,7 @@ async def serve(assets: Path, directory: Path) -> None:
     )
     os.environ["PLACEMENT_BROWSER_ASSETS"] = str(assets.resolve())
     os.environ["BROWSER_TEAM_PREFIX"] = "program-" + uuid4().hex
-    mongo = AsyncMongoClient(os.environ["FLAREWARD_TEST_MONGO_URI"])
+    mongo = AsyncMongoClient(os.environ["LUMORA_TEST_MONGO_URI"])
     try:
         async with AsyncExitStack() as resources:
             identity = await resources.enter_async_context(

@@ -10,11 +10,11 @@ from pathlib import Path
 from pydantic import SecretStr
 from runengine.invocation.config import ExecutorConfig, K8sRunnerConfig, OpenShellRunnerConfig
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.models import CheckRequirement
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.models import CheckRequirement
 from plugins.adlc.programs.coding import CodingFileWork
 from plugins.adlc.programs.design import DesignProposal
 from plugins.adlc.programs.designer import CodingDesignerConfig, CodingDesignWork
@@ -52,13 +52,13 @@ def evaluation_target(target: ExecutorConfig) -> ExecutorConfig:
     data = target.model_dump(mode="python")
     data["env"] = {
         **(target.env or {}),
-        "FLAREWARD_CONFIGURATION_SECRETS": "false",
-        "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": "true",
-        "FLAREWARD_PYTHON_CHECK_DIRECTORY": "/tmp/flareward-python-checks",
+        "LUMORA_CONFIGURATION_SECRETS": "false",
+        "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": "true",
+        "LUMORA_PYTHON_CHECK_DIRECTORY": "/tmp/lumora-python-checks",
     }
     if isinstance(target, OpenShellRunnerConfig):
         policy = json.loads(
-            files("flareward.bootstrap.settings")
+            files("lumora.bootstrap.settings")
             .joinpath("policies/openshell-restricted.json")
             .read_text()
         )
@@ -76,7 +76,7 @@ async def live_feature(
     redis_uri: str,
     directory: Path,
     *,
-    factory: str = "flareward.bootstrap.asgi:create_app",
+    factory: str = "lumora.bootstrap.asgi:create_app",
     environment: Mapping[str, str] | None = None,
     review_timeout_seconds: int = 180,
 ) -> AsyncIterator[LiveFeature]:
@@ -84,8 +84,8 @@ async def live_feature(
         coding = await compute.enter_async_context(
             backend.configured(
                 {
-                    "FLAREWARD_CONFIGURATION_SECRETS": "false",
-                    "FLAREWARD_CODEX_API_KEY": key.get_secret_value(),
+                    "LUMORA_CONFIGURATION_SECRETS": "false",
+                    "LUMORA_CODEX_API_KEY": key.get_secret_value(),
                 },
                 (NetworkEndpoint("api.openai.com", 443, ("/usr/local/bin/codex",)),),
             )
@@ -94,9 +94,9 @@ async def live_feature(
             update={
                 "env": {
                     **(coding.env or {}),
-                    "FLAREWARD_CODEX_SANDBOX_MODE": "danger-full-access",
-                    "FLAREWARD_CODEX_API_KEY_FILE": coding.env["FLAREWARD_SECRETS_DIR"]
-                    + "/FLAREWARD_CODEX_API_KEY",
+                    "LUMORA_CODEX_SANDBOX_MODE": "danger-full-access",
+                    "LUMORA_CODEX_API_KEY_FILE": coding.env["LUMORA_SECRETS_DIR"]
+                    + "/LUMORA_CODEX_API_KEY",
                 }
             }
         )
@@ -145,7 +145,7 @@ async def live_feature(
                 },
                 environment={
                     **(environment or {}),
-                    "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": "false",
+                    "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": "false",
                 },
             )
         )

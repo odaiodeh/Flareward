@@ -1,7 +1,7 @@
 """Adapter-specific functions used to verify the actual engine state contract."""
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.executions.adapters.run_engine.shared.state import AgentProgramGraphState
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.executions.adapters.run_engine.shared.state import AgentProgramGraphState
 
 
 def state_identity(state: AgentProgramGraphState) -> AgentProgramGraphState:

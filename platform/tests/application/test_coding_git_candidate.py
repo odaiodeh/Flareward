@@ -7,9 +7,9 @@ import pytest
 from support.git_resources import git_resources
 from support.operations import operation_bundle
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.ports import ProgramRuntime
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.ports import ProgramRuntime
 from plugins.adlc_git.programs.coding import (
     CodingGitCandidate,
     CodingGitConfig,

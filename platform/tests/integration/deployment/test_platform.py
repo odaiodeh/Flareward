@@ -13,14 +13,14 @@ from support.server import api_process
 from support.temporal import replay, worker_process
 from temporalio.client import Client
 
-from flareward.bootstrap.settings.interaction_settings import InteractionBackend
-from flareward.bootstrap.settings.platform_settings import AuthenticationKind
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.programs.domain.models import ApplicationDefinition, PathBinding, ProgramDefinition
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
-from flareward.services.interactions.adapters.wire import root_key
+from lumora.bootstrap.settings.interaction_settings import InteractionBackend
+from lumora.bootstrap.settings.platform_settings import AuthenticationKind
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.programs.domain.models import ApplicationDefinition, PathBinding, ProgramDefinition
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
+from lumora.services.interactions.adapters.wire import root_key
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -28,8 +28,7 @@ async def test_deployed_authoring_session_restart_messages_and_cancellation(
     secret_settings, mongo_database, tmp_path, profile
 ):
     endpoint, redis_uri = (
-        os.environ.get(name)
-        for name in ("FLAREWARD_TEST_TEMPORAL_ENDPOINT", "FLAREWARD_TEST_REDIS_URI")
+        os.environ.get(name) for name in ("LUMORA_TEST_TEMPORAL_ENDPOINT", "LUMORA_TEST_REDIS_URI")
     )
     if not endpoint or not redis_uri:
         pytest.skip("Set Temporal, Mongo, and Redis test services for deployment E2E")
@@ -37,9 +36,7 @@ async def test_deployed_authoring_session_restart_messages_and_cancellation(
     token = "network-private-configuration"
     settings = secret_settings.model_copy(
         update={
-            "host": TemporalHostConfig(
-                endpoint=endpoint, task_queue="flareward-e2e-" + uuid4().hex
-            ),
+            "host": TemporalHostConfig(endpoint=endpoint, task_queue="lumora-e2e-" + uuid4().hex),
             "interactions": InteractionBackend.REDIS,
             "redis_uri": SecretStr(redis_uri),
             "authentication": AuthenticationKind.SESSION,

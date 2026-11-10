@@ -11,8 +11,8 @@ from support.agent_session_http import create_mcp_agent_session, execute_agent_t
 from support.blueprint_http import library_api
 from support.server import api_process
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.services.identity.domain import Identity
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.services.identity.domain import Identity
 from plugins.mcp.elements.mcp_proxy.spec.spec import McpProxyToolElementSpec
 from plugins.mcp.elements.mcp_server_client.spec.spec import McpProviderElementSpec
 

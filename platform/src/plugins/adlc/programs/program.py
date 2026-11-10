@@ -15,24 +15,24 @@ from pydantic import (
     model_validator,
 )
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.composition.scope import ChildCalls
-from flareward.programs.domain.models import PathBinding
-from flareward.programs.interfaces import BindingContractError, InterfaceContract
-from flareward.programs.ports import ChildContract, ChildExecution, ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.reviews.domain.models import ReviewDecision, ReviewResponse, ReviewStatus
-from flareward.services.verification.check_ports import CheckRunHandle, StartCheckRun
-from flareward.services.verification.domain.check_runs import CheckRun, CheckRunStatus
-from flareward.services.verification.domain.models import (
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.composition.scope import ChildCalls
+from lumora.programs.domain.models import PathBinding
+from lumora.programs.interfaces import BindingContractError, InterfaceContract
+from lumora.programs.ports import ChildContract, ChildExecution, ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.reviews.domain.models import ReviewDecision, ReviewResponse, ReviewStatus
+from lumora.services.verification.check_ports import CheckRunHandle, StartCheckRun
+from lumora.services.verification.domain.check_runs import CheckRun, CheckRunStatus
+from lumora.services.verification.domain.models import (
     CheckEvidence,
     CheckRequirement,
     VerificationOutcome,
     VerificationSubject,
 )
-from flareward.services.verification.models import VerificationView
+from lumora.services.verification.models import VerificationView
 from plugins.adlc.programs.review import EngineeringReviewSubject
 from plugins.human_review.programs.human_review import (
     HumanReviewConfig,
@@ -44,7 +44,7 @@ from plugins.verification.elements.operations import (
     VerificationHandle,
 )
 
-__runengine_contract__ = "flareward-engineering-v3"
+__runengine_contract__ = "lumora-engineering-v3"
 
 type CompletionName = Annotated[str, Field(min_length=1, max_length=128)]
 

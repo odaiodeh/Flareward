@@ -18,24 +18,24 @@ from support.server import api_process
 from support.temporal import replay, worker_process, workflow_handle
 from temporalio.client import Client, WorkflowExecutionStatus
 
-from flareward.bootstrap.settings.worker_settings import WorkerSettings
-from flareward.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.programs.domain.models import ProgramDefinition
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.reviews.domain.models import ReviewRecord
+from lumora.bootstrap.settings.worker_settings import WorkerSettings
+from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.programs.domain.models import ProgramDefinition
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 
 
 async def test_event_redelivery_and_new_occurrence_recover_after_api_and_worker_restart(
     application, mongo_database, redis_uri, tmp_path
 ):
-    endpoint = os.environ.get("FLAREWARD_TEST_TEMPORAL_ENDPOINT")
+    endpoint = os.environ.get("LUMORA_TEST_TEMPORAL_ENDPOINT")
     if not endpoint:
         pytest.skip("Select the dedicated Temporal endpoint for event source recovery")
     for spec in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(spec)
-    host = TemporalHostConfig(endpoint=endpoint, task_queue="flareward-events-" + uuid4().hex)
+    host = TemporalHostConfig(endpoint=endpoint, task_queue="lumora-events-" + uuid4().hex)
     native = await Client.connect(endpoint, namespace=host.namespace)
     records = MongoExecutionRepository(mongo_database)
     try:
@@ -170,7 +170,7 @@ async def test_event_redelivery_and_new_occurrence_recover_after_api_and_worker_
                                 native, record.engine_handle
                             ).fetch_history()
                             assert source["credential"] not in str(history)
-                            assert "flareward-review-v1." not in str(history)
+                            assert "lumora-review-v1." not in str(history)
                         fresh = await http.post(
                             "/api/program-events/deliveries",
                             headers=bearer,
@@ -227,8 +227,7 @@ async def test_event_redelivery_and_new_occurrence_recover_after_api_and_worker_
                         ):
                             log = path.read_text()
                             assert (
-                                source["credential"] not in log
-                                and "flareward-review-v1." not in log
+                                source["credential"] not in log and "lumora-review-v1." not in log
                             )
     finally:
         async for row in mongo_database.program_executions.find({}, {"_id": 1}):

@@ -14,12 +14,12 @@ from support.verification_programs import (
     verification_wait_definition,
 )
 
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord, FailureKind
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import GraphDefinition, OperationStep, PathBinding
-from flareward.resources.domain.bundles import ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord, FailureKind
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import GraphDefinition, OperationStep, PathBinding
+from lumora.resources.domain.bundles import ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS
 from plugins.verification.programs.waiting import APPLICATION_PROGRAMS
 

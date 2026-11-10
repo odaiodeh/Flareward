@@ -7,16 +7,16 @@ from support.credential_renewals import RenewalCase
 from support.reviews import review_policy
 from support.verification import verification_policy
 
-from flareward.services.access.executions import ExecutionAccessUnavailable
-from flareward.services.reviews.access import ReviewAccessService
-from flareward.services.reviews.ports import ReviewCredentialError
-from flareward.services.verification.access import VerificationAccessService
-from flareward.services.verification.access_models import (
+from lumora.services.access.executions import ExecutionAccessUnavailable
+from lumora.services.reviews.access import ReviewAccessService
+from lumora.services.reviews.ports import ReviewCredentialError
+from lumora.services.verification.access import VerificationAccessService
+from lumora.services.verification.access_models import (
     VerificationAccessRequest,
     VerificationAccessScope,
     VerificationAction,
 )
-from flareward.services.verification.ports import VerificationCredentialError
+from lumora.services.verification.ports import VerificationCredentialError
 
 
 @pytest.fixture(params=["review", "verification"])

@@ -5,7 +5,7 @@ metadata:
     {{- include "identity.labels" . | nindent 4 }}
   name: {{ include "identity.fullname" . }}
 spec:
-  #host: flareward-sso-backend-tag-ai--pipeline.apps.stc-ai-e1-pp.imap.p1.openshiftapps.com
+  #host: lumora-sso-backend-tag-ai--pipeline.apps.stc-ai-e1-pp.imap.p1.openshiftapps.com
   port:
     targetPort: {{ .Values.backend.service.port }}
   tls:

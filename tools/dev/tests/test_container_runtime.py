@@ -125,7 +125,7 @@ class TestStopWithTimeout:
 
 
 class TestDetectRuntimeEnvOverride:
-    @patch.dict("os.environ", {"FLAREWARD_CONTAINER_RUNTIME": "sudo docker"})
+    @patch.dict("os.environ", {"LUMORA_CONTAINER_RUNTIME": "sudo docker"})
     @patch("devtool.adapters.container.factory.subprocess.run")
     def test_uses_env_var_when_set(self, mock_run: MagicMock) -> None:
         from devtool.adapters.container.factory import ContainerRuntimeFactory
@@ -140,7 +140,7 @@ class TestDetectRuntimeEnvOverride:
         assert runtime._cmd == ["sudo", "docker"]
         assert runtime.runtime_name == "sudo docker"
 
-    @patch.dict("os.environ", {"FLAREWARD_CONTAINER_RUNTIME": "sudo docker"})
+    @patch.dict("os.environ", {"LUMORA_CONTAINER_RUNTIME": "sudo docker"})
     @patch("devtool.adapters.container.factory.subprocess.run")
     def test_raises_when_env_var_command_fails(
         self, mock_run: MagicMock,
@@ -149,7 +149,7 @@ class TestDetectRuntimeEnvOverride:
 
         mock_run.return_value = MagicMock(returncode=1)
 
-        with pytest.raises(RuntimeError, match="FLAREWARD_CONTAINER_RUNTIME"):
+        with pytest.raises(RuntimeError, match="LUMORA_CONTAINER_RUNTIME"):
             ContainerRuntimeFactory.create()
 
     @patch.dict("os.environ", {}, clear=False)
@@ -161,9 +161,9 @@ class TestDetectRuntimeEnvOverride:
 
         # Remove the env var if present
         import os
-        os.environ.pop("FLAREWARD_CONTAINER_RUNTIME", None)
+        os.environ.pop("LUMORA_CONTAINER_RUNTIME", None)
 
-        with pytest.raises(RuntimeError, match="FLAREWARD_CONTAINER_RUNTIME"):
+        with pytest.raises(RuntimeError, match="LUMORA_CONTAINER_RUNTIME"):
             ContainerRuntimeFactory.create()
 
 

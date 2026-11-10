@@ -1,6 +1,6 @@
 ---
 name: helm
-description: Navigate retained Flareward deployment charts and release groups.
+description: Navigate retained Lumora deployment charts and release groups.
 ---
 
 Read `infra/helm/README.md` and the selected chart values/templates. Groups are

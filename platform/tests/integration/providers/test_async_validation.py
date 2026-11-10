@@ -12,7 +12,7 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
-from flareward.elements.validation import ValidationCode, ValidationContext
+from lumora.elements.validation import ValidationCode, ValidationContext
 from plugins.a2a.elements.a2a_agent.config import A2AAgentNodeConfig
 from plugins.a2a.elements.a2a_agent.validator import A2AAgentNodeValidator
 from plugins.mcp.elements.mcp_server_client.config import McpProviderConfig

@@ -106,12 +106,12 @@ autoscaling:
   # targetMemoryUtilizationPercentage: 80
 
 volumes: 
-  - name: flareward-logging-volume
+  - name: lumora-logging-volume
     persistentVolumeClaim:
-      claimName: flareward-logging-volume
+      claimName: lumora-logging-volume
 volumeMounts:
-  - name: flareward-logging-volume
-    mountPath: /var/log/flareward
+  - name: lumora-logging-volume
+    mountPath: /var/log/lumora
     subPathExpr: identity/$(POD_NAME)/$(APP_VERSION)
     readOnly: false
 
@@ -127,7 +127,7 @@ affinity: {}
 # Bind DN is in identity-config; bind password in identity-secret (Vault → Jenkins presync).
 backend:
   image:
-    repository: images.paas.redhat.com/flareward/identity
+    repository: images.paas.redhat.com/lumora/identity
     tag: "latest"
     pullPolicy: Always
   service:
@@ -143,7 +143,7 @@ backend:
 # TODO : follow up story for sso-nginx GENIE-812
 # nginx:
 #   image:
-#     repository: images.paas.redhat.com/flareward/ui
+#     repository: images.paas.redhat.com/lumora/ui
 #     tag: "latest"
 #     pullPolicy: Always
 

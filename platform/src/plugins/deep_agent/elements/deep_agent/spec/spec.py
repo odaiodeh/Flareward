@@ -1,5 +1,5 @@
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.deep_agent.elements.deep_agent.card_builder import DeepAgentCardBuilder
 from plugins.deep_agent.elements.deep_agent.config import DeepAgentNodeConfig
 from plugins.deep_agent.elements.deep_agent.deep_agent_node import DeepAgentNode

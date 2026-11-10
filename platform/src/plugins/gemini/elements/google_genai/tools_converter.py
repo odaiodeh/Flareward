@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from google.genai import types
 
-from flareward.elements.tools.domain.models import ToolDefinition
+from lumora.elements.tools.domain.models import ToolDefinition
 from plugins.gemini.elements.google_genai.schema_sanitizer import SchemaSanitizer
 
 

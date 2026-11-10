@@ -23,9 +23,9 @@ from support.python_checks import ADDITION, addition_cases, python_verifier_defi
 from support.repositories import LocalRepository
 from support.review_api import pending_review
 
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     OperationStep,
@@ -33,9 +33,9 @@ from flareward.programs.domain.models import (
     ProgramBody,
     ProgramDefinition,
 )
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.check_runs import CheckRun
-from flareward.services.verification.domain.models import CheckRequirement
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.check_runs import CheckRun
+from lumora.services.verification.domain.models import CheckRequirement
 from plugins.adlc.programs.design import DesignResult, FeatureRequest
 from plugins.adlc.programs.feature import CodingFeatureInput, CodingFeatureResult
 from plugins.adlc.programs.program import (
@@ -116,9 +116,9 @@ async def test_same_engineering_revision_selects_real_file_or_git_work(
         )
     environment = {
         "PATH": str(executable.parent) + os.pathsep + os.environ.get("PATH", ""),
-        "FLAREWARD_PYTHON_CHECK_EXECUTION_ENABLED": "true",
-        "FLAREWARD_PYTHON_CHECK_DIRECTORY": str(tmp_path / "check-workspaces"),
-        "FLAREWARD_GIT_REPOSITORIES": json.dumps(
+        "LUMORA_PYTHON_CHECK_EXECUTION_ENABLED": "true",
+        "LUMORA_PYTHON_CHECK_DIRECTORY": str(tmp_path / "check-workspaces"),
+        "LUMORA_GIT_REPOSITORIES": json.dumps(
             {
                 "product": GitBinding(location=str(retained), owners=(owner, verifier)).model_dump(
                     mode="json"
@@ -146,7 +146,7 @@ async def test_same_engineering_revision_selects_real_file_or_git_work(
             "plugins.testing.specification",
         ),
         library=True,
-        factory="flareward.bootstrap.asgi:create_app",
+        factory="lumora.bootstrap.asgi:create_app",
         environment=environment,
         verification_policies=verification_policies,
         check_programs=check_programs,

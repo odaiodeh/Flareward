@@ -5,16 +5,16 @@ from fastapi import HTTPException
 from support.execution_access import ExecutionAuthority
 from support.verification import verification_policy, verification_request
 
-from flareward.api.app import create_app
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access import VerificationAccessService
-from flareward.services.verification.adapters.mongo.verification_access import (
+from lumora.api.app import create_app
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access import VerificationAccessService
+from lumora.services.verification.adapters.mongo.verification_access import (
     MongoVerificationAccessRepository,
 )
-from flareward.services.verification.adapters.mongo.verification_repository import (
+from lumora.services.verification.adapters.mongo.verification_repository import (
     MongoVerificationRepository,
 )
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.service import VerificationService
 
 
 async def test_scoped_workflow_access_cannot_cross_roots_manage_grants_or_fall_back_to_human(

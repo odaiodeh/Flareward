@@ -1,8 +1,8 @@
 """Shared application-only scenarios exercise two purposes under one root approval."""
 
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     GraphDefinition,
     LiteralBinding,
     OperationStep,

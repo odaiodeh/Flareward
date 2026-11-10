@@ -11,7 +11,7 @@ from support.engineering_programs import artifact_candidate_body
 from support.feature_api import publish_feature
 from support.review_api import pending_review
 
-from flareward.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.access import WorkflowAccess
 from plugins.adlc.programs.feature import CodingFeatureResult
 from plugins.artifacts.elements.specification import ELEMENT_SPECIFICATIONS as ARTIFACTS
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS as REVIEWS

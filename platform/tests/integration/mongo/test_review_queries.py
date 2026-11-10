@@ -3,8 +3,8 @@
 import pytest
 from support.review_queries import exercise_execution_review_query
 
-from flareward.services.reviews.adapters.mongo.reviews import MongoReviewRepository
-from flareward.services.reviews.ports import ReviewStorageError
+from lumora.services.reviews.adapters.mongo.reviews import MongoReviewRepository
+from lumora.services.reviews.ports import ReviewStorageError
 
 
 async def test_execution_review_query_contract(mongo_database):

@@ -5,9 +5,9 @@ from pydantic import ValidationError
 from support.operations import operation_bundle
 from support.scenarios import bundle
 
-from flareward.executions.adapters.run_engine.shared.models import ElementCall
-from flareward.executions.domain.context import ExecutionContext
-from flareward.programs.graph.models.step_context import StepContext
+from lumora.executions.adapters.run_engine.shared.models import ElementCall
+from lumora.executions.domain.context import ExecutionContext
+from lumora.programs.graph.models.step_context import StepContext
 
 
 def test_typed_operation_call_needs_no_graph_context(application):

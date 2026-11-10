@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from support.artifact_workflow import ArtifactWorkflowCase, managed_artifact_lifecycle
 
-from flareward.services.access.adapters.mongo.artifact_workflow_access import (
+from lumora.services.access.adapters.mongo.artifact_workflow_access import (
     MongoArtifactWorkflowRepository,
 )
 

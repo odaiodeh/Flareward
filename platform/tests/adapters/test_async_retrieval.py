@@ -6,10 +6,10 @@ import httpx
 import pytest
 from global_utils.constants import INTERNAL_AUTH_HEADER
 
-from flareward.elements.behaviors.retriever_capable import RetrieverCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
+from lumora.elements.behaviors.retriever_capable import RetrieverCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
 from plugins.mas.elements.builtin.retriever import RetrieverTool
 from plugins.retrieval.elements.slack.slack_retriever import SlackRetriever
 

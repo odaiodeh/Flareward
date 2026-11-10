@@ -10,7 +10,7 @@ from uuid import uuid4
 from itsdangerous import URLSafeTimedSerializer
 from redis.asyncio import Redis
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 
 def session_cookie(session_id: str, secret: str = "test-secret") -> str:

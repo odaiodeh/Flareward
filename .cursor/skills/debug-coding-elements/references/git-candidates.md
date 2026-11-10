@@ -9,7 +9,7 @@ admitted repository resource before returning an Engineering candidate. A valid
 JSON claim alone is insufficient; unavailable or foreign revisions must fail.
 
 Configure coding, artifact loading and repository placement separately. Repository
-locations/owners remain receiver/operator bindings in `FLAREWARD_GIT_REPOSITORIES`.
+locations/owners remain receiver/operator bindings in `LUMORA_GIT_REPOSITORIES`.
 The coding receiver needs its own authorized publication tools; a repository ID or
 read binding grants no write authority. Never fix missing publishing access by
 exposing operator keys or all-root configuration to the agent. Repairs receive the
@@ -37,8 +37,8 @@ Run focused application cases and actual Git adapter cases first. At the coheren
 native milestone:
 
 ```sh
-FLAREWARD_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
-FLAREWARD_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
+LUMORA_TEST_MONGO_URI=mongodb://127.0.0.1:27018 \
+LUMORA_TEST_REDIS_URI=redis://127.0.0.1:6380/15 \
 .venv/bin/python -m pytest \
   platform/tests/integration/coding/test_completion_choices.py -q
 ```

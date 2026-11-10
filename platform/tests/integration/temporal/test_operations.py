@@ -7,9 +7,9 @@ from support.operations import operation_bundle, operation_graph
 from support.scenarios import publish
 from support.temporal import replay, worker_process
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import ApplicationDefinition
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import ApplicationDefinition
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

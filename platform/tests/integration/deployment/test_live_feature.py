@@ -11,9 +11,9 @@ from support.feature_api import feature_workflow_access
 from support.live_feature import live_feature
 from support.review_api import pending_review
 
-from flareward.services.identity.domain import Identity
-from flareward.services.reviews.domain.models import ReviewRecord
-from flareward.services.verification.domain.check_runs import CheckRun
+from lumora.services.identity.domain import Identity
+from lumora.services.reviews.domain.models import ReviewRecord
+from lumora.services.verification.domain.check_runs import CheckRun
 from plugins.adlc.programs.feature import CodingFeatureResult
 from plugins.adlc.programs.program import EngineeringResult
 from plugins.adlc.programs.review import EngineeringReviewSubject

@@ -4,18 +4,18 @@ from typing import Any, Protocol
 
 from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.elements.factory import BaseFactory
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.elements.specification import BaseElementSpec
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import GraphDefinition, OperationStep, PathBinding
-from flareward.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.references import ToolRef
-from flareward.services.identity.domain import Identity
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.elements.factory import BaseFactory
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.elements.specification import BaseElementSpec
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import GraphDefinition, OperationStep, PathBinding
+from lumora.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.references import ToolRef
+from lumora.services.identity.domain import Identity
 
 
 def operation_context(root="root", execution="execution", key="operation") -> OperationContext:

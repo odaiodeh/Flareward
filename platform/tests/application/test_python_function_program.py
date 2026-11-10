@@ -6,8 +6,8 @@ from unittest.mock import create_autospec
 import pytest
 from support.python_checks import addition_cases, python_check_input
 
-from flareward.programs.invocation import ApplicationInvoker
-from flareward.programs.ports import ProgramRuntime
+from lumora.programs.invocation import ApplicationInvoker
+from lumora.programs.ports import ProgramRuntime
 from plugins.testing.programs.python_check import (
     APPLICATION_PROGRAMS,
     FunctionCase,

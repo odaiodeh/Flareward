@@ -1,7 +1,7 @@
 from typing import ClassVar
 
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.routing.elements.threshold.config import ThresholdConditionConfig
 from plugins.routing.elements.threshold.identifiers import META, Identifier
 from plugins.routing.elements.threshold.threshold import ThresholdCondition

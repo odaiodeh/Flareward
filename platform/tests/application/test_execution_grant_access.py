@@ -4,18 +4,18 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.executions.access import ExecutionGrantAccess
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
-from flareward.executions.ports import (
+from lumora.executions.access import ExecutionGrantAccess
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
+from lumora.executions.ports import (
     ExecutionLocationUnavailable,
     ExecutionMissing,
     ExecutionRepository,
     ProgramExecutionGateway,
 )
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.access.executions import ExecutionAccessUnavailable
-from flareward.services.identity.domain import Identity
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.access.executions import ExecutionAccessUnavailable
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

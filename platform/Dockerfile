@@ -18,14 +18,14 @@ COPY --from=run_engine /README.md /opt/run-engine/README.md
 COPY --from=run_engine /src/ /opt/run-engine/src/
 COPY packages/service-support/pyproject.toml /opt/service-support/pyproject.toml
 COPY packages/service-support/src/ /opt/service-support/src/
-COPY platform/pyproject.toml /opt/flareward/pyproject.toml
-COPY platform/src/ /opt/flareward/src/
-RUN pip install --no-cache-dir "/opt/run-engine[${RUN_ENGINE_EXTRAS}]" /opt/service-support "/opt/flareward[${PLATFORM_EXTRAS}]"
+COPY platform/pyproject.toml /opt/lumora/pyproject.toml
+COPY platform/src/ /opt/lumora/src/
+RUN pip install --no-cache-dir "/opt/run-engine[${RUN_ENGINE_EXTRAS}]" /opt/service-support "/opt/lumora[${PLATFORM_EXTRAS}]"
 
 # No test fixtures, private credentials, operator policies or local environments
 # are copied. Supply deployment configuration and private bindings at runtime.
 RUN chown 1000:1000 /app
 USER 1000:1000
 EXPOSE 13457
-ENTRYPOINT ["flareward-platform"]
+ENTRYPOINT ["lumora-platform"]
 CMD ["serve", "--host", "0.0.0.0", "--port", "13457"]

@@ -10,18 +10,18 @@ from support.review_programs import review_definition
 from support.verification import verification_request
 from support.verification_programs import verification_resources
 
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.domain.models import ExecutionRecord
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.models import ExecutionRecord
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     GraphDefinition,
     OperationStep,
     PathBinding,
     ProgramDefinition,
 )
-from flareward.resources.domain.bundles import ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.reviews.domain.models import ReviewRecord
+from lumora.resources.domain.bundles import ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.specification import (
     ELEMENT_SPECIFICATIONS as REVIEW_SPECIFICATIONS,
 )
@@ -177,6 +177,4 @@ async def test_admission_provisions_and_retires_native_root_access(
         assert "credential" not in material
         assert not list((tmp_path / "managed-workflow-access").rglob("*.json"))
         portable = json.dumps([submitted.json(), result.json()]) + api.log.read_text()
-        assert (
-            "flareward-review-v1." not in portable and "flareward-verification-v1." not in portable
-        )
+        assert "lumora-review-v1." not in portable and "lumora-verification-v1." not in portable

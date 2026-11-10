@@ -5,10 +5,10 @@ from dataclasses import dataclass, field
 import pytest
 from pydantic import ValidationError
 
-from flareward.elements.operation import OperationContext
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
-from flareward.services.workspaces.domain.files import WorkspaceMode
+from lumora.elements.operation import OperationContext
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
+from lumora.services.workspaces.domain.files import WorkspaceMode
 from plugins.git.domain.repositories import GitRevision
 from plugins.git.operations import (
     CheckoutGitOperation,

@@ -5,13 +5,13 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.programs.composition.models import (
+from lumora.programs.composition.models import (
     ChooseConfig,
     MapConfig,
     RepeatConfig,
     WaitConfig,
 )
-from flareward.programs.composition.programs import (
+from lumora.programs.composition.programs import (
     APPLICATION_PROGRAMS,
     CompositionContractError,
     choose_program,
@@ -19,8 +19,8 @@ from flareward.programs.composition.programs import (
     repeat_program,
     wait_program,
 )
-from flareward.programs.domain.models import ApplicationDefinition, ProgramDefinition
-from flareward.programs.ports import ChildExecution, ProgramRuntime
+from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.ports import ChildExecution, ProgramRuntime
 
 
 @pytest.fixture

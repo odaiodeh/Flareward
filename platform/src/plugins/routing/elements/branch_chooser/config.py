@@ -2,8 +2,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from flareward.elements.hints import CardContext, CardHint
-from flareward.elements.node_config import NodeBaseConfig
+from lumora.elements.hints import CardContext, CardHint
+from lumora.elements.node_config import NodeBaseConfig
 from plugins.routing.elements.branch_chooser.identifiers import Identifier
 
 

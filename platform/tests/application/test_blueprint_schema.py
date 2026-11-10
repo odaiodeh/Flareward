@@ -8,11 +8,11 @@ from pydantic import ValidationError
 from support.blueprints import dependency_blueprint
 from support.elements import DependencyConfig, EchoConfig
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.programs.templates.resolver import BlueprintResolver
-from flareward.programs.templates.schema import blueprint_schemas
-from flareward.resources.domain.references import ToolRef
-from flareward.resources.ports import ResourceReader
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.programs.templates.resolver import BlueprintResolver
+from lumora.programs.templates.schema import blueprint_schemas
+from lumora.resources.domain.references import ToolRef
+from lumora.resources.ports import ResourceReader
 
 
 def test_registry_blueprint_schema_preserves_plugin_configuration_and_exposes_it_to_clients(

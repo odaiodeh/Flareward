@@ -18,7 +18,7 @@ class PythonResolver(ABC):
         """Find a suitable Python interpreter within the given version range.
 
         *env_override* is an explicit interpreter path/name (e.g. from
-        ``FLAREWARD_PYTHON``).  When provided, only that candidate is tried.
+        ``LUMORA_PYTHON``).  When provided, only that candidate is tried.
 
         Returns ``(resolved_path, minor_version_string)`` – e.g.
         ``("/usr/bin/python3.12", "3.12")``.  Raises ``RuntimeError``

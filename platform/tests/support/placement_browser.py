@@ -19,12 +19,12 @@ from redis.asyncio import Redis
 from runengine.adapters.coordination.config import LocalHostConfig
 from runengine.invocation.config import K8sRunnerConfig, ProcessRunnerConfig, ThreadRunnerConfig
 
-from flareward.api.dependencies import authenticated
-from flareward.async_work import await_owned
-from flareward.bootstrap.asgi import create_app as native_app
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.services.connections.adapters.redis import owned_redis
-from flareward.services.identity.domain import Identity
+from lumora.api.dependencies import authenticated
+from lumora.async_work import await_owned
+from lumora.bootstrap.asgi import create_app as native_app
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.services.connections.adapters.redis import owned_redis
+from lumora.services.identity.domain import Identity
 from support.browser_identity import teams
 from support.identity import authenticated_cookie
 from support.server import api_process
@@ -80,9 +80,9 @@ async def team_leases(redis: Redis, team_ids: tuple[str, ...]):
 
 
 async def serve(assets: Path, log: Path) -> None:
-    mongo_uri = os.environ["FLAREWARD_TEST_MONGO_URI"]
-    redis_uri = os.environ["FLAREWARD_TEST_REDIS_URI"]
-    database_name = "flareward_browser_test_" + uuid4().hex
+    mongo_uri = os.environ["LUMORA_TEST_MONGO_URI"]
+    redis_uri = os.environ["LUMORA_TEST_REDIS_URI"]
+    database_name = "lumora_browser_test_" + uuid4().hex
     secret = uuid4().hex
     settings = PlatformSettings(
         host=LocalHostConfig(),

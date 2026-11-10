@@ -1,6 +1,6 @@
 """Portable dependency graphs shared by domain and application construction tests."""
 
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 
 
 def dependency_chain(length: int) -> tuple[ResourceDefinition, ...]:

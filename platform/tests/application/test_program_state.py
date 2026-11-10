@@ -2,10 +2,10 @@
 
 import pytest
 
-from flareward.programs.domain.models import ElementStep, GraphDefinition
-from flareward.programs.graph.state.graph_state import GraphState
-from flareward.programs.graph_state import AgentProgramState, graph_state_type
-from flareward.programs.state import ProgramState, StateContractError
+from lumora.programs.domain.models import ElementStep, GraphDefinition
+from lumora.programs.graph.state.graph_state import GraphState
+from lumora.programs.graph_state import AgentProgramState, graph_state_type
+from lumora.programs.state import ProgramState, StateContractError
 
 
 def test_data_graphs_accept_structured_results_without_conversation_channels():

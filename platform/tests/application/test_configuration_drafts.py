@@ -15,15 +15,15 @@ from support.draft_configuration import (
 )
 from support.secrets import MemorySecretStore
 
-from flareward.elements.construction.categories import CategoryBuilders
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.elements.instances import ElementInstances
-from flareward.programs.service import ProgramContractError
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.domain.construction import ResourceSpec
-from flareward.resources.domain.references import ToolRef
-from flareward.resources.secrets import is_secret_reference
-from flareward.services.identity.domain import Identity
+from lumora.elements.construction.categories import CategoryBuilders
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.elements.instances import ElementInstances
+from lumora.programs.service import ProgramContractError
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.construction import ResourceSpec
+from lumora.resources.domain.references import ToolRef
+from lumora.resources.secrets import is_secret_reference
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

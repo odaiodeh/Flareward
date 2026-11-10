@@ -2,8 +2,8 @@ from typing import Literal
 
 from pydantic import Field
 
-from flareward.elements.hints import CardContext, CardHint, SecretHint
-from flareward.elements.tools.configuration.base_config import BaseToolConfig
+from lumora.elements.hints import CardContext, CardHint, SecretHint
+from lumora.elements.tools.configuration.base_config import BaseToolConfig
 from plugins.openshift.elements.oc_exec.identifiers import Identifier
 
 

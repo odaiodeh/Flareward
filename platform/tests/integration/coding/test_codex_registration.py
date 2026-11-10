@@ -4,14 +4,14 @@ import pytest
 from pydantic import SecretStr
 from support.secrets import MemorySecretStore
 
-from flareward.bootstrap.elements import installed_elements
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.coding.operation import CodingOperation
-from flareward.elements.construction.secrets import ConfigurationSecrets
-from flareward.elements.operation import BaseOperation
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.secrets import is_secret_reference
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.elements import installed_elements
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.coding.operation import CodingOperation
+from lumora.elements.construction.secrets import ConfigurationSecrets
+from lumora.elements.operation import BaseOperation
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.secrets import is_secret_reference
+from lumora.services.identity.domain import Identity
 from plugins.codex.config import CodexConfig
 from plugins.codex.identifiers import TYPE_KEY
 from plugins.codex.specification import CodexSpec

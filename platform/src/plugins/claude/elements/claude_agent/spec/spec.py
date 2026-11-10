@@ -2,8 +2,8 @@
 Claude Agent Node Specification
 """
 
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.claude.elements.claude_agent.card_builder import ClaudeAgentCardBuilder
 from plugins.claude.elements.claude_agent.claude_agent_node import ClaudeAgentNode
 from plugins.claude.elements.claude_agent.claude_agent_node_factory import (

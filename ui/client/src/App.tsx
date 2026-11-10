@@ -150,7 +150,7 @@ function WorkspaceContent() {
 function App() {
   // Set document title
   useEffect(() => {
-    document.title = "Flareward";
+    document.title = "Lumora";
   }, []);
 
   return (

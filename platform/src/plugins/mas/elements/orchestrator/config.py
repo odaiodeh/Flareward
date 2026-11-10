@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from flareward.elements.hints import (
+from lumora.elements.hints import (
     ApiHint,
     CardContext,
     CardHint,
@@ -10,8 +10,8 @@ from flareward.elements.hints import (
     SelectionType,
     combine_hints,
 )
-from flareward.elements.node_config import NodeBaseConfig
-from flareward.resources.domain.references import LLMRef, ToolRef
+from lumora.elements.node_config import NodeBaseConfig
+from lumora.resources.domain.references import LLMRef, ToolRef
 from plugins.mas.elements.orchestrator.identifiers import Identifier
 
 

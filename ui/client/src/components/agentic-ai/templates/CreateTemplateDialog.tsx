@@ -205,7 +205,7 @@ export const CreateTemplateDialog: React.FC<CreateTemplateDialogProps> = ({
                 <Input
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
-                  placeholder="e.g. Flareward"
+                  placeholder="e.g. Lumora"
                   className="bg-muted/50 border-border"
                 />
               </div>

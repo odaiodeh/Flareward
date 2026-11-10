@@ -5,7 +5,7 @@ from unittest.mock import create_autospec, patch
 
 from redis.asyncio import ConnectionPool, Redis
 
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 async def test_cancelled_redis_cleanup_finishes_before_pool_reset():
@@ -23,7 +23,7 @@ async def test_cancelled_redis_cleanup_finishes_before_pool_reset():
         async with owned_redis("redis://unused.invalid"):
             pass
 
-    with patch("flareward.services.connections.adapters.redis.Redis.from_url", return_value=client):
+    with patch("lumora.services.connections.adapters.redis.Redis.from_url", return_value=client):
         task = asyncio.create_task(owner())
         try:
             async with asyncio.timeout(5):

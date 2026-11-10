@@ -15,11 +15,11 @@ from typing import Any
 import google.genai as genai
 from google.genai import types
 
-from flareward.elements.messaging.domain.messages import ChatMessage
-from flareward.elements.models.errors import provider_errors
-from flareward.elements.ports.llm import BaseLLM
-from flareward.elements.tools.domain.models import ToolDefinition
-from flareward.services.tracing import NoOpTracingService, TracingService
+from lumora.elements.messaging.domain.messages import ChatMessage
+from lumora.elements.models.errors import provider_errors
+from lumora.elements.ports.llm import BaseLLM
+from lumora.elements.tools.domain.models import ToolDefinition
+from lumora.services.tracing import NoOpTracingService, TracingService
 from plugins.gemini.elements.google_genai.message_converter import (
     GoogleGenAIMessageConverter,
 )

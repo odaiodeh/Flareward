@@ -8,13 +8,13 @@ from support.condition_scenarios import routing_graph
 from support.invalid_graph import UnscopedConditionSpec
 from support.scenarios import echo_graph, publish, resource, run
 
-from flareward.executions.adapters.run_engine.shared.models import ProgramPayload
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase, FailureKind
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import ConditionalRoute, GraphDefinition, ProgramDefinition
-from flareward.resources.domain.bundles import ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.executions.adapters.run_engine.shared.models import ProgramPayload
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase, FailureKind
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import ConditionalRoute, GraphDefinition, ProgramDefinition
+from lumora.resources.domain.bundles import ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 
 
 def conditional_graph(selection: ExecutionSelection | None = None) -> GraphDefinition:

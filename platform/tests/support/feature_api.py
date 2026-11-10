@@ -4,16 +4,16 @@ from dataclasses import dataclass
 
 import httpx
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.programs.domain.models import (
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     ProgramBody,
     ProgramDefinition,
     ProgramRef,
 )
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.models import CheckRequirement
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.models import CheckRequirement
 from plugins.adlc.programs.design import DesignResult, FeatureRequest
 from plugins.adlc.programs.feature import CodingFeatureInput, CodingFeatureResult
 from plugins.adlc.programs.program import EngineeringInput, EngineeringResult

@@ -18,7 +18,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from flareward.elements.messaging.domain.messages import ToolCall
+from lumora.elements.messaging.domain.messages import ToolCall
 
 
 @dataclass

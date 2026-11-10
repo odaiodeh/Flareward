@@ -17,11 +17,11 @@ from temporalio.client import Client
 
 
 async def main():
-    host = os.environ.get("FLAREWARD_SMOKE_HOST", '{"runner_type":"local"}')
+    host = os.environ.get("LUMORA_SMOKE_HOST", '{"runner_type":"local"}')
     selected = json.loads(host)
     durable = selected["runner_type"] == "temporal"
-    database = "flareward_platform_image_" + uuid4().hex
-    mongo = os.environ.get("FLAREWARD_SMOKE_MONGO_URI", "mongodb://mongo:27017")
+    database = "lumora_platform_image_" + uuid4().hex
+    mongo = os.environ.get("LUMORA_SMOKE_MONGO_URI", "mongodb://mongo:27017")
     if selected["runner_type"] == "temporal":
         namespace = selected.get("namespace", "default")
         client = await Client.connect(selected["endpoint"], namespace=namespace)
@@ -39,17 +39,17 @@ async def main():
                 await asyncio.sleep(0.05)
     environment = dict(
         os.environ,
-        FLAREWARD_HOST=host,
-        FLAREWARD_STORAGE="mongo" if durable else "memory",
-        FLAREWARD_MONGO_URI=mongo,
-        FLAREWARD_MONGO_DATABASE=database,
-        FLAREWARD_AUTHENTICATION="development",
-        FLAREWARD_DEVELOPMENT_USER="image-smoke",
-        FLAREWARD_INTERACTIONS="disabled",
+        LUMORA_HOST=host,
+        LUMORA_STORAGE="mongo" if durable else "memory",
+        LUMORA_MONGO_URI=mongo,
+        LUMORA_MONGO_DATABASE=database,
+        LUMORA_AUTHENTICATION="development",
+        LUMORA_DEVELOPMENT_USER="image-smoke",
+        LUMORA_INTERACTIONS="disabled",
     )
     with tempfile.TemporaryFile(mode="w+") as log:
         server = subprocess.Popen(
-            ["flareward-platform", "serve", "--host", "127.0.0.1", "--port", "13457"],
+            ["lumora-platform", "serve", "--host", "127.0.0.1", "--port", "13457"],
             env=environment,
             stdout=log,
             stderr=subprocess.STDOUT,

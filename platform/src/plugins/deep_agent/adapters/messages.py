@@ -10,8 +10,8 @@ from langchain_core.messages import (
     ToolMessage,
 )
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
-from flareward.elements.models.chat.utils import ensure_tool_call_id
+from lumora.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
+from lumora.elements.models.chat.utils import ensure_tool_call_id
 
 
 def normalise_content(content: str | list | Any) -> str:

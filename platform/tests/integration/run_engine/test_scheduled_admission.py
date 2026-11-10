@@ -8,13 +8,13 @@ from runengine.core.refs import FunctionRef
 from support.scenarios import publish
 from support.scheduling import schedule_request
 
-from flareward.bootstrap.scheduling import admit_scheduled_execution
-from flareward.executions.adapters.run_engine.inbound.schedules import execute_scheduled_program
-from flareward.executions.adapters.run_engine.shared.scheduling import ScheduledProgramInput
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.models import PreparedExecution
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.scheduling.programs import ProgramSchedule, ScheduleRegistration
+from lumora.bootstrap.scheduling import admit_scheduled_execution
+from lumora.executions.adapters.run_engine.inbound.schedules import execute_scheduled_program
+from lumora.executions.adapters.run_engine.shared.scheduling import ScheduledProgramInput
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.models import PreparedExecution
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.scheduling.programs import ProgramSchedule, ScheduleRegistration
 
 
 async def test_scheduled_entrypoint_carries_frozen_profiles_to_actual_tick_admission(platform):

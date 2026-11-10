@@ -4,14 +4,14 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle
-from flareward.services.verification.check_ports import CheckRunHandle
-from flareward.services.verification.domain.check_runs import CheckRun, CheckRunStatus
-from flareward.services.verification.domain.models import VerificationOutcome
-from flareward.services.verification.models import VerificationView
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle
+from lumora.services.verification.check_ports import CheckRunHandle
+from lumora.services.verification.domain.check_runs import CheckRun, CheckRunStatus
+from lumora.services.verification.domain.models import VerificationOutcome
+from lumora.services.verification.models import VerificationView
 from plugins.verification.elements.operations import VerificationHandle
 
 

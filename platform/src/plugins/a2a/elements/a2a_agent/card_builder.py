@@ -1,16 +1,16 @@
 """
 Card builder for A2AAgentNode.
 
-Uses agent_card from flareward.bootstrap.settings to build the element card.
+Uses agent_card from lumora.bootstrap.settings to build the element card.
 """
 
 from typing import Any
 
 from a2a.types import AgentCard
 
-from flareward.elements.cards.interface import CardBuilder
-from flareward.elements.cards.models import CardBuildInput
-from flareward.elements.domain.cards import Capability, ElementCard, Skill
+from lumora.elements.cards.interface import CardBuilder
+from lumora.elements.cards.models import CardBuildInput
+from lumora.elements.domain.cards import Capability, ElementCard, Skill
 
 
 class A2AAgentCardBuilder(CardBuilder):

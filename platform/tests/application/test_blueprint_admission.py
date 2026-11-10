@@ -4,12 +4,12 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.programs.templates.contracts import BlueprintDocument
-from flareward.programs.templates.repository.repository import BlueprintRepository
-from flareward.programs.templates.resolver import BlueprintResolver
-from flareward.programs.templates.service import BlueprintService
-from flareward.services.identity.domain import Identity
-from flareward.services.identity.scope import CallerScope
+from lumora.programs.templates.contracts import BlueprintDocument
+from lumora.programs.templates.repository.repository import BlueprintRepository
+from lumora.programs.templates.resolver import BlueprintResolver
+from lumora.programs.templates.service import BlueprintService
+from lumora.services.identity.domain import Identity
+from lumora.services.identity.scope import CallerScope
 
 
 def test_unowned_blueprint_is_denied_before_configuration_is_parsed():

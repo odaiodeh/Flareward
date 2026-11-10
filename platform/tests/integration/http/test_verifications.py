@@ -12,14 +12,14 @@ from support.verification import (
     verification_request,
 )
 
-from flareward.api.app import create_app
-from flareward.api.verification_auth import VerifierAuthenticator
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.access_models import VerificationActor
-from flareward.services.verification.adapters.mongo.verification_repository import (
+from lumora.api.app import create_app
+from lumora.api.verification_auth import VerifierAuthenticator
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.access_models import VerificationActor
+from lumora.services.verification.adapters.mongo.verification_repository import (
     MongoVerificationRepository,
 )
-from flareward.services.verification.service import VerificationService
+from lumora.services.verification.service import VerificationService
 
 
 async def test_exact_subject_and_verifier_roles_survive_api_reconstruction(

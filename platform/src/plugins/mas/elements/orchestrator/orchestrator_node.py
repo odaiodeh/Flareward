@@ -11,21 +11,21 @@ This node coordinates work execution by:
 import logging
 from typing import Any, ClassVar
 
-from flareward.elements.agents.config import AgentConfig
-from flareward.elements.agents.constants import StrategyType
-from flareward.elements.agents.delegation_policy import DelegationPolicy, PermissiveDelegationPolicy
-from flareward.elements.agents.execution import ExecutionMode
-from flareward.elements.behaviors.agent_capable import AgentCapableMixin
-from flareward.elements.behaviors.llm_capable import LlmCapableMixin
-from flareward.elements.messaging.domain.messages import ChatMessage, Role
-from flareward.elements.node import BaseNode
-from flareward.elements.ports.tool import BaseTool
-from flareward.elements.tools.config import ExecutorConfig
-from flareward.elements.workloads.domain import AgentResult, Task, WorkItemKind, WorkItemStatus
-from flareward.programs.graph.capabilities.messaging import GraphMessagingMixin
-from flareward.programs.graph.capabilities.workloads import GraphWorkloadMixin
-from flareward.programs.graph.models import AdjacentNodes
-from flareward.programs.graph.state.state_view import StateView
+from lumora.elements.agents.config import AgentConfig
+from lumora.elements.agents.constants import StrategyType
+from lumora.elements.agents.delegation_policy import DelegationPolicy, PermissiveDelegationPolicy
+from lumora.elements.agents.execution import ExecutionMode
+from lumora.elements.behaviors.agent_capable import AgentCapableMixin
+from lumora.elements.behaviors.llm_capable import LlmCapableMixin
+from lumora.elements.messaging.domain.messages import ChatMessage, Role
+from lumora.elements.node import BaseNode
+from lumora.elements.ports.tool import BaseTool
+from lumora.elements.tools.config import ExecutorConfig
+from lumora.elements.workloads.domain import AgentResult, Task, WorkItemKind, WorkItemStatus
+from lumora.programs.graph.capabilities.messaging import GraphMessagingMixin
+from lumora.programs.graph.capabilities.workloads import GraphWorkloadMixin
+from lumora.programs.graph.models import AdjacentNodes
+from lumora.programs.graph.state.state_view import StateView
 from plugins.mas.elements.orchestrator.context import (
     CycleTrigger,
     CycleTriggerReason,

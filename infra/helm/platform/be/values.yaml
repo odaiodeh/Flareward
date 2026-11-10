@@ -1,9 +1,9 @@
-# Defaults for the native Flareward Program platform.
+# Defaults for the native Lumora Program platform.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 global:
   #namespace: tag-ai--pipeline  #do we want to add this or ignore is as we login to a speficif namespace?
-  app: flareward
+  app: lumora
   # role: platform-app
   # mode: debug
   port: 8003
@@ -15,16 +15,16 @@ globalConfigMapName: shared-config
 globalSecretName: shared-secret
 env:
   # Override service addresses and use the same host/namespace/queue on API and worker.
-  FLAREWARD_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"flareward-programs-v2"}'
-  FLAREWARD_MONGO_URI: "mongodb://mongodb:27017"
-  FLAREWARD_AUTHENTICATION: "session"
-  FLAREWARD_HTTP_WORKERS: "1"
+  LUMORA_HOST: '{"runner_type":"temporal","endpoint":"temporal:7233","namespace":"default","task_queue":"lumora-programs-v2"}'
+  LUMORA_MONGO_URI: "mongodb://mongodb:27017"
+  LUMORA_AUTHENTICATION: "session"
+  LUMORA_HTTP_WORKERS: "1"
 
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
 image:
-  # repository: images.paas.redhat.com/flareward/platform/backend
-  repository: images.paas.redhat.com/flareward/platform
+  # repository: images.paas.redhat.com/lumora/platform/backend
+  repository: images.paas.redhat.com/lumora/platform
   # This sets the pull policy for images.
   pullPolicy: Always #IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -141,26 +141,26 @@ autoscaling:
 
 # Additional volumes on the output Deployment definition.
 volumes:
-  - name: flareward-platform-shared-storage
+  - name: lumora-platform-shared-storage
     persistentVolumeClaim:
-      claimName: flareward-platform-shared-storage
+      claimName: lumora-platform-shared-storage
   - name: gcp-credentials
     secret:
       secretName: gcp-vertex-credentials
       optional: true
-  - name: flareward-logging-volume
+  - name: lumora-logging-volume
     persistentVolumeClaim:
-      claimName: flareward-logging-volume
+      claimName: lumora-logging-volume
 
 # Additional volumeMounts on the output Deployment definition.
 volumeMounts:
-  - name: flareward-platform-shared-storage
+  - name: lumora-platform-shared-storage
     mountPath: /app/shared
   - name: gcp-credentials
     mountPath: /opt/app-root/src/config/gcp
     readOnly: true
-  - name: flareward-logging-volume
-    mountPath: /var/log/flareward
+  - name: lumora-logging-volume
+    mountPath: /var/log/lumora
     subPathExpr: platform/$(POD_NAME)/$(APP_VERSION)
     readOnly: false
  

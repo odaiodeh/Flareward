@@ -11,7 +11,7 @@ import json
 from typing import Any
 from uuid import uuid4
 
-from flareward.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
+from lumora.elements.messaging.domain.messages import ChatMessage, Role, ToolCall
 
 _ROLE_MAP: dict[Role, str] = {
     Role.SYSTEM: "system",

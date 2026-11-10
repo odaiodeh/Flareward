@@ -8,12 +8,12 @@ import httpx
 from pydantic import SecretStr
 from redis.asyncio import Redis
 
-from flareward.api.app import create_app
-from flareward.api.authentication import SessionAuthenticator
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.services.actions.service import ActionsService
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.api.app import create_app
+from lumora.api.authentication import SessionAuthenticator
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.services.actions.service import ActionsService
+from lumora.services.connections.adapters.redis import owned_redis
 from support.identity import authenticated_cookie
 
 

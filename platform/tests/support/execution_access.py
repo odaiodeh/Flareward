@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 
 
 @dataclass

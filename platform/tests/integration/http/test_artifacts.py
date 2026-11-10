@@ -10,13 +10,13 @@ from starlette.requests import ClientDisconnect
 from support.artifacts import chunks, publication
 from support.server import api_process
 
-from flareward.api.app import create_app
-from flareward.api.artifacts import ArtifactResponse
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.services.artifacts.adapters.filesystem import FileArtifactRepository
-from flareward.services.artifacts.domain.models import ArtifactRecord, BlobArtifactRef
-from flareward.services.artifacts.service import ArtifactService
-from flareward.services.identity.domain import Identity
+from lumora.api.app import create_app
+from lumora.api.artifacts import ArtifactResponse
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.services.artifacts.adapters.filesystem import FileArtifactRepository
+from lumora.services.artifacts.domain.models import ArtifactRecord, BlobArtifactRef
+from lumora.services.artifacts.service import ArtifactService
+from lumora.services.identity.domain import Identity
 
 
 async def test_artifact_bytes_and_metadata_survive_real_api_restart_and_enforce_owner(tmp_path):

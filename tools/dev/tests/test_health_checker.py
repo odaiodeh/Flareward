@@ -450,7 +450,7 @@ class TestRenderDashboard:
             ServiceHealth("api", ServiceStatus.DOWN, 8002, port_open=False),
         ]
         issues = [
-            StatusIssue("Redis stopped → api affected", "flareward-dev infra start redis", ["api"]),
+            StatusIssue("Redis stopped → api affected", "lumora-dev infra start redis", ["api"]),
         ]
 
         DiagnosticService._render_dashboard(infra, services, issues)

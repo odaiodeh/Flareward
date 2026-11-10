@@ -5,15 +5,15 @@ from datetime import UTC, datetime
 
 import pytest
 
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.services.access.issuance import CredentialIssuance, CredentialIssuanceConflict
-from flareward.services.artifacts.access_models import StoredArtifactWorkflowAccess
-from flareward.services.artifacts.ports import ArtifactCredentialError
-from flareward.services.artifacts.workflow_access import (
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.services.access.issuance import CredentialIssuance, CredentialIssuanceConflict
+from lumora.services.artifacts.access_models import StoredArtifactWorkflowAccess
+from lumora.services.artifacts.ports import ArtifactCredentialError
+from lumora.services.artifacts.workflow_access import (
     ArtifactWorkflowAccessService,
     ArtifactWorkflowRepository,
 )
-from flareward.services.identity.domain import Identity
+from lumora.services.identity.domain import Identity
 from support.credential_material import MemoryCredentialMaterial
 from support.execution_access import ExecutionAuthority
 from support.verification import VerificationClock

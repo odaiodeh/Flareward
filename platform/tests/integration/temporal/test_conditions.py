@@ -7,8 +7,8 @@ from support.condition_scenarios import routing_graph
 from support.scenarios import publish
 from support.temporal import replay, worker_process
 
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.models import StartExecution
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.models import StartExecution
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

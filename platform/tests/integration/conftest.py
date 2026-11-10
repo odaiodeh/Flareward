@@ -14,17 +14,17 @@ from support.application import Application
 from support.conditions import ELEMENT_SPECIFICATIONS as CONDITION_SPECIFICATIONS
 from support.databases import isolated_mongo
 
-from flareward.bootstrap.credentials import receiver_auth
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.executions.adapters.memory.execution_repository import MemoryExecutionRepository
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
-from flareward.executions.service import ExecutionService
-from flareward.programs.service import ProgramService
-from flareward.services.auth.credentials.models import StoredCredential
-from flareward.services.identity.domain import Identity
-from flareward.services.sessions.adapters.memory.session_store import MemorySessionStore
-from flareward.services.sessions.execution.program_sessions import ProgramSessionService
+from lumora.bootstrap.credentials import receiver_auth
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.executions.adapters.memory.execution_repository import MemoryExecutionRepository
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
+from lumora.executions.service import ExecutionService
+from lumora.programs.service import ProgramService
+from lumora.services.auth.credentials.models import StoredCredential
+from lumora.services.identity.domain import Identity
+from lumora.services.sessions.adapters.memory.session_store import MemorySessionStore
+from lumora.services.sessions.execution.program_sessions import ProgramSessionService
 
 
 @dataclass(frozen=True)
@@ -75,18 +75,18 @@ async def sessions(platform: Platform, session_store):
 
 @pytest.fixture
 async def mongo_database():
-    uri = os.environ.get("FLAREWARD_TEST_MONGO_URI")
+    uri = os.environ.get("LUMORA_TEST_MONGO_URI")
     if not uri:
-        pytest.skip("Set FLAREWARD_TEST_MONGO_URI to run actual Mongo repository contracts")
+        pytest.skip("Set LUMORA_TEST_MONGO_URI to run actual Mongo repository contracts")
     async with isolated_mongo(uri) as database:
         yield database
 
 
 @pytest.fixture
 async def transaction_database():
-    uri = os.environ.get("FLAREWARD_TEST_MONGO_TRANSACTION_URI")
+    uri = os.environ.get("LUMORA_TEST_MONGO_TRANSACTION_URI")
     if not uri:
-        pytest.skip("Set FLAREWARD_TEST_MONGO_TRANSACTION_URI for atomic Mongo catalog tests")
+        pytest.skip("Set LUMORA_TEST_MONGO_TRANSACTION_URI for atomic Mongo catalog tests")
     async with isolated_mongo(uri) as database:
         assert (await database.client.admin.command("hello")).get("setName"), (
             "The configured transaction service must support Mongo transactions"
@@ -96,20 +96,20 @@ async def transaction_database():
 
 @pytest.fixture
 def redis_uri():
-    value = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    value = os.environ.get("LUMORA_TEST_REDIS_URI")
     if not value:
-        pytest.skip("Set FLAREWARD_TEST_REDIS_URI for actual Redis integration")
+        pytest.skip("Set LUMORA_TEST_REDIS_URI for actual Redis integration")
     return value
 
 
 @pytest.fixture
 def secret_settings(mongo_database, monkeypatch):
     key = Fernet.generate_key().decode()
-    monkeypatch.setenv("FLAREWARD_MONGO_URI", os.environ["FLAREWARD_TEST_MONGO_URI"])
-    monkeypatch.setenv("FLAREWARD_MONGO_DATABASE", mongo_database.name)
-    monkeypatch.setenv("FLAREWARD_CREDENTIAL_ENCRYPTION_KEY", key)
-    monkeypatch.setenv("FLAREWARD_CONFIGURATION_SECRETS", "true")
-    monkeypatch.setenv("FLAREWARD_INTERACTIONS", "disabled")
+    monkeypatch.setenv("LUMORA_MONGO_URI", os.environ["LUMORA_TEST_MONGO_URI"])
+    monkeypatch.setenv("LUMORA_MONGO_DATABASE", mongo_database.name)
+    monkeypatch.setenv("LUMORA_CREDENTIAL_ENCRYPTION_KEY", key)
+    monkeypatch.setenv("LUMORA_CONFIGURATION_SECRETS", "true")
+    monkeypatch.setenv("LUMORA_INTERACTIONS", "disabled")
     return PlatformSettings(
         host=LocalHostConfig(),
         storage="mongo",

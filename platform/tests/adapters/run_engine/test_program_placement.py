@@ -10,18 +10,18 @@ from runengine.invocation.config import ExecutorConfig, ThreadRunnerConfig
 from support.elements import element_registry
 from support.scenarios import bundle, publish
 
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.adapters.run_engine.outbound.runtime import RunEngineProgramRuntime
-from flareward.executions.adapters.run_engine.shared.models import (
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.adapters.run_engine.outbound.runtime import RunEngineProgramRuntime
+from lumora.executions.adapters.run_engine.shared.models import (
     ElementSpecifications,
     ProgramPlacement,
 )
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.preferences import ExecutionProfileCatalog, ExecutionSelection
-from flareward.executions.placement import PlacementRefused
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.preferences import ExecutionProfileCatalog, ExecutionSelection
+from lumora.executions.placement import PlacementRefused
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

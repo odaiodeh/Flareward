@@ -2,12 +2,12 @@
 
 from datetime import UTC, datetime, timedelta
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
-from flareward.executions.models import PreparedExecution, SubmissionClaim
-from flareward.executions.ports import ExecutionRepository
-from flareward.programs.domain.models import ProgramRef
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
+from lumora.executions.models import PreparedExecution, SubmissionClaim
+from lumora.executions.ports import ExecutionRepository
+from lumora.programs.domain.models import ProgramRef
+from lumora.services.identity.domain import Identity
 
 
 async def assert_submission_claim_contract(repository: ExecutionRepository) -> None:

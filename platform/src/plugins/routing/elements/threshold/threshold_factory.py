@@ -1,4 +1,4 @@
-from flareward.elements.factory import BaseFactory
+from lumora.elements.factory import BaseFactory
 from plugins.routing.elements.threshold.config import ThresholdConditionConfig
 from plugins.routing.elements.threshold.identifiers import Identifier
 from plugins.routing.elements.threshold.threshold import ThresholdCondition

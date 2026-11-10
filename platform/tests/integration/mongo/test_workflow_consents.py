@@ -5,10 +5,10 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from support.workflow_consents import assert_consent_store_contract
 
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.executions.domain.consent import WorkflowConsent
-from flareward.services.access.adapters.mongo.workflow_consents import MongoWorkflowConsents
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.executions.domain.consent import WorkflowConsent
+from lumora.services.access.adapters.mongo.workflow_consents import MongoWorkflowConsents
+from lumora.services.identity.domain import Identity
 
 
 async def test_mongo_consent_contract_and_server_clock_expiry(mongo_database):

@@ -1,7 +1,7 @@
 import logging
 
-from flareward.elements.node import BaseNode
-from flareward.programs.graph.state.state_view import StateView
+from lumora.elements.node import BaseNode
+from lumora.programs.graph.state.state_view import StateView
 
 logger = logging.getLogger(__name__)
 

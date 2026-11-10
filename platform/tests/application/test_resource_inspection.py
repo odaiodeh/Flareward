@@ -5,12 +5,12 @@ from unittest.mock import create_autospec
 import pytest
 from support.builtins import ADMIN, curated_record
 
-from flareward.elements.validation import ElementValidationResult
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.resources.inspection import ResourceInspectionService
-from flareward.resources.probes import InspectionMode, InspectionResourceReader, ResourceProbe
-from flareward.services.access.administrators import AdministratorAccess
-from flareward.services.identity.domain import Identity
+from lumora.elements.validation import ElementValidationResult
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.resources.inspection import ResourceInspectionService
+from lumora.resources.probes import InspectionMode, InspectionResourceReader, ResourceProbe
+from lumora.services.access.administrators import AdministratorAccess
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

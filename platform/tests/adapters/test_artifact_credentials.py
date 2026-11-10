@@ -7,12 +7,12 @@ import pytest
 from pydantic import SecretStr
 from support.artifact_workflow import ArtifactWorkflowCase, MemoryArtifactWorkflowRepository
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.access.credentials import (
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.access.credentials import (
     WorkflowCredentialSource,
     WorkflowCredentialUnavailable,
 )
-from flareward.services.artifacts.ports import ArtifactCredentialError, ArtifactStorageError
+from lumora.services.artifacts.ports import ArtifactCredentialError, ArtifactStorageError
 from plugins.artifacts.elements.http import ArtifactTransportSettings, HTTPArtifactGateway
 
 

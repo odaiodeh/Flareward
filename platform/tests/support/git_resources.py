@@ -1,7 +1,7 @@
 """Normal Git provider/operation definitions shared by Program scenarios."""
 
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
 
 
 def git_resources(repository="product"):

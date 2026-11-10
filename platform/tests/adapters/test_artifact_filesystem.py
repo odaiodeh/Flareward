@@ -5,15 +5,15 @@ import asyncio
 import pytest
 from support.artifacts import chunks, publication
 
-from flareward.services.artifacts.access_models import ArtifactActor
-from flareward.services.artifacts.adapters.filesystem import FileArtifactRepository
-from flareward.services.artifacts.ports import (
+from lumora.services.artifacts.access_models import ArtifactActor
+from lumora.services.artifacts.adapters.filesystem import FileArtifactRepository
+from lumora.services.artifacts.ports import (
     ArtifactConflict,
     ArtifactIntegrityError,
     ArtifactMissing,
 )
-from flareward.services.artifacts.service import ArtifactService
-from flareward.services.identity.domain import Identity
+from lumora.services.artifacts.service import ArtifactService
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

@@ -1,18 +1,18 @@
 # Native Program platform deployment
 
 The API and durable worker use the same Python 3.14 platform image. Its entrypoint
-is `flareward-platform`; the API chart supplies `serve --host 0.0.0.0 --port <service.port>`
+is `lumora-platform`; the API chart supplies `serve --host 0.0.0.0 --port <service.port>`
 and the worker chart supplies `worker`. No ROLE/Gunicorn/old Temporal CLI is used.
 Build and verify the image using [the package guide](../../platform/README.md#native-service-image).
 
 Configure existing shared services and private secrets before installation:
 
-- Override `env.FLAREWARD_HOST` with the same Temporal endpoint, namespace and task
+- Override `env.LUMORA_HOST` with the same Temporal endpoint, namespace and task
   queue on API and worker. The example defaults use `temporal:7233` and do not
   discover the actual service address.
-- Set `FLAREWARD_MONGO_URI` and optional database explicitly. Native configuration
+- Set `LUMORA_MONGO_URI` and optional database explicitly. Native configuration
   does not use old MONGODB_IP/RABBITMQ_IP/BACKEND_ENV settings.
-- Supply the API's `FLAREWARD_SECRET_KEY` and `FLAREWARD_IDENTITY_URL` through the configured
+- Supply the API's `LUMORA_SECRET_KEY` and `LUMORA_IDENTITY_URL` through the configured
   shared Secret/ConfigMap. Use session authentication for the normal UI.
 - Configure native Redis interactions, library/authoring, receiver credentials,
   encryption and managed workflow access as needed using the package development
@@ -28,8 +28,8 @@ references, image repository/tag and service addresses in deployment values.
 ```sh
 helm lint ./be
 helm lint ./temporal-worker
-helm template flareward-api ./be -f deployment-values.yaml
-helm template flareward-worker ./temporal-worker -f deployment-values.yaml
+helm template lumora-api ./be -f deployment-values.yaml
+helm template lumora-worker ./temporal-worker -f deployment-values.yaml
 ```
 
 After reviewing rendered output, deploy the charts using the normal environment's

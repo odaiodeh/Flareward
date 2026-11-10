@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 import httpx
 from pydantic import JsonValue
 
-from flareward.services.artifacts.domain.models import ContentIdentity
-from flareward.services.verification.check_ports import (
+from lumora.services.artifacts.domain.models import ContentIdentity
+from lumora.services.verification.check_ports import (
     CheckProviderUnavailable,
     CheckSubmissionRejected,
 )

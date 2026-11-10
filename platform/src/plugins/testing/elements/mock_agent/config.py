@@ -2,9 +2,9 @@ from typing import Literal
 
 from pydantic import Field
 
-from flareward.elements.hints import CardContext, CardHint
-from flareward.elements.node_config import NodeBaseConfig
-from flareward.resources.domain.references import LLMRef
+from lumora.elements.hints import CardContext, CardHint
+from lumora.elements.node_config import NodeBaseConfig
+from lumora.resources.domain.references import LLMRef
 from plugins.testing.elements.mock_agent.identifiers import Identifier
 
 

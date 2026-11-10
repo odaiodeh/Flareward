@@ -109,16 +109,16 @@ class DiagnosticService:
                     print(f"  ✔ {svc.name}: {rel}")
                     missing = self._env_svc.check_missing_keys(svc)
                     for key in sorted(missing):
-                        print(f"  ⚠ {svc.name}: {rel}  {key} is missing (run 'flareward-dev start' or 'flareward-dev env generate')")
+                        print(f"  ⚠ {svc.name}: {rel}  {key} is missing (run 'lumora-dev start' or 'lumora-dev env generate')")
                     placeholders, auto_gen = self._env_svc.check_unresolved(svc)
                     for key in placeholders:
                         print(f"  ⚠ {svc.name}: {rel}  {key} is still a placeholder!")
                     for key in auto_gen:
-                        print(f"  ⚠ {svc.name}: {rel}  {key} is unresolved (run 'flareward-dev init' or 'flareward-dev env generate --force')")
+                        print(f"  ⚠ {svc.name}: {rel}  {key} is unresolved (run 'lumora-dev init' or 'lumora-dev env generate --force')")
                 else:
                     if svc.env_entries:
                         print(f"  ✖ {svc.name}: {rel} missing")
-                        print(f"    💡 Tip: run 'flareward-dev env generate' to generate the .env file.")
+                        print(f"    💡 Tip: run 'lumora-dev env generate' to generate the .env file.")
                     else:
                         print(f"  ✔ {svc.name}: {rel} shouldn't exist")
 

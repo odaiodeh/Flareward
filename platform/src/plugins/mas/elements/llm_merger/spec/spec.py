@@ -1,5 +1,5 @@
-from flareward.programs.graph_elements import GraphElementSpec
-from flareward.resources.domain.categories import ResourceCategory
+from lumora.programs.graph_elements import GraphElementSpec
+from lumora.resources.domain.categories import ResourceCategory
 from plugins.mas.elements.llm_merger.config import MergerLLMNodeConfig
 from plugins.mas.elements.llm_merger.identifiers import META, Identifier
 from plugins.mas.elements.llm_merger.llm_merger import LLMMergerNode

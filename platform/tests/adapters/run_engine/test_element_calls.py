@@ -5,8 +5,8 @@ from collections.abc import Awaitable, Callable
 
 import pytest
 
-from flareward.async_work import await_owned
-from flareward.executions.adapters.run_engine.inbound.elements import call_element
+from lumora.async_work import await_owned
+from lumora.executions.adapters.run_engine.inbound.elements import call_element
 
 
 class AsyncElement:

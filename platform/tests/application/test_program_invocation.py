@@ -6,9 +6,9 @@ import pytest
 from pydantic import ValidationError
 from support.typed_programs import APPLICATION_PROGRAMS, TypedConfig
 
-from flareward.executions.models import StartExecution
-from flareward.programs.authoring import ProgramIssueCode
-from flareward.programs.domain.models import (
+from lumora.executions.models import StartExecution
+from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     GraphDefinition,
     LiteralBinding,
@@ -18,9 +18,9 @@ from flareward.programs.domain.models import (
     ProgramDefinition,
     ProgramRef,
 )
-from flareward.programs.invocation import ApplicationInvoker, ProgramInvocationContractError
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
+from lumora.programs.invocation import ApplicationInvoker, ProgramInvocationContractError
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
 
 PROGRAMS = {registration.key: registration for registration in APPLICATION_PROGRAMS}
 

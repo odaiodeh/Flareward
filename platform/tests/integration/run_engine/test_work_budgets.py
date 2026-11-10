@@ -7,15 +7,15 @@ from support.composition import composition_graph, mapped_program
 from support.operations import operation_bundle, operation_graph
 from support.scenarios import publish, run
 
-from flareward.bootstrap.platform import compose_platform
-from flareward.executions.adapters.mongo.work_budgets import MongoWorkBudgets
-from flareward.executions.domain.budgets import WorkBudget, WorkLimits
-from flareward.executions.domain.models import ExecutionPhase
-from flareward.executions.service import ExecutionService
-from flareward.programs.composition.programs import APPLICATION_PROGRAMS
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.programs.service import ProgramService
-from flareward.services.identity.domain import Identity
+from lumora.bootstrap.platform import compose_platform
+from lumora.executions.adapters.mongo.work_budgets import MongoWorkBudgets
+from lumora.executions.domain.budgets import WorkBudget, WorkLimits
+from lumora.executions.domain.models import ExecutionPhase
+from lumora.executions.service import ExecutionService
+from lumora.programs.composition.programs import APPLICATION_PROGRAMS
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.service import ProgramService
+from lumora.services.identity.domain import Identity
 
 
 @dataclass(frozen=True)

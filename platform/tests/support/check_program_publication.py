@@ -4,9 +4,9 @@ from dataclasses import dataclass
 
 import httpx
 
-from flareward.programs.domain.models import ProgramDefinition, ProgramRevision
-from flareward.services.verification.check_ports import CheckRunnerPolicy
-from flareward.services.verification.program_checks import ProgramCheckConfiguration
+from lumora.programs.domain.models import ProgramDefinition, ProgramRevision
+from lumora.services.verification.check_ports import CheckRunnerPolicy
+from lumora.services.verification.program_checks import ProgramCheckConfiguration
 from support.http_programs import publish_program
 
 

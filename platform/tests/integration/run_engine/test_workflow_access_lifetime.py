@@ -5,19 +5,19 @@ from support.reviews import MemoryReviewAccess, review_policy
 from support.scenarios import publish
 from support.verification import MemoryVerificationAccessRepository, verification_policy
 
-from flareward.executions.access import ExecutionGrantAccess
-from flareward.executions.domain.models import TERMINAL_PHASES
-from flareward.executions.models import StartExecution
-from flareward.programs.domain.models import ApplicationDefinition
-from flareward.services.reviews.access import ReviewAccessRequest, ReviewAccessService, ReviewScope
-from flareward.services.reviews.ports import ReviewCredentialError
-from flareward.services.verification.access import VerificationAccessService
-from flareward.services.verification.access_models import (
+from lumora.executions.access import ExecutionGrantAccess
+from lumora.executions.domain.models import TERMINAL_PHASES
+from lumora.executions.models import StartExecution
+from lumora.programs.domain.models import ApplicationDefinition
+from lumora.services.reviews.access import ReviewAccessRequest, ReviewAccessService, ReviewScope
+from lumora.services.reviews.ports import ReviewCredentialError
+from lumora.services.verification.access import VerificationAccessService
+from lumora.services.verification.access_models import (
     VerificationAccessRequest,
     VerificationAccessScope,
     VerificationAction,
 )
-from flareward.services.verification.ports import VerificationCredentialError
+from lumora.services.verification.ports import VerificationCredentialError
 
 
 @pytest.mark.parametrize("purpose", ["review", "verification"])

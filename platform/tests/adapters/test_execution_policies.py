@@ -10,18 +10,18 @@ from runengine.invocation.config import OpenShellRunnerConfig, ThreadRunnerConfi
 from runengine.programs.graph.inputs import GraphProgramInput
 from support.scenarios import echo_graph, publish
 
-from flareward.bootstrap.platform import compose_platform
-from flareward.bootstrap.settings.execution_policies import load_execution_profiles
-from flareward.bootstrap.settings.platform_settings import PlatformSettings
-from flareward.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
-from flareward.executions.domain.context import ExecutionContext
+from lumora.bootstrap.platform import compose_platform
+from lumora.bootstrap.settings.execution_policies import load_execution_profiles
+from lumora.bootstrap.settings.platform_settings import PlatformSettings
+from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
+from lumora.executions.domain.context import ExecutionContext
 
 
 @pytest.fixture
 def policy_file(tmp_path):
     path = tmp_path / "policy.json"
     path.write_text(
-        files("flareward.bootstrap.settings")
+        files("lumora.bootstrap.settings")
         .joinpath("policies/openshell-restricted.json")
         .read_text()
     )
@@ -100,7 +100,7 @@ async def test_bad_policy_refuses_startup_before_opening_clients(
     def unexpected_host(*args, **kwargs):
         pytest.fail("Policy failure reached engine client allocation")
 
-    monkeypatch.setattr("flareward.bootstrap.platform.RunHostBuilder.create", unexpected_host)
+    monkeypatch.setattr("lumora.bootstrap.platform.RunHostBuilder.create", unexpected_host)
     with pytest.raises(ValueError, match="Cannot load execution policy.*restricted") as error:
         async with compose_platform(policy_settings):
             pytest.fail("Invalid policy started a platform")
@@ -133,7 +133,7 @@ async def test_policy_files_use_the_same_environment_configuration_as_profiles(
     data = policy_settings.model_dump(mode="python")
     data.pop("execution_policy_files")
     monkeypatch.setenv(
-        "FLAREWARD_EXECUTION_POLICY_FILES", json.dumps({"restricted": str(policy_file)})
+        "LUMORA_EXECUTION_POLICY_FILES", json.dumps({"restricted": str(policy_file)})
     )
     settings = PlatformSettings.model_validate(data)
     profiles = await load_execution_profiles(settings)

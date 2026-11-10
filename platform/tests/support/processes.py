@@ -12,7 +12,7 @@ from pathlib import Path, PurePath
 from pydantic import BaseModel, SecretStr
 from pydantic_core import to_jsonable_python
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 
 
 def _settings_value(value: object) -> object:
@@ -27,9 +27,7 @@ def _settings_value(value: object) -> object:
 
 
 def settings_environment(settings: BaseModel) -> dict[str, str]:
-    environment = {
-        key: value for key, value in os.environ.items() if not key.startswith("FLAREWARD_")
-    }
+    environment = {key: value for key, value in os.environ.items() if not key.startswith("LUMORA_")}
     for name, value in settings.model_dump(mode="python").items():
         if value is None:
             continue
@@ -40,7 +38,7 @@ def settings_environment(settings: BaseModel) -> dict[str, str]:
         else:
             normalized = to_jsonable_python(_settings_value(value))
             encoded = normalized if isinstance(normalized, str) else json.dumps(normalized)
-        environment["FLAREWARD_" + name.upper()] = encoded
+        environment["LUMORA_" + name.upper()] = encoded
     environment["PYTHONPATH"] = os.pathsep.join(sys.path)
     return environment
 

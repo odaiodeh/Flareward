@@ -8,21 +8,21 @@ import pytest
 from support.elements import EchoConfig, EchoSpec
 from support.resolution import resolve_configurations
 
-from flareward.elements.configuration.meta import ElementConfigMeta
-from flareward.programs.graph.analysis import BlueprintGraphAnalysisService, GraphAnalysisError
-from flareward.programs.graph.graph_plan import GraphPlan
-from flareward.programs.graph.models import Step
-from flareward.programs.graph.plan_builder import PlanBuilder
-from flareward.programs.graph.topology.path_algorithms import GraphAnalysisLimit, PathEnumerator
-from flareward.programs.graph.validation.fix_models import FixType
-from flareward.programs.graph.validation.interfaces import ValidationProvider
-from flareward.programs.graph.validation.models import MessageCode, ValidationReport
-from flareward.programs.graph.validation.service import GraphValidationService
-from flareward.programs.graph.validation.settings import ValidationSettings
-from flareward.programs.templates.authoring import BlueprintAuthoringService
-from flareward.programs.templates.contracts import BlueprintDocument, BlueprintResolutionSource
-from flareward.resources.domain.construction import StepDef
-from flareward.services.identity.domain import Identity
+from lumora.elements.configuration.meta import ElementConfigMeta
+from lumora.programs.graph.analysis import BlueprintGraphAnalysisService, GraphAnalysisError
+from lumora.programs.graph.graph_plan import GraphPlan
+from lumora.programs.graph.models import Step
+from lumora.programs.graph.plan_builder import PlanBuilder
+from lumora.programs.graph.topology.path_algorithms import GraphAnalysisLimit, PathEnumerator
+from lumora.programs.graph.validation.fix_models import FixType
+from lumora.programs.graph.validation.interfaces import ValidationProvider
+from lumora.programs.graph.validation.models import MessageCode, ValidationReport
+from lumora.programs.graph.validation.service import GraphValidationService
+from lumora.programs.graph.validation.settings import ValidationSettings
+from lumora.programs.templates.authoring import BlueprintAuthoringService
+from lumora.programs.templates.contracts import BlueprintDocument, BlueprintResolutionSource
+from lumora.resources.domain.construction import StepDef
+from lumora.services.identity.domain import Identity
 
 
 @pytest.fixture

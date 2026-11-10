@@ -7,8 +7,8 @@ from pydantic import SecretStr
 
 
 def live_coding_credential() -> SecretStr:
-    value = os.environ.get("FLAREWARD_TEST_OPENAI_API_KEY", "").strip()
-    path = Path(__file__).resolve().parents[1] / "infra/.state/llm/FLAREWARD_TEST_OPENAI_API_KEY"
+    value = os.environ.get("LUMORA_TEST_OPENAI_API_KEY", "").strip()
+    path = Path(__file__).resolve().parents[1] / "infra/.state/llm/LUMORA_TEST_OPENAI_API_KEY"
     try:
         if not value and path.is_file():
             value = path.read_text().strip()

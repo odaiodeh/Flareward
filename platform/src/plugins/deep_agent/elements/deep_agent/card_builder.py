@@ -5,7 +5,7 @@ Uses the default card composition strategy — skills and capabilities
 are aggregated from dependency cards (tools, providers).
 """
 
-from flareward.elements.cards.default import DefaultCardBuilder
+from lumora.elements.cards.default import DefaultCardBuilder
 
 
 class DeepAgentCardBuilder(DefaultCardBuilder):

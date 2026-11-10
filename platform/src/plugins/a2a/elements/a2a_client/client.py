@@ -30,7 +30,7 @@ from a2a.types import (
 )
 from pydantic import HttpUrl
 
-from flareward.async_work import await_owned
+from lumora.async_work import await_owned
 from plugins.a2a.elements.a2a_client.handlers import BaseHandler
 from plugins.a2a.elements.a2a_client.result import A2AResult
 

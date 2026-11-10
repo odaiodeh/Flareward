@@ -1,4 +1,4 @@
-"""Public Flareward API and installed receivers exercise actual remote program lifetimes."""
+"""Public Lumora API and installed receivers exercise actual remote program lifetimes."""
 
 import asyncio
 import base64
@@ -17,8 +17,8 @@ from support.scenarios import resource
 from support.telemetry import span_attributes
 from support.temporal import replay
 
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import (
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import (
     ApplicationDefinition,
     ElementStep,
     GraphDefinition,
@@ -26,8 +26,8 @@ from flareward.programs.domain.models import (
     ProgramCallStep,
     ProgramDefinition,
 )
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("retained", [False, True], ids=["profile", "named-environment"])

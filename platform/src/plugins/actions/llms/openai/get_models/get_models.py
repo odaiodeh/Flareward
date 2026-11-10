@@ -9,8 +9,8 @@ field when creating or editing an OpenAI LLM resource.
 
 from __future__ import annotations
 
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.actions.contracts import (
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.actions.contracts import (
     ActionContext,
     ActionType,
     BaseAction,

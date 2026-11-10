@@ -4,9 +4,9 @@ from unittest.mock import create_autospec
 
 import pytest
 
-from flareward.resources.domain.models import Resource
-from flareward.resources.registry import ResourcesRegistry
-from flareward.resources.resolver import DependencyResolver, ResourceDependencyError
+from lumora.resources.domain.models import Resource
+from lumora.resources.registry import ResourcesRegistry
+from lumora.resources.resolver import DependencyResolver, ResourceDependencyError
 
 
 def test_library_dependencies_are_ordered_once_and_missing_resources_are_rejected(application):

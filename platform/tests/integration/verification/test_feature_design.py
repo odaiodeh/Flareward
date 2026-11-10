@@ -10,8 +10,8 @@ from support.http_programs import publish_program
 from support.managed_access import managed_access_api
 from support.review_api import pending_review
 
-from flareward.executions.domain.access import WorkflowAccess
-from flareward.programs.domain.models import ProgramDefinition
+from lumora.executions.domain.access import WorkflowAccess
+from lumora.programs.domain.models import ProgramDefinition
 from plugins.adlc.programs.design import DesignResult, FeatureRequest
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 
@@ -133,5 +133,5 @@ async def test_native_feature_design_revisions_preserve_exact_review_and_root_au
             ):
                 await asyncio.sleep(0.05)
         assert await mongo_database.review_access_grants.count_documents({"revoked": False}) == 0
-        assert "flareward-review-v1." not in json.dumps(observed.json()) + api.log.read_text()
+        assert "lumora-review-v1." not in json.dumps(observed.json()) + api.log.read_text()
         assert not list((tmp_path / "managed-workflow-access").rglob("*.json"))

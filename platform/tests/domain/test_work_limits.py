@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from flareward.executions.domain.budgets import WorkLimits
+from lumora.executions.domain.budgets import WorkLimits
 
 
 @pytest.mark.parametrize("field", ["max_dispatches", "max_children", "max_depth"])

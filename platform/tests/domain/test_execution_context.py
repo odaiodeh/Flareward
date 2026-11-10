@@ -3,8 +3,8 @@
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from flareward.executions.domain.context import ExecutionContext
-from flareward.services.identity.domain import Identity
+from lumora.executions.domain.context import ExecutionContext
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("payload", ({}, {"identity": None}))

@@ -41,7 +41,7 @@ def _make_venv_service(
     registry.all_services.return_value = services
     registry.primary_services.return_value = [s for s in services if s.is_primary]
     registry.python_bounds.return_value = ((3, 11), (3, 13))
-    registry.log_dir = Path("/tmp/flareward-dev-test/logs")
+    registry.log_dir = Path("/tmp/lumora-dev-test/logs")
 
     venv_manager = MagicMock()
     python_resolver = MagicMock()
@@ -66,7 +66,7 @@ class TestDetectPython:
             (3, 11), (3, 13), env_override=None,
         )
 
-    @patch.dict("os.environ", {"FLAREWARD_PYTHON": "/custom/python3"})
+    @patch.dict("os.environ", {"LUMORA_PYTHON": "/custom/python3"})
     def test_env_override_passed(self) -> None:
         vs = _make_venv_service()
         vs.detect_python()

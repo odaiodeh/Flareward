@@ -6,24 +6,24 @@ from uuid import uuid4
 
 import pytest
 
-from flareward.services.collaboration.adapters.redis.edit_locks import (
+from lumora.services.collaboration.adapters.redis.edit_locks import (
     RedisEditLockStore,
     edit_lock_key,
 )
-from flareward.services.collaboration.editing import (
+from lumora.services.collaboration.editing import (
     EditEntityKind,
     EditLease,
     EditLockScope,
     EditLockUnavailable,
 )
-from flareward.services.connections.adapters.redis import owned_redis
+from lumora.services.connections.adapters.redis import owned_redis
 
 
 @pytest.fixture
 async def editing():
-    uri = os.environ.get("FLAREWARD_TEST_REDIS_URI")
+    uri = os.environ.get("LUMORA_TEST_REDIS_URI")
     if not uri:
-        pytest.skip("Set FLAREWARD_TEST_REDIS_URI for atomic editing lease contracts")
+        pytest.skip("Set LUMORA_TEST_REDIS_URI for atomic editing lease contracts")
     scope = EditLockScope(
         team_id="lease-test-" + uuid4().hex, kind=EditEntityKind.RESOURCE, entity_id="resource"
     )

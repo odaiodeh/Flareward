@@ -6,17 +6,17 @@ from support.http_programs import execute_program
 from support.library_resources import seed_operation_resources, seed_private_agent_resources
 from support.resource_snapshots import saved_resource_graph
 
-from flareward.programs.domain.models import (
+from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
     PathBinding,
     ProgramDefinition,
     ProgramRef,
 )
-from flareward.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
-from flareward.resources.domain.bundles import ResourceKey
-from flareward.services.auth.adapters.crypto import FieldCipher
-from flareward.services.identity.domain import Identity
+from lumora.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
+from lumora.resources.domain.bundles import ResourceKey
+from lumora.services.auth.adapters.crypto import FieldCipher
+from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])

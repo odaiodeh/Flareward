@@ -2,10 +2,10 @@
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramRef
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramRef
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
 from plugins.adlc.programs.design import (
     DesignProposal,
     DesignWork,

@@ -5,22 +5,22 @@ from typing import Any
 
 from pydantic import JsonValue
 
-from flareward.elements.factory import BaseFactory
-from flareward.elements.operation import BaseOperation, OperationContext
-from flareward.elements.specification import BaseElementSpec
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.models import Model
-from flareward.programs.domain.models import (
+from lumora.elements.factory import BaseFactory
+from lumora.elements.operation import BaseOperation, OperationContext
+from lumora.elements.specification import BaseElementSpec
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.models import Model
+from lumora.programs.domain.models import (
     GraphDefinition,
     OperationStep,
     PathBinding,
     ProgramDefinition,
 )
-from flareward.resources.domain.bundles import ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.identity.domain import Identity
-from flareward.services.verification.domain.models import CheckVerdict
-from flareward.services.verification.program_checks import CheckProgramInput, CheckProgramResult
+from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.identity.domain import Identity
+from lumora.services.verification.domain.models import CheckVerdict
+from lumora.services.verification.program_checks import CheckProgramInput, CheckProgramResult
 
 
 class ValueCheckConfig(Model):

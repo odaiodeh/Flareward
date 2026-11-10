@@ -2,16 +2,16 @@
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
-from flareward.elements.catalog.element_registry import ElementRegistry
-from flareward.elements.construction.resolver import ElementBundleResolver
-from flareward.executions.domain.preferences import ExecutionSelection
-from flareward.programs.domain.models import ApplicationDefinition, ProgramBody
-from flareward.programs.ports import ProgramRuntime
-from flareward.programs.registry import ApplicationRegistration
-from flareward.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
-from flareward.resources.domain.categories import ResourceCategory
-from flareward.services.verification.domain.models import CheckRequirement, VerificationSubject
-from flareward.services.workspaces.domain.files import WorkspaceFile
+from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.resolver import ElementBundleResolver
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.ports import ProgramRuntime
+from lumora.programs.registry import ApplicationRegistration
+from lumora.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
+from lumora.resources.domain.categories import ResourceCategory
+from lumora.services.verification.domain.models import CheckRequirement, VerificationSubject
+from lumora.services.workspaces.domain.files import WorkspaceFile
 from plugins.adlc.programs.program import (
     EngineeringCandidate,
     EngineeringCompletion,
