@@ -26,6 +26,7 @@ from lumora.executions.domain.models import (
     FailureKind,
     SubmissionState,
 )
+from lumora.executions.domain.observation import OccurrencePage
 from lumora.executions.models import PreparedExecution, StartExecution, SubmissionClaim
 from lumora.executions.ports import (
     ExecutionCancellation,
@@ -101,9 +102,8 @@ class ExecutionService:
             raise PermissionError("Execution context does not belong to the request owner/session")
         revision = await self._programs.revision(request.program, caller)
         try:
-            Draft202012Validator(revision.definition.input_schema, registry=Registry()).validate(
-                request.inputs
-            )
+            for schema in revision.interface.input_schemas:
+                Draft202012Validator(schema, registry=Registry()).validate(request.inputs)
         except ValidationError, Unresolvable, RecursionError:
             raise ValueError("Program input violates its contract") from None
         execution_id = request.execution_id or str(uuid4())
@@ -475,6 +475,32 @@ class ExecutionService:
         record = await self.get(execution_id, caller)
         self._require_location(record)
         await self._gateway.send(record.engine_handle, name, data)
+
+    async def observation(
+        self, execution_id: str, caller: Identity, *, before: int | None = None, limit: int = 50
+    ) -> OccurrencePage:
+        if not 1 <= limit <= 100 or (before is not None and before < 1):
+            raise ValueError("Invalid occurrence pagination")
+        record = await self.get(execution_id, caller)
+        self._require_location(record)
+        snapshot = await self._gateway.observation(record.engine_handle)
+        if snapshot.execution_id != record.execution_id:
+            raise ExecutionError(
+                ExecutionFailure(
+                    kind=FailureKind.INFRASTRUCTURE,
+                    code="observation_identity_mismatch",
+                    message="Execution observation identifies different work",
+                )
+            )
+        candidates = tuple(
+            call for call in snapshot.occurrences if before is None or call.ordinal < before
+        )
+        selected = candidates[-limit:]
+        return OccurrencePage(
+            **snapshot.model_dump(exclude={"occurrences"}),
+            occurrences=selected,
+            next_cursor=selected[0].ordinal if len(candidates) > limit else None,
+        )
 
     async def events(
         self,

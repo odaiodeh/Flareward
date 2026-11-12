@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.ports import ChildContract, ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
 from support.recovery import RecoveryConfig, recovery_program
 
@@ -108,18 +108,50 @@ async def borrowing_operation_program(
     return {"before": before, "child": result, "after": after}
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration("greeting", "1", GreetingConfig, greeting_program),
-    ApplicationRegistration("composed", "1", ComposedConfig, composed_program),
-    ApplicationRegistration("waiting", "1", EmptyProgramConfig, waiting_program),
-    ApplicationRegistration("parallel_waiting", "1", EmptyProgramConfig, parallel_waiting_program),
-    ApplicationRegistration("invoking", "1", InvokeConfig, invoking_program),
-    ApplicationRegistration("typed_operation", "1", InvokeConfig, operation_program),
-    ApplicationRegistration("operation", "1", InvokeConfig, forward_operation_program),
-    ApplicationRegistration("placed_operation", "1", PlacedInvokeConfig, placed_operation_program),
-    ApplicationRegistration("parallel_operation", "1", InvokeConfig, parallel_operation_program),
-    ApplicationRegistration(
-        "borrowing_operation", "1", PlacedInvokeConfig, borrowing_operation_program
+COORDINATORS = (
+    CoordinatorRegistration(
+        "greeting", "1", GreetingConfig, CustomCoordinatorStrategy(greeting_program)
     ),
-    ApplicationRegistration("recovery", "1", RecoveryConfig, recovery_program),
+    CoordinatorRegistration(
+        "composed", "1", ComposedConfig, CustomCoordinatorStrategy(composed_program)
+    ),
+    CoordinatorRegistration(
+        "waiting", "1", EmptyProgramConfig, CustomCoordinatorStrategy(waiting_program)
+    ),
+    CoordinatorRegistration(
+        "parallel_waiting",
+        "1",
+        EmptyProgramConfig,
+        CustomCoordinatorStrategy(parallel_waiting_program),
+    ),
+    CoordinatorRegistration(
+        "invoking", "1", InvokeConfig, CustomCoordinatorStrategy(invoking_program)
+    ),
+    CoordinatorRegistration(
+        "typed_operation", "1", InvokeConfig, CustomCoordinatorStrategy(operation_program)
+    ),
+    CoordinatorRegistration(
+        "operation", "1", InvokeConfig, CustomCoordinatorStrategy(forward_operation_program)
+    ),
+    CoordinatorRegistration(
+        "placed_operation",
+        "1",
+        PlacedInvokeConfig,
+        CustomCoordinatorStrategy(placed_operation_program),
+    ),
+    CoordinatorRegistration(
+        "parallel_operation",
+        "1",
+        InvokeConfig,
+        CustomCoordinatorStrategy(parallel_operation_program),
+    ),
+    CoordinatorRegistration(
+        "borrowing_operation",
+        "1",
+        PlacedInvokeConfig,
+        CustomCoordinatorStrategy(borrowing_operation_program),
+    ),
+    CoordinatorRegistration(
+        "recovery", "1", RecoveryConfig, CustomCoordinatorStrategy(recovery_program)
+    ),
 )

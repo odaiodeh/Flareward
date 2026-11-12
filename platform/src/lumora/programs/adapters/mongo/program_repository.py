@@ -14,6 +14,7 @@ from lumora.programs.authoring import (
     ProgramPresentation,
     ProgramStorageError,
 )
+from lumora.programs.domain.interfaces import ProgramInterface
 from lumora.programs.domain.models import ProgramDefinition, ProgramRef, ProgramRevision
 from lumora.services.identity.domain import Identity
 
@@ -133,11 +134,11 @@ class MongoProgramRepository:
         except PyMongoError:
             raise ProgramStorageError("Program storage is unavailable") from None
 
-    async def publish(self, draft: ProgramDraft) -> ProgramRevision:
+    async def publish(self, draft: ProgramDraft, interface: ProgramInterface) -> ProgramRevision:
         definition = draft.definition
         previous = await self.get_publication(definition.program_id, draft.version)
         if previous is not None:
-            return self._same_source(previous, definition)
+            return self._same_source(previous, definition, interface)
         identifier = f"{definition.program_id}:draft:{draft.version}"
         try:
             counter = await self._counters.find_one_and_update(
@@ -147,7 +148,9 @@ class MongoProgramRepository:
                 return_document=ReturnDocument.AFTER,
             )
             assert counter is not None
-            revision = ProgramRevision(definition=definition, revision=counter["revision"])
+            revision = ProgramRevision(
+                definition=definition, interface=interface, revision=counter["revision"]
+            )
             await self._revisions.insert_one(
                 {
                     "_id": identifier,
@@ -162,15 +165,17 @@ class MongoProgramRepository:
             existing = await self.get_publication(definition.program_id, draft.version)
             if existing is None:
                 raise ProgramStorageError("Program publication cannot be confirmed") from None
-            return self._same_source(existing, definition)
+            return self._same_source(existing, definition, interface)
         except PyMongoError:
             raise ProgramStorageError(
                 "Program publication is uncertain; retry the same source version"
             ) from None
 
     @staticmethod
-    def _same_source(revision: ProgramRevision, definition: ProgramDefinition) -> ProgramRevision:
-        if revision.definition != definition:
+    def _same_source(
+        revision: ProgramRevision, definition: ProgramDefinition, interface: ProgramInterface
+    ) -> ProgramRevision:
+        if revision.definition != definition or revision.interface != interface:
             raise ProgramConflict("Publication source does not match its saved draft")
         return revision
 

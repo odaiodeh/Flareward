@@ -6,10 +6,10 @@ from support.scenarios import bundle, echo_graph, publish, run
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.executions.models import StartExecution
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    PathBinding,
     ProgramCallStep,
 )
 from lumora.services.identity.domain import Identity
@@ -64,13 +64,15 @@ async def test_graph_calls_another_graph_through_explicit_bindings(platform):
     result = await run(platform, parent, {"name": "nested"})
     assert result.phase == ExecutionPhase.COMPLETED
     assert result.result == {"answer": "greeting:nested"}
+    children = await platform.executions.children(result.execution_id, platform.owner)
+    assert len(children) == 1 and children[0].call_site == "child"
 
 
 async def test_application_program_runs_independently_and_as_graph_step(platform):
     child = await publish(
         platform,
         "application",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="greeting",
             version="1",
             config={"prefix": "welcome "},
@@ -100,30 +102,31 @@ async def test_application_program_runs_independently_and_as_graph_step(platform
 
 async def test_application_program_composes_through_application_runtime_port(platform):
     child = await publish(
-        platform, "greeting", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "greeting", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     parent = await publish(
         platform,
         "composed",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             children={"greet": child.reference},
         ),
     )
-    assert (await run(platform, parent, {"name": "composed"})).result == {
-        "answer": "hello composed"
-    }
+    result = await run(platform, parent, {"name": "composed"})
+    assert result.result == {"answer": "hello composed"}
+    children = await platform.executions.children(result.execution_id, platform.owner)
+    assert len(children) == 1 and children[0].call_site == "greet"
 
 
 async def test_published_revision_does_not_change_when_draft_changes(platform):
     first = await publish(
-        platform, "greeting", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "greeting", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     second = await publish(
         platform,
         "greeting",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="greeting",
             version="1",
             config={"prefix": "new "},
@@ -136,7 +139,7 @@ async def test_published_revision_does_not_change_when_draft_changes(platform):
 
 async def test_execution_identity_is_idempotent_and_conflicting_inputs_are_refused(platform):
     revision = await publish(
-        platform, "greeting", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "greeting", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     first = await run(platform, revision, {"name": "once"}, "stable")
     repeated = await platform.executions.start(
@@ -161,7 +164,7 @@ async def test_execution_identity_is_idempotent_and_conflicting_inputs_are_refus
 
 async def test_messages_and_cancellation_use_generic_program_contract(platform):
     revision = await publish(
-        platform, "waiting", ApplicationDefinition(implementation="waiting", version="1")
+        platform, "waiting", CustomCoordinatorDefinition(implementation="waiting", version="1")
     )
     record = await platform.executions.start(
         StartExecution(program=revision.reference), platform.owner
@@ -181,7 +184,7 @@ async def test_messages_and_cancellation_use_generic_program_contract(platform):
 
 async def test_other_identity_cannot_observe_or_cancel_execution(platform):
     revision = await publish(
-        platform, "greeting", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "greeting", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     record = await run(platform, revision, {"name": "private"})
     with pytest.raises(PermissionError):
@@ -192,7 +195,7 @@ async def test_application_program_invokes_element_through_application_port(plat
     revision = await publish(
         platform,
         "invoking",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="invoking",
             version="1",
             config={"bundle": bundle().model_dump(mode="json")},

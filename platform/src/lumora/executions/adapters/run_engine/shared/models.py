@@ -1,6 +1,6 @@
 """Portable adapter payloads. These types never enter application service ports."""
 
-from typing import Self
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 from runengine.core.refs import FunctionRef
@@ -8,10 +8,13 @@ from runengine.core.refs import FunctionRef
 from lumora.elements.catalog.element_registry import ElementRegistry
 from lumora.executions.domain.budgets import WorkLimits
 from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.observation import OccurrenceKind
 from lumora.executions.domain.placement import PreparedProgramPlacement
-from lumora.programs.domain.models import Bindings, BodyPath, ProgramRef, Projection
+from lumora.programs.domain.bindings import Bindings, Projection
+from lumora.programs.domain.interfaces import CoordinatorIdentity, ProgramInterface
+from lumora.programs.domain.models import BodyPath, ProgramRef
 from lumora.programs.graph.models.step_context import StepContext
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
 from lumora.resources.domain.categories import ResourceCategory
 
@@ -79,7 +82,7 @@ class ElementSpecifications(BaseModel):
             raise ValueError("Invocation references an unregistered element type") from None
 
 
-class ApplicationCall(BaseModel):
+class CoordinatorCall(BaseModel):
     """Portable installed references; the application invoker owns invocation semantics."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -91,11 +94,13 @@ class ApplicationCall(BaseModel):
     result_model: FunctionRef | None = None
 
     @classmethod
-    def from_registration(cls, registration: ApplicationRegistration) -> Self:
+    def from_registration(cls, registration: CoordinatorRegistration) -> Self:
+        if not isinstance(registration.strategy, CustomCoordinatorStrategy):
+            raise ValueError("Custom preparation requires a custom coordinator strategy")
         return cls(
             implementation=registration.key,
             version=registration.version,
-            execute=FunctionRef.from_callable(registration.execute),
+            execute=FunctionRef.from_callable(registration.strategy.entrypoint),
             configuration_schema=FunctionRef.from_callable(registration.config_schema),
             input_model=FunctionRef.from_callable(registration.input_model)
             if registration.input_model
@@ -112,12 +117,12 @@ class ApplicationCall(BaseModel):
             raise ValueError("Installed Program schema is not a Pydantic model")
         return schema
 
-    def resolve(self) -> ApplicationRegistration:
-        return ApplicationRegistration(
+    def resolve(self) -> CoordinatorRegistration:
+        return CoordinatorRegistration(
             self.implementation,
             self.version,
             self._model(self.configuration_schema),
-            self.execute.resolve(),
+            CustomCoordinatorStrategy(self.execute.resolve()),
             input_model=self._model(self.input_model) if self.input_model else None,
             result_model=self._model(self.result_model) if self.result_model else None,
         )
@@ -129,21 +134,38 @@ class WorkBudgetBinding(BaseModel):
     admission: FunctionRef
 
 
+class PreparedGraph(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["graph"] = "graph"
+    sites: dict[str, OccurrenceKind] = Field(default_factory=dict)
+    request: dict[str, JsonValue]
+    inputs: Bindings = Field(default_factory=dict)
+    outputs: Projection = Field(default_factory=dict)
+
+
+class PreparedCoordinator(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: Literal["coordinator"] = "coordinator"
+    call: CoordinatorCall
+    configuration: dict[str, JsonValue] = Field(default_factory=dict)
+    children: dict[str, dict[str, JsonValue]] = Field(default_factory=dict)
+
+
+type PreparedImplementation = Annotated[
+    PreparedGraph | PreparedCoordinator, Field(discriminator="kind")
+]
+
+
 class ProgramPayload(BaseModel):
     model_config = ConfigDict(extra="forbid")
     program: ProgramRef
     body_path: BodyPath = ()
+    call_site: str | None = Field(default=None, min_length=1)
     content_digest: str = Field(pattern=r"^[a-f0-9]{64}$")
-    input_schema: dict[str, JsonValue]
-    output_schema: dict[str, JsonValue]
+    interface: ProgramInterface
     context: ExecutionContext
     inputs: JsonValue = Field(default_factory=dict)
-    graph_request: dict[str, JsonValue] | None = None
-    graph_inputs: Bindings = Field(default_factory=dict)
-    graph_outputs: Projection = Field(default_factory=dict)
-    configuration: dict[str, JsonValue] = Field(default_factory=dict)
-    application: ApplicationCall | None = None
-    children: dict[str, dict[str, JsonValue]] = Field(default_factory=dict)
+    implementation: PreparedImplementation
     specifications: ElementSpecifications = Field(default_factory=ElementSpecifications)
     placement: ProgramPlacement
     receiver: FunctionRef | None = None
@@ -151,9 +173,19 @@ class ProgramPayload(BaseModel):
     work_budget: WorkBudgetBinding | None = None
 
     @model_validator(mode="after")
-    def implementation(self) -> Self:
-        if (self.graph_request is not None) == (self.application is not None):
-            raise ValueError("Prepared program requires exactly one implementation")
+    def validate_interface(self) -> Self:
+        if self.interface.children:
+            raise ValueError("Prepared interfaces must be local to one Program body")
+        if isinstance(self.implementation, PreparedGraph) and (
+            self.interface.coordinator != CoordinatorIdentity(key="graph", version="1")
+            or self.interface.configured is not None
+            or self.interface.dependencies
+            or self.interface.input_model_schema is not None
+            or self.interface.output_model_schema is not None
+            or self.interface.normalized_input_schema is not None
+            or self.interface.normalized_output_schema is not None
+        ):
+            raise ValueError("Native graph interface does not match its coordinator")
         return self
 
 

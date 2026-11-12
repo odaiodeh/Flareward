@@ -13,12 +13,8 @@ from support.scenarios import resource
 from lumora.bootstrap.settings.execution_policies import load_execution_profiles
 from lumora.bootstrap.settings.platform_settings import PlatformSettings
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import (
-    ElementStep,
-    GraphDefinition,
-    PathBinding,
-    ProgramDefinition,
-)
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import ElementStep, GraphDefinition, ProgramDefinition
 from lumora.resources.domain.bundles import ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 

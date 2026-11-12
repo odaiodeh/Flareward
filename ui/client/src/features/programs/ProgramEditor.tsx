@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { publishProgram, saveProgram, validateProgramDraft, type ApplicationDefinition, type GraphDefinition, type ProgramDefinition, type ProgramDescriptor, type ProgramDraft, type ProgramPresentation, type ProgramSummary, type ProgramValidation, type ResourceSelection } from '@/api/programs';
+import { publishProgram, saveProgram, validateProgramDraft, type CustomCoordinatorDefinition, type GraphDefinition, type ProgramDefinition, type ProgramDescriptor, type ProgramDraft, type ProgramPresentation, type ProgramSummary, type ProgramValidation } from '@/api/programs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { WorkspaceIdentity } from '@/hooks/use-workspace-identity';
@@ -12,8 +12,9 @@ import ProgramDependencies from './ProgramDependencies';
 import ProgramGraphEditor from './ProgramGraphEditor';
 import ProgramInvocation from '@/components/executions/ProgramInvocation';
 import { useProgramRevisions } from './queries';
-import { activeResourceSelections } from './graph-authoring';
+import { activeResourceSelections, queueResourceSelection, type PendingResourceSelection } from './resource-selections';
 import ProgramReadiness from './ProgramReadiness';
+import { useProgramInterface } from './use-program-interface';
 
 function emptyDefinition(id: string, owner: WorkspaceIdentity): ProgramDefinition {
   return {
@@ -47,7 +48,7 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
   const [configurationBusy, setConfigurationBusy] = useState(false);
   const [invocationBusy, setInvocationBusy] = useState(false);
   const [edited, setEdited] = useState(false);
-  const [resourceSelections, setResourceSelections] = useState<ResourceSelection[]>([]);
+  const [resourceSelections, setResourceSelections] = useState<PendingResourceSelection[]>([]);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [runRevision, setRunRevision] = useState<number>();
@@ -56,7 +57,8 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
   const lifecycle = useRef(new AbortController());
   const action = useRef(false);
   const implementation = definition.implementation;
-  const descriptor = implementation.kind === 'application' ? catalog.find(value => value.key === implementation.implementation && value.version === implementation.version) : undefined;
+  const descriptor = catalog.find(value => implementation.kind === 'graph' ? value.kind === 'graph' : value.kind === 'application' && value.key === implementation.implementation && value.version === implementation.version);
+  const interfacePreview = useProgramInterface(definition, implementation.kind === 'application', owner.teamId);
   const dirty = edited || resourceSelections.length > 0 || saved !== JSON.stringify([definition, presentation]);
   const revisions = useProgramRevisions(id, scope, owner.teamId, version > 0);
   useEffect(() => { onState(dirty, busy || configurationBusy || invocationBusy); }, [dirty, busy, configurationBusy, invocationBusy, onState]);
@@ -67,8 +69,8 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
     const controller = new AbortController(); lifecycle.current = controller;
     return () => controller.abort();
   }, []);
-  const changeImplementation = (value: ApplicationDefinition | GraphDefinition) => {
-    if (value.kind === 'graph') setResourceSelections(previous => activeResourceSelections(value, previous));
+  const changeImplementation = (value: CustomCoordinatorDefinition | GraphDefinition) => {
+    setResourceSelections(previous => activeResourceSelections(value, previous));
     setDefinition(previous => ({ ...previous, implementation: value }));
   };
   const perform = async (intent: 'save' | 'publish', operation: (signal: AbortSignal) => Promise<void>) => {
@@ -81,7 +83,7 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
   };
   const save = async (signal: AbortSignal): Promise<ProgramDraft> => {
     if (version && !dirty) return { definition, presentation, version };
-    const draft = await saveProgram({ definition, presentation, expected_version: version, resource_selections: resourceSelections }, owner.teamId, signal);
+    const draft = await saveProgram({ definition, presentation, expected_version: version, resource_selections: resourceSelections.map(({ capturedDigest, ...selection }) => selection) }, owner.teamId, signal);
     if (!signal.aborted) {
       setDefinition(draft.definition); setPresentation(draft.presentation); setVersion(draft.version);
       setEdited(false);
@@ -93,17 +95,18 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
   };
   const chooseSource = (selected: string) => {
     setResourceSelections([]);
-    if (selected === 'composition') {
-      changeImplementation(emptyGraphDefinition());
-    } else {
-      const selectedDescriptor = catalog.find(value => JSON.stringify([value.key, value.version]) === selected);
-      if (selectedDescriptor) setDefinition(previous => ({ ...previous,
-        implementation: { kind: 'application', implementation: selectedDescriptor.key, version: selectedDescriptor.version, config: configurationDefaults(selectedDescriptor), children: {}, environments: {}, child_environment_imports: {} },
-        input_schema: selectedDescriptor.input_schema ?? { type: 'object' }, output_schema: selectedDescriptor.output_schema ?? { type: 'object' },
-      }));
-    }
+    const selectedDescriptor = catalog.find(value => JSON.stringify([value.key, value.version]) === selected);
+    if (!selectedDescriptor) return;
+    setDefinition(previous => ({ ...previous,
+      implementation: selectedDescriptor.kind === 'graph' ? emptyGraphDefinition() : {
+        kind: 'application', implementation: selectedDescriptor.key, version: selectedDescriptor.version,
+        config: configurationDefaults(selectedDescriptor), children: {}, environments: {}, child_environment_imports: {},
+      },
+      input_schema: selectedDescriptor.input_schema ?? { type: 'object' },
+      output_schema: selectedDescriptor.output_schema ?? { type: 'object' },
+    }));
   };
-  const selectedSource = implementation.kind === 'graph' ? 'composition' : descriptor ? JSON.stringify([descriptor.key, descriptor.version]) : '';
+  const selectedSource = descriptor ? JSON.stringify([descriptor.key, descriptor.version]) : '';
   const runnable = runRevision;
   const available = programs.filter(program => program.program_id !== id);
   return <div className="space-y-5">
@@ -113,14 +116,14 @@ export default function ProgramEditor({ id, initial, owner, scope, catalog, prog
       <fieldset disabled={busy || configurationBusy} className="space-y-4">
         <label className="block space-y-1 text-sm"><span>Program name</span><Input className="text-inherit" aria-label="Program name" required data-draft-required value={definition.name} onChange={event => setDefinition({ ...definition, name: event.target.value })} /></label>
         <label className="block space-y-1 text-sm"><span>Start from</span><select aria-label="Program source" className="block w-full rounded border bg-background p-2" value={selectedSource} disabled={busy || version > 0} required data-draft-required onChange={event => chooseSource(event.target.value)}>
-          <option value="">Choose how to define the work</option><option value="composition">Compose on canvas</option>
+          <option value="">Choose how to define the work</option>
           {catalog.map(value => <option key={JSON.stringify([value.key, value.version])} value={JSON.stringify([value.key, value.version])}>{value.name}</option>)}
         </select></label>
         {descriptor && implementation.kind === 'application' && <><p className="text-sm text-muted-foreground">{descriptor.description}</p>
-          <ProgramConfiguration key={JSON.stringify([descriptor.key, descriptor.version])} descriptor={descriptor} config={implementation.config} disabled={busy || configurationBusy} scope={scope} teamId={owner.teamId} profiles={profiles} environments={Object.keys(implementation.environments)} onBusyChange={setConfigurationBusy} onChange={config => changeImplementation({ ...implementation, config })} />
-          <ProgramDependencies children={implementation.children} onChange={children => changeImplementation({ ...implementation, children })} programs={available} teamId={owner.teamId} scope={scope} disabled={busy} />
+          <ProgramConfiguration key={JSON.stringify([descriptor.key, descriptor.version])} descriptor={descriptor} config={implementation.config} disabled={busy || configurationBusy} scope={scope} teamId={owner.teamId} profiles={profiles} environments={Object.keys(implementation.environments)} onBusyChange={setConfigurationBusy} onResourceSelection={selection => setResourceSelections(previous => queueResourceSelection(previous, selection))} onChange={config => changeImplementation({ ...implementation, config })} />
+          <ProgramDependencies children={implementation.children} declarations={interfacePreview.preview?.interface?.dependencies} resolving={interfacePreview.pending} resolutionIssue={interfacePreview.error ?? interfacePreview.preview?.issues[0]?.message} onChange={children => changeImplementation({ ...implementation, children, child_environment_imports: Object.fromEntries(Object.entries(implementation.child_environment_imports).filter(([name]) => !Object.hasOwn(implementation.children, name) || Object.hasOwn(children, name))) })} programs={available} teamId={owner.teamId} scope={scope} disabled={busy} />
         </>}
-        {implementation.kind === 'graph' && <ProgramGraphEditor graph={implementation} presentation={presentation} onChange={changeImplementation} onPresentation={setPresentation} programs={available} profiles={profiles} teamId={owner.teamId} scope={scope} disabled={busy} onResourceSelection={selection => setResourceSelections(previous => [...previous.filter(value => value.source.key.category !== selection.source.key.category || value.source.key.rid !== selection.source.key.rid), selection])} />}
+        {implementation.kind === 'graph' && <ProgramGraphEditor graph={implementation} presentation={presentation} onChange={changeImplementation} onPresentation={setPresentation} programs={available} profiles={profiles} teamId={owner.teamId} scope={scope} disabled={busy} onResourceSelection={selection => setResourceSelections(previous => queueResourceSelection(previous, selection))} />}
         {resourceSelections.length > 0 && <p className="text-sm text-muted-foreground">{resourceSelections.length} saved element selection(s) will be resolved when this draft is saved.</p>}
         <details className="space-y-3"><summary>Execution settings</summary>
           <label className="block text-sm">Execution profile<select aria-label="Execution profile" className="block w-full rounded border bg-background p-2" value={definition.execution_profile ?? ''} onChange={event => setDefinition({ ...definition, execution_profile: event.target.value || null })}>

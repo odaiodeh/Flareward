@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from jsonschema import ValidationError as SchemaValidationError
@@ -56,6 +56,7 @@ from lumora.elements.construction.snapshots import (
 )
 from lumora.elements.exceptions import ElementInspectionError
 from lumora.executions.domain.models import ExecutionRecord, FailureKind
+from lumora.executions.domain.observation import OccurrencePage
 from lumora.executions.events import EventSourceConflict, EventSourceUnavailable
 from lumora.executions.models import StartExecution
 from lumora.executions.ports import (
@@ -544,6 +545,20 @@ def create_app(
             raise HTTPException(403, "Internal review coordination messages are reserved")
         await services.executions.send(execution_id, message.name, message.data, caller)
         return {"status": "accepted"}
+
+    @app.get("/api/executions/{execution_id}/occurrences", response_model=OccurrencePage)
+    async def execution_occurrences(
+        execution_id: str,
+        response: Response,
+        caller: Annotated[Identity, Depends(authenticated)],
+        services: Annotated[HttpServices, Depends(get_services)],
+        before: Annotated[int | None, Query(ge=1)] = None,
+        limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    ) -> OccurrencePage:
+        response.headers["Cache-Control"] = "private, no-store"
+        return await services.executions.observation(
+            execution_id, caller, before=before, limit=limit
+        )
 
     @app.get("/api/executions/{execution_id}/events")
     async def stream_events(

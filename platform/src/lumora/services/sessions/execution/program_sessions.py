@@ -14,8 +14,8 @@ from lumora.executions.models import StartExecution
 from lumora.executions.ports import ExecutionError
 from lumora.executions.service import ExecutionService
 from lumora.models import Model
-from lumora.programs.domain.bindings import BindingError, project
-from lumora.programs.domain.models import Bindings, ProgramRef
+from lumora.programs.domain.bindings import BindingError, Bindings, project
+from lumora.programs.domain.models import ProgramRef
 from lumora.programs.service import ProgramService
 from lumora.services.identity.domain import Identity
 from lumora.services.interactions.models import parse_approval_rules

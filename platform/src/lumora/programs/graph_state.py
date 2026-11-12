@@ -3,7 +3,7 @@
 from collections.abc import Set
 from typing import Annotated, Self
 
-from lumora.programs.domain.models import ElementStep, GraphDefinition
+from lumora.programs.domain.models import ConditionalRoute, ElementStep, GraphDefinition
 from lumora.programs.graph.state.graph_state import GraphState
 from lumora.programs.state import ProgramState, StateContractError, replace_value
 
@@ -29,6 +29,8 @@ class AgentProgramState(ProgramState, GraphState):
 
 def graph_state_type(graph: GraphDefinition) -> type[ProgramState]:
     """Only state-based node/condition adapters require MAS-specific channels."""
-    if graph.conditions or any(isinstance(step, ElementStep) for step in graph.steps):
+    if any(isinstance(route, ConditionalRoute) for route in graph.conditions) or any(
+        isinstance(step, ElementStep) for step in graph.steps
+    ):
         return AgentProgramState
     return ProgramState

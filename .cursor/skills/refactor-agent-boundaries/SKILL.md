@@ -76,7 +76,7 @@ old prototype payloads have no compatibility promise. Rebuild matched images at
 the next relevant milestone after these installed-source changes.
 
 Backend Program invocation/model enforcement belongs to application `ApplicationInvoker`.
-Adapter `ApplicationCall` only captures/resolves installed references and translates
+Adapter `CoordinatorCall` only captures/resolves installed references and translates
 boundary errors; it must not become another validation service or implementation
 registry. Program entrypoint contract is `lumora-program-v6`. Keep validators/defaults/
 serializers deterministic and runtime effects behind application ports. Registration

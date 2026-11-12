@@ -17,7 +17,7 @@ from lumora.services.reviews.domain.models import ReviewResponse
 from lumora.services.workspaces.domain.files import ArtifactFile, InlineFile
 from plugins.adlc.programs.design import DesignFeedback, DesignRevision
 from plugins.adlc.programs.designer import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     CodingDesigner,
     CodingDesignerConfig,
     CodingDesignWork,
@@ -136,7 +136,7 @@ async def test_cancellation_propagates_without_producing_a_proposal(designer):
 
 
 def test_registered_contract_exposes_typed_task_and_saved_configuration():
-    registration = APPLICATION_PROGRAMS[0]
+    registration = COORDINATORS[0]
     assert registration.input_model is CodingDesignWork
     schema = CodingDesignWork.model_json_schema()
     assert schema["$defs"]["CodingInput"]["required"] == ["prompt"]

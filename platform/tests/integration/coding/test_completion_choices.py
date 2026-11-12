@@ -22,14 +22,15 @@ from support.http_programs import publish_program
 from support.python_checks import ADDITION, addition_cases, python_verifier_definition
 from support.repositories import LocalRepository
 from support.review_api import pending_review
+from support.review_programs import review_body
 
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     OperationStep,
-    PathBinding,
     ProgramBody,
     ProgramDefinition,
 )
@@ -98,7 +99,7 @@ async def test_same_engineering_revision_selects_real_file_or_git_work(
                 program_id="trusted-git",
                 name="Trusted Git checks",
                 owner=verifier,
-                implementation=ApplicationDefinition(
+                implementation=CustomCoordinatorDefinition(
                     implementation="git_python_function_check",
                     version="1",
                     config=GitPythonCheckConfig(
@@ -193,7 +194,7 @@ async def test_same_engineering_revision_selects_real_file_or_git_work(
                     program_id=name + "-worker",
                     name=name + " worker",
                     owner=owner,
-                    implementation=ApplicationDefinition(
+                    implementation=CustomCoordinatorDefinition(
                         implementation=implementation,
                         version="1",
                         config=config.model_dump(mode="json"),
@@ -231,11 +232,11 @@ async def test_same_engineering_revision_selects_real_file_or_git_work(
                 program_id="completion-choices",
                 name="Engineering choices",
                 owner=owner,
-                implementation=ApplicationDefinition(
+                implementation=CustomCoordinatorDefinition(
                     implementation="engineering",
-                    version="3",
+                    version="4",
                     config=config.model_dump(mode="json"),
-                    children=children,
+                    children={**children, "reviewer": review_body(application.elements, profile)},
                 ),
                 input_schema=EngineeringInput.model_json_schema(),
                 output_schema=EngineeringResult.model_json_schema(),
@@ -250,7 +251,7 @@ async def test_same_engineering_revision_selects_real_file_or_git_work(
                 program_id="feature-choices",
                 name="Design and select completion",
                 owner=owner,
-                implementation=ApplicationDefinition(
+                implementation=CustomCoordinatorDefinition(
                     implementation="coding_feature",
                     version="1",
                     children={

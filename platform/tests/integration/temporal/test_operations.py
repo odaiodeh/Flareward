@@ -9,7 +9,7 @@ from support.temporal import replay, worker_process
 
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.models import StartExecution
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -20,7 +20,7 @@ async def test_code_program_calls_typed_operation_graph_and_replays(
     parent = await publish(
         application,
         "typed-parent",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed", version="1", children={"greet": child.reference}
         ),
     )
@@ -42,7 +42,7 @@ async def test_code_program_calls_typed_operation_graph_and_replays(
 async def test_code_program_invokes_typed_operation_directly_and_replays(
     durable, application, profile, tmp_path
 ):
-    definition = ApplicationDefinition(
+    definition = CustomCoordinatorDefinition(
         implementation="typed_operation",
         version="1",
         config={"bundle": operation_bundle(application.elements).model_dump(mode="json")},

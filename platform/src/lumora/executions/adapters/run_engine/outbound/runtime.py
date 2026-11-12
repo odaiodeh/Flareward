@@ -152,6 +152,12 @@ class RunEngineProgramRuntime:
                 InvocationRequest.create(
                     invoke_element,
                     kwargs={"inputs": inputs, "call": call.model_dump(mode="json")},
+                    metadata={
+                        "lumora_call_site": key,
+                        "lumora_call_kind": "operation"
+                        if bundle.root.category == ResourceCategory.OPERATION
+                        else "element",
+                    },
                 ),
                 target=self._target(execution),
             )

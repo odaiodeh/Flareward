@@ -22,7 +22,7 @@ from lumora.services.verification.domain.models import (
 )
 from lumora.services.workspaces.domain.files import InlineFile
 from plugins.adlc.programs.coding import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     CodingFileCandidate,
     CodingFileCandidateConfig,
     CodingFileWork,
@@ -180,7 +180,7 @@ async def test_invalid_task_is_refused_before_coding(candidate):
 
 
 def test_registered_input_exposes_coding_fields_for_schema_driven_authoring():
-    model = APPLICATION_PROGRAMS[0].input_model
+    model = COORDINATORS[0].input_model
     assert model is CodingFileWork
     schema = model.model_json_schema()
     assert schema["properties"]["task"]["$ref"] == "#/$defs/CodingInput"

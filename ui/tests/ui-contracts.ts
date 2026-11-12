@@ -1,6 +1,7 @@
 /** UI-owned contracts use plain data and transport doubles, without a browser or LLM. */
 import assert from 'node:assert/strict';
 import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import SchemaValue from '../client/src/components/schema/SchemaValue';
 import axios from '../client/src/http/axiosAgentConfig';
@@ -24,8 +25,23 @@ import { initialSchemaInput, parseSchemaNumber, resolveSchema } from '../client/
 import { verifyProgramGraphEditing } from './program-graph-contracts';
 import { verifyArtifactContracts } from './artifact-contracts';
 import ProgramReadiness from '../client/src/features/programs/ProgramReadiness';
+import ProgramDependencies from '../client/src/features/programs/ProgramDependencies';
 
 function verifyProgramConfigurationSchemas() {
+  const client = new QueryClient();
+  const declaration = { inputs: null, scope_schema: null, outputs: {}, result_model_schema: null, result_schema: null };
+  const dependencies = renderToStaticMarkup(React.createElement(QueryClientProvider, {
+    client,
+    children: React.createElement(ProgramDependencies, {
+      children: {}, declarations: { reviewer: declaration, constructor: declaration },
+      onChange: () => {}, programs: [], scope: 'owner', disabled: false,
+    }),
+  }));
+  assert.ok(dependencies.includes('aria-label="Program for reviewer"'));
+  assert.ok(dependencies.includes('aria-label="Program for constructor"'));
+  assert.ok(!dependencies.includes('Remove binding'));
+  assert.ok(dependencies.includes('Expected call contract'));
+  client.clear();
   const report = { version: 4, valid: false, issues: [{ code: 'INVALID_CONFIGURATION' as const, severity: 'error' as const, path: ['implementation', 'config'], message: 'Missing required configuration' }] };
   const current = renderToStaticMarkup(React.createElement(ProgramReadiness, { report, current: true }));
   assert.ok(current.includes('Missing required configuration'));
@@ -58,7 +74,7 @@ function verifyProgramConfigurationSchemas() {
   assert.deepEqual(resolveSchema(schema, { $ref: '#/$defs/Policy', default: 'required' })?.enum, ['required', 'optional']);
   assert.equal(resolveSchema(schema, { $ref: 'https://example.invalid/schema' }), null);
   assert.equal(resolveSchema(schema, { $ref: '#/$defs/Recursive' }), null);
-  const descriptor = { key: 'engineering', version: '1', name: 'Engineering', description: '', configuration_schema: schema, input_schema: null, output_schema: null };
+  const descriptor = { kind: 'application' as const, key: 'engineering', version: '4', name: 'Engineering', description: '', configuration_schema: schema, input_schema: null, output_schema: null };
   const first = configurationDefaults(descriptor);
   assert.deepEqual(first, { policy: 'required', options: { checks: ['test'] } });
   (first.options as { checks: string[] }).checks.push('review');

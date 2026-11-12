@@ -10,7 +10,7 @@ from pydantic import SecretStr
 
 from lumora.bootstrap.asgi import create_app as platform_app
 from lumora.elements.catalog.element_registry import ElementRegistry
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody
 from lumora.services.identity.domain import Identity
 from lumora.services.verification.domain.models import CheckRequirement
 from plugins.adlc.programs.coding import CodingFileWork
@@ -111,7 +111,7 @@ async def serve(assets: Path, directory: Path) -> None:
                 name="Design coding agent",
             )
             body = ProgramBody(
-                implementation=ApplicationDefinition(
+                implementation=CustomCoordinatorDefinition(
                     implementation="coding_file_candidate",
                     version="1",
                     config=config.model_dump(mode="json"),

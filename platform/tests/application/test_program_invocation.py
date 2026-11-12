@@ -4,25 +4,25 @@ from unittest.mock import create_autospec
 
 import pytest
 from pydantic import ValidationError
-from support.typed_programs import APPLICATION_PROGRAMS, TypedConfig
+from support.typed_programs import COORDINATORS, TypedConfig
 
 from lumora.executions.models import StartExecution
 from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    LiteralBinding,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
     ProgramDefinition,
     ProgramRef,
 )
-from lumora.programs.invocation import ApplicationInvoker, ProgramInvocationContractError
+from lumora.programs.invocation import CoordinatorInvoker, ProgramInvocationContractError
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
+from lumora.programs.signatures import ProgramInterfaces
 
-PROGRAMS = {registration.key: registration for registration in APPLICATION_PROGRAMS}
+PROGRAMS = {registration.key: registration for registration in COORDINATORS}
 
 
 @pytest.fixture
@@ -32,9 +32,9 @@ def runtime():
 
 async def test_installed_models_normalize_aliases_defaults_and_serialized_results(runtime):
     registration = PROGRAMS["typed_program"]
-    output = await ApplicationInvoker(registration).invoke(
-        runtime, {"amountAlias": "3", "label": "valid"}, {}
-    )
+    output = await CoordinatorInvoker(
+        registration, ProgramInterfaces.capture(registration, {}, {})
+    ).invoke(runtime, {"amountAlias": "3", "label": "valid"}, {})
     assert output == {"total": 6, "label": "valid", "tags": [], "summary": "valid:6"}
     runtime.sleep.assert_awaited_once_with(0.001)
     descriptor = registration.descriptor()
@@ -55,7 +55,9 @@ async def test_input_and_configuration_failures_prevent_program_effects(
     runtime, inputs, configuration
 ):
     with pytest.raises(ProgramInvocationContractError) as raised:
-        await ApplicationInvoker(PROGRAMS["typed_program"]).invoke(runtime, inputs, configuration)
+        await CoordinatorInvoker(
+            PROGRAMS["typed_program"], ProgramInterfaces.capture(PROGRAMS["typed_program"], {}, {})
+        ).invoke(runtime, inputs, configuration)
     assert "private-input" not in str(raised.value) and "private-validator-input" not in str(
         raised.value
     )
@@ -64,9 +66,9 @@ async def test_input_and_configuration_failures_prevent_program_effects(
 
 async def test_result_model_failure_is_safe_after_program_effects(runtime):
     with pytest.raises(ProgramInvocationContractError, match="output"):
-        await ApplicationInvoker(PROGRAMS["typed_program"]).invoke(
-            runtime, {"amount": 3, "label": "valid"}, {"invalid_result": True}
-        )
+        await CoordinatorInvoker(
+            PROGRAMS["typed_program"], ProgramInterfaces.capture(PROGRAMS["typed_program"], {}, {})
+        ).invoke(runtime, {"amount": 3, "label": "valid"}, {"invalid_result": True})
     runtime.sleep.assert_awaited_once_with(0.001)
 
 
@@ -75,12 +77,16 @@ async def test_nonfinite_output_and_internal_model_errors_are_contract_failures(
     runtime, implementation
 ):
     with pytest.raises(ProgramInvocationContractError) as raised:
-        await ApplicationInvoker(PROGRAMS[implementation]).invoke(runtime, {}, {})
+        await CoordinatorInvoker(
+            PROGRAMS[implementation], ProgramInterfaces.capture(PROGRAMS[implementation], {}, {})
+        ).invoke(runtime, {}, {})
     assert "private-model-value" not in str(raised.value)
 
 
 async def test_root_models_preserve_arrays_without_artificial_object_wrappers(runtime):
-    assert await ApplicationInvoker(PROGRAMS["numbers_program"]).invoke(runtime, ["1", 2], {}) == [
+    assert await CoordinatorInvoker(
+        PROGRAMS["numbers_program"], ProgramInterfaces.capture(PROGRAMS["numbers_program"], {}, {})
+    ).invoke(runtime, ["1", 2], {}) == [
         2,
         4,
     ]
@@ -97,7 +103,7 @@ def test_installed_declaration_rejects_sync_entrypoints():
         return inputs
 
     with pytest.raises(ValueError, match="async"):
-        ApplicationRegistration("sync", "1", TypedConfig, synchronous)
+        CoordinatorRegistration("sync", "1", TypedConfig, CustomCoordinatorStrategy(synchronous))
 
 
 async def test_installed_serialized_result_contract_is_used_for_graph_binding_admission(
@@ -113,7 +119,7 @@ async def test_installed_serialized_result_contract_is_used_for_graph_binding_ad
                 ProgramCallStep(
                     uid="call",
                     program=ProgramBody(
-                        implementation=ApplicationDefinition(
+                        implementation=CustomCoordinatorDefinition(
                             implementation="typed_program", version="1"
                         )
                     ),

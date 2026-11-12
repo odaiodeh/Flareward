@@ -130,9 +130,10 @@ def test_program_domain_round_trip_needs_no_runtime_or_application_services():
     cold("""
 import sys
 from lumora.services.identity.domain import Identity
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition, ProgramRevision
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition, ProgramRevision
+from lumora.programs.domain.interfaces import CoordinatorIdentity, ProgramInterface
 value = ProgramRevision(definition=ProgramDefinition(program_id='test', name='Test',
-    owner=Identity.user('owner'), implementation=ApplicationDefinition(implementation='registered', version='1')), revision=1)
+    owner=Identity.user('owner'), implementation=CustomCoordinatorDefinition(implementation='registered', version='1')), revision=1, interface=ProgramInterface(coordinator=CoordinatorIdentity(key='registered', version='1'), input_schema={'type':'object'}, output_schema={'type':'object'}))
 assert ProgramRevision.model_validate_json(value.model_dump_json()) == value
 blocked = ('lumora.bootstrap', 'lumora.api', 'plugins', 'runengine', 'temporalio', 'pymongo')
 assert not [name for name in sys.modules if name.startswith(blocked)]

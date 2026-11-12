@@ -5,11 +5,11 @@ from support.operations import AliasedTextSpec, operation_bundle, operation_grap
 from support.scenarios import publish, run
 
 from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     OperationStep,
-    PathBinding,
     ProgramCallStep,
 )
 from lumora.programs.service import ProgramContractError
@@ -27,7 +27,7 @@ async def test_typed_operation_runs_from_graph_with_explicit_bindings(platform, 
 async def test_same_operation_runs_from_code_program_nested_in_graph(
     platform, application, profile
 ):
-    definition = ApplicationDefinition(
+    definition = CustomCoordinatorDefinition(
         implementation="typed_operation",
         version="1",
         config={"bundle": operation_bundle(application.elements).model_dump(mode="json")},

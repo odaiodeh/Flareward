@@ -2,6 +2,7 @@
 
 import pytest
 from support.program_authoring import assert_unfinished_program_lifecycle
+from support.program_interfaces import declared_interface
 from support.program_store_contracts import PROGRAM_STORE_CONTRACTS, definition
 from support.server import api_process
 
@@ -33,7 +34,7 @@ async def test_mongo_program_storage_rejects_mismatched_snapshot_identity(mongo_
     draft = await repository.save_draft(
         definition("corrupt"), expected_version=0, presentation=ProgramPresentation()
     )
-    published = await repository.publish(draft)
+    published = await repository.publish(draft, interface=declared_interface((draft).definition))
     await mongo_database.program_drafts.update_one(
         {"_id": "corrupt"}, {"$set": {"owner_id": "different-owner"}}
     )

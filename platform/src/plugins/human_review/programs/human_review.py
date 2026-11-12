@@ -1,15 +1,14 @@
 """Durable review coordination uses invoked effects and native messages/timeouts only."""
 
-from enum import StrEnum
-
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
 from lumora.services.reviews.contracts import ReviewSettings, ValidatedReviewTemplate
 from lumora.services.reviews.domain.models import ReviewRecord, ReviewStatus
+from lumora.services.reviews.domain.results import HumanReviewResult, ReviewWaitReason
 from plugins.human_review.elements.operations import RequestReview
 
 
@@ -22,17 +21,6 @@ class HumanReviewConfig(BaseModel):
     execution: ExecutionSelection = Field(default_factory=ExecutionSelection)
     reconcile_seconds: float = Field(default=30, ge=0.1, le=300, allow_inf_nan=False)
     max_checks: int = Field(default=10_000, ge=1, le=100_000)
-
-
-class ReviewWaitReason(StrEnum):
-    RESOLVED = "resolved"
-    CHECK_LIMIT = "check_limit"
-
-
-class HumanReviewResult(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-    review: ReviewRecord
-    reason: ReviewWaitReason
 
 
 def review_result(value: JsonValue) -> ReviewRecord:
@@ -96,6 +84,12 @@ async def human_review(runtime: ProgramRuntime, inputs: JsonValue, config: BaseM
     )
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration("human_review", "1", HumanReviewConfig, human_review),
+COORDINATORS = (
+    CoordinatorRegistration(
+        "human_review",
+        "1",
+        HumanReviewConfig,
+        CustomCoordinatorStrategy(human_review),
+        result_model=HumanReviewResult,
+    ),
 )

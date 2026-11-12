@@ -1,9 +1,32 @@
 # Program platform: active plan
 
-Updated 2026-11-10. Read [status](status.md) and relevant source; the
+Updated 2026-11-12. Read [status](status.md) and relevant source; the
 [target checklist](architecture/README.md#architecture-acceptance-checklist) defines completion.
-The stored overall goal remains paused. The user explicitly authorized the repository
-reorganization below; this task does not resume or complete the larger goal.
+The user authorized implementation of the unified coordinator design. This work
+precedes the remaining delivery/operational milestones; their obligations remain.
+
+## Active milestone: unified coordinators and composable Programs
+
+Specification: [complete design and C1-C10 acceptance](architecture/coordinator-programs/README.md).
+The [foundation checkpoint](evidence/2026-11-11-coordinator-foundation.md) is implemented;
+it does not complete the milestone. Continue from the current worktree.
+
+1. **A — accepted locally.** [Contract/discovery acceptance](evidence/2026-11-11-coordinator-step-a.md)
+   covers specifications, frozen interfaces/declarations, resource capture and all four compositions.
+   Full browser/remote gates remain in C/D; this does not complete the milestone.
+2. **B — accepted for controlled native scope.** [Reviewer dependencies](evidence/2026-11-11-reviewer-dependencies.md)
+   replace direct ADLC review calls; confirmation preserves exact work/policy/ancestry.
+   [Generic result routing](evidence/2026-11-11-result-routing.md) passes local/API/client checks (C7).
+   [Mixed delivery C5](evidence/2026-11-12-mixed-delivery.md) passes controlled thread/process cases.
+   [C6 review recovery](evidence/2026-11-12-adlc-review-recovery.md) passes Local/Temporal; broad remote gates remain.
+3. **Active: C — UI and observation.** [Occurrences](evidence/2026-11-12-occurrences.md) now expose calls/attempts and child links in the workbench.
+   Next: nested/control authoring, waits/resumable updates and graph overlays; browser acceptance remains.
+4. **D — acceptance.** Rebuild matched Kubernetes/OpenShell receivers, verify
+   relevant lifecycle behavior and actual browser journeys, finish cleanup/docs.
+
+Apply focused verification during A-C; batch heavy gates at coherent boundaries.
+Exit only when C1-C10 have current implementation and scoped evidence. Checkpoint
+reports do not stop autonomous work or erase later overall obligations.
 
 ## Completed requested milestone: feature-owned repository and plugin layout
 
@@ -52,9 +75,9 @@ repair/check/review and retained work through one published revision.
 
 | Order | Outcome | Remaining acceptance |
 | --- | --- | --- |
-| 1 | Feature-owned repository cutover | Accepted within the linked cutover scope. |
+| 1 | Unified coordinator milestone | Complete steps A-D and C1-C10 above; foundation alone is insufficient. |
 | 2 | Completion alternatives and delivery | Choice UX, live Git, authorized intake/CI/CD, uncertain-effect reconciliation and larger unchanged reuse. |
-| 3 | Broader composition, observation and unified authoring | Library/canvas/workbench convergence, inline controls/bindings, revision adoption, occurrence/attempt hierarchy, gaps and pagination. |
+| 3 | Remaining authoring and observation | Audit the broader target after C1-C10; complete remaining sharing, curated editing and Session/browser behavior without rebuilding accepted flows. |
 | 4 | Remaining controls and remote operation | Credential recovery/rotation/private delivery, stale fencing, tenant/profile capacity/fairness, admitted dynamic work and remaining service behavior migration. |
 | 5 | Operational and final acceptance | Required current-source host/backend/load/recovery/cleanup matrices, cluster deployment and requirement-by-requirement audit. |
 

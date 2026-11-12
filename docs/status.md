@@ -1,13 +1,22 @@
 # Program platform: current status
 
-Snapshot: 2026-11-10. Overall goal paused; explicitly requested repository cleanup
-is complete within its recorded scope. Thin authored feature acceptance remains; overall completion,
-full UX, delivery integrations and operational acceptance are still open.
-Start here and in [the plan](plan.md); [the target](architecture/README.md) defines completion.
+Snapshot: 2026-11-12. Coordinator unification remains active; [plan](plan.md) and [target](architecture/README.md) define remaining acceptance.
+
+## Coordinator unification
+
+[Milestone specification and acceptance](architecture/coordinator-programs/README.md).
+
+Common `CoordinatorRegistration`/`CoordinatorRegistry` catalog now includes native
+`graph@1`; [explicit strategies](evidence/2026-11-12-coordinator-strategies.md) derive kind and isolate entrypoints.
+Shared dependency projection drives publication diagnostics and child compilation.
+Published revisions now freeze raw/model/canonical interfaces and owned-body contracts.
+Composition, admission, UI invocation and Program v12 workers use the frozen boundary;
+installed-schema drift rejects execution. See [verification](evidence/2026-11-11-published-interfaces.md).
+[Saved-resource capture](evidence/2026-11-11-configuration-resources.md) now includes typed nested coordinator fields and owned bodies.
+[Step A](evidence/2026-11-11-coordinator-step-a.md) is accepted locally. [Reviewer dependencies](evidence/2026-11-11-reviewer-dependencies.md) replace direct ADLC review calls; [result routing](evidence/2026-11-11-result-routing.md) is verified locally. [Mixed delivery C5](evidence/2026-11-12-mixed-delivery.md) passes controlled thread/process cases; [C6 recovery](evidence/2026-11-12-adlc-review-recovery.md) passes Local/Temporal. [Occurrence views](evidence/2026-11-12-occurrences.md) advance Step C; nested authoring/browser/remote gates remain.
 
 ## Repository cutover
 
-The user selected Lumora, with the tagline "From intent to reality."
 The [naming guide](branding.md) defines the package/configuration cutover;
 [current evidence](evidence/2026-11-10-lumora-rename.md) records its verification.
 Core/native/Identity gates pass 2,037 tests; UI checks/build and wheel inspection pass.
@@ -26,9 +35,8 @@ Administrator settings/consent now use native platform services and production U
 clients. Generic graph data and explicit MAS conversation remain separate contracts.
 See [cutover evidence](evidence/2026-11-09-repository-structure.md) for exact verification.
 
-The [Lumora checkout/remote move](evidence/2026-11-10-lumora-checkout.md) is complete:
-`/Users/odaiodeh/IdeaProjects/lumora`, `odaiodeh/Lumora` origin, retained tracking,
-repaired tooling and verified owned infrastructure paths. No commit or push ran.
+The [checkout move](evidence/2026-11-10-lumora-checkout.md) to `lumora` and
+`odaiodeh/Lumora` origin is complete, with retained tracking and verified tooling.
 
 ## Implemented foundation
 
@@ -83,12 +91,10 @@ adverse/private-delivery matrix. Normal OpenShell is supported; strict Landlock 
 and need a capable Linux kernel. No paid calls are implicit in regression tests.
 
 Run Engine baseline: `60393440efd3876cd6c81e0b013e8bf6d9167659`; unchanged externally.
-Current formats: request v10, Program v6, state v4, elements v4, scheduled admission
-v2, bundle v2; Engineering 3/review subject 2, Python evaluator 2.0.0. Recreate old
+Current formats: request v10, Program v12, state v4, elements v4, scheduled admission
+v2, bundle v2; Engineering 4/Design 2/review subject 2, Python evaluator 2.0.0. Recreate old
 publications after namespace cutover; use rebuilt matched images, not old aliases.
 
 ## Maintenance
 
-Read focused evidence for its tested snapshot. Keep status <=100 and plan <=120
-lines; rewrite facts rather than appending diaries. Completion requires every full
-objective/target item; passing counts and compact plans do not replace acceptance.
+Keep status <=100 and plan <=120 lines; snapshot evidence does not replace full acceptance.

@@ -24,14 +24,18 @@ from lumora.executions.adapters.run_engine.inbound.programs import (
     map_program_inputs,
     map_program_outputs,
 )
+from lumora.executions.adapters.run_engine.inbound.routing import evaluate_result
 from lumora.executions.adapters.run_engine.outbound.profiles import (
     profile_catalog,
     supports_retained_environment,
 )
 from lumora.executions.adapters.run_engine.shared.models import (
-    ApplicationCall,
+    CoordinatorCall,
     ElementCall,
     ElementSpecifications,
+    PreparedCoordinator,
+    PreparedGraph,
+    PreparedImplementation,
     ProgramPayload,
     ProgramPlacement,
     WorkBudgetBinding,
@@ -39,6 +43,7 @@ from lumora.executions.adapters.run_engine.shared.models import (
 from lumora.executions.adapters.run_engine.shared.state import engine_state_type
 from lumora.executions.domain.budgets import WorkLimits
 from lumora.executions.domain.context import ExecutionContext
+from lumora.executions.domain.observation import OccurrenceKind
 from lumora.executions.domain.placement import (
     GraphPlacementPlan,
     InvocationPlacement,
@@ -52,6 +57,7 @@ from lumora.executions.placement import ProfileAccess
 from lumora.executions.profile_access import ExecutionProfileAccess
 from lumora.programs.domain.models import (
     BodyPath,
+    ConditionalRoute,
     ElementStep,
     GraphDefinition,
     OperationStep,
@@ -59,11 +65,12 @@ from lumora.programs.domain.models import (
     ProgramDefinition,
     ProgramRef,
     ProgramRevision,
+    ResultRoute,
 )
 from lumora.programs.graph_context import step_contexts
 from lumora.programs.graph_elements import GraphElementSpec
 from lumora.programs.graph_state import graph_state_type
-from lumora.programs.registry import ApplicationRegistry
+from lumora.programs.registry import CoordinatorRegistry
 from lumora.programs.service import ProgramService
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.identity.domain import Identity
@@ -74,7 +81,7 @@ class ProgramCompiler:
         self,
         programs: ProgramService,
         elements: ElementRegistry,
-        applications: ApplicationRegistry,
+        applications: CoordinatorRegistry,
         profiles: dict[str, ExecutorConfig],
         default_profile: str,
         receiver: FunctionRef | None = None,
@@ -193,7 +200,8 @@ class ProgramCompiler:
             for step in steps:
                 self._bundles.validate(step.element, graph.resources)
             for route in graph.conditions:
-                self._bundles.validate(route.condition, graph.resources)
+                if isinstance(route, ConditionalRoute):
+                    self._bundles.validate(route.condition, graph.resources)
         except ValidationError:
             raise ValueError("Invalid graph construction configuration") from None
 
@@ -230,6 +238,7 @@ class ProgramCompiler:
         imported_environments: frozenset[str] = frozenset(),
         body_path: BodyPath = (),
         inherited_profile: str | None = None,
+        call_site: str | None = None,
     ) -> RunRequest:
         revision = ProgramRevision.model_validate_json(revision.model_dump_json())
         definition = revision.definition
@@ -254,12 +263,12 @@ class ProgramCompiler:
                 name: self._profiles[name].model_dump(mode="json") for name in approved.profiles
             },
             environments=tuple(sorted(available_environments)),
-            child_imports=implementation.child_environment_imports
-            if not isinstance(implementation, GraphDefinition)
-            else {},
+            child_imports={
+                name: dependency.environment_imports
+                for name, dependency in body.dependencies.items()
+            },
         )
-        graph_request: dict[str, JsonValue] | None = None
-        application: ApplicationCall | None = None
+        prepared: PreparedImplementation
         children: dict[str, dict[str, JsonValue]] = {}
         child_placements: dict[str, PreparedChildPlacement] = {}
         invocation_placements: list[PreparedInvocationPlacement] = []
@@ -295,6 +304,29 @@ class ProgramCompiler:
             name: self._owned_environment(profile, approved)
             for name, profile in implementation.environments.items()
         }
+        for name, dependency in body.dependencies.items():
+            target = dependency.program
+            imports = dependency.environment_imports
+            if not set(imports.values()) <= available_environments:
+                raise ValueError("Child imports an undeclared parent environment")
+            inline = isinstance(target, ProgramBody)
+            child = (
+                await self._programs.revision(target, caller)
+                if isinstance(target, ProgramRef)
+                else revision
+            )
+            request = await self.compile(
+                child,
+                caller,
+                context,
+                ancestors=ancestors,
+                imported_environments=frozenset(imports),
+                body_path=(*body_path, name) if inline else (),
+                inherited_profile=placement.default_profile if inline else None,
+                call_site=name,
+            )
+            record_child(name, request, imports)
+            children[name] = request.model_dump(mode="json")
         if isinstance(implementation, GraphDefinition):
             self._bundles.validate_snapshot(implementation.resources)
             state_type = engine_state_type(implementation)
@@ -352,22 +384,7 @@ class ProgramCompiler:
                         raise ValueError("Program output bindings target unknown state channels")
                     if not set(step.environment_imports.values()) <= available_environments:
                         raise ValueError("Program call imports an undeclared parent environment")
-                    inline = isinstance(step.program, ProgramBody)
-                    child = (
-                        await self._programs.revision(step.program, caller)
-                        if isinstance(step.program, ProgramRef)
-                        else revision
-                    )
-                    request = await self.compile(
-                        child,
-                        caller,
-                        context,
-                        ancestors=ancestors,
-                        imported_environments=frozenset(step.environment_imports),
-                        body_path=(*body_path, step.uid) if inline else (),
-                        inherited_profile=placement.default_profile if inline else None,
-                    )
-                    record_child(step.uid, request, step.environment_imports)
+                    request = RunRequest.model_validate(children[step.uid])
                     builder.add_program_node(
                         step.uid,
                         request,
@@ -401,6 +418,16 @@ class ProgramCompiler:
                     and route.execution.environment not in available_environments
                 ):
                     raise ValueError(f"Undeclared environment: {route.execution.environment}")
+                record_invocation(route.source, ResourceCategory.CONDITION, route.execution)
+                if isinstance(route, ResultRoute):
+                    builder.add_conditional_edge(
+                        route.source,
+                        evaluate_result,
+                        route.branches,
+                        kwargs={"route": route.model_dump(mode="json")},
+                        runner=self._target(route.execution, execution_profile, approved),
+                    )
+                    continue
                 bundle = self._bundles.resolve(route.condition, implementation.resources)
                 resource = next(
                     entry.resource for entry in bundle.entries if entry.resource.key == bundle.root
@@ -416,7 +443,6 @@ class ProgramCompiler:
                     step=contexts[route.source],
                     receiver=self._receiver,
                 )
-                record_invocation(route.source, ResourceCategory.CONDITION, route.execution)
                 builder.add_conditional_edge(
                     route.source,
                     evaluate_condition,
@@ -425,35 +451,23 @@ class ProgramCompiler:
                     runner=self._target(route.execution, execution_profile, approved),
                 )
             builder.set_entry(implementation.entry).set_exit(implementation.exit)
-            graph_request = builder.compile().request(state_type()).model_dump(mode="json")
+            prepared = PreparedGraph(
+                sites={step.uid: OccurrenceKind(step.kind.value) for step in implementation.steps},
+                request=builder.compile().request(state_type()).model_dump(mode="json"),
+                inputs=implementation.inputs,
+                outputs=implementation.outputs,
+            )
         else:
             registration = self._applications.get(
                 implementation.implementation, implementation.version
             )
             configuration = registration.configuration(implementation)
             self._bundles.validate_embedded(configuration)
-            application = ApplicationCall.from_registration(registration)
-            for name, target in implementation.children.items():
-                imports = implementation.child_environment_imports.get(name, {})
-                if not set(imports.values()) <= available_environments:
-                    raise ValueError("Child imports an undeclared parent environment")
-                inline = isinstance(target, ProgramBody)
-                child = (
-                    await self._programs.revision(target, caller)
-                    if isinstance(target, ProgramRef)
-                    else revision
-                )
-                child_request = await self.compile(
-                    child,
-                    caller,
-                    context,
-                    ancestors=ancestors,
-                    imported_environments=frozenset(imports),
-                    body_path=(*body_path, name) if inline else (),
-                    inherited_profile=placement.default_profile if inline else None,
-                )
-                record_child(name, child_request, imports)
-                children[name] = child_request.model_dump(mode="json")
+            prepared = PreparedCoordinator(
+                call=CoordinatorCall.from_registration(registration),
+                configuration=implementation.config,
+                children=children,
+            )
         placement = placement.model_copy(
             update={
                 "summary": PreparedProgramPlacement(
@@ -464,29 +478,18 @@ class ProgramCompiler:
                     imported_environments=tuple(sorted(imported_environments)),
                     invocations=tuple(invocation_placements),
                     children=child_placements,
-                    dynamic_invocations=application is not None,
+                    dynamic_invocations=isinstance(prepared, PreparedCoordinator),
                 )
             }
         )
         payload = ProgramPayload(
             program=revision.reference,
             body_path=body_path,
+            call_site=call_site,
             content_digest=revision.content_digest,
-            input_schema=body.input_schema,
-            output_schema=body.output_schema,
+            interface=revision.interface.at(body_path).model_copy(update={"children": {}}),
             context=context,
-            graph_request=graph_request,
-            graph_inputs=implementation.inputs
-            if isinstance(implementation, GraphDefinition)
-            else {},
-            graph_outputs=implementation.outputs
-            if isinstance(implementation, GraphDefinition)
-            else {},
-            configuration=implementation.config
-            if not isinstance(implementation, GraphDefinition)
-            else {},
-            application=application,
-            children=children,
+            implementation=prepared,
             specifications=specifications,
             placement=placement,
             receiver=self._receiver,

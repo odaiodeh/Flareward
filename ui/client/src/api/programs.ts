@@ -6,12 +6,13 @@ import type { ExecutionProfileCatalog } from '@/api/catalog';
 export interface ProgramRef { program_id: string; revision: number }
 export type ProgramTarget = ProgramRef | ProgramBody;
 export interface ProgramDescriptor {
+  kind: 'graph' | 'application';
   key: string; version: string; name: string; description: string;
   configuration_schema: Record<string, JsonValue>;
   input_schema: Record<string, JsonValue> | null;
   output_schema: Record<string, JsonValue> | null;
 }
-export interface ApplicationDefinition {
+export interface CustomCoordinatorDefinition {
   kind: 'application'; implementation: string; version: string;
   config: Record<string, JsonValue>; children: Record<string, ProgramTarget>;
   environments: Record<string, string>;
@@ -34,18 +35,24 @@ export type GraphStep = ProgramCallStep | ResourceStep;
 export interface ResourceDefinition {
   key: ResourceKey; type_key: string; name: string; config: Record<string, JsonValue>; implementation_version: string;
 }
-export interface ResourceSelection { source: ResourceSourceRef; adoption: 'reject' | 'replace'; body_path?: string[] }
+export interface ResourceSelection { source: ResourceSourceRef; adoption: 'reject' | 'replace'; body_path?: string[]; configuration_path?: (string | number)[] | null }
+interface GraphRouteBase {
+  source: string; branches: Record<string, string>; execution: ExecutionSelection;
+}
+export type GraphRoute = GraphRouteBase & (
+  { kind: 'condition'; condition: ResourceKey } | { kind: 'result'; selection: ProgramBinding }
+);
 export interface GraphDefinition {
   kind: 'graph'; steps: GraphStep[]; resources: ResourceDefinition[];
   edges: Record<string, string[]>;
-  conditions: { source: string; condition: { category: string; rid: string }; branches: Record<string, string>; execution: ExecutionSelection }[];
+  conditions: GraphRoute[];
   entry: string; exit: string; inputs: ProgramBindings; outputs: ProgramProjection;
   environments: Record<string, string>; recursion_limit: number;
   join_policy?: 'active' | 'all';
   write_policy?: 'ordered' | 'reduce';
 }
 export interface ProgramBody {
-  implementation: ApplicationDefinition | GraphDefinition;
+  implementation: CustomCoordinatorDefinition | GraphDefinition;
   input_schema: Record<string, JsonValue>; output_schema: Record<string, JsonValue>;
   execution_profile: string | null;
 }
@@ -53,7 +60,30 @@ export interface ProgramDefinition extends ProgramBody {
   program_id: string; name: string;
   owner: { type: 'user' | 'team'; id: string; display_name: string };
 }
-export interface ProgramRevision { definition: ProgramDefinition; revision: number; content_digest: string }
+export interface DependencyInterface {
+  inputs: ProgramProjection | null;
+  scope_schema: Record<string, JsonValue> | null;
+  outputs: ProgramBindings;
+  result_model_schema: Record<string, JsonValue> | null;
+  result_schema: Record<string, JsonValue> | null;
+}
+export interface ProgramInterface {
+  dependencies: Record<string, DependencyInterface>;
+  configured: { input_schema: Record<string, JsonValue> | null; output_schema: Record<string, JsonValue> | null } | null;
+  coordinator: { key: string; version: string };
+  input_schema: Record<string, JsonValue>;
+  input_model_schema: Record<string, JsonValue> | null;
+  normalized_input_schema: Record<string, JsonValue> | null;
+  output_schema: Record<string, JsonValue>;
+  output_model_schema: Record<string, JsonValue> | null;
+  normalized_output_schema: Record<string, JsonValue> | null;
+  children: Record<string, ProgramInterface>;
+}
+export interface ProgramInterfacePreview {
+  interface: ProgramInterface | null;
+  issues: ProgramValidation['issues'];
+}
+export interface ProgramRevision { interface: ProgramInterface; definition: ProgramDefinition; revision: number; content_digest: string }
 export interface ProgramPresentation { positions: Record<string, { x: number; y: number }> }
 export interface ProgramDraft { definition: ProgramDefinition; version: number; presentation: ProgramPresentation }
 export interface ProgramValidation {
@@ -85,7 +115,7 @@ export interface ProgramExecution {
   execution_id: string; phase: 'submitting' | 'running' | 'completed' | 'failed' | 'cancelled' | 'unknown';
   submission: string; inputs: JsonValue; result: JsonValue; failure: null | { message: string; kind: string };
   parent_execution_id: string | null; program: ProgramRef;
-  body_path: string[]; content_digest: string;
+  body_path: string[]; content_digest: string; call_site: string | null;
   work_limits: WorkLimits | null;
   admitted_profiles: ExecutionProfileCatalog | null;
   workflow_access_approval: WorkflowAccessApproval | null;
@@ -150,4 +180,27 @@ export async function cancelProgramExecution(id: string, teamId?: string, signal
 /** Convert an existing workflow template into an ordinary editable Program draft. */
 export async function importProgramTemplate(programId: string, blueprintId: string, teamId?: string, signal?: AbortSignal): Promise<ProgramDraft> {
   return (await api.put<ProgramDraft>(`/programs/${encodeURIComponent(programId)}/blueprint`, { blueprint_id: blueprintId }, { params: { teamId }, signal })).data;
+}
+
+
+/** Resolves local contracts without saving, fetching dependencies or allocating execution. */
+export async function previewProgramInterface(body: ProgramBody, teamId?: string, signal?: AbortSignal): Promise<ProgramInterfacePreview> {
+  const { implementation, input_schema, output_schema, execution_profile } = body;
+  return (await api.post<ProgramInterfacePreview>('/catalog/programs/interface', {
+    implementation, input_schema, output_schema, execution_profile,
+  }, { params: { teamId }, signal })).data;
+}
+
+
+export interface CallOccurrence {
+  ordinal: number; call_site: string; kind: 'operation' | 'element' | 'program';
+  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  graph_step: number | null; attempt: number; child_execution_id: string | null;
+}
+export interface OccurrencePage {
+  execution_id: string; revision: number; total: number; truncated: boolean;
+  occurrences: CallOccurrence[]; next_cursor: number | null;
+}
+export async function inspectExecutionOccurrences(id: string, before: number | undefined, teamId?: string, signal?: AbortSignal): Promise<OccurrencePage> {
+  return (await api.get<OccurrencePage>(`/executions/${encodeURIComponent(id)}/occurrences`, { params: { teamId, before, limit: 50 }, signal })).data;
 }

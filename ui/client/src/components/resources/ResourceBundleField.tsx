@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { captureResourceSnapshot, type ResourceInstance } from '@/api/resources';
+import { captureResourceSnapshot, type ElementBundle, type ResourceInstance } from '@/api/resources';
 import { useLatestRequest } from '@/hooks/use-latest-request';
 import { isRecord } from '@/lib/json';
 import type { SchemaField } from '@/components/schema/SchemaValue';
+import type { ResourceSourceRef } from '@/types/workspace';
 import SavedResourcePicker from './SavedResourcePicker';
 
 /** Captures on explicit selection; redacted catalog configuration is never copied. */
-export default function ResourceBundleField({ label, value, onChange, disabled, scope, teamId, onPendingChange }: SchemaField & {
+export default function ResourceBundleField({ label, value, onChange, disabled, scope, teamId, onPendingChange, onCaptured }: SchemaField & {
   scope: string; teamId?: string; onPendingChange: (pending: boolean) => void;
+  onCaptured?: (source: ResourceSourceRef, bundle: ElementBundle, replacing: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +24,7 @@ export default function ResourceBundleField({ label, value, onChange, disabled, 
     const signal = request(); setBusy(true); setError(''); onPendingChange(true);
     try {
       const bundle = await captureResourceSnapshot(resource.source, teamId, signal);
-      if (!signal.aborted) onChange(bundle as unknown as SchemaField['value']);
+      if (!signal.aborted) { onChange(bundle as unknown as SchemaField['value']); onCaptured?.(resource.source, bundle, root !== null); }
     } catch {
       if (!signal.aborted) setError('Unable to capture this saved element. Refresh the library and select it again.');
     } finally {

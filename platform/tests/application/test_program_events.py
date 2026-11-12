@@ -28,7 +28,7 @@ from lumora.executions.events import (
 from lumora.executions.models import PreparedExecution
 from lumora.executions.ports import ExecutionRequestConflict, ProgramExecutionGateway
 from lumora.executions.service import ExecutionService
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
 from lumora.services.access.consent import WorkflowConsents
 from lumora.services.identity.domain import Identity
@@ -42,7 +42,7 @@ def event_clock():
 @pytest.fixture
 async def event_case(application, event_clock):
     revision = await publish(
-        application, "event", ApplicationDefinition(implementation="greeting", version="1")
+        application, "event", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     gateway = create_autospec(ProgramExecutionGateway, instance=True)
     gateway.location = "private-test-location"

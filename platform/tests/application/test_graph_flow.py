@@ -2,7 +2,7 @@
 
 import pytest
 from support.graph_routes import conditional_values
-from support.typed_programs import APPLICATION_PROGRAMS
+from support.typed_programs import COORDINATORS
 
 from lumora.programs.authoring import ProgramIssueCode
 from lumora.programs.domain.models import JoinPolicy, ProgramDefinition
@@ -13,7 +13,7 @@ from lumora.programs.service import ProgramContractError
 
 @pytest.fixture(autouse=True)
 def installed(application):
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
 
 

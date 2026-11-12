@@ -21,7 +21,7 @@ It validates JSON proposals; the existing Design coordinator owns review/revisio
 The [designer checkpoint](../../../docs/evidence/2026-11-07-configurable-designer.md)
 records native and actual-App designer proof. The
 [review-evidence checkpoint](../../../docs/evidence/2026-11-07-review-evidence.md)
-adds source/report inspection before approval. `engineering@3` now publishes named
+adds source/report inspection before approval. `engineering@4` now publishes named
 completion choices with candidate schemas and frozen check/verifier/report requirements.
 `EngineeringReviewSubject` (`engineering-review@2`) binds that name to exact evidence;
 preserve fingerprint validation and substitution tests. See

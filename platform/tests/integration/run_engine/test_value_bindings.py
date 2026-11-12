@@ -4,20 +4,19 @@ import pytest
 from runengine.coordination.models import RunRequest
 from runengine.programs.graph.inputs import GraphProgramInput
 from support.scenarios import publish, run
-from support.typed_programs import APPLICATION_PROGRAMS
+from support.typed_programs import COORDINATORS
 from support.value_operations import ELEMENT_SPECIFICATIONS, ArraySpec, LengthSpec, value_graph
 
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.adapters.run_engine.shared.models import ProgramPayload
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.domain.models import ExecutionPhase
-from lumora.programs.composition.programs import APPLICATION_PROGRAMS as CONTROLS
+from lumora.programs.composition.programs import COORDINATORS as CONTROLS
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     JoinPolicy,
-    LiteralBinding,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
 )
@@ -25,7 +24,7 @@ from lumora.programs.domain.models import (
 
 @pytest.fixture(autouse=True)
 def installed(application):
-    for registration in (*CONTROLS, *APPLICATION_PROGRAMS):
+    for registration in (*CONTROLS, *COORDINATORS):
         application.applications.register(registration)
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
@@ -64,7 +63,7 @@ async def test_backend_program_invokes_root_value_operations_without_graph_conte
     revision = await publish(
         platform,
         "backend",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="operation",
             version="1",
             config={"bundle": bundle.model_dump(mode="json")},
@@ -82,7 +81,7 @@ async def test_backend_program_invokes_root_value_operations_without_graph_conte
 @pytest.mark.parametrize("inputs", [[1, 2], "text", 3, True, None])
 async def test_graph_calls_pass_whole_values_to_owned_and_pinned_programs(platform, owned, inputs):
     child = ProgramBody(
-        implementation=ApplicationDefinition(implementation="identity_program", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="identity_program", version="1"),
         input_schema={},
         output_schema={},
     )
@@ -119,7 +118,7 @@ async def test_graph_calls_pass_whole_values_to_owned_and_pinned_programs(platfo
 @pytest.mark.parametrize("kind", ["map", "repeat", "choose"])
 async def test_controls_use_whole_value_child_projections(platform, kind):
     child = ProgramBody(
-        implementation=ApplicationDefinition(implementation="numbers_program", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="numbers_program", version="1"),
         input_schema={"type": "array"},
         output_schema={"type": "array"},
     )
@@ -137,7 +136,7 @@ async def test_controls_use_whole_value_child_projections(platform, kind):
     revision = await publish(
         platform,
         kind,
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation=kind,
             version="1",
             children={"body": child},
@@ -206,7 +205,7 @@ async def test_array_graph_revision_composes_with_graph_and_backend_coordinators
             outputs=PathBinding(path=("results", "call")),
         )
         if caller_kind == "graph"
-        else ApplicationDefinition(
+        else CustomCoordinatorDefinition(
             implementation="composed", version="1", children={"greet": child.reference}
         )
     )
@@ -229,12 +228,12 @@ async def test_parallel_program_results_have_independent_keys_and_join_as_values
     platform, join_policy
 ):
     identity = ProgramBody(
-        implementation=ApplicationDefinition(implementation="identity_program", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="identity_program", version="1"),
         input_schema={},
         output_schema={},
     )
     numbers = ProgramBody(
-        implementation=ApplicationDefinition(implementation="numbers_program", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="numbers_program", version="1"),
         input_schema={"type": "array"},
         output_schema={"type": "array"},
     )
@@ -268,7 +267,7 @@ async def test_parallel_program_results_have_independent_keys_and_join_as_values
     )
     payload = ProgramPayload.model_validate(compiled.input)
     native = GraphProgramInput.model_validate(
-        RunRequest.model_validate(payload.graph_request).input
+        RunRequest.model_validate(payload.implementation.request).input
     )
     assert native.join_policy.value == join_policy.value
     execution = await run(platform, revision, {"left": [1], "right": [2, 3]})

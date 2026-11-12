@@ -2,15 +2,15 @@
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    PathBinding,
     ProgramCallStep,
     ProgramTarget,
 )
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 
 
 class CounterConfig(BaseModel):
@@ -29,13 +29,15 @@ async def counter(runtime: ProgramRuntime, inputs: JsonValue, config: BaseModel)
     }
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration("composition_counter", "1", CounterConfig, counter),
+COORDINATORS = (
+    CoordinatorRegistration(
+        "composition_counter", "1", CounterConfig, CustomCoordinatorStrategy(counter)
+    ),
 )
 
 
-def mapped_program(body: ProgramTarget, *, concurrency: int = 2) -> ApplicationDefinition:
-    return ApplicationDefinition(
+def mapped_program(body: ProgramTarget, *, concurrency: int = 2) -> CustomCoordinatorDefinition:
+    return CustomCoordinatorDefinition(
         implementation="map",
         version="1",
         children={"body": body},
@@ -47,8 +49,8 @@ def mapped_program(body: ProgramTarget, *, concurrency: int = 2) -> ApplicationD
     )
 
 
-def repeated_program(body: ProgramTarget, *, bound: int = 5) -> ApplicationDefinition:
-    return ApplicationDefinition(
+def repeated_program(body: ProgramTarget, *, bound: int = 5) -> CustomCoordinatorDefinition:
+    return CustomCoordinatorDefinition(
         implementation="repeat",
         version="1",
         children={"body": body},

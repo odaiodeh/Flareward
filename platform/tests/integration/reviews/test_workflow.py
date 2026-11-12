@@ -9,7 +9,7 @@ from support.credential_renewals import retired_credential
 from support.review_api import review_api
 from support.review_programs import review_definition, review_graph
 
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.identity.domain import Identity
 from lumora.services.reviews.adapters.mongo.reviews import MongoReviewAccessRepository
 from lumora.services.reviews.domain.models import ReviewRecord
@@ -38,7 +38,7 @@ async def test_native_workflow_resumes_only_from_the_assigned_human_decision(
         definition = (
             review_graph(review_program.reference)
             if parent == "graph"
-            else ApplicationDefinition(
+            else CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": review_program.reference}
             )
         )
@@ -319,7 +319,7 @@ async def test_native_review_lifecycle_never_turns_closed_work_into_approval(
         )
         assert wrong_scope.status_code == 201, wrong_scope.text
         other = await api.publish(
-            "other-root", ApplicationDefinition(implementation="waiting", version="1")
+            "other-root", CustomCoordinatorDefinition(implementation="waiting", version="1")
         )
         started_other = await api.http.post(
             "/api/executions",

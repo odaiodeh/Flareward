@@ -14,7 +14,7 @@ from support.server import api_process
 from support.verification import verification_policy
 
 from lumora.bootstrap.settings.platform_settings import VerificationAuthorityConfig
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.services.connections.adapters.redis import owned_redis
 from lumora.services.identity.domain import Identity
 
@@ -99,7 +99,7 @@ async def test_keyed_human_issuance_recovers_after_api_restart_and_retires_with_
                         program_id="waiting-root",
                         name="Waiting root",
                         owner=owner,
-                        implementation=ApplicationDefinition(
+                        implementation=CustomCoordinatorDefinition(
                             implementation="wait",
                             version="1",
                             config={"channel": "human-signal", "timeout_seconds": 60},

@@ -21,7 +21,7 @@ from lumora.async_work import await_owned
 from lumora.bootstrap.actions import build_actions
 from lumora.bootstrap.administration import settings_sections
 from lumora.bootstrap.elements import installed_elements
-from lumora.bootstrap.programs import installed_applications
+from lumora.bootstrap.programs import installed_coordinators
 from lumora.bootstrap.receiver import element_runtime
 from lumora.bootstrap.settings.execution_policies import load_execution_profiles
 from lumora.bootstrap.settings.interaction_settings import InteractionBackend
@@ -59,7 +59,7 @@ from lumora.programs.adapters.memory.program_repository import MemoryProgramRepo
 from lumora.programs.adapters.mongo.program_repository import MongoProgramRepository
 from lumora.programs.blueprints import BlueprintProgramImporter, BlueprintProgramService
 from lumora.programs.ports import ProgramRepository
-from lumora.programs.registry import ApplicationRegistry
+from lumora.programs.registry import CoordinatorRegistry
 from lumora.programs.service import ProgramService
 from lumora.programs.templates.placement import BlueprintPlacementService
 from lumora.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
@@ -153,7 +153,7 @@ async def compose_platform(
     settings: PlatformSettings,
     *,
     elements: ElementRegistry | None = None,
-    applications: ApplicationRegistry | None = None,
+    applications: CoordinatorRegistry | None = None,
 ) -> AsyncIterator[HttpServices]:
     settings = PlatformSettings.model_validate(dict(settings))
     profiles = await load_execution_profiles(settings)
@@ -164,7 +164,7 @@ async def compose_platform(
         if elements is None:
             elements = installed_elements(settings.element_modules, plugins=settings.plugins)
         if applications is None:
-            applications = installed_applications(
+            applications = installed_coordinators(
                 settings.application_modules, plugins=settings.plugins
             )
         database = None

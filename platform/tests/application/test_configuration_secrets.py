@@ -19,7 +19,7 @@ from lumora.programs.blueprints import (
     BlueprintProgramService,
     BlueprintSource,
 )
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.programs.service import ProgramContractError
 from lumora.resources.domain.bundles import BundleEntry, ElementBundle
 from lumora.resources.domain.categories import ResourceCategory
@@ -151,7 +151,7 @@ async def test_application_publication_protects_nested_element_bundles():
         program_id="private-application",
         name="Private application",
         owner=application.owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="invoking",
             version="1",
             config={"bundle": bundle.model_dump(mode="json")},
@@ -182,7 +182,7 @@ async def test_invalid_application_configuration_does_not_echo_private_input(app
         program_id="invalid-application",
         name="Invalid application",
         owner=application.owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="greeting", version="1", config={"prefix": {"api_key": "private-value"}}
         ),
     )

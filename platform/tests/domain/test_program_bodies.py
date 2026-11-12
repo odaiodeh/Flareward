@@ -2,9 +2,10 @@
 
 import pytest
 from pydantic import ValidationError
+from support.program_interfaces import declared_interface
 
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     ProgramBody,
     ProgramCallStep,
@@ -17,7 +18,9 @@ from lumora.services.identity.domain import Identity
 
 
 def body() -> ProgramBody:
-    return ProgramBody(implementation=ApplicationDefinition(implementation="greeting", version="1"))
+    return ProgramBody(
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1")
+    )
 
 
 def definition(implementation: ProgramImplementation) -> ProgramDefinition:
@@ -32,7 +35,7 @@ def definition(implementation: ProgramImplementation) -> ProgramDefinition:
 def test_owned_graph_and_backend_bodies_round_trip_in_one_published_revision():
     leaf = body()
     control = ProgramBody(
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="map", version="1", children={"body": leaf}
         )
     )
@@ -41,7 +44,7 @@ def test_owned_graph_and_backend_bodies_round_trip_in_one_published_revision():
             steps=(ProgramCallStep(uid="items", program=control),), entry="items", exit="items"
         )
     )
-    revision = ProgramRevision(definition=root, revision=1)
+    revision = ProgramRevision(definition=root, revision=1, interface=declared_interface(root))
     restored = ProgramRevision.model_validate_json(revision.model_dump_json())
     assert restored == revision
     assert restored.definition.body_at(("items", "body")) == leaf
@@ -82,14 +85,14 @@ def test_independent_definition_cannot_silently_become_an_owned_body(slot):
         if slot == "graph":
             ProgramCallStep(uid="call", program=root)
         else:
-            ApplicationDefinition(implementation="map", version="1", children={"body": root})
+            CustomCoordinatorDefinition(implementation="map", version="1", children={"body": root})
     with pytest.raises(ValidationError):
         ProgramBody.model_validate({**body().model_dump(), "owner": root.owner.model_dump()})
 
 
 def test_incomplete_nested_body_is_a_draft_but_not_an_executable_revision():
     root = definition(
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="map",
             version="1",
             children={"body": ProgramBody(implementation=GraphDefinition(steps=()))},
@@ -97,17 +100,21 @@ def test_incomplete_nested_body_is_a_draft_but_not_an_executable_revision():
     )
     assert ProgramDefinition.model_validate_json(root.model_dump_json()) == root
     with pytest.raises(ValidationError, match="entry and exit"):
-        ProgramRevision(definition=root, revision=1)
+        ProgramRevision(definition=root, revision=1, interface=declared_interface(root))
 
 
 def test_owned_edits_change_the_enclosing_revision_digest():
     first = definition(
-        ApplicationDefinition(implementation="map", version="1", children={"body": body()})
+        CustomCoordinatorDefinition(implementation="map", version="1", children={"body": body()})
     )
     edited = definition(
-        ApplicationDefinition(implementation="map", version="1", children={"other": body()})
+        CustomCoordinatorDefinition(implementation="map", version="1", children={"other": body()})
     )
     assert (
-        ProgramRevision(definition=first, revision=1).content_digest
-        != ProgramRevision(definition=edited, revision=1).content_digest
+        ProgramRevision(
+            definition=first, revision=1, interface=declared_interface(first)
+        ).content_digest
+        != ProgramRevision(
+            definition=edited, revision=1, interface=declared_interface(edited)
+        ).content_digest
     )

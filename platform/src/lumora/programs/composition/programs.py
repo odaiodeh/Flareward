@@ -24,7 +24,7 @@ from lumora.programs.composition.models import (
 from lumora.programs.composition.scope import ChildCalls
 from lumora.programs.domain.bindings import BindingError, project
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 
 
 class CompositionContractError(ExecutionError):
@@ -162,41 +162,41 @@ async def wait_program(runtime: ProgramRuntime, inputs: JsonValue, config: BaseM
     return WaitResult(reason=WaitReason.RECEIVED, value=value).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "map",
         "1",
         MapConfig,
-        map_program,
+        CustomCoordinatorStrategy(map_program),
         "Map",
         "Call a pinned child for each item with bounded concurrency and fail-fast joining",
         MapInput,
         MapResult,
     ),
-    ApplicationRegistration(
+    CoordinatorRegistration(
         "repeat",
         "1",
         RepeatConfig,
-        repeat_program,
+        CustomCoordinatorStrategy(repeat_program),
         "Repeat",
         "Repeat a pinned child until a recorded boolean result or an explicit iteration bound",
         RepeatInput,
         RepeatResult,
     ),
-    ApplicationRegistration(
+    CoordinatorRegistration(
         "choose",
         "1",
         ChooseConfig,
-        choose_program,
+        CustomCoordinatorStrategy(choose_program),
         "Choose",
         "Select exactly one declared child from a recorded branch label",
         result_model=ChooseResult,
     ),
-    ApplicationRegistration(
+    CoordinatorRegistration(
         "wait",
         "1",
         WaitConfig,
-        wait_program,
+        CustomCoordinatorStrategy(wait_program),
         "Wait",
         "Await an execution-scoped event or deadline; human business approval uses Human Review",
         result_model=WaitResult,

@@ -19,10 +19,10 @@ from lumora.executions.adapters.mongo.execution_repository import MongoExecution
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.executions.models import StartExecution
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
-    PathBinding,
     ProgramCallStep,
     ProgramDefinition,
 )

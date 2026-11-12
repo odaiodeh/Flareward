@@ -12,7 +12,7 @@ from runengine.invocation.config import ExecutorConfig, K8sRunnerConfig, OpenShe
 
 from lumora.elements.catalog.element_registry import ElementRegistry
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody
 from lumora.services.identity.domain import Identity
 from lumora.services.verification.domain.models import CheckRequirement
 from plugins.adlc.programs.coding import CodingFileWork
@@ -171,7 +171,7 @@ async def live_feature(
                 update={"execution": ExecutionSelection(environment="coding")}
             )
         body = ProgramBody(
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="coding_file_candidate",
                 version="1",
                 config=configuration.model_dump(mode="json"),
@@ -195,7 +195,7 @@ async def live_feature(
             name="Feature designer",
         )
         designer = ProgramBody(
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="coding_designer",
                 version="1",
                 config=CodingDesignerConfig(

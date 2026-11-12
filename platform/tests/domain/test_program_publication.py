@@ -2,9 +2,10 @@
 
 import pytest
 from pydantic import ValidationError
+from support.program_interfaces import declared_interface
 
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     ProgramCallStep,
     ProgramDefinition,
@@ -17,7 +18,7 @@ from lumora.services.identity.domain import Identity
     "implementation",
     [
         GraphDefinition(steps=()),
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="installed",
             version="1",
             child_environment_imports={"unbound": {"workspace": "shared"}},
@@ -33,7 +34,7 @@ def test_drafts_round_trip_but_incomplete_revisions_are_rejected(implementation)
     )
     assert ProgramDefinition.model_validate_json(draft.model_dump_json()) == draft
     with pytest.raises(ValidationError):
-        ProgramRevision(definition=draft, revision=1)
+        ProgramRevision(definition=draft, revision=1, interface=declared_interface(draft))
 
 
 def test_copied_mutable_content_cannot_bypass_published_identity_invariants():
@@ -49,4 +50,4 @@ def test_copied_mutable_content_cannot_bypass_published_identity_invariants():
         update={"implementation": graph.model_copy(update={"steps": (step, step)})}
     )
     with pytest.raises(ValidationError, match="unique"):
-        ProgramRevision(definition=copied, revision=1)
+        ProgramRevision(definition=copied, revision=1, interface=declared_interface(copied))

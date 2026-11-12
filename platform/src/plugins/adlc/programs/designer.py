@@ -8,10 +8,10 @@ from lumora.elements.coding.contracts import CodingInput, CodingOutcome
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.files import ProgramFileInputs
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
+from plugins.adlc.programs.contracts import validate_result
 from plugins.adlc.programs.design import DesignProposal, DesignWork
-from plugins.adlc.programs.program import validate_result
 
 
 class CodingDesignWork(DesignWork[CodingInput]):
@@ -86,12 +86,12 @@ async def coding_designer(
     ).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "coding_designer",
         "1",
         CodingDesignerConfig,
-        coding_designer,
+        CustomCoordinatorStrategy(coding_designer),
         name="Coding-agent feature designer",
         description="Propose a typed design using a saved coding agent; approval stays separate",
         input_model=CodingDesignWork,

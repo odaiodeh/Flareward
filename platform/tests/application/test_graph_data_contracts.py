@@ -1,14 +1,13 @@
 """Graph-local interfaces preserve schema scopes and require explicit producer ordering."""
 
 import pytest
-from support.typed_programs import APPLICATION_PROGRAMS
+from support.typed_programs import COORDINATORS
 
 from lumora.programs.authoring import ProgramIssueCode
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    LiteralBinding,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
     ProgramDefinition,
@@ -19,13 +18,13 @@ from lumora.programs.service import ProgramContractError
 
 @pytest.fixture(autouse=True)
 def installed(application):
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
 
 
 def identity(*, inputs=None, outputs=None):
     return ProgramBody(
-        implementation=ApplicationDefinition(implementation="identity_program", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="identity_program", version="1"),
         input_schema={} if inputs is None else inputs,
         output_schema={} if outputs is None else outputs,
     )
@@ -152,7 +151,7 @@ async def test_installed_model_coercion_is_not_rejected_as_public_json_type_inco
     application,
 ):
     typed = ProgramBody(
-        implementation=ApplicationDefinition(implementation="typed_program", version="1")
+        implementation=CustomCoordinatorDefinition(implementation="typed_program", version="1")
     )
     graph = GraphDefinition(
         steps=(

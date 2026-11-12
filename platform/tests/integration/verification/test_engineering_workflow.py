@@ -10,16 +10,17 @@ import pytest
 from support.engineering_api import engineering_api, policies
 from support.engineering_programs import artifact_candidate_body, engineering_configuration
 from support.http_programs import publish_program
+from support.review_programs import review_body
 
 from lumora.executions.domain.access import WorkflowAccess
 from lumora.executions.domain.models import ExecutionRecord
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.executions.models import StartExecution
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     OperationStep,
-    PathBinding,
     ProgramCallStep,
     ProgramDefinition,
 )
@@ -68,11 +69,15 @@ async def test_engineering_repair_and_review_standalone_and_embedded(
         owner=owner,
         input_schema=EngineeringInput.model_json_schema(),
         output_schema=EngineeringResult.model_json_schema(),
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="engineering",
-            version="3",
+            version="4",
             config=config.model_dump(mode="json"),
-            children={"implementation": body, "repair": body},
+            children={
+                "implementation": body,
+                "repair": body,
+                "reviewer": review_body(application.elements, profile),
+            },
         ),
     )
     access = (

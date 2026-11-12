@@ -29,7 +29,7 @@ from lumora.executions.domain.profile_access import (
     ProfileAccessPolicy,
     ProfileGrant,
 )
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.services.connections.adapters.redis import owned_redis
 from lumora.services.identity.domain import Identity
 from lumora.services.interactions.adapters.wire import root_key
@@ -122,7 +122,7 @@ async def test_program_event_typescript_clients_use_canonical_execution(
                 program_id="client-event",
                 name="Client event",
                 owner=api.owner,
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
             ),
             headers=api.human,
         )

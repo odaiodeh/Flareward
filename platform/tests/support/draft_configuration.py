@@ -9,12 +9,12 @@ from pydantic import AliasChoices, AliasPath, BaseModel, ConfigDict, Field, Json
 from lumora.elements.factory import BaseFactory
 from lumora.elements.specification import BaseElementSpec
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     ProgramDefinition,
 )
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import (
     BundleEntry,
     ElementBundle,
@@ -98,8 +98,10 @@ async def configured_program(
     return {"title": config.title, "endpoint": config.connections[0].endpoint}
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration("draft_configured", "1", DraftProgramConfig, configured_program),
+COORDINATORS = (
+    CoordinatorRegistration(
+        "draft_configured", "1", DraftProgramConfig, CustomCoordinatorStrategy(configured_program)
+    ),
 )
 ELEMENT_SPECIFICATIONS = (DraftDependencySpec,)
 
@@ -146,7 +148,7 @@ def definition(owner: Identity, config: dict[str, JsonValue]) -> ProgramDefiniti
         program_id="configured",
         name="Configured",
         owner=owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="draft_configured", version="1", config=config
         ),
     )

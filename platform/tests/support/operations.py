@@ -11,7 +11,8 @@ from lumora.elements.operation import BaseOperation, OperationContext
 from lumora.elements.specification import BaseElementSpec
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import GraphDefinition, OperationStep, PathBinding
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import GraphDefinition, OperationStep
 from lumora.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.resources.domain.references import ToolRef

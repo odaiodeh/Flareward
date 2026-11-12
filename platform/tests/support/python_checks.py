@@ -1,7 +1,7 @@
 """Controlled Python source and typed check inputs; no process or transport ownership."""
 
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.resources.domain.bundles import (
     BundleEntry,
     ElementBundle,
@@ -70,7 +70,7 @@ def python_verifier_definition(
         program_id="trusted-verifier",
         name="Trusted Python verifier",
         owner=owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="python_function_check",
             version="1",
             config=configuration.model_dump(mode="json"),

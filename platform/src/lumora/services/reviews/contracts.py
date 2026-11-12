@@ -149,6 +149,14 @@ class ReviewHandle(BaseModel):
     review_id: ReviewId
 
 
+class ConfirmReview(ReviewHandle):
+    """Expected work and reviewer subtree, independently checked against persisted evidence."""
+
+    within_execution_id: str = Field(min_length=1, max_length=256)
+    policy: str = Field(min_length=1, max_length=128)
+    subject: JsonValue
+
+
 class CloseReview(ReviewHandle):
     expected_revision: int = Field(ge=0)
     superseded_by: ReviewId | None = None

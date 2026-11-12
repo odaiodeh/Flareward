@@ -17,7 +17,7 @@ from lumora.executions.domain.models import ExecutionPhase, SubmissionState
 from lumora.executions.models import PreparedExecution, StartExecution
 from lumora.executions.ports import ExecutionMissing, ProgramExecutionGateway
 from lumora.executions.service import ExecutionService
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.access.adapters.workflow_credentials import FileWorkflowCredentials
 from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
 from lumora.services.access.credentials import WorkflowCredentialUnavailable
@@ -87,7 +87,7 @@ async def test_partial_multipurpose_admission_recovers_without_duplicate_authori
         workflow_access=WorkflowAccessService((components.reviews, interrupted)),
     )
     revision = await publish(
-        application, "admitted", ApplicationDefinition(implementation="waiting", version="1")
+        application, "admitted", CustomCoordinatorDefinition(implementation="waiting", version="1")
     )
     request = StartExecution(
         program=revision.reference,

@@ -3,8 +3,6 @@
 from collections import deque
 
 from lumora.services.identity.domain import Identity
-from lumora.services.reviews.contracts import OpenReview, SubmitReview
-from lumora.services.reviews.service import ReviewService
 from lumora.services.verification.access_models import (
     VerificationAccessScope,
     VerificationAction,
@@ -21,7 +19,7 @@ from support.check_runs import (
     check_registration,
     source_policy,
 )
-from support.reviews import MemoryReviews, ReviewExecutions, review_actor, review_policy
+from support.review_children import ReviewChildren
 from support.verification import MemoryVerificationRepository, VerificationClock
 
 
@@ -78,16 +76,14 @@ class ServiceRuntime:
             {"ci@1": check_registration(self.owner, self.runner)},
             clock=self.clock,
         )
-        self.reviews = ReviewService(
-            MemoryReviews(),
-            ReviewExecutions(),
-            {"release@1": review_policy(self.owner)},
-            clock=self.clock,
-        )
-        self.decisions = deque(decisions)
+        self.review_children = ReviewChildren(self, self.owner, self.clock, decisions, "checked")
+        self.reviews = self.review_children.service
+        self.decisions = self.review_children.decisions
         self.work = []
 
     async def start_child(self, name, inputs, *, key, environment_imports=None):
+        if name == "reviewer":
+            return self.review_children.start(inputs, key)
         self.work.append((name, inputs))
         return CandidateExecution(inputs)
 
@@ -103,30 +99,16 @@ class ServiceRuntime:
             result = await self.checks.refresh(inputs["intent_id"], self.actor)
         elif kind == "inspect_verification":
             result = await self.verification.inspect(inputs["plan_id"], self.actor)
-        elif kind == "open_human_review":
-            result = await self.reviews.open(
-                OpenReview(key=key, execution_id="root", **inputs), review_actor(self.owner)
+        elif kind == "confirm_human_review":
+            return await self.review_children.invoke(
+                inputs, key=key, execution_id=self.execution_id
             )
-        elif kind == "inspect_human_review":
-            result = await self.reviews.inspect(inputs["review_id"], review_actor(self.owner))
         else:
             raise AssertionError(kind)
         return result.model_dump(mode="json")
 
     async def receive(self, name, *, timeout=None):
-        review_id = name.removeprefix("lumora.review.")
-        review = await self.reviews.inspect(review_id, review_actor(self.owner))
-        await self.reviews.respond(
-            review_id,
-            SubmitReview(
-                key="human",
-                expected_revision=review.revision,
-                decision=self.decisions.popleft(),
-                data={"feedback": "checked"},
-            ),
-            Identity.user("reviewer"),
-        )
-        return {"untrusted": "wakeup"}
+        return await self.review_children.receive(name, timeout=timeout)
 
     async def sleep(self, seconds):
         pass

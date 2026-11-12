@@ -6,10 +6,11 @@ from support.http_programs import execute_program
 from support.library_resources import seed_operation_resources, seed_private_agent_resources
 from support.resource_snapshots import saved_resource_graph
 
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
+    CustomCoordinatorDefinition,
     ElementStep,
     GraphDefinition,
-    PathBinding,
     ProgramDefinition,
     ProgramRef,
 )
@@ -20,12 +21,17 @@ from lumora.services.identity.domain import Identity
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
+@pytest.mark.parametrize("coordinator", ["graph", "custom"])
 async def test_selected_operation_closure_is_frozen_and_updates_require_explicit_adoption(
-    secret_settings, application, profile
+    secret_settings, application, profile, coordinator
 ):
     owner = Identity.user("owner")
     async with library_api(
-        secret_settings.model_copy(update={"library": True}), owner, elements=application.elements
+        secret_settings.model_copy(
+            update={"library": True, "application_modules": ("support.configuration_resources",)}
+        ),
+        owner,
+        elements=application.elements,
     ) as http:
         root, middle, _ = await seed_operation_resources(http, profile=profile)
         graph = saved_resource_graph(profile)
@@ -33,10 +39,21 @@ async def test_selected_operation_closure_is_frozen_and_updates_require_explicit
             update={"element": ResourceKey(category="operations", rid=root["rid"])}
         )
         graph = graph.model_copy(update={"steps": (step,)})
+        implementation = (
+            graph
+            if coordinator == "graph"
+            else CustomCoordinatorDefinition(
+                implementation="configured_resource",
+                version="1",
+                config={"stages": [{}], "execution": {"profile": profile}},
+            )
+        )
         definition = ProgramDefinition(
-            program_id="selected", name="Selected work", owner=owner, implementation=graph
+            program_id="selected", name="Selected work", owner=owner, implementation=implementation
         ).model_dump(mode="json")
         selection = {"source": root["source"]}
+        if coordinator == "custom":
+            selection["configuration_path"] = ["stages", 0, "bundle"]
         saved = await http.put(
             "/api/programs/selected",
             json={
@@ -47,7 +64,13 @@ async def test_selected_operation_closure_is_frozen_and_updates_require_explicit
         )
         assert saved.status_code == 200, saved.text
         frozen = saved.json()
-        assert len(frozen["definition"]["implementation"]["resources"]) == 3
+        captured = frozen["definition"]["implementation"]
+        resources = (
+            captured["resources"]
+            if coordinator == "graph"
+            else captured["config"]["stages"][0]["bundle"]["entries"]
+        )
+        assert len(resources) == 3
         published = await http.post(
             "/api/programs/selected/revisions", json={"expected_version": frozen["version"]}
         )

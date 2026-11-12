@@ -3,13 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from lumora.programs.domain.bindings import BindingError, project
-from lumora.programs.domain.models import (
-    LiteralBinding,
-    PathBinding,
-    ProgramCallStep,
-    ProgramRef,
-)
+from lumora.programs.domain.bindings import BindingError, LiteralBinding, PathBinding, project
+from lumora.programs.domain.models import ProgramCallStep, ProgramRef
 
 
 @pytest.mark.parametrize("value", [[1, 2], {"amount": 3}, "text", 4, True, None])

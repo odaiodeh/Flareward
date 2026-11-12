@@ -4,7 +4,7 @@ import pytest
 from pydantic import BaseModel, SecretStr, field_validator
 from support.application import make_application
 from support.draft_configuration import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     ELEMENT_SPECIFICATIONS,
     CredentialConfig,
     DraftProgramConfig,
@@ -30,7 +30,7 @@ from lumora.services.identity.domain import Identity
 def drafts():
     store = MemorySecretStore()
     application = make_application(store)
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)

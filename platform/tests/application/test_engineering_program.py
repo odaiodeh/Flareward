@@ -10,19 +10,20 @@ from support.check_runs import (
     ScriptedCheckRunner,
     check_registration,
 )
-from support.engineering_programs import APPLICATION_PROGRAMS as CANDIDATE_PROGRAMS
+from support.engineering_programs import COORDINATORS as CANDIDATE_PROGRAMS
 from support.engineering_programs import engineering_configuration
 from support.engineering_runtime import CandidateExecution, ServiceRuntime
 from support.operations import operation_bundle
+from support.review_programs import review_body
 from support.scenarios import publish
 
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody
 from lumora.services.identity.domain import Identity
 from lumora.services.reviews.domain.models import ReviewDecision
 from lumora.services.verification.check_service import CheckRunService
 from lumora.services.verification.domain.models import CheckRequirement, CheckVerdict
 from plugins.adlc.programs.program import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     EngineeringCandidate,
     EngineeringConfig,
     EngineeringInput,
@@ -35,6 +36,7 @@ from plugins.adlc.programs.review import EngineeringReviewSubject
 from plugins.human_review.elements.specification import (
     ELEMENT_SPECIFICATIONS as REVIEW_SPECS,
 )
+from plugins.human_review.programs.human_review import COORDINATORS as REVIEW_PROGRAMS
 from plugins.verification.elements.specification import (
     ELEMENT_SPECIFICATIONS as VERIFICATION_SPECS,
 )
@@ -237,22 +239,10 @@ async def test_review_timeout_cannot_become_approval_or_trigger_repair(configura
         raise TimeoutError()
 
     runtime.receive = no_response
-    config = configuration.model_copy(
-        update={
-            "completions": (
-                configuration.completions[0].model_copy(
-                    update={
-                        "review": configuration.completions[0].review.model_copy(
-                            update={"max_checks": 2}
-                        )
-                    }
-                ),
-            )
-        }
-    )
-    result = await engineering(runtime, {"task": "implement"}, config)
-    assert result["outcome"] == EngineeringOutcome.REVIEW_UNRESOLVED
-    assert result["review"]["review"]["status"] == "pending"
+    result = await engineering(runtime, {"task": "implement"}, configuration)
+    assert result["outcome"] == EngineeringOutcome.REVIEW_CLOSED
+    assert result["review"]["review"]["status"] == "cancelled"
+    assert result["review"]["reason"] == "check_limit"
     assert len(runtime.work) == 1
 
 
@@ -291,18 +281,24 @@ def test_arbitrary_operation_cannot_replace_verification_authority(configuration
 async def test_engineering_is_published_through_the_canonical_program_registry(
     configuration, application
 ):
-    for registration in (*APPLICATION_PROGRAMS, *CANDIDATE_PROGRAMS):
+    for registration in (*COORDINATORS, *CANDIDATE_PROGRAMS, *REVIEW_PROGRAMS):
         application.applications.register(registration)
     body = ProgramBody(
-        implementation=ApplicationDefinition(implementation="engineering_candidate", version="1"),
+        implementation=CustomCoordinatorDefinition(
+            implementation="engineering_candidate", version="1"
+        ),
         input_schema=EngineeringWork.model_json_schema(),
         output_schema=EngineeringCandidate.model_json_schema(),
     )
-    definition = ApplicationDefinition(
+    definition = CustomCoordinatorDefinition(
         implementation="engineering",
-        version="3",
+        version="4",
         config=configuration.model_dump(mode="json"),
-        children={"implementation": body, "repair": body},
+        children={
+            "implementation": body,
+            "repair": body,
+            "reviewer": review_body(application.elements),
+        },
     )
     revision = await publish(
         application,

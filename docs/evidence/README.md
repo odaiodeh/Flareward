@@ -1,19 +1,17 @@
 # Program platform evidence
 
-Start with [current status](../status.md) and [the active plan](../plan.md). Read evidence only for a specific verification question.
-Records describe their tested snapshot; they are not live plans or authorization.
+Start with [status](../status.md) and [plan](../plan.md). Read evidence for specific verification questions; records describe tested snapshots, not live plans or authorization.
+
 ## Latest checkpoint
 
-- [2026-11-10: Lumora checkout and Git remote](2026-11-10-lumora-checkout.md): canonical GitHub identity, preserved worktree, repaired tooling and owned infrastructure mounts.
+- [2026-11-12: Occurrences](2026-11-12-occurrences.md): safe paginated workbench calls/attempts, native API/client checks and durable reconstruction. [Child call sites](2026-11-12-call-sites.md): authored dependency correlation begins Step C; full occurrence/workbench acceptance remains. [ADLC review recovery](2026-11-12-adlc-review-recovery.md): C6 Local/Temporal, exact revision, independent API/worker restart, cancellation and descendant replay. [Mixed delivery](2026-11-12-mixed-delivery.md): controlled graph/Repeat/coding/check/review and retained artifacts accept C5 locally. [Coordinator strategies](2026-11-12-coordinator-strategies.md): explicit native/custom dispatch contracts, canonical coordinator naming and local regression verification. Broader milestone acceptance remains open.
 
-- [2026-11-10: Lumora naming](2026-11-10-lumora-rename.md): product meaning/tagline, core/configuration/CLI/UI rename and current verification scope.
-
-- [2026-11-09: checkout and Git remote](2026-11-09-checkout-rename.md): `Flareward` folder, `origin`, retained tracking, environment repair and focused verification.
-
-- [2026-11-09: Flareward naming](2026-11-09-flareward-rename.md): product/core/plugin namespaces, configuration, CLI/UI and matched Local/Temporal/Kubernetes/OpenShell verification.
-
-- [2026-11-09: repository structure](2026-11-09-repository-structure.md): feature-owned core/plugins, retired unused apps, canonical UI/API paths and regression scope.
-
+- [2026-11-11: Result routing](2026-11-11-result-routing.md) accepts C7 locally/API/client; [reviewer dependencies](2026-11-11-reviewer-dependencies.md): Design 2/Engineering 4 replace direct review calls; application and native composition checks. Builds on [persisted confirmation](2026-11-11-review-confirmation.md); mixed delivery/recovery remains.
+- [2026-11-11: Coordinator Step A](2026-11-11-coordinator-step-a.md): unsaved dependency discovery, integrated editor, contract acceptance and scoped verification. Step B is active.
+- [2026-11-11: Configured contracts](2026-11-11-configured-contracts.md) and [published interfaces](2026-11-11-published-interfaces.md): frozen refinements, dependency expectations, normalization and drift checks; earlier scoped records.
+- [2026-11-11: Resource capture](2026-11-11-configuration-resources.md) and [coordinator foundation](2026-11-11-coordinator-foundation.md): construction parity, catalog, dependency preparation and typed payloads; earlier scoped checkpoints.
+- [2026-11-10: Lumora naming](2026-11-10-lumora-rename.md) and [checkout/Git remote](2026-11-10-lumora-checkout.md): canonical identity, package/configuration cutover, preserved worktree and tooling.
+- 2026-11-09: [Flareward checkout](2026-11-09-checkout-rename.md), [naming](2026-11-09-flareward-rename.md), and [repository structure](2026-11-09-repository-structure.md): historical namespace/layout cutover and scoped local/remote verification.
 - [2026-11-08: file/Git completion](2026-11-08-git-completion.md): one Engineering revision, direct file/nested Feature Git selection, repair/checks/review and retained source; 858 shared, 46 focused, two native compositions and ten earlier native regressions pass. Extends [completion contracts](2026-11-08-completion-contracts.md); live Git/UI/delivery remain open.
 - [2026-11-08: live authored feature](2026-11-08-live-feature-authoring.md): matched version-2 images, authored resources/Programs, real OpenShell planning/coding, offline checks, pre-approval previews and retained retrieval. Extends [controlled authoring](2026-11-08-feature-authoring.md), [generic authoring](2026-11-08-program-authoring.md) and [review evidence](2026-11-07-review-evidence.md).
 - [2026-11-07: unified Program model](2026-11-07-unified-program-model.md): generic data state, explicit conversation, one authoring path; 1,047 tests and UI gates pass.
@@ -57,11 +55,8 @@ Records describe their tested snapshot; they are not live plans or authorization
 - [2026-11-04: persisted workflow grant retirement](2026-11-04-credential-retirement.md)
   records the preceding grant-metadata checkpoint and its limitations.
 ## Historical lookup
-The [frozen historical record](archive/execution-platform-migration-2026-11-04.md)
-preserves the removed 4,386-line ledger. Do not read it in full during routine
-work. Search its headings with `rg -n '^##?#+ '`, then read the relevant bounded
-section. Old active/current queues and superseded compatibility instructions do
-not override the present goal, status, plan or target architecture.
+
+The [historical record](archive/execution-platform-migration-2026-11-04.md) preserves the removed ledger. Search relevant headings with `rg -n '^##?#+ '`; read bounded sections only. Historical queues and compatibility instructions do not override the current goal, status, plan or target.
 
 | Question | Relevant archived section |
 | --- | --- |
@@ -77,10 +72,8 @@ not override the present goal, status, plan or target architecture.
 | Native async actions/invitations | [Async actions](archive/execution-platform-migration-2026-11-04.md#native-async-action-migration-2026-10-30), [invitation notifications](archive/execution-platform-migration-2026-11-04.md#native-invitation-notifications-2026-10-30) |
 ## New evidence records
 
-Write one focused `YYYY-MM-DD-<milestone>.md` record after a coherent milestone;
-update its in-progress record until frozen rather than creating a file per command.
-Include behavior/invariants, exact commands and results, tested source/image
-identity, real services versus deterministic peers, failures and unverified scope.
+Write one focused `YYYY-MM-DD-<milestone>.md` per coherent milestone; update it until frozen.
+Include invariants, commands/results, source/image identity, real versus simulated services, failures and unverified scope.
 Retain durable results/source detail; verify temporary artifacts before relying on them.
 
 Link records here and rewrite status/plan. Keep this index within 80 lines.

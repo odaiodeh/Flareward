@@ -1,19 +1,18 @@
 """Core composition calls real graph/operation/code children through the same engine."""
 
 import pytest
-from support.composition import APPLICATION_PROGRAMS as FIXTURE_PROGRAMS
+from support.composition import COORDINATORS as FIXTURE_PROGRAMS
 from support.composition import composition_graph, mapped_program, repeated_program
 from support.operations import operation_graph
 from support.scenarios import publish, run
 
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.models import StartExecution
-from lumora.programs.composition.programs import APPLICATION_PROGRAMS
+from lumora.programs.composition.programs import COORDINATORS
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    LiteralBinding,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
 )
@@ -21,7 +20,7 @@ from lumora.programs.domain.models import (
 
 @pytest.fixture
 def composition(application):
-    for registration in (*APPLICATION_PROGRAMS, *FIXTURE_PROGRAMS):
+    for registration in (*COORDINATORS, *FIXTURE_PROGRAMS):
         application.applications.register(registration)
 
 
@@ -46,7 +45,12 @@ async def test_graph_map_graph_operation_preserves_pinned_calls_order_and_occurr
         "typed:middle:three",
     ]
     child = (await platform.executions.children(result.execution_id, platform.owner))[0]
+    assert result.call_site is None and child.call_site == "compose"
+    observation = await platform.executions.observation(result.execution_id, platform.owner)
+    assert observation.occurrences[0].child_execution_id == child.execution_id
+    assert observation.occurrences[0].status == "completed"
     grandchildren = await platform.executions.children(child.execution_id, platform.owner)
+    assert all(record.call_site == "body" for record in grandchildren)
     assert {item["execution_id"] for item in items} == {
         record.execution_id for record in grandchildren
     }
@@ -92,7 +96,7 @@ async def test_owned_graph_map_graph_operation_needs_only_one_publication(platfo
 @pytest.mark.usefixtures("composition")
 async def test_published_boundary_resets_owned_source_address(platform):
     greeting = ProgramBody(
-        implementation=ApplicationDefinition(implementation="greeting", version="1")
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     leaf = await publish(
         platform,
@@ -136,7 +140,7 @@ async def test_repeat_owns_its_body_and_records_distinct_iterations(platform, bo
         "owned-repeat",
         repeated_program(
             ProgramBody(
-                implementation=ApplicationDefinition(
+                implementation=CustomCoordinatorDefinition(
                     implementation="composition_counter", version="1"
                 )
             ),
@@ -147,6 +151,7 @@ async def test_repeat_owns_its_body_and_records_distinct_iterations(platform, bo
     assert result.phase == ExecutionPhase.COMPLETED, result.failure
     assert result.result["reason"] == reason and result.result["state"] == count
     children = await platform.executions.children(result.execution_id, platform.owner)
+    assert all(child.call_site == "body" for child in children)
     assert len(children) == count and len({child.execution_id for child in children}) == count
     assert all(
         child.body_path == ("body",) and child.program == root.reference for child in children
@@ -162,13 +167,14 @@ async def test_repeat_reuses_a_pinned_body_and_has_distinct_iteration_children(
     body = await publish(
         platform,
         "counter",
-        ApplicationDefinition(implementation="composition_counter", version="1"),
+        CustomCoordinatorDefinition(implementation="composition_counter", version="1"),
     )
     repeat = await publish(platform, "repeat", repeated_program(body.reference, bound=bound))
     result = await run(platform, repeat, {"state": 0})
     assert result.phase == ExecutionPhase.COMPLETED, result.failure
     assert result.result["reason"] == reason and result.result["state"] == count
     children = await platform.executions.children(result.execution_id, platform.owner)
+    assert all(child.call_site == "body" for child in children)
     assert len(children) == count and len({child.execution_id for child in children}) == count
     assert {child.inputs["iteration"] for child in children} == set(range(count))
 
@@ -177,7 +183,7 @@ async def test_repeat_reuses_a_pinned_body_and_has_distinct_iteration_children(
 @pytest.mark.parametrize("choice", ["approved", "rejected", "private-unknown"])
 @pytest.mark.parametrize("owned", [False, True])
 async def test_choose_starts_only_the_recorded_declared_branch(platform, choice, owned):
-    implementation = ApplicationDefinition(implementation="greeting", version="1")
+    implementation = CustomCoordinatorDefinition(implementation="greeting", version="1")
     target = (
         ProgramBody(implementation=implementation)
         if owned
@@ -186,7 +192,7 @@ async def test_choose_starts_only_the_recorded_declared_branch(platform, choice,
     choose = await publish(
         platform,
         "choose",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="choose",
             version="1",
             config={"branches": {"approved": "apply", "rejected": "repair"}},
@@ -213,13 +219,15 @@ async def test_owned_body_enforces_its_own_interface_without_echoing_values(plat
         "properties": {"name" if boundary == "input" else "answer": {"type": "integer"}},
     }
     body = ProgramBody(
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
         **{f"{boundary}_schema": schema},
     )
     root = await publish(
         platform,
         "contract",
-        ApplicationDefinition(implementation="composed", version="1", children={"greet": body}),
+        CustomCoordinatorDefinition(
+            implementation="composed", version="1", children={"greet": body}
+        ),
     )
     result = await run(platform, root, {"name": "private-contract-value"})
     assert result.phase == ExecutionPhase.FAILED
@@ -236,12 +244,12 @@ async def test_owned_wait_suspends_and_resumes_through_existing_native_child(pla
     root = await publish(
         platform,
         "owned-wait",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             children={
                 "greet": ProgramBody(
-                    implementation=ApplicationDefinition(
+                    implementation=CustomCoordinatorDefinition(
                         implementation="wait",
                         version="1",
                         config={"channel": "answer", "timeout_seconds": 0.02},
@@ -265,7 +273,7 @@ async def test_wait_uses_native_message_or_deadline_without_an_element_invocatio
     wait = await publish(
         platform,
         "wait",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="wait",
             version="1",
             config={"channel": "answer", "timeout_seconds": 0.02 if timeout else 5},

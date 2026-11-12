@@ -10,7 +10,7 @@ from lumora.elements.construction.secrets import ConfigurationSecrets
 from lumora.elements.construction.snapshots import SavedResourceResolver
 from lumora.programs.adapters.memory.program_repository import MemoryProgramRepository
 from lumora.programs.authoring import ProgramIssueCode, ProgramResourceSelection
-from lumora.programs.domain.models import ApplicationDefinition, GraphDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, GraphDefinition, ProgramBody
 from lumora.programs.service import ProgramContractError, ProgramService
 from lumora.resources.domain.bundles import ResourceKey
 from lumora.resources.secrets import is_secret_reference
@@ -26,7 +26,7 @@ async def test_owned_secrets_are_protected_before_save_and_remain_frozen():
     body = ProgramBody(implementation=definition.implementation)
     root = definition.model_copy(
         update={
-            "implementation": ApplicationDefinition(
+            "implementation": CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": body}
             )
         }
@@ -40,12 +40,14 @@ async def test_owned_secrets_are_protected_before_save_and_remain_frozen():
     )
     changed = root.model_copy(
         update={
-            "implementation": ApplicationDefinition(
+            "implementation": CustomCoordinatorDefinition(
                 implementation="composed",
                 version="1",
                 children={
                     "greet": ProgramBody(
-                        implementation=ApplicationDefinition(implementation="greeting", version="1")
+                        implementation=CustomCoordinatorDefinition(
+                            implementation="greeting", version="1"
+                        )
                     )
                 },
             )
@@ -64,12 +66,12 @@ async def test_owned_secrets_are_protected_before_save_and_remain_frozen():
 
 async def test_incomplete_owned_graph_reports_its_source_and_cannot_publish(application):
     revision = await publish(
-        application, "base", ApplicationDefinition(implementation="greeting", version="1")
+        application, "base", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     root = revision.definition.model_copy(
         update={
             "program_id": "unfinished-owned",
-            "implementation": ApplicationDefinition(
+            "implementation": CustomCoordinatorDefinition(
                 implementation="composed",
                 version="1",
                 children={"greet": ProgramBody(implementation=GraphDefinition(steps=()))},
@@ -91,19 +93,19 @@ async def test_incomplete_owned_graph_reports_its_source_and_cannot_publish(appl
 
 async def test_owned_body_cannot_hide_an_unauthorized_published_dependency(application):
     private = await publish(
-        application, "private", ApplicationDefinition(implementation="greeting", version="1")
+        application, "private", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     caller = Identity.user("other")
     root = private.definition.model_copy(
         update={
             "program_id": "unauthorized-owned",
             "owner": caller,
-            "implementation": ApplicationDefinition(
+            "implementation": CustomCoordinatorDefinition(
                 implementation="composed",
                 version="1",
                 children={
                     "greet": ProgramBody(
-                        implementation=ApplicationDefinition(
+                        implementation=CustomCoordinatorDefinition(
                             implementation="composed",
                             version="1",
                             children={"greet": private.reference},
@@ -132,12 +134,14 @@ async def test_owned_body_cannot_hide_an_unauthorized_published_dependency(appli
 
 async def test_new_revision_can_call_a_finite_prior_revision_of_same_program(application):
     original = await publish(
-        application, "versioned", ApplicationDefinition(implementation="greeting", version="1")
+        application,
+        "versioned",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     changed = await publish(
         application,
         "versioned",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed", version="1", children={"greet": original.reference}
         ),
     )
@@ -158,7 +162,7 @@ async def test_saved_resource_selection_is_scoped_to_owned_graph(application):
     root = secret_definition("thread", "unused").model_copy(
         update={
             "owner": application.owner,
-            "implementation": ApplicationDefinition(
+            "implementation": CustomCoordinatorDefinition(
                 implementation="composed",
                 version="1",
                 children={"greet": ProgramBody(implementation=saved_resource_graph())},

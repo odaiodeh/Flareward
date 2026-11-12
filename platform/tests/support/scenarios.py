@@ -9,10 +9,10 @@ from lumora.executions.domain.models import ExecutionRecord
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.executions.models import StartExecution
 from lumora.executions.service import ExecutionService
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
     ElementStep,
     GraphDefinition,
-    PathBinding,
     ProgramDefinition,
     ProgramImplementation,
     ProgramRevision,

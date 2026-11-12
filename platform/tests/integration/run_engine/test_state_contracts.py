@@ -3,13 +3,13 @@
 import pytest
 from support.scenarios import publish, run
 from support.state_nodes import ELEMENT_SPECIFICATIONS, Mutation, state_graph
-from support.typed_programs import APPLICATION_PROGRAMS
+from support.typed_programs import COORDINATORS
 
 from lumora.executions.domain.models import ExecutionPhase
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
 )
@@ -19,7 +19,7 @@ from lumora.programs.domain.models import (
 def installed(application):
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
 
 
@@ -43,7 +43,7 @@ async def test_dynamic_channel_contract_errors_hide_values_and_preserve_effect_o
     platform, boundary
 ):
     body = ProgramBody(
-        implementation=ApplicationDefinition(implementation="identity_program", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="identity_program", version="1"),
         input_schema={},
         output_schema={},
     )

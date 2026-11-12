@@ -3,6 +3,7 @@
 import asyncio
 
 from lumora.programs.authoring import ProgramConflict, ProgramDraft, ProgramPresentation
+from lumora.programs.domain.interfaces import ProgramInterface
 from lumora.programs.domain.models import ProgramDefinition, ProgramRef, ProgramRevision
 from lumora.services.identity.domain import Identity
 
@@ -49,7 +50,7 @@ class MemoryProgramRepository:
         )
         return [draft for draft in drafts if draft.definition.owner.owns(owner)][:limit]
 
-    async def publish(self, draft: ProgramDraft) -> ProgramRevision:
+    async def publish(self, draft: ProgramDraft, interface: ProgramInterface) -> ProgramRevision:
         async with self._lock:
             definition = draft.definition
             source = definition.program_id, draft.version
@@ -58,7 +59,7 @@ class MemoryProgramRepository:
                 published = ProgramRevision.model_validate_json(
                     self._revisions[definition.program_id, existing_number]
                 )
-                if published.definition != definition:
+                if published.definition != definition or published.interface != interface:
                     raise ProgramConflict("Publication source does not match its saved draft")
                 return published
             number = 1 + max(
@@ -69,7 +70,7 @@ class MemoryProgramRepository:
                 ),
                 default=0,
             )
-            revision = ProgramRevision(definition=definition, revision=number)
+            revision = ProgramRevision(definition=definition, interface=interface, revision=number)
             self._revisions[definition.program_id, number] = revision.model_dump_json()
             self._publications[source] = number
             return ProgramRevision.model_validate_json(revision.model_dump_json())

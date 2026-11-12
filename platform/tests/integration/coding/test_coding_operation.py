@@ -9,11 +9,11 @@ from support.scenarios import publish, run
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.models import ExecutionPhase, FailureKind
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     OperationStep,
-    PathBinding,
 )
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
@@ -62,7 +62,7 @@ async def test_installed_coding_operation_runs_from_graph_or_code(
         )
     else:
         bundle = ElementBundleResolver(application.elements).resolve(resource.key, (resource,))
-        program = ApplicationDefinition(
+        program = CustomCoordinatorDefinition(
             implementation="operation",
             version="1",
             config={"bundle": bundle.model_dump(mode="json")},
@@ -104,7 +104,7 @@ async def test_parallel_coding_operations_use_distinct_workspaces_and_private_ho
     revision = await publish(
         platform,
         "parallel-coders",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="parallel_operation",
             version="1",
             config={"bundle": bundle.model_dump(mode="json")},

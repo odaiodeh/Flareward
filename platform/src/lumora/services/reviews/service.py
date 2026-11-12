@@ -11,6 +11,7 @@ from lumora.services.identity.domain import Identity
 from lumora.services.reviews.access import ReviewAction, ReviewActor
 from lumora.services.reviews.contracts import (
     CloseReview,
+    ConfirmReview,
     OpenReview,
     ReviewPolicy,
     ReviewSchema,
@@ -96,6 +97,23 @@ class ReviewService:
         review = await self._get(review_id)
         self._authorize(review, actor, ReviewAction.READ)
         return await self._refresh(review)
+
+    async def confirm(self, request: ConfirmReview, actor: ReviewActor) -> ReviewRecord:
+        """Confirm authority, work identity and provenance; a caller cannot supply its own record."""
+        review = await self.inspect(request.review_id, actor)
+        expected = review.specification.model_copy(update={"subject": request.subject})
+        if (
+            review.policy != request.policy
+            or review.specification.fingerprint != expected.fingerprint
+            or not await self._executions.contains(
+                review.execution_id,
+                request.within_execution_id,
+                review.root_execution_id,
+                review.owner,
+            )
+        ):
+            raise ReviewConflict("Review evidence does not match the required work or occurrence")
+        return review
 
     async def for_reviewer(self, review_id: str, reviewer: Identity) -> ReviewRecord:
         review = await self._get(review_id)

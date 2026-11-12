@@ -10,6 +10,11 @@ Lumora is a platform for composing and executing agentic development workflows.
 Configured capabilities perform work; reusable Programs coordinate those capabilities
 and other Programs through typed contracts and a shared execution lifecycle.
 
+Programs configure coordinator implementations: native graph coordination and
+plugin coordination share the catalog, publication and execution lifecycle.
+See the [coordinator design](docs/architecture/coordinator-programs/README.md)
+and [implementation status](docs/status.md) for completed and pending work.
+
 ## One public model
 
 - **Element:** an installed capability specification, configuration schema, factory

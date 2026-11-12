@@ -17,7 +17,7 @@ from temporalio.worker import Worker
 
 from lumora.async_work import await_owned
 from lumora.bootstrap.plugins import installed_plugins
-from lumora.bootstrap.programs import CORE_APPLICATION_MODULES
+from lumora.bootstrap.programs import CORE_COORDINATOR_MODULES
 from lumora.bootstrap.settings.worker_settings import WorkerSettings
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,7 @@ def workflow_modules(settings: WorkerSettings) -> tuple[str, ...]:
     modules = (
         *PLATFORM_MODULES,
         *SpecDiscoverer().available_modules(contributed),
-        *CORE_APPLICATION_MODULES,
+        *CORE_COORDINATOR_MODULES,
         *settings.application_modules,
         *settings.element_modules,
     )

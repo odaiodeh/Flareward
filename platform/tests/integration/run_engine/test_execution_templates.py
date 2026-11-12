@@ -8,7 +8,7 @@ from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompi
 from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGateway
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.models import PreparedExecution, StartExecution
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.identity.domain import Identity
 
 
@@ -21,7 +21,7 @@ async def test_frozen_graph_accepts_distinct_inputs_without_adopting_new_revisio
         revision, {}, ExecutionContext(identity=platform.owner), ""
     )
     await publish(
-        platform, "template", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "template", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     for name in ("first", "second"):
         record = await platform.executions.start(

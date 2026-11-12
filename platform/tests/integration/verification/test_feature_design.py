@@ -9,17 +9,21 @@ from support.feature_design import design_definition, designer_body
 from support.http_programs import publish_program
 from support.managed_access import managed_access_api
 from support.review_api import pending_review
+from support.review_programs import review_body
 
 from lumora.executions.domain.access import WorkflowAccess
-from lumora.programs.domain.models import ProgramDefinition
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import GraphDefinition, ProgramCallStep, ProgramDefinition
+from lumora.services.reviews.domain.results import HumanReviewResult
 from plugins.adlc.programs.design import DesignResult, FeatureRequest
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
 
 
+@pytest.mark.parametrize("nested", [False, True])
 @pytest.mark.parametrize("profile", ["thread", "process"])
 @pytest.mark.parametrize("decision", ["approve", "reject"])
 async def test_native_feature_design_revisions_preserve_exact_review_and_root_authority(
-    application, mongo_database, redis_uri, tmp_path, profile, decision
+    application, mongo_database, redis_uri, tmp_path, profile, decision, nested
 ):
     for spec in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(spec)
@@ -42,13 +46,39 @@ async def test_native_feature_design_revisions_preserve_exact_review_and_root_au
             ),
             headers=api.human,
         )
+        reviewer = None
+        if nested:
+            reviewer = await publish_program(
+                api.http,
+                ProgramDefinition(
+                    program_id="reviewer",
+                    name="Reusable graph review",
+                    owner=api.owner,
+                    implementation=GraphDefinition(
+                        steps=(
+                            ProgramCallStep(
+                                uid="review",
+                                program=review_body(application.elements, profile),
+                                inputs=PathBinding(path=("input",)),
+                            ),
+                        ),
+                        entry="review",
+                        exit="review",
+                        outputs=PathBinding(path=("results", "review")),
+                    ),
+                    output_schema=HumanReviewResult.model_json_schema(),
+                ),
+                headers=api.human,
+            )
         program = await publish_program(
             api.http,
             ProgramDefinition(
                 program_id="feature-design",
                 name="Feature design",
                 owner=api.owner,
-                implementation=design_definition(application.elements, profile, designer=designer),
+                implementation=design_definition(
+                    application.elements, profile, designer=designer, reviewer=reviewer
+                ),
                 input_schema=FeatureRequest.model_json_schema(),
                 output_schema=DesignResult.model_json_schema(),
             ),
@@ -81,8 +111,19 @@ async def test_native_feature_design_revisions_preserve_exact_review_and_root_au
         assert first.specification.subject["request"] == request.model_dump(mode="json")
         children = await api.http.get(f"/api/executions/{root}/children", headers=api.human)
         assert children.status_code == 200, children.text
-        assert len(children.json()) == 1 and children.json()[0]["phase"] == "completed"
-        assert children.json()[0]["program"] == designer.model_dump(mode="json")
+        assert len(children.json()) == 2
+        proposal = next(
+            child
+            for child in children.json()
+            if child["program"] == designer.model_dump(mode="json")
+        )
+        assert proposal["phase"] == "completed"
+        review_call = next(
+            child for child in children.json() if child["execution_id"] != proposal["execution_id"]
+        )
+        assert (review_call["execution_id"] != first.execution_id) == nested
+        if nested:
+            assert review_call["program"] == reviewer.model_dump(mode="json")
 
         path = f"/api/reviews/{first.review_id}/responses"
         rejection = {

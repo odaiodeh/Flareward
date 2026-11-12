@@ -30,7 +30,7 @@ class ConfigurationDraft:
         values: dict[str, object] = {}
         consumed: set[str] = set()
         for name, field in schema.model_fields.items():
-            paths = cls._paths(
+            paths = cls.field_paths(
                 name, field, by_alias=schema.model_config.get("validate_by_alias", True)
             )
             locations = {(name,), *(tuple(path.path) for path in paths)}
@@ -56,7 +56,7 @@ class ConfigurationDraft:
         return cls(schema, values)
 
     @staticmethod
-    def _paths(name: str, field: FieldInfo, *, by_alias: bool) -> list[AliasPath]:
+    def field_paths(name: str, field: FieldInfo, *, by_alias: bool) -> list[AliasPath]:
         alias = field.validation_alias if by_alias else None
         choices = alias.choices if isinstance(alias, AliasChoices) else [alias]
         return [

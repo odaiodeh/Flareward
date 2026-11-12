@@ -1,4 +1,4 @@
-import type { ApplicationDefinition, GraphDefinition, GraphStep, ProgramTarget, ResourceSelection } from '@/api/programs';
+import type { GraphDefinition } from '@/api/programs';
 import type { JsonObject } from '@shared/json';
 import { isRecord } from '@/lib/json';
 
@@ -30,22 +30,6 @@ export function removeGraphStep(graph: GraphDefinition, uid: string): GraphDefin
     entry: graph.entry === uid ? '' : graph.entry,
     exit: graph.exit === uid ? '' : graph.exit,
   };
-}
-
-export function activeResourceSelections(graph: GraphDefinition, selections: ResourceSelection[]): ResourceSelection[] {
-  const key = (resource: { category: string; rid: string }) => JSON.stringify([resource.category, resource.rid]);
-  return selections.filter(selection => {
-    let scope: GraphDefinition | ApplicationDefinition = graph;
-    for (const name of selection.body_path ?? []) {
-      const step: GraphStep | undefined = scope.kind === 'graph' ? scope.steps.find(step => step.uid === name) : undefined;
-      const target: ProgramTarget | undefined = scope.kind === 'application' ? scope.children[name] : step?.kind === 'program' ? step.program : undefined;
-      if (!target || 'program_id' in target) return false;
-      scope = target.implementation;
-    }
-    if (scope.kind !== 'graph') return false;
-    return scope.steps.some(step => step.kind !== 'program' && key(step.element) === key(selection.source.key))
-      || scope.conditions.some(route => key(route.condition) === key(selection.source.key));
-  });
 }
 
 /** Condition metadata uses native boolean names; routing contracts use normalized labels. */

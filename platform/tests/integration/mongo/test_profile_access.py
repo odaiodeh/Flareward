@@ -18,10 +18,10 @@ from lumora.executions.domain.profile_access import (
     ProfileGrant,
 )
 from lumora.executions.models import PreparedExecution
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
     ProgramDefinition,
@@ -104,7 +104,7 @@ async def test_forbidden_profile_at_any_static_scope_refuses_before_execution_re
             )
         else:
             child = ProgramBody(
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
                 execution_profile="admin-only",
             )
             if boundary == "pinned":
@@ -114,7 +114,7 @@ async def test_forbidden_profile_at_any_static_scope_refuses_before_execution_re
                         program_id="child", name="child", owner=owner, **child.model_dump()
                     ),
                 )
-                implementation = ApplicationDefinition(
+                implementation = CustomCoordinatorDefinition(
                     implementation="composed", version="1", children={"greet": target}
                 )
             else:
@@ -153,7 +153,7 @@ async def test_admitted_backend_profiles_are_filtered_frozen_and_visible_as_safe
     application, restricted_settings, mongo_database
 ):
     owner = Identity.user("owner")
-    body = ApplicationDefinition(
+    body = CustomCoordinatorDefinition(
         implementation="placed_operation",
         version="1",
         config={"bundle": operation_bundle(application.elements).model_dump(mode="json")},

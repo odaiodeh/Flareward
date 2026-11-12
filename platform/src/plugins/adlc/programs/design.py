@@ -6,21 +6,14 @@ from typing import Annotated, Self
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from lumora.programs.composition.scope import ChildCalls
-from lumora.programs.domain.models import PathBinding
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.ports import ChildContract, ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.services.reviews.domain.models import ReviewDecision, ReviewResponse, ReviewStatus
+from lumora.services.reviews.domain.results import HumanReviewResult
 from lumora.services.verification.domain.models import VerificationSubject
-from plugins.adlc.programs.program import (
-    AttemptRuntime,
-    require_service_operation,
-    validate_result,
-)
-from plugins.human_review.programs.human_review import (
-    HumanReviewConfig,
-    HumanReviewResult,
-    human_review,
-)
+from plugins.adlc.programs.contracts import validate_result
+from plugins.adlc.programs.reviewer import ReviewDependency, Reviewer
 
 type AcceptanceCriteria = Annotated[
     tuple[Annotated[str, Field(min_length=1, max_length=2048)], ...],
@@ -100,12 +93,12 @@ class FeatureDesignConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     designer: str = Field(default="design", min_length=1, max_length=128)
     max_revisions: int = Field(default=2, ge=0, le=20)
-    review: HumanReviewConfig
+    review: ReviewDependency
 
     @model_validator(mode="after")
-    def validate_authority(self) -> Self:
-        require_service_operation(self.review.opener, "open_human_review", "review_service")
-        require_service_operation(self.review.inspection, "inspect_human_review", "review_service")
+    def distinct_dependencies(self) -> Self:
+        if self.designer == self.review.program:
+            raise ValueError("Designer and reviewer require distinct Program dependencies")
         return self
 
     def child_contracts(self) -> dict[str, ChildContract]:
@@ -114,7 +107,8 @@ class FeatureDesignConfig(BaseModel):
                 scope_schema=DesignWork.model_json_schema(),
                 outputs={"plan": PathBinding(path=("plan",))},
                 result_model=DesignProposal,
-            )
+            ),
+            self.review.program: self.review.contract(DesignRevision),
         }
 
 
@@ -135,13 +129,8 @@ class FeatureDesignCoordinator:
                     request=request,
                     proposal=validate_result(DesignProposal, value),
                 )
-                review = validate_result(
-                    HumanReviewResult,
-                    await human_review(
-                        AttemptRuntime(self._runtime, attempt),
-                        design.model_dump(mode="json"),
-                        self._config.review,
-                    ),
+                review = await Reviewer(self._runtime, self._config.review).run(
+                    calls, design, key=f"review-{attempt}"
                 )
                 record = review.review
                 if record.status == ReviewStatus.DECIDED and record.response is not None:
@@ -169,12 +158,12 @@ async def feature_design(
     ).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "feature_design",
-        "1",
+        "2",
         FeatureDesignConfig,
-        feature_design,
+        CustomCoordinatorStrategy(feature_design),
         name="Feature design and approval",
         description="Propose, review and revise an exact feature design before implementation",
         input_model=FeatureRequest,

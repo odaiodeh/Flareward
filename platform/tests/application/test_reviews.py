@@ -14,7 +14,12 @@ from support.verification import VerificationClock
 
 from lumora.services.identity.domain import Identity
 from lumora.services.reviews.access import ReviewActor
-from lumora.services.reviews.contracts import CloseReview, ReviewSettings, SubmitReview
+from lumora.services.reviews.contracts import (
+    CloseReview,
+    ConfirmReview,
+    ReviewSettings,
+    SubmitReview,
+)
 from lumora.services.reviews.domain.models import ReviewDecision, ReviewStatus
 from lumora.services.reviews.ports import ReviewConflict, ReviewMissing
 from lumora.services.reviews.service import ReviewService
@@ -199,3 +204,73 @@ def test_schema_property_names_and_local_definitions_are_not_treated_as_keywords
             "$defs": {"feedback": {"type": "string"}},
         },
     )
+
+
+@pytest.mark.parametrize("scope", ["review-run", "root"])
+async def test_confirmation_reads_authoritative_review_within_reviewer_subtree(scenario, scope):
+    owner, _, _, _, service = scenario
+    request = review_request()
+    review = await service.open(request, review_actor(owner))
+    confirmation = ConfirmReview(
+        review_id=review.review_id,
+        within_execution_id=scope,
+        policy=request.policy,
+        subject=request.specification.subject,
+    )
+    pending = await service.confirm(confirmation, review_actor(owner))
+    assert pending.status == ReviewStatus.PENDING and pending.response is None
+    decided = await service.respond(
+        review.review_id,
+        SubmitReview(
+            key="confirm",
+            expected_revision=0,
+            decision=ReviewDecision.APPROVE,
+            data={"feedback": "reviewed"},
+        ),
+        Identity.user("reviewer"),
+    )
+    assert await service.confirm(confirmation, review_actor(owner)) == decided
+
+
+@pytest.mark.parametrize("change", ["subject", "policy", "sibling", "unknown"])
+async def test_confirmation_rejects_other_work_policy_or_occurrence(scenario, change):
+    owner, _, _, executions, service = scenario
+    request = review_request()
+    review = await service.open(request, review_actor(owner))
+    executions.executions.add(("sibling", "root"))
+    executions.parents["sibling"] = "root"
+    confirmation = ConfirmReview(
+        review_id=review.review_id,
+        within_execution_id=change if change in {"sibling", "unknown"} else "root",
+        policy="other@1" if change == "policy" else request.policy,
+        subject={"candidate": "private-substitute"}
+        if change == "subject"
+        else request.specification.subject,
+    )
+    with pytest.raises(ReviewConflict, match="required work or occurrence") as failed:
+        await service.confirm(confirmation, review_actor(owner))
+    assert "private-substitute" not in str(failed.value)
+    with pytest.raises(ReviewMissing):
+        await service.confirm(confirmation, review_actor(Identity.user("foreign")))
+
+
+async def test_confirmation_preserves_json_scalar_identity(scenario):
+    owner, _, _, _, service = scenario
+    request = review_request().model_copy(
+        update={
+            "specification": ReviewSettings(
+                prompt="Review exact JSON", subject={"version": 1}, timeout_seconds=60
+            )
+        }
+    )
+    review = await service.open(request, review_actor(owner))
+    with pytest.raises(ReviewConflict):
+        await service.confirm(
+            ConfirmReview(
+                review_id=review.review_id,
+                within_execution_id="root",
+                policy=request.policy,
+                subject={"version": 1.0},
+            ),
+            review_actor(owner),
+        )

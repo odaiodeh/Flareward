@@ -5,11 +5,12 @@ import json
 from enum import StrEnum
 from typing import Annotated, ClassVar, Literal, Self
 
-from pydantic import AfterValidator, BeforeValidator, Field, JsonValue, model_validator
+from pydantic import BeforeValidator, Field, JsonValue, model_validator
 
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.json_values import portable_json
 from lumora.models import Model
+from lumora.programs.domain.bindings import Binding, Bindings, Projection
+from lumora.programs.domain.interfaces import ProgramInterface
 from lumora.programs.domain.metadata import StepMeta
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
@@ -29,11 +30,6 @@ class StepKind(StrEnum):
     ELEMENT = "element"
     OPERATION = "operation"
     PROGRAM = "program"
-
-
-class BindingKind(StrEnum):
-    PATH = "path"
-    LITERAL = "literal"
 
 
 class JoinPolicy(StrEnum):
@@ -61,21 +57,6 @@ def _owned_target(value: object) -> object:
 
 
 type ProgramTarget = Annotated[ProgramRef | ProgramBody, BeforeValidator(_owned_target)]
-
-
-class PathBinding(Model):
-    kind: Literal[BindingKind.PATH] = BindingKind.PATH
-    path: tuple[str | Annotated[int, Field(strict=True, ge=0)], ...]
-
-
-class LiteralBinding(Model):
-    kind: Literal[BindingKind.LITERAL] = BindingKind.LITERAL
-    value: Annotated[JsonValue, AfterValidator(portable_json)]
-
-
-type Binding = Annotated[PathBinding | LiteralBinding, Field(discriminator="kind")]
-type Bindings = dict[str, Binding]
-type Projection = Bindings | Binding
 
 
 class ElementStep(Model):
@@ -127,7 +108,13 @@ type GraphStep = Annotated[
 ]
 
 
+class RouteKind(StrEnum):
+    CONDITION = "condition"
+    RESULT = "result"
+
+
 class ConditionalRoute(Model):
+    kind: Literal[RouteKind.CONDITION] = RouteKind.CONDITION
     source: str
     condition: ResourceKey
     branches: dict[str, str]
@@ -140,6 +127,19 @@ class ConditionalRoute(Model):
         return self
 
 
+class ResultRoute(Model):
+    """Select declared labels from data available after the source step completes."""
+
+    kind: Literal[RouteKind.RESULT] = RouteKind.RESULT
+    source: str
+    selection: Binding
+    branches: dict[str, str]
+    execution: ExecutionSelection = Field(default_factory=ExecutionSelection)
+
+
+type GraphRoute = Annotated[ConditionalRoute | ResultRoute, Field(discriminator="kind")]
+
+
 class GraphDefinition(Model):
     INPUT_CHANNEL: ClassVar[str] = "input"
     RESULTS_CHANNEL: ClassVar[str] = "results"
@@ -148,7 +148,7 @@ class GraphDefinition(Model):
     steps: tuple[GraphStep, ...]
     resources: tuple[ResourceDefinition, ...] = ()
     edges: dict[str, tuple[str, ...]] = Field(default_factory=dict)
-    conditions: tuple[ConditionalRoute, ...] = ()
+    conditions: tuple[GraphRoute, ...] = ()
     entry: str = ""
     exit: str = ""
     inputs: Bindings = Field(default_factory=dict)
@@ -189,7 +189,7 @@ class GraphDefinition(Model):
                 raise ValueError("A conditional source cannot also declare ordinary successors")
 
 
-class ApplicationDefinition(Model):
+class CustomCoordinatorDefinition(Model):
     kind: Literal[ProgramKind.APPLICATION] = ProgramKind.APPLICATION
     implementation: str = Field(min_length=1)
     version: str = Field(min_length=1)
@@ -204,8 +204,16 @@ class ApplicationDefinition(Model):
 
 
 type ProgramImplementation = Annotated[
-    GraphDefinition | ApplicationDefinition, Field(discriminator="kind")
+    GraphDefinition | CustomCoordinatorDefinition, Field(discriminator="kind")
 ]
+
+
+class ProgramDependency(Model):
+    """One declared Program target and its explicit environment access."""
+
+    program: ProgramTarget
+    environment_imports: dict[str, str] = Field(default_factory=dict)
+    source: tuple[str | int, ...]
 
 
 class ProgramBody(Model):
@@ -217,15 +225,30 @@ class ProgramBody(Model):
     execution_profile: str | None = None
 
     @property
-    def program_calls(self) -> dict[str, ProgramTarget]:
+    def dependencies(self) -> dict[str, ProgramDependency]:
         implementation = self.implementation
         if isinstance(implementation, GraphDefinition):
             return {
-                step.uid: step.program
-                for step in implementation.steps
+                step.uid: ProgramDependency(
+                    program=step.program,
+                    environment_imports=step.environment_imports,
+                    source=("implementation", "steps", index, "program"),
+                )
+                for index, step in enumerate(implementation.steps)
                 if isinstance(step, ProgramCallStep)
             }
-        return dict(implementation.children)
+        return {
+            name: ProgramDependency(
+                program=target,
+                environment_imports=implementation.child_environment_imports.get(name, {}),
+                source=("implementation", "children", name),
+            )
+            for name, target in implementation.children.items()
+        }
+
+    @property
+    def program_calls(self) -> dict[str, ProgramTarget]:
+        return {name: dependency.program for name, dependency in self.dependencies.items()}
 
     def body_at(self, path: BodyPath) -> ProgramBody:
         body: ProgramBody = self
@@ -270,6 +293,7 @@ class ProgramDefinition(ProgramBody):
 
 class ProgramRevision(Model):
     definition: ProgramDefinition
+    interface: ProgramInterface
     revision: int = Field(ge=1)
     content_digest: str = ""
 
@@ -280,6 +304,29 @@ class ProgramRevision(Model):
     @model_validator(mode="after")
     def check_digest(self) -> Self:
         self.definition.validate_executable()
+        pending = [(self.definition, self.interface)]
+        while pending:
+            body, interface = pending.pop()
+            implementation = body.implementation
+            identity = (
+                ("graph", "1")
+                if isinstance(implementation, GraphDefinition)
+                else (implementation.implementation, implementation.version)
+            )
+            owned = {
+                name: target
+                for name, target in body.program_calls.items()
+                if isinstance(target, ProgramBody)
+            }
+            if (
+                (interface.coordinator.key, interface.coordinator.version) != identity
+                or interface.input_schema != body.input_schema
+                or interface.output_schema != body.output_schema
+                or interface.children.keys() != owned.keys()
+                or not interface.dependencies.keys() <= body.program_calls.keys()
+            ):
+                raise ValueError("Published interface does not match its Program body")
+            pending.extend((target, interface.children[name]) for name, target in owned.items())
         data = self.model_dump(mode="json", exclude={"content_digest"})
         encoded = json.dumps(data, sort_keys=True, separators=(",", ":"), allow_nan=False)
         digest = hashlib.sha256(encoded.encode()).hexdigest()
@@ -289,7 +336,8 @@ class ProgramRevision(Model):
         return self
 
 
+ProgramDependency.model_rebuild()
 ProgramBody.model_rebuild()
 ProgramCallStep.model_rebuild()
 GraphDefinition.model_rebuild()
-ApplicationDefinition.model_rebuild()
+CustomCoordinatorDefinition.model_rebuild()

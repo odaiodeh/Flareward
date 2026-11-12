@@ -5,7 +5,7 @@ from functools import partial
 import httpx
 
 from lumora.executions.domain.models import ExecutionRecord
-from lumora.programs.domain.models import PathBinding
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.graph.state.graph_state import GraphState
 from lumora.services.sessions.records import SessionRecord
 from support.agent_session import AgentRole, session_blueprint

@@ -86,7 +86,7 @@ async def test_condition_inherits_program_placement_and_runs_in_selected_backend
         ExecutionContext(identity=platform.owner),
     )
     payload = ProgramPayload.model_validate(compiled.input)
-    graph_request = RunRequest.model_validate(payload.graph_request)
+    graph_request = RunRequest.model_validate(payload.implementation.request)
     graph = GraphProgramInput.model_validate(graph_request.input)
     assert graph.unknown_label_policy == UnknownLabelPolicy.ERROR
     assert graph.targets["condition_echo"]["runner_type"] == profile

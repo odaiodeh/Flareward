@@ -8,7 +8,7 @@ from support.verification import MemoryVerificationAccessRepository, verificatio
 from lumora.executions.access import ExecutionGrantAccess
 from lumora.executions.domain.models import TERMINAL_PHASES
 from lumora.executions.models import StartExecution
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.reviews.access import ReviewAccessRequest, ReviewAccessService, ReviewScope
 from lumora.services.reviews.ports import ReviewCredentialError
 from lumora.services.verification.access import VerificationAccessService
@@ -59,7 +59,7 @@ async def test_workflow_token_loses_authority_without_waiting_for_projection_or_
     with pytest.raises(error):
         await access.authenticate(credential)
     program = await publish(
-        platform, "waiting", ApplicationDefinition(implementation="waiting", version="1")
+        platform, "waiting", CustomCoordinatorDefinition(implementation="waiting", version="1")
     )
     record = await platform.executions.start(
         StartExecution(program=program.reference, execution_id="root"), owner

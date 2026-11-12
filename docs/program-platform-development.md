@@ -1,5 +1,9 @@
 # Program platform development
 
+For the active implementation target, use the [unified coordinator milestone](architecture/coordinator-programs/README.md).
+This guide documents implemented contracts; target capabilities remain distinct.
+
+
 This describes the implemented foundation. The full migration is still in progress.
 Start/resume with [current status](status.md) and [the active plan](plan.md), then
 search headings and read the relevant guide sections. Detailed verification lives
@@ -145,11 +149,11 @@ and application. Static ordering, dependencies and parallel graph regions keep
 using `GraphDefinition` and Run Engine graph execution. There is no second
 scheduler, custom replay store or integration-specific compiler branch.
 
-`lumora.bootstrap.programs.installed_applications` composes the core registrations with
-explicit extension modules into one `ApplicationRegistry`. Workers preload the
+`lumora.bootstrap.programs.installed_coordinators` composes the core registrations with
+explicit extension modules into one `CoordinatorRegistry`. Workers preload the
 same core module before executing/replaying histories. Extensions still register
 installed async functions and Pydantic configuration through
-`ApplicationRegistration`. A configuration can implement the narrow
+`CoordinatorRegistration`. A configuration can implement the narrow
 `ChildContracts.child_contracts()` interface, declaring child aliases, request
 projections/scopes and consumed result mappings. Publication and compilation check
 those contracts without knowing the particular Program implementation. Incomplete
@@ -193,11 +197,14 @@ anywhere in the owned body changes the enclosing revision digest; old publicatio
 remain unchanged. A new revision may call an older revision of the same Program
 because revision identity, rather than the unversioned Program ID, defines cycles.
 
-Saved-resource selection commands optionally carry `body_path`, a sequence of
-graph call UIDs/backend child aliases (empty means root). Source capture resolves
-that owned graph scope using the existing authorized transitive snapshot resolver.
-Paths never traverse published references. Invalid/non-graph scopes reject the
-save. Resource keys are local to each graph's construction scope.
+Saved-resource selection commands carry optional `body_path`, a sequence of graph
+call UIDs/coordinator child aliases (empty means root). Paths identify owned bodies;
+they never traverse published references. Graph selections capture into that body's
+resource scope. Coordinator selections additionally supply `configuration_path`,
+a sequence of field names/dictionary keys and integer array indexes addressing a
+declared `ElementBundle`. Both use the same authorized transitive snapshot resolver.
+Invalid destinations reject the save. Resource identities are local to each graph
+scope or captured configuration bundle.
 
 Compilation lowers both kinds of target through the same compiler, runtime ports
 and native child execution path. An inline body inherits the enclosing resolved
@@ -215,7 +222,7 @@ not. Root submissions invoke published references, not arbitrary body paths.
 Private prepared requests carry selected-scope contracts, mappings/configuration,
 compiled child requests and source addresses instead of copying the entire source
 revision into every child payload. Installed entrypoint contract is
-`lumora-program-v6`; prepared format is `runengine/request-v10`. There is no old
+`lumora-program-v12`; prepared format is `runengine/request-v10`. There is no old
 prototype-payload migration. Rebuild matched images at the next remote milestone.
 
 Local thread/process and production TypeScript→FastAPI→Mongo checks prove this
@@ -278,9 +285,10 @@ selection is paginated and sends only source references; the server resolves and
 protects the dependency closure. Selected blocks expose input/output contracts,
 profile/environment selections, and explicit adoption of current saved configuration.
 New blocks capture the resource's saved profile preference into caller-owned step
-placement. Selected blocks can author conditional routes from saved condition
-resources, map symbolic labels or explicit labels to destinations, and independently
-select condition placement. Sources without a conditional route use ordinary
+placement. Selected blocks can route from an Operation/Program result or a saved
+condition Element, map labels to destinations, and independently select routing
+placement. Result routes use the existing binding editor; they need no condition
+Resource. Each selected block owns its routing-panel state. Sources without a conditional route use ordinary
 connections; routed sources use their branch targets. Publication rejects mixed
 source modes, and the canvas guides users to labeled routes. Branch
 labels sharing a destination retain separate identities when edited/deleted.
@@ -463,13 +471,72 @@ graph-state compatibility.
 
 ### Installed backend Program invocation
 
-`ApplicationRegistration` is the installed backend specification: versioned identity,
+`CoordinatorRegistration` is the installed backend specification: versioned identity,
 configuration model, async entrypoint, optional input/result models and catalog metadata.
-It rejects malformed registrations. `ApplicationInvoker` owns configuration and
+It rejects malformed registrations. `CoordinatorInvoker` owns configuration and
 declared input/output model enforcement in the application layer; implementations
 do not repeat this boundary plumbing. Use cohesive coordinator classes for related
 orchestration behavior behind the registered entrypoint. Add a factory only when
 construction needs actual dependency assembly, not to mirror element filenames.
+
+`ProgramRevision.interface` freezes each body's coordinator identity, public raw
+input/output schemas, installed model validation schemas and canonical serialization
+schemas. Owned bodies have nested interfaces; pinned dependencies retain their own
+revision interfaces. The snapshot participates in revision integrity and publication
+idempotency. Storage returns detached data, so reader edits cannot alter a publication.
+`ProgramInterfaces` owns resolution; caller binding checks consume frozen dependency
+interfaces. The UI invocation form reads the selected revision's configured input schema when
+available, otherwise its authored input schema. Additional authored constraints
+remain server-enforced; this is not a complete combined-schema form renderer.
+
+Admission compares installed declarations with the frozen snapshot. The Program v12
+payload carries only the selected body's interface. Before custom coordination, the
+application invoker verifies installed identities and model schemas, then validates
+normalized values against the frozen canonical schemas. Invalid or changed worker
+schemas fail safely before coordinator effects. Native graphs have no model normalizer.
+Old revisions/payloads require republishing/repreparation; no compatibility fallback
+reconstructs a missing frozen interface from whatever code is installed now.
+
+Each schema retains its own bundled-reference scope. Validation-mode schemas record
+model shapes and aliases; they are not strict descriptions of all Pydantic coercions
+or Python validators. Changes to validators, serializers or other semantic behavior
+require a new implementation version even if generated schemas remain identical.
+Typed coordinator configurations can implement the pure `ConfiguredInterface`
+protocol: `program_interface()` returns `ProgramSchemas` with optional raw-input
+and serialized-output refinements. Publication freezes them as independent schema
+documents, rejects proven contradictions, and validates caller literals against
+all applicable constraints. Admission checks concrete raw inputs before creating
+an execution; workers enforce result refinements after model normalization.
+Map publishes its configured item limit; Repeat publishes its iteration bound.
+Uncertain dynamic bindings retain runtime validation.
+
+Configurations implementing `ChildContracts` also freeze their named request
+projections, scope schemas, consumed-result projections and result schemas in
+`ProgramInterface.dependencies`. These are caller-owned expectations, separate
+from the selected targets/imports in the definition and target revision interfaces.
+Installed Python result models remain installed; only their schemas cross the
+portable boundary. Binding values and pure projection now share the existing
+`programs/domain/bindings.py` owner. Admission and custom workers re-resolve and
+compare declarations before effects. Identical schemas cannot fingerprint Python
+behavior; implementation versioning remains required. Graph call projections are
+already frozen in graph definitions. Normalized-input observation belongs to Step C.
+
+`POST /api/catalog/programs/interface` resolves one unsaved `ProgramBody` through
+`ProgramService.preview_interface`. It returns `ProgramInterfacePreview`: the local
+interface or safe configuration issues. It does not resolve targets, authorize their
+use, fetch Resources, construct dependencies, save drafts or allocate execution.
+The authenticated response is private/no-store. Configuration can resolve before
+required Program targets are bound; publication separately rejects missing bindings
+with an `INVALID_BINDING` diagnostic at the dependency's source path. Preview is
+not publication readiness or placement admission.
+
+The existing Program editor debounces previews, aborts obsolete requests and displays
+required dependency names alongside configured targets. Draft configuration stays
+out of shared query-cache keys. Missing/incomplete configuration produces a status
+message, not invented declarations. The existing picker pins the selected revision;
+its inspector reads the frozen interface. Owned-body creation and nested canvas
+editing remain Step C. Removing a binding also removes its existing environment
+imports; replacing the target preserves them for explicit validation.
 
 Published input schemas validate submitted input. The installed input model then
 validates and normalizes the JSON passed to the implementation, including aliases,
@@ -482,7 +549,7 @@ turning them into null. A result model does not change the entrypoint's JSON ret
 contract: implementations returning Pydantic objects must serialize them first.
 
 Prepared adapter requests carry installed function/model references together in
-`ApplicationCall`, not live registries or application instances. The inbound adapter
+`CoordinatorCall`, not live registries or application instances. The inbound adapter
 resolves them and delegates to the application invoker. Run Engine still owns
 scheduling, recorded effects and replay. Configuration/input/result validators,
 serializers and default factories must be pure and deterministic; effectful work
@@ -595,6 +662,49 @@ Native tests confirm missing cyclic values and unreachable required results fail
 as contract errors rather than becoming accepted work. General cyclic first-
 iteration availability and arbitrary per-graph mutable state schemas remain open.
 
+Graph `conditions` is a typed union with an explicit `kind`:
+
+- `condition`: `ConditionalRoute` invokes a captured condition Element and retains
+  its explicit MAS state/channel adapter.
+- `result`: `ResultRoute` selects labels with a normal Program `Binding`. It needs
+  no Element construction, condition Resource, conversation channel or MAS state.
+
+For a step whose published result declares an `outcome` label, a result route can
+be authored as:
+
+```json
+{
+  "kind": "result",
+  "source": "review",
+  "selection": {"kind": "path", "path": ["results", "review", "outcome"]},
+  "branches": {"approved": "release", "changes_required": "improve"},
+  "execution": {"profile": "thread"}
+}
+```
+
+`outcome` is an example field, not a required platform result envelope. Operations
+and Programs can expose their own typed results. Reusable decision logic belongs
+in those capabilities; routing does not introduce an expression language or
+another scheduler. Strings select labels, booleans select `true`/`false`, and string
+arrays select multiple labels. Numbers and mixed-type lists are invalid.
+
+Publication checks the selection against known result schemas and source ordering.
+A route may consume its own source's result because that source has completed;
+an invocation still cannot read its own not-yet-produced result. Future, unknown,
+and provably optional producers remain invalid. Conservative schema checks do not
+prove exhaustive outcome coverage; dynamic selections are checked at execution.
+The complete selection must be valid before any successor is scheduled. Unknown
+labels and missing runtime paths fail as contract errors with private diagnostics.
+
+The Run Engine adapter's `evaluate_result` projects portable state and validates
+labels, then delegates branching/joins to the native graph coordinator. It applies
+approved route placement and named environments through the existing compiler.
+Result and condition-Element routes may coexist; only explicit MAS capabilities
+select the agent-state adapter. These definitions require matched Program v12
+workers; old serialized routes without `kind` must be recreated, not silently
+interpreted through a compatibility path. See
+[result-routing verification](evidence/2026-11-11-result-routing.md).
+
 Every condition label requires a declared destination. `END` is an ordinary label,
 including the direct router's no-recipient outcome; there is no generic terminal
 exception. Explicit empty selections retain their native no-successor semantics.
@@ -641,7 +751,10 @@ caller overlay generation. It does not retrieve historical library documents.
 Published program revisions provide immutable execution snapshots.
 
 `SaveProgramDraft.resource_selections` accepts entries shaped as
-`{source: {key: {category, rid}, revision}, adoption: "reject" | "replace"}`.
+`{source: {key: {category, rid}, revision}, adoption: "reject" | "replace", body_path?, configuration_path?}`.
+Omit `configuration_path` for graph resource scopes; supply it for coordinator
+bundle fields, for example `["stages", 0, "bundle"]`. Empty `[]` addresses a
+configuration whose model is itself `ElementBundle`. It is distinct from omission.
 The default adoption policy is `reject`. `SavedResourceResolver` depends on the
 application-owned `ResourceSnapshotSource` port; `ResourceAuthoringService` supplies
 authorized native async reads and existing visibility/overlay/encryption policy.
@@ -658,7 +771,10 @@ builders and the ordinary operation/node invocation pipeline.
 
 Edits without new selections keep frozen configuration. Selecting changed content
 that collides with an existing resource/dependency returns 409 unless the caller
-explicitly chooses `replace`; replacement affects all uses of that key in the draft.
+explicitly chooses `replace`; replacement affects all uses of that key within the
+selected graph scope or bundle. Distinct configuration bundles remain independent.
+Changing a bundle's root also requires explicit replacement. Canonical fields and
+validation aliases identify the same target and cannot bypass adoption checks.
 Equivalent normalized content reuses existing protected references rather than
 creating duplicate credential records. Older published revisions stay unchanged.
 Root source changes invalidate a pending selection; dependency revisions are captured
@@ -668,8 +784,22 @@ at save and checked for changes during collection. Missing/hidden dependencies a
 Placement remains separate: source selection resolves construction data; clients
 author step execution selections independently. The UI captures saved defaults for
 new blocks and preserves explicit overrides. Configuration adoption does not silently
-rewrite existing step placement. Binding saved resources into registered-program
-configuration fields remains open; the resolver itself is independent of graphs.
+rewrite existing step placement.
+
+`ConfigurationResources` applies captures only to actual typed `ElementBundle`
+values, including nested models, dictionaries, existing list/tuple positions and
+selected union variants. Missing object fields may be filled in incomplete drafts;
+array indexes must already exist. Unknown fields, arbitrary JSON lookalikes,
+ambiguous variants and duplicate destinations reject the save. Configuration paths
+are limited to 64 segments. Existing schema-aware protection normalizes aliases and
+protects credentials before portable values are returned or persisted.
+
+The existing resource picker still obtains a protected preview. It now also queues
+the source and configuration destination for revalidation at draft save. Local
+preview digests prevent pending selections from following a changed/moved bundle;
+that UI-only metadata is stripped from the save command. Published revisions remain
+unchanged. Full nested-canvas authoring and unsupported schema-form variants remain
+part of the UI milestone, not a claim of this capture implementation.
 
 Target clarification: evolve the existing blueprint builder into one program
 workspace, incorporating the useful behavior from this interim screen. Element
@@ -2416,7 +2546,7 @@ through Mongo and thread/process receivers. Editing the saved provider after
 publication does not alter the session's pinned snapshot. These tests make no paid
 model calls. Remote MCP-agent placement still requires separate verification.
 
-## Adding an application program
+## Adding a custom coordinator
 
 This section describes the registered backend implementation mechanism, not a
 separate public program category. The [target authoring model](architecture/README.md#installed-implementations-and-configured-programs)
@@ -2429,18 +2559,26 @@ and nested authoring remain open as described above.
 Define an installed async function accepting `(runtime, inputs, configuration)`.
 `runtime` implements the application-owned `ProgramRuntime` protocol. Register the
 function, its configuration schema, and its stable implementation key/version using
-`ApplicationRegistry` in the composition root.
+`CoordinatorRegistry` in the composition root.
 
-Create an `ApplicationDefinition` referring to that registration, save it through
+Create a `CustomCoordinatorDefinition` referring to that registration, save it through
 `ProgramService`, and publish a revision. A graph calls it with `ProgramCallStep`.
 Declare child targets (pinned revisions or owned bodies) explicitly; the runtime starts those prepared
 children through Run Engine instead of importing repositories in coordination code.
 
-`ApplicationRegistration` is the installed backend specification: identity,
-configuration/input/output models, metadata and execution entrypoint. It follows
+`CoordinatorRegistration` is the installed backend specification: identity,
+configuration/input/output models, metadata and an explicit execution strategy. It follows
 the same extension discipline as Element specifications without inheriting graph
 metadata or an Element factory hierarchy. Use cohesive coordinator classes for
 related behavior and injected collaborators; keep the installed entrypoint thin.
+Register custom behavior with `CustomCoordinatorStrategy(entrypoint)` as the
+fourth `CoordinatorRegistration` argument. Plugin modules export `COORDINATORS`.
+Native `graph@1` uses `NativeGraphStrategy()` and is delegated by the Run Engine
+adapter; it has no custom entrypoint. Catalog kinds derive from the strategy.
+The portable adapter call is `CoordinatorCall`, while `CoordinatorEntrypoint`
+is the application-owned async callable protocol. `CustomCoordinatorDefinition`
+retains the serialized `application` kind; graph/custom remain one Program lifecycle.
+
 A dedicated factory is appropriate when coordinator construction/lifetime needs
 one, not as a mandatory wrapper around an already registered callable. Dependency
 wiring belongs in the composition root, not the registry or portable definition.
@@ -2476,7 +2614,7 @@ root constructs and closes clients on the server event loop, starts execution an
 session reconciliation, and stops those observers before closing their dependencies.
 Use Mongo storage for persistent records. Settings use the `LUMORA_` environment
 prefix; structured host/profile settings use JSON. Registered application modules
-export an `APPLICATION_PROGRAMS` sequence of `ApplicationRegistration` instances.
+export a `COORDINATORS` sequence of `CoordinatorRegistration` instances.
 
 Session authentication validates the existing signed session cookie and Redis
 session, then checks team membership through the identity service when requested.
@@ -3081,20 +3219,24 @@ remote private delivery and full trigger UI remain separate work. Do not call th
 live Jira integration or massive-scale acceptance. Existing authorized review and
 runtime-message contracts still own continuation of their particular waits.
 
-The Engineering implementation is registered as `engineering@3` by installing
-`plugins.engineering.program` in both API and worker configuration. Its
+The Engineering implementation is registered as `engineering@4` by installing
+`plugins.adlc.programs.program` in both API and worker configuration. Its
 `completions` list contains named `EngineeringCompletion` choices and a declared
 `default_completion`. Each choice freezes a bundled JSON Schema for the ADLC
 candidate result, producer/repair child aliases, repair bound, verification policy
-ID, exact check/verifier/report requirements, runner IDs and Human Review lumora.bootstrap.settings.
+ID, exact check/verifier/report requirements, runner IDs and a `ReviewDependency`.
+The review dependency selects a Program alias, expected policy, scoped confirmation
+Operation bundle and confirmation placement. Bind that alias to a pinned Program
+revision or an owned body in `CustomCoordinatorDefinition.children`. Reviewer prompt,
+assignment, deadline and wait bounds belong to that target Program configuration.
 Invocation accepts `task` and an optional `completion` name; an unknown choice
 fails before producer dispatch. No other invocation field can override its policy.
 Candidate shape is checked before verification effects. Returned plans must match
 the configured requirements as well as candidate and policy: changing an operator
 policy under the same ID cannot silently weaken an existing publication.
 
-Candidate production/repair remain ordinary child Programs; verification/review use
-scoped operation bundles. An ADLC candidate uses `EngineeringCandidate.subject`;
+Candidate production, repair and review are ordinary child Program calls.
+Verification and persisted review confirmation use scoped Operation bundles. An ADLC candidate uses `EngineeringCandidate.subject`;
 ordinary operations and other Programs require no such envelope. The shared
 `ChildContract.result_schema` supplements typed model constraints with configured
 projected-result constraints at publication. Provably disjoint types, finite values
@@ -3103,7 +3245,7 @@ checks. These are conservative compatibility checks, not complete schema subtypi
 Shared aliases require the same candidate schema; different aliases may bind the
 same published Program. UI fields use the existing nested array/schema renderer.
 
-`EngineeringReviewSubject` from `plugins.engineering.review` now uses
+`EngineeringReviewSubject` from `plugins.adlc.programs.review` now uses
 `engineering-review@2`: selected completion name, exact candidate and accepted
 verification snapshot, including plan, receipt/configuration identities and durable
 reports. The subject rejects mismatched/unaccepted evidence. `EngineeringResult`
@@ -3116,8 +3258,8 @@ The generic review service persists/authorizes this JSON subject and handles nat
 waiting unchanged. The existing generic artifact inspector discovers source and
 report references before approval. Reviewer assignment does not confer another
 owner's artifact access. No private verifier-run access or credential is attached.
-Earlier Engineering implementations 1/2 are not installed as compatibility paths.
-The module contract is `lumora-engineering-v3`; recreate development publications
+Earlier Engineering implementations 1/2/3 are not installed as compatibility paths.
+The module contract is `lumora-engineering-v4`; recreate development publications
 and rebuild receiving images before remote acceptance of this source.
 
 The [review-evidence checkpoint](evidence/2026-11-07-review-evidence.md) proves native
@@ -3129,7 +3271,7 @@ accepts the preceding version-2 thin journey on its matched images. The
 version-3 native scope. Real Git retention/delivery, current-source browser/remote
 acceptance, final UX and broader recovery remain required.
 
-Install `plugins.engineering.coding` alongside that module to register
+Install `plugins.adlc.programs.coding` alongside that module to register
 `coding_file_candidate@1`. This backend Program consumes `EngineeringWork` whose
 `task` follows `CodingInput` (`prompt`, optional `context` and immutable input files).
 Configure coding, artifact-loader, workspace-reader and content-publication bundles,
@@ -3173,22 +3315,23 @@ remote placement, or full feature-design/UI acceptance.
 
 ### Feature design and approval
 
-Install `plugins.engineering.design` in both API and worker application-module
-configuration to register `feature_design@1`. It takes a task and nonempty acceptance
+Install `plugins.adlc.programs.design` in both API and worker application-module
+configuration to register `feature_design@2`. It takes a task and nonempty acceptance
 criteria. Its configured designer child takes `DesignWork` and returns a
 `DesignProposal` (plan text and optional generic references). The child can be a
 published Program or an owned body, through normal registration and contracts.
 
 Each proposal becomes a numbered `DesignRevision` containing the exact request,
-criteria and proposal. The normal scoped Human Review operations persist that full
-revision as the subject. A rejected decision supplies the previous design and the
+criteria and proposal. Its configured reviewer Program receives that full revision
+as input. The caller confirms the returned review ID against the persisted policy,
+exact revision and invoked reviewer subtree before consuming the decision. A rejected decision supplies the previous design and the
 recorded reviewer response to the next bounded attempt. Approval returns `approved`;
 exhaustion, pending observation and closed review remain explicit unsatisfied
 outcomes. A design result cannot substitute a different subject or relabel rejection
 as approval. Revision numbers are local to this execution, not Programs library
 publication revisions. The durable review occurrence identifies the accepted version.
 
-Install `plugins.engineering.designer` to register `coding_designer@1`, a normal
+Install `plugins.adlc.programs.designer` to register `coding_designer@1`, a normal
 designer child for coding tasks. Its concrete `CodingDesignWork` contract specializes
 generic `DesignWork` / `FeatureRequest` with `CodingInput`, preserving generic task
 contracts for other designers. Configure a captured coding-operation bundle, loader,
@@ -3202,7 +3345,7 @@ Planning instructions do not enforce a read-only filesystem. The [designer check
 records native revision/repair and real OpenShell browser proof, including remaining
 pre-approval evidence and authoring gaps.
 
-Install `plugins.engineering.feature` to register `coding_feature@1`. Its input
+Install `plugins.adlc.programs.feature` to register `coding_feature@1`. Its input
 has a coding prompt, optional context, acceptance criteria and optional `completion`.
 The selection is forwarded separately from `CodingInput` to the pinned Engineering
 revision; omission uses its published default. The wrapper rejects a result for a
@@ -3387,7 +3530,7 @@ existing execution snapshots and named environments keep their original policy.
 File paths do not enter compiled program requests. Workers receive validated portable
 policy data, not a policy-file dependency.
 
-[`platform/lumora.bootstrap.settings/policies/openshell-restricted.json`](../platform/lumora.bootstrap.settings/policies/openshell-restricted.json)
+[`platform/src/lumora/bootstrap/settings/policies/openshell-restricted.json`](../platform/src/lumora/bootstrap/settings/policies/openshell-restricted.json)
 is an opt-in example for the test sandbox image. Its only network rule allows the
 Gemini host on port 443 for the listed Python executables. Adjust the executable
 paths and filesystem/process baseline for the selected image. The example explicitly
@@ -3498,6 +3641,26 @@ root execution; distinct requests cannot reuse the same ID with different payloa
 
 ## Human Review
 
+ADLC `feature_design@2` and `engineering@4` invoke declared reviewer Program
+dependencies through `ChildCalls`; they do not import the concrete Human Review
+coordinator or embed `HumanReviewConfig`. `ReviewDependency` and `Reviewer` live in
+`plugins/adlc/programs/reviewer.py`. Generic `HumanReviewResult` / `ReviewWaitReason`
+contracts live in `lumora/services/reviews/domain/results.py`, independently of any
+coordinator implementation. A graph reviewer can delegate to Human Review and
+return the same interface. Publication validates the declared subject/result
+contracts; runtime confirmation establishes actual decision authority.
+
+Confirmation uses the child handle's execution ID and the caller's expected policy
+and exact subject, then returns the current persisted record. The returned
+Program result supplies the review ID and an advisory wait reason, never approval
+authority. A completed reviewer that exhausted its checks can have its pending
+review cancelled by lifecycle reconciliation; the ADLC outcome then reports
+`review_closed`, not approval or automatic repair. `check_limit` still describes
+why the reviewer returned. Parent cancellation propagates to an active reviewer
+through the existing child-call scope. Recreate affected development publications;
+no old coordinator configuration aliases remain.
+
+
 Status: the `human_review@1` application program, registered review effects,
 Mongo-backed decisions, scoped workflow access, native HTTP routes and actual
 reviewer UI are implemented. Local graph/code/thread/process execution and
@@ -3599,17 +3762,33 @@ Enable `LUMORA_REVIEWS_ENABLED=true` with Mongo storage. Configure
 `LUMORA_REVIEW_POLICIES` as a mapping of policy IDs to admitted owners, assigned
 human user IDs in `reviewers`, and `max_timeout_seconds`. Include
 `plugins.human_review.programs.human_review` in `LUMORA_APPLICATION_MODULES` and
-`plugins.reviews.specification` in `LUMORA_ELEMENT_MODULES`. Registration uses
+`plugins.human_review.elements.specification` in `LUMORA_ELEMENT_MODULES`. Registration uses
 the existing application registry and element discovery; no dedicated review
 worker or compiler branch exists.
 
 The ordinary `review_service` provider supports `open_human_review`,
-`inspect_human_review` and `close_human_review` operations. Factories and transitive
+`inspect_human_review`, `confirm_human_review` and `close_human_review` operations. Factories and transitive
 dependency bundles construct them. `HumanReviewConfig` freezes a policy, prompt,
 allowed decisions, response schema/deadline, opener/inspection bundles, execution
 selection and bounded reconciliation cadence. Its subject is the exact portable
 JSON input passed to that program. Graph bindings choose its input shape; there
 is no automatic artifact or Git interpretation.
+
+`confirm_human_review` is an ordinary typed Operation using the same provider and
+spec/factory convention. `ConfirmReview` supplies a review ID, expected policy,
+exact subject and `within_execution_id` (the reviewer child ID returned by the
+runtime). `ReviewService.confirm` re-reads authorized persisted evidence and verifies
+its policy, canonical subject identity and execution ancestry through `ReviewExecutions`.
+The execution adapter traverses owned records, accepts completed descendants,
+rejects cycles/foreign roots and reports unavailable ancestry without granting trust.
+A graph reviewer may delegate further; its descendant review still belongs to the
+selected subtree. A sibling review does not. Confirmation does not create approval:
+pending, rejected and closed records remain their actual states. Workflow READ
+scope is required, while human response authority remains separate.
+The native direct/graph and thread/process proof is recorded in
+[review-confirmation evidence](evidence/2026-11-11-review-confirmation.md).
+ADLC still uses its existing direct review coordinator until the Step B migration;
+this capability alone does not complete C6.
 
 Response schemas use the bounded, self-contained JSON Schema draft 2020-12
 subset enforced by `ReviewSchema`. Local references are validated, including their
@@ -3620,6 +3799,7 @@ schemas; server validation remains authoritative.
 
 | Route | Authority and behavior |
 | --- | --- |
+| `POST /api/reviews/confirmations` | Confirm authorized persisted evidence for expected work/policy and reviewer subtree; does not submit a decision. |
 | `POST /api/review-access` | Authenticated human issues scoped access; optional configured Idempotency-Key recovers the same issuance |
 | `GET /api/review-access/self` | Workflow credential metadata, without secret material |
 | `DELETE /api/review-access/{id}` | Authenticated owner revokes workflow access |
@@ -4010,7 +4190,7 @@ the Lumora OpenShell receiver. It pins CLI 0.166.0 and installs the native binar
 `/usr/local/bin/codex`, with the package's Bubblewrap and ripgrep helpers also on
 PATH. A version check alone cannot prove command execution: nested namespace
 support must be tested inside the actual target environment. The opt-in
-[Codex policy](../platform/lumora.bootstrap.settings/policies/openshell-codex.json) allows only that
+[Codex policy](../platform/src/lumora/bootstrap/settings/policies/openshell-codex.json) allows only that
 binary to contact `api.openai.com:443`. A receiver using Mongo secret storage additionally needs working native database
 transport and an operator-approved endpoint for its Python interpreter. The
 private-file binding needs no database access from the sandbox. Preserve the
@@ -4174,3 +4354,31 @@ remain the persistence conflict boundary. They do not make writes transactional
 with Redis. Older Flask clients use user-only leases, so a mixed deployment does
 not provide complete occurrence fencing. Cut over matched clients/routes and
 verify legacy-editor drain before claiming that guarantee.
+
+
+## Authored child call sites
+
+`ExecutionRecord.call_site` identifies a dependency in the immediate parent Program
+body: a graph block UID or custom dependency alias. Shared compilation stamps it
+into child requests and native observation persists it as part of request identity.
+Roots have no parent call site. Repeated calls share the authored site and have
+distinct execution IDs; `body_path` independently addresses an owned body within
+its published revision. Never infer correlation from engine-ID text. Program v12
+carries this metadata. Bounded Operation/Program call and graph-attempt snapshots
+are implemented; resumable updates and canvas overlays remain under development.
+
+
+## Execution occurrence snapshots
+
+`GET /api/executions/{id}/occurrences?before=...&limit=50` returns an authorized,
+private/no-store application snapshot page. Call ordinals distinguish occurrences;
+`call_site` identifies their parent definition site, and child IDs provide execution
+drill-down. Graph step and attempt describe native logical graph attempts, not
+backend delivery attempts. Inputs, outputs and raw errors are absent from this view.
+The latest 256 calls are retained; `truncated` reports earlier loss and
+`next_cursor` pages the retained window. Missing observation is unavailable rather
+than fabricated progress. The shared workbench displays last observed status and
+supports manual refresh, live polling, earlier calls and child links.
+Program v12 publishes this projection through engine-owned snapshot operations;
+full graph-state export, waits, resumable updates and nested canvas overlays remain
+separate work. See [occurrence evidence](evidence/2026-11-12-occurrences.md).

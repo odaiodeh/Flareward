@@ -7,12 +7,13 @@ from pydantic import ValidationError
 
 from lumora.programs.authoring import CanvasPosition, ProgramConflict, ProgramPresentation
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     ProgramDefinition,
 )
 from lumora.programs.ports import ProgramRepository
 from lumora.services.identity.domain import Identity
+from support.program_interfaces import declared_interface
 
 
 def definition(program_id: str, owner: Identity | None = None) -> ProgramDefinition:
@@ -20,7 +21,7 @@ def definition(program_id: str, owner: Identity | None = None) -> ProgramDefinit
         program_id=program_id,
         name=program_id,
         owner=owner or Identity.user("same-id"),
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
 
 
@@ -83,7 +84,12 @@ async def assert_source_idempotent_publication(repository: ProgramRepository) ->
     draft = await repository.save_draft(
         original, expected_version=0, presentation=ProgramPresentation()
     )
-    publications = await asyncio.gather(*(repository.publish(draft) for _ in range(8)))
+    publications = await asyncio.gather(
+        *(
+            repository.publish(draft, interface=declared_interface(draft.definition))
+            for _ in range(8)
+        )
+    )
     first = publications[0]
     assert all(value == first for value in publications)
     edited = await repository.save_draft(
@@ -91,10 +97,10 @@ async def assert_source_idempotent_publication(repository: ProgramRepository) ->
         expected_version=draft.version,
         presentation=ProgramPresentation(),
     )
-    second = await repository.publish(edited)
+    second = await repository.publish(edited, interface=declared_interface(edited.definition))
     assert second.revision > first.revision
     assert await repository.get_publication("publish", draft.version) == first
-    assert await repository.publish(draft) == first
+    assert await repository.publish(draft, interface=declared_interface(draft.definition)) == first
     assert [
         value.reference
         for value in await repository.list_revisions("publish", before=None, limit=1)
@@ -110,7 +116,34 @@ async def assert_source_idempotent_publication(repository: ProgramRepository) ->
         not in (await repository.get_revision(first.reference)).definition.input_schema
     )
     with pytest.raises(ProgramConflict):
-        await repository.publish(draft.model_copy(update={"definition": edited.definition}))
+        await repository.publish(
+            draft.model_copy(update={"definition": edited.definition}),
+            interface=declared_interface(
+                (draft.model_copy(update={"definition": edited.definition})).definition
+            ),
+        )
+
+
+async def assert_interface_is_part_of_publication_identity(repository: ProgramRepository) -> None:
+    draft = await repository.save_draft(
+        definition("interface"), expected_version=0, presentation=ProgramPresentation()
+    )
+    interface = declared_interface(draft.definition).model_copy(
+        update={
+            "normalized_input_schema": {
+                "type": "object",
+                "properties": {"name": {"type": "string"}},
+            }
+        }
+    )
+    revision = await repository.publish(draft, interface)
+    changed = interface.model_copy(update={"normalized_input_schema": {"type": "array"}})
+    with pytest.raises(ProgramConflict):
+        await repository.publish(draft, changed)
+    interface.normalized_input_schema["properties"].clear()
+    loaded = await repository.get_revision(revision.reference)
+    assert "name" in loaded.interface.normalized_input_schema["properties"]
+    assert loaded.content_digest == revision.content_digest
 
 
 async def assert_unfinished_drafts_cannot_become_revisions(repository: ProgramRepository) -> None:
@@ -123,7 +156,7 @@ async def assert_unfinished_drafts_cannot_become_revisions(repository: ProgramRe
     assert await repository.get_draft(original.program_id) == draft
     assert (await repository.list_drafts(original.owner, after="", limit=1)) == [draft]
     with pytest.raises(ValidationError, match="entry and exit"):
-        await repository.publish(draft)
+        await repository.publish(draft, interface=declared_interface(draft.definition))
     assert await repository.get_publication(original.program_id, draft.version) is None
     assert not await repository.list_revisions(original.program_id, before=None, limit=10)
 
@@ -133,4 +166,5 @@ PROGRAM_STORE_CONTRACTS = (
     assert_atomic_edits,
     assert_source_idempotent_publication,
     assert_unfinished_drafts_cannot_become_revisions,
+    assert_interface_is_part_of_publication_identity,
 )

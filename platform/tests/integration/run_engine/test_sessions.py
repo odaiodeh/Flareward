@@ -7,7 +7,8 @@ from support.scenarios import echo_graph, finish_session, publish
 
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.ports import ExecutionMissing
-from lumora.programs.domain.models import ApplicationDefinition, PathBinding
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.sessions.domain.status import SessionStatus
 from lumora.services.sessions.execution.program_sessions import (
     CreateProgramSession,
@@ -19,7 +20,9 @@ from lumora.services.sessions.records import SessionInteraction
 
 async def test_structured_session_reuses_arbitrary_data_bindings_without_chat(platform, sessions):
     revision = await publish(
-        platform, "data-session", ApplicationDefinition(implementation="greeting", version="1")
+        platform,
+        "data-session",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     record = await sessions.create(
         CreateProgramSession(
@@ -94,7 +97,7 @@ async def test_concurrent_turns_admit_one_and_idempotent_retry_does_not_stage_ag
     sessions,
 ):
     revision = await publish(
-        platform, "session-wait", ApplicationDefinition(implementation="waiting", version="1")
+        platform, "session-wait", CustomCoordinatorDefinition(implementation="waiting", version="1")
     )
     session = await sessions.create(
         CreateProgramSession(
@@ -128,7 +131,7 @@ async def test_cancel_during_preparation_prevents_late_submission(platform, sess
     revision = await publish(
         platform,
         "cancel-before-start",
-        ApplicationDefinition(implementation="greeting", version="1"),
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     session = await sessions.create(
         CreateProgramSession(
@@ -168,7 +171,7 @@ async def test_concurrent_identical_submissions_recover_the_same_admitted_turn(
     platform, sessions, session_store, monkeypatch
 ):
     revision = await publish(
-        platform, "same-turn", ApplicationDefinition(implementation="waiting", version="1")
+        platform, "same-turn", CustomCoordinatorDefinition(implementation="waiting", version="1")
     )
     session = await sessions.create(
         CreateProgramSession(
@@ -202,7 +205,7 @@ async def test_old_execution_projection_cannot_overwrite_new_turn(platform, sess
     revision = await publish(
         platform,
         "turn-fence",
-        ApplicationDefinition(implementation="waiting", version="1"),
+        CustomCoordinatorDefinition(implementation="waiting", version="1"),
     )
     session = await sessions.create(
         CreateProgramSession(
@@ -240,7 +243,7 @@ async def test_invalid_output_binding_finishes_session_with_actionable_error(pla
     revision = await publish(
         platform,
         "bad-session-binding",
-        ApplicationDefinition(implementation="greeting", version="1"),
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     record = await sessions.create(
         CreateProgramSession(

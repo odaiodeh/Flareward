@@ -27,7 +27,7 @@ Its ID is stable for a check intent. Reconciliation observes that execution and
 never repeats a start because it is missing. Do not turn a source/definition pin
 into a claim about hostile-code isolation or runtime image provenance.
 
-For `engineering@3`, compare its selected completion's frozen `requirements` with
+For `engineering@4`, compare its selected completion's frozen `requirements` with
 the actual plan, including verifier IDs and report flags. The same policy ID is
 insufficient after operator configuration changes. Candidate schemas are checked
 before verification effects; unknown completion names dispatch no producer. See

@@ -8,7 +8,7 @@ from support.blueprint_http import library_api
 from support.blueprints import external_blueprint
 from support.library_resources import seed_private_agent_resources
 
-from lumora.programs.domain.models import PathBinding
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.graph.state.graph_state import GraphState
 from lumora.resources.adapters.mongo.configuration_secrets import MongoConfigurationSecrets
 from lumora.resources.domain.builtins import (

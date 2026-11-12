@@ -5,7 +5,7 @@ from pydantic import BaseModel, JsonValue, field_validator
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.models import Model
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
 from lumora.services.verification.domain.models import VerificationSubject
 from lumora.services.verification.program_checks import CheckProgramInput, CheckProgramResult
@@ -67,12 +67,12 @@ async def git_python_check(
     ).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "git_python_function_check",
         "1",
         GitPythonCheckConfig,
-        git_python_check,
+        CustomCoordinatorStrategy(git_python_check),
         name="Git Python function verification",
         description="Read admitted Git source and compare evaluation against trusted answers",
         input_model=CheckProgramInput,

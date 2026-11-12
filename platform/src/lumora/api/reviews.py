@@ -13,7 +13,7 @@ from lumora.api.dependencies import (
 )
 from lumora.services.identity.domain import Identity
 from lumora.services.reviews.access import ReviewAccessRequest, ReviewActor, ReviewGrant
-from lumora.services.reviews.contracts import CloseReview, OpenReview, SubmitReview
+from lumora.services.reviews.contracts import CloseReview, ConfirmReview, OpenReview, SubmitReview
 from lumora.services.reviews.domain.models import ReviewId, ReviewRecord
 from lumora.services.reviews.ports import ReviewCredentialError, ReviewMissing
 
@@ -132,6 +132,16 @@ async def execution_reviews(
     return ReviewPage(
         reviews=reviews, next_cursor=reviews[-1].review_id if len(reviews) == limit else None
     )
+
+
+@router.post("/reviews/confirmations")
+async def confirm(
+    intent: ConfirmReview,
+    principal: Annotated[ReviewActor, Depends(actor)],
+    services: Annotated[HttpServices, Depends(configured)],
+) -> ReviewRecord:
+    assert services.reviews is not None
+    return await services.reviews.confirm(intent, principal)
 
 
 @router.get("/reviews/{review_id}")

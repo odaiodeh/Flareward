@@ -1,33 +1,43 @@
 """Installed Program contracts apply through the existing host and child execution path."""
 
 import asyncio
+from dataclasses import replace
 from unittest.mock import create_autospec
 
 import pytest
 from runengine.coordination.models import RunRequest
 from runengine.coordination.ports import CoordinationOperations
+from runengine.invocation.errors import InvocationContractError
+from support import typed_programs
 from support.programs import ComposedConfig, composed_program
 from support.scenarios import publish, run
-from support.typed_programs import APPLICATION_PROGRAMS, TypedInput, definition
+from support.typed_programs import COORDINATORS, TypedInput, definition
 
 from lumora.executions.adapters.run_engine.inbound.programs import execute_program
+from lumora.executions.adapters.run_engine.shared.models import CoordinatorCall
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.domain.models import ExecutionPhase
-from lumora.programs.composition.programs import APPLICATION_PROGRAMS as CONTROLS
+from lumora.executions.models import StartExecution
+from lumora.programs.composition.models import MapConfig
+from lumora.programs.composition.programs import COORDINATORS as CONTROLS
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
+from lumora.programs.domain.interfaces import ProgramSchemas
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    LiteralBinding,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
 )
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import (
+    CoordinatorRegistration,
+    CoordinatorRegistry,
+    CustomCoordinatorStrategy,
+)
 
 
 @pytest.fixture(autouse=True)
 def installed_models(application):
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
 
 
@@ -47,7 +57,7 @@ async def test_standalone_program_uses_installed_input_and_result_models(platfor
 
 async def test_installed_backend_resolution_requires_no_coordinator_executor(platform, monkeypatch):
     revision = await publish(
-        platform, "resolution", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "resolution", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     context = ExecutionContext(
         identity=platform.owner,
@@ -149,7 +159,7 @@ async def test_array_programs_run_standalone_and_through_backend_child_calls(pla
     caller = root.model_copy(
         update={
             "program_id": "array-caller",
-            "implementation": ApplicationDefinition(
+            "implementation": CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": revision.reference}
             ),
         }
@@ -222,7 +232,7 @@ async def test_admitted_control_bindings_execute_normalized_owned_or_pinned_chil
     root = await publish(
         platform,
         "control",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation=kind, version="1", config=config, children={"body": target}
         ),
     )
@@ -249,8 +259,12 @@ async def test_custom_coordinator_passes_normalized_input_through_declared_contr
     application, platform
 ):
     application.applications.register(
-        ApplicationRegistration(
-            "typed_coordinator", "1", ComposedConfig, composed_program, input_model=TypedInput
+        CoordinatorRegistration(
+            "typed_coordinator",
+            "1",
+            ComposedConfig,
+            CustomCoordinatorStrategy(composed_program),
+            input_model=TypedInput,
         )
     )
     child = ProgramBody(
@@ -260,7 +274,7 @@ async def test_custom_coordinator_passes_normalized_input_through_declared_contr
     revision = await publish(
         platform,
         "coordinator",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="typed_coordinator", version="1", children={"greet": child}
         ),
     )
@@ -271,3 +285,139 @@ async def test_custom_coordinator_passes_normalized_input_through_declared_contr
         0
     ]
     assert child_execution.inputs == {"amount": 3, "label": "normalized", "tags": []}
+
+
+async def test_worker_rejects_changed_model_after_successful_admission(platform, monkeypatch):
+    revision = await publish(platform, "frozen", definition(platform.owner).implementation)
+    context = ExecutionContext(
+        identity=platform.owner,
+        execution_id="frozen",
+        root_execution_id="frozen",
+        engine_handle="native",
+    )
+    prepared = await platform.gateway.prepare(
+        revision, {"amountAlias": "3", "label": "valid"}, context, "native"
+    )
+    request = RunRequest.model_validate_json(prepared.payload_json)
+    operations = create_autospec(CoordinationOperations, instance=True)
+    operations.run_id = "native"
+    # Public function references resolve the module installed in the receiving worker.
+    monkeypatch.setattr(typed_programs, "TypedInput", typed_programs.Numbers)
+    with pytest.raises(InvocationContractError, match="published contract"):
+        await execute_program(operations, request.input)
+    assert not operations.mock_calls
+
+
+async def test_configured_input_rejects_before_creating_an_execution(platform):
+    revision = await publish(
+        platform,
+        "bounded",
+        definition(platform.owner, implementation="bounded_echo").implementation,
+    )
+    with pytest.raises(ValueError, match="input violates"):
+        await platform.executions.start(
+            StartExecution(
+                execution_id="not-admitted", program=revision.reference, inputs={"value": 6}
+            ),
+            platform.owner,
+        )
+    with pytest.raises(KeyError):
+        await platform.executions.get("not-admitted", platform.owner)
+    result = await run(platform, revision, {"value": 4})
+    assert result.phase == ExecutionPhase.COMPLETED and result.result == {"value": 4}
+
+
+async def test_configured_output_is_enforced_on_the_native_worker(platform):
+    revision = await publish(
+        platform,
+        "bad-output",
+        definition(
+            platform.owner, implementation="bounded_echo", config={"output_limit": 2}
+        ).implementation,
+    )
+    result = await run(platform, revision, {"value": 4})
+    assert result.phase == ExecutionPhase.FAILED
+    assert result.failure.kind == "contract" and "output violates" in result.failure.message
+
+
+async def test_worker_rechecks_configured_contract_after_admission(platform, monkeypatch):
+    revision = await publish(
+        platform,
+        "configured-drift",
+        definition(platform.owner, implementation="bounded_echo").implementation,
+    )
+    context = ExecutionContext(
+        identity=platform.owner,
+        execution_id="configured-drift",
+        root_execution_id="configured-drift",
+        engine_handle="native",
+    )
+    prepared = await platform.gateway.prepare(revision, {"value": 2}, context, "native")
+    request = RunRequest.model_validate_json(prepared.payload_json)
+    operations = create_autospec(CoordinationOperations, instance=True)
+    operations.run_id = "native"
+    monkeypatch.setattr(
+        typed_programs.BoundedEchoConfig,
+        "program_interface",
+        lambda self: ProgramSchemas(input_schema={"type": "array"}),
+    )
+    with pytest.raises(InvocationContractError, match="configuration"):
+        await execute_program(operations, request.input)
+    assert not operations.mock_calls
+
+
+async def test_worker_rechecks_dependency_expectations_before_effects(
+    platform, application, monkeypatch
+):
+    for registration in CONTROLS:
+        application.applications.register(registration)
+    revision = await publish(
+        platform,
+        "dependency-drift",
+        CustomCoordinatorDefinition(
+            implementation="map",
+            version="1",
+            config={"inputs": {"name": LiteralBinding(value="mapped").model_dump(mode="json")}},
+            children={
+                "body": ProgramBody(
+                    implementation=CustomCoordinatorDefinition(
+                        implementation="greeting", version="1"
+                    )
+                )
+            },
+        ),
+    )
+    context = ExecutionContext(
+        identity=platform.owner,
+        execution_id="dependency-drift",
+        root_execution_id="dependency-drift",
+        engine_handle="native",
+    )
+    prepared = await platform.gateway.prepare(revision, {"items": [1]}, context, "native")
+    request = RunRequest.model_validate_json(prepared.payload_json)
+    original = MapConfig.child_contracts
+
+    def declarations(config):
+        return {
+            name: replace(contract, result_schema={"type": "array"})
+            for name, contract in original(config).items()
+        }
+
+    monkeypatch.setattr(MapConfig, "child_contracts", declarations)
+    operations = create_autospec(CoordinationOperations, instance=True)
+    operations.run_id = "native"
+    with pytest.raises(InvocationContractError, match="configuration"):
+        await execute_program(operations, request.input)
+    assert not operations.mock_calls
+
+
+def test_portable_custom_call_preserves_strategy_and_models():
+    original = COORDINATORS[0]
+    restored = CoordinatorCall.from_registration(original).resolve()
+    assert restored == original
+    assert restored.strategy.entrypoint is original.strategy.entrypoint
+
+
+def test_native_graph_cannot_be_prepared_as_a_custom_call():
+    with pytest.raises(ValueError, match="custom coordinator strategy"):
+        CoordinatorCall.from_registration(CoordinatorRegistry().get("graph", "1"))

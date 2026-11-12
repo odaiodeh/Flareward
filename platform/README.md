@@ -174,12 +174,15 @@ specification, factory and implementation together; substantial plugins can use
 `elements/`, `programs/`, `domain/` and `adapters/` internally. An executable Element
 uses `BaseOperation` with typed input/result models. Dependencies still resolve
 through normal references, specifications, category builders and frozen bundles.
-A reusable backend Program supplies an `ApplicationRegistration` with config and
-optional input/output schemas; graphs remain the same public Program model.
+A reusable coordinator supplies a `CoordinatorRegistration` with typed configuration
+and input/output models, plus `CustomCoordinatorStrategy(entrypoint)`.
+`CoordinatorRegistry` also supplies the native graph
+specification (`graph@1`) with `NativeGraphStrategy()`. Both appear in the same catalog and Program editor.
+The graph retains its typed definition and native Run Engine execution integration.
 
 Declare `PLUGIN = PluginDefinition(key=..., version=..., elements=(...),
 programs=(...))` in `plugin.py`. Element modules expose their specification classes;
-Program modules expose `APPLICATION_PROGRAMS`. The composition root installs both
+Program modules expose `COORDINATORS`. The composition root installs both
 into the existing registries, without constructing provider clients during discovery.
 `LUMORA_PLUGINS` is an explicit JSON list of installed manifest modules; when set it
 replaces the defaults in `lumora.bootstrap.settings.plugins.DEFAULT_PLUGINS`.

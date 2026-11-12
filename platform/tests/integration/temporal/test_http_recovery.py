@@ -12,7 +12,7 @@ from lumora.api.app import create_app
 from lumora.bootstrap.platform import compose_platform
 from lumora.bootstrap.settings.platform_settings import PlatformSettings
 from lumora.bootstrap.worker import compose_worker
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 
 
 @asynccontextmanager
@@ -47,7 +47,7 @@ async def test_waiting_session_survives_api_restart_without_extra_root_or_graph_
                 program_id="persistent-wait",
                 name="Persistent wait",
                 owner=application.owner,
-                implementation=ApplicationDefinition(implementation="waiting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="waiting", version="1"),
             )
             saved = await first.put(
                 "/api/programs/persistent-wait",

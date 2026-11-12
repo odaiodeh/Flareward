@@ -13,12 +13,8 @@ from support.verification_programs import verification_resources
 from lumora.executions.domain.access import WorkflowAccess
 from lumora.executions.domain.models import ExecutionRecord
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import (
-    GraphDefinition,
-    OperationStep,
-    PathBinding,
-    ProgramDefinition,
-)
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import GraphDefinition, OperationStep, ProgramDefinition
 from lumora.resources.domain.bundles import ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.reviews.domain.models import ReviewRecord

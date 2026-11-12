@@ -2,11 +2,10 @@
 
 from lumora.executions.domain.access import WorkflowAccess
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
     GraphDefinition,
-    LiteralBinding,
     OperationStep,
-    PathBinding,
     ProgramCallStep,
     ProgramRef,
 )

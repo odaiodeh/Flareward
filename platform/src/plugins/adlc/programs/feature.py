@@ -8,9 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from lumora.elements.coding.contracts import CodingInput
 from lumora.programs.composition.scope import ChildCalls
-from lumora.programs.domain.models import PathBinding
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.ports import ChildContract, ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
+from plugins.adlc.programs.contracts import validate_result
 from plugins.adlc.programs.design import (
     AcceptanceCriteria,
     DesignOutcome,
@@ -22,7 +23,6 @@ from plugins.adlc.programs.program import (
     EngineeringInput,
     EngineeringOutcome,
     EngineeringResult,
-    validate_result,
 )
 
 
@@ -163,12 +163,12 @@ async def coding_feature(
     ).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "coding_feature",
         "1",
         CodingFeatureConfig,
-        coding_feature,
+        CustomCoordinatorStrategy(coding_feature),
         name="Design and deliver a feature",
         description="Approve an exact design before starting reusable verified Engineering",
         input_model=CodingFeatureInput,

@@ -17,11 +17,12 @@ from support.verification_programs import (
 from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord, FailureKind
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.executions.models import StartExecution
-from lumora.programs.domain.models import GraphDefinition, OperationStep, PathBinding
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import GraphDefinition, OperationStep
 from lumora.resources.domain.bundles import ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS
-from plugins.verification.programs.waiting import APPLICATION_PROGRAMS
+from plugins.verification.programs.waiting import COORDINATORS
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -38,7 +39,7 @@ async def test_graph_and_reusable_waiter_use_root_scoped_access_without_evidence
 ):
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     waiter = await publish(
         application, "await-checks", verification_wait_definition(application.elements, profile)

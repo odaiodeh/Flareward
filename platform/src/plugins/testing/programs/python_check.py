@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, JsonValue, model_validator
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.models import Model
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.artifacts.domain.models import ContentIdentity, InlineContent
@@ -127,12 +127,12 @@ async def python_function_check(
     return (await PythonFunctionCheck(runtime, config).run(request)).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "python_function_check",
         "1",
         PythonFunctionCheckConfig,
-        python_function_check,
+        CustomCoordinatorStrategy(python_function_check),
         name="Python function verification",
         description="Compare isolated candidate results against pinned expected answers",
         input_model=CheckProgramInput,

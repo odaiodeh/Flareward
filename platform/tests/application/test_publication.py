@@ -4,7 +4,7 @@ import pytest
 from support.scenarios import publish
 
 from lumora.programs.authoring import CanvasPosition, ProgramConflict, ProgramPresentation
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.programs.service import ProgramContractError
 from lumora.services.identity.domain import Identity
 
@@ -13,12 +13,12 @@ async def test_published_configuration_remains_detached_from_drafts_and_readers(
     original = await publish(
         application,
         "revision",
-        ApplicationDefinition(implementation="greeting", version="1"),
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     replacement = await publish(
         application,
         "revision",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="greeting",
             version="1",
             config={"prefix": "new "},
@@ -37,7 +37,7 @@ async def test_invalid_schema_is_an_application_contract_error(application):
         program_id="bad-schema",
         name="Invalid",
         owner=application.owner,
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
         input_schema={"type": "unknown-json-type"},
     )
     with pytest.raises(ProgramContractError, match="Invalid program input schema"):
@@ -56,7 +56,7 @@ async def test_program_revision_is_not_visible_to_another_owner(application):
     revision = await publish(
         application,
         "private",
-        ApplicationDefinition(implementation="greeting", version="1"),
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     with pytest.raises(PermissionError):
         await application.programs.revision(revision.reference, Identity.user("another-owner"))
@@ -67,7 +67,7 @@ async def test_edit_publish_and_retry_preserve_observed_source_and_presentation(
         program_id="versioned",
         name="First name",
         owner=application.owner,
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     presentation = ProgramPresentation(positions={"call": CanvasPosition(x=12, y=34)})
     first = await application.programs.save(

@@ -3,10 +3,11 @@
 from enum import StrEnum
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, StrictInt, StrictStr, model_validator
 
 from lumora.elements.construction.snapshots import ResourceSelection
 from lumora.models import Model
+from lumora.programs.domain.interfaces import ProgramInterface
 from lumora.programs.domain.models import BodyPath, ProgramDefinition, ProgramKind, ProgramRef
 
 
@@ -26,9 +27,10 @@ class ProgramDraft(Model):
 
 
 class ProgramResourceSelection(ResourceSelection):
-    """Capture a library resource inside one owned graph body of this draft."""
+    """Capture into a graph resource scope or a coordinator configuration field."""
 
     body_path: BodyPath = ()
+    configuration_path: tuple[StrictStr | StrictInt, ...] | None = Field(default=None, max_length=64)
 
 
 class SaveProgramDraft(Model):
@@ -55,6 +57,13 @@ class ProgramIssue(Model):
     message: str
     path: tuple[str | int, ...] = ()
     severity: Literal["error"] = "error"
+
+
+class ProgramInterfacePreview(Model):
+    """Pure configuration resolution; not publication or execution readiness."""
+
+    interface: ProgramInterface | None = None
+    issues: tuple[ProgramIssue, ...] = ()
 
 
 class ProgramValidation(Model):

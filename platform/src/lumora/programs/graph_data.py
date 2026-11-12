@@ -16,9 +16,13 @@ class GraphDataScope:
     results: Mapping[str, tuple[InterfaceContract, ...]]
     state: InterfaceContract
     consumer: str | None = None
+    completed: bool = False
 
     def at(self, consumer: str) -> Self:
-        return replace(self, consumer=consumer)
+        return replace(self, consumer=consumer, completed=False)
+
+    def after(self, consumer: str) -> Self:
+        return replace(self, consumer=consumer, completed=True)
 
     def select(self, path: IssuePath) -> InterfaceContract:
         if not path or path == (GraphDefinition.RESULTS_CHANNEL,):
@@ -34,7 +38,7 @@ class GraphDataScope:
             )
         if not self.flow.reaches(self.flow.graph.entry, producer):
             raise BindingContractError("Result producer cannot be reached from the graph entry")
-        if self.consumer is not None:
+        if self.consumer is not None and not (self.completed and producer == self.consumer):
             self.flow.require_result(producer, self.consumer)
         selected = InterfaceContract.root({})
         for contract in self.results[producer]:

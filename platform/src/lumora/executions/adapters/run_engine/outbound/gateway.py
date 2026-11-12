@@ -13,6 +13,7 @@ from runengine.coordination.ports import (
     RunEventSource,
     RunHandle,
     RunHost,
+    SnapshotHandle,
 )
 from runengine.invocation.errors import (
     InvocationContractError,
@@ -26,7 +27,14 @@ from lumora.executions.adapters.run_engine.outbound.status import execution_phas
 from lumora.executions.adapters.run_engine.shared.context import current_context
 from lumora.executions.adapters.run_engine.shared.models import ProgramPayload
 from lumora.executions.domain.context import ExecutionContext
-from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
+from lumora.executions.domain.models import (
+    ExecutionFailure,
+    ExecutionPhase,
+    ExecutionRecord,
+    FailureKind,
+    SubmissionState,
+)
+from lumora.executions.domain.observation import ExecutionObservation
 from lumora.executions.models import PreparedExecution
 from lumora.executions.ports import (
     ExecutionError,
@@ -183,6 +191,7 @@ class RunEngineGateway:
                     owner=context.identity,
                     program=payload.program,
                     body_path=payload.body_path,
+                    call_site=payload.call_site,
                     content_digest=payload.content_digest,
                     inputs=payload.inputs,
                     context=context,
@@ -198,6 +207,24 @@ class RunEngineGateway:
                 )
             )
         return records
+
+    async def observation(self, execution_id: str) -> ExecutionObservation:
+        async with engine_errors():
+            handle = await self._handle(execution_id)
+            if isinstance(handle, SnapshotHandle):
+                data = await handle.snapshot()
+                if isinstance(data, dict) and "lumora_observation" in data:
+                    try:
+                        return ExecutionObservation.model_validate(data["lumora_observation"])
+                    except ValidationError:
+                        pass
+        raise ExecutionError(
+            ExecutionFailure(
+                kind=FailureKind.INFRASTRUCTURE,
+                code="observation_unavailable",
+                message="Execution occurrence observation is unavailable",
+            )
+        )
 
     async def events(self, execution_id: str, after_sequence: int = 0) -> AsyncIterator[JsonValue]:
         async with engine_errors():

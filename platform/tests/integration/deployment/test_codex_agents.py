@@ -17,12 +17,8 @@ from temporalio.client import Client
 
 from lumora.bootstrap.settings.worker_settings import WorkerSettings
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import (
-    GraphDefinition,
-    OperationStep,
-    PathBinding,
-    ProgramDefinition,
-)
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import GraphDefinition, OperationStep, ProgramDefinition
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.identity.domain import Identity

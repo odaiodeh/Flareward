@@ -3,12 +3,11 @@
 from lumora.elements.catalog.element_registry import ElementRegistry
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    LiteralBinding,
     OperationStep,
-    PathBinding,
     ProgramCallStep,
     ProgramRef,
 )
@@ -38,11 +37,11 @@ def verification_resources() -> tuple[ResourceDefinition, ...]:
 
 def verification_wait_definition(
     registry: ElementRegistry, profile: str, *, interval: float = 0.1
-) -> ApplicationDefinition:
+) -> CustomCoordinatorDefinition:
     resources = verification_resources()
     key = ResourceKey(category=ResourceCategory.OPERATION, rid="inspect")
     bundle = ElementBundleResolver(registry).resolve(key, resources)
-    return ApplicationDefinition(
+    return CustomCoordinatorDefinition(
         implementation="await_verification",
         version="1",
         config={
@@ -120,10 +119,10 @@ def check_resources() -> tuple[ResourceDefinition, ...]:
     )
 
 
-def check_wait_definition(registry: ElementRegistry, profile: str) -> ApplicationDefinition:
+def check_wait_definition(registry: ElementRegistry, profile: str) -> CustomCoordinatorDefinition:
     resources = check_resources()
     bundle = ElementBundleResolver(registry).resolve(resources[5].key, resources)
-    return ApplicationDefinition(
+    return CustomCoordinatorDefinition(
         implementation="await_check_run",
         version="1",
         config={

@@ -14,7 +14,7 @@ from lumora.executions.domain.access import WorkflowAccess
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.models import PreparedExecution, StartExecution
 from lumora.executions.ports import ProgramExecutionGateway
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
 from lumora.services.access.consent import WorkflowConsentRequest, WorkflowConsents
 from lumora.services.access.credentials import WorkflowCredentialUnavailable
@@ -35,7 +35,9 @@ async def consent_case(application):
     owner = application.owner
     reference = (
         await publish(
-            application, "scheduled", ApplicationDefinition(implementation="greeting", version="1")
+            application,
+            "scheduled",
+            CustomCoordinatorDefinition(implementation="greeting", version="1"),
         )
     ).reference
     clock = VerificationClock(now=datetime.now(UTC))

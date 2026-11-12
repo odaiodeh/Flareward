@@ -18,7 +18,7 @@ from support.feature_api import feature_workflow_access, publish_feature
 from support.python_checks import python_verifier_definition
 from support.review_api import pending_review
 
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody
 from lumora.services.identity.domain import Identity
 from lumora.services.verification.domain.check_runs import CheckRun
 from lumora.services.verification.domain.models import CheckRequirement
@@ -107,7 +107,7 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             )
         ).status_code == 401
         body = ProgramBody(
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="coding_file_candidate",
                 version="1",
                 config=config.model_dump(mode="json"),
@@ -121,7 +121,7 @@ async def test_approved_feature_uses_real_coding_adapter_and_restored_check_evid
             name="Feature designer",
         )
         designer = ProgramBody(
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="coding_designer",
                 version="1",
                 config=CodingDesignerConfig(

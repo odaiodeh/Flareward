@@ -12,7 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from lumora.executions.domain.access import WorkflowAccessApproval
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.models import StartExecution
-from lumora.programs.domain.models import Bindings, ProgramRef
+from lumora.programs.domain.bindings import Bindings
+from lumora.programs.domain.models import ProgramRef
 from lumora.programs.graph.state.graph_state import GraphState
 from lumora.services.identity.domain import Identity
 from lumora.services.sessions.domain.models import SessionMeta

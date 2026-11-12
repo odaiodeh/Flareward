@@ -8,11 +8,11 @@ from support.scenarios import publish, run
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     OperationStep,
-    PathBinding,
     ProgramCallStep,
 )
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
@@ -58,7 +58,7 @@ async def test_graph_resolves_candidate_and_code_child_materializes_it(
     child = await publish(
         platform,
         "materialize-source",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="placed_operation",
             version="1",
             config={"bundle": bundle.model_dump(mode="json"), "execution": {"profile": profile}},

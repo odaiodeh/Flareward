@@ -1,13 +1,12 @@
 """Conditional value-flow definitions shared by application and native execution tests."""
 
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
     ConditionalRoute,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     JoinPolicy,
-    LiteralBinding,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
 )
@@ -23,7 +22,7 @@ def conditional_values(
     join_policy: JoinPolicy = JoinPolicy.ACTIVE,
 ) -> GraphDefinition:
     body = ProgramBody(
-        implementation=ApplicationDefinition(implementation="identity_program", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="identity_program", version="1"),
         input_schema={},
         output_schema={},
     )

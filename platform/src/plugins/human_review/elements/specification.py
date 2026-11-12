@@ -9,11 +9,12 @@ from lumora.elements.factory import BaseFactory
 from lumora.elements.specification import BaseElementSpec
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.resources.domain.references import ProviderRef
-from lumora.services.reviews.contracts import CloseReview, ReviewHandle
+from lumora.services.reviews.contracts import CloseReview, ConfirmReview, ReviewHandle
 from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.http import HTTPReviewGateway, ReviewTransportSettings
 from plugins.human_review.elements.operations import (
     CloseReviewOperation,
+    ConfirmReviewOperation,
     InspectReviewOperation,
     OpenReviewOperation,
     RequestReview,
@@ -62,6 +63,14 @@ class InspectReviewFactory(BaseFactory[ReviewOperationConfig, InspectReviewOpera
         return InspectReviewOperation(dependencies["service"])
 
 
+class ConfirmReviewFactory(BaseFactory[ReviewOperationConfig, ConfirmReviewOperation]):
+    def accepts(self, cfg: ReviewOperationConfig, element_type: str) -> bool:
+        return element_type == "confirm_human_review"
+
+    def create(self, cfg: ReviewOperationConfig, **dependencies: Any) -> ConfirmReviewOperation:
+        return ConfirmReviewOperation(dependencies["service"])
+
+
 class CloseReviewFactory(BaseFactory[ReviewOperationConfig, CloseReviewOperation]):
     def accepts(self, cfg: ReviewOperationConfig, element_type: str) -> bool:
         return element_type == "close_human_review"
@@ -101,6 +110,19 @@ class InspectReviewSpec(BaseElementSpec):
     result_schema = ReviewRecord
 
 
+class ConfirmReviewSpec(BaseElementSpec):
+    category = ResourceCategory.OPERATION
+    type_key = "confirm_human_review"
+    name = "Confirm Human Review"
+    description = (
+        "Verify persisted review evidence for exact work, policy and reviewer execution subtree"
+    )
+    config_schema = ReviewOperationConfig
+    factory_cls = ConfirmReviewFactory
+    input_schema = ConfirmReview
+    result_schema = ReviewRecord
+
+
 class CloseReviewSpec(BaseElementSpec):
     category = ResourceCategory.OPERATION
     type_key = "close_human_review"
@@ -112,4 +134,10 @@ class CloseReviewSpec(BaseElementSpec):
     result_schema = ReviewRecord
 
 
-ELEMENT_SPECIFICATIONS = (ReviewConnectionSpec, OpenReviewSpec, InspectReviewSpec, CloseReviewSpec)
+ELEMENT_SPECIFICATIONS = (
+    ReviewConnectionSpec,
+    OpenReviewSpec,
+    InspectReviewSpec,
+    ConfirmReviewSpec,
+    CloseReviewSpec,
+)

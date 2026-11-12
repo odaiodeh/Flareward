@@ -14,7 +14,7 @@ from support.server import api_process
 from support.ui_clients import run_contracts
 
 from lumora.executions.adapters.mongo.execution_repository import MongoExecutionRepository
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.services.connections.adapters.redis import owned_redis
 
 
@@ -48,7 +48,7 @@ async def test_reporting_native_authority_root_counts_and_pinned_names(
                     program_id="build",
                     name=name,
                     owner=OWNER,
-                    implementation=ApplicationDefinition(
+                    implementation=CustomCoordinatorDefinition(
                         implementation="wait",
                         version="1",
                         config={"channel": "answer", "timeout_seconds": 0.01},

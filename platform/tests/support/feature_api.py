@@ -7,7 +7,7 @@ import httpx
 from lumora.elements.catalog.element_registry import ElementRegistry
 from lumora.executions.domain.access import WorkflowAccess
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     ProgramBody,
     ProgramDefinition,
     ProgramRef,
@@ -20,6 +20,7 @@ from plugins.adlc.programs.program import EngineeringInput, EngineeringResult
 from support.engineering_programs import engineering_configuration
 from support.feature_design import design_definition
 from support.http_programs import publish_program
+from support.review_programs import review_body
 
 
 @dataclass(frozen=True)
@@ -67,7 +68,6 @@ async def publish_feature(
         runners=runners,
         max_polls=max_check_polls,
         poll_interval_seconds=check_poll_interval_seconds,
-        review_timeout_seconds=review_timeout_seconds,
         requirements=requirements,
     )
     engineering = await publish_program(
@@ -76,11 +76,17 @@ async def publish_feature(
             program_id="engineering",
             name="Engineering",
             owner=owner,
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="engineering",
-                version="3",
+                version="4",
                 config=config.model_dump(mode="json"),
-                children={"implementation": body, "repair": body},
+                children={
+                    "implementation": body,
+                    "repair": body,
+                    "reviewer": review_body(
+                        registry, profile, timeout_seconds=review_timeout_seconds
+                    ),
+                },
             ),
             input_schema=EngineeringInput.model_json_schema(),
             output_schema=EngineeringResult.model_json_schema(),
@@ -93,7 +99,7 @@ async def publish_feature(
             program_id="feature",
             name="Feature",
             owner=owner,
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="coding_feature",
                 version="1",
                 children={"design": design, "engineering": engineering},

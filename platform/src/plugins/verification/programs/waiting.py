@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
 from lumora.services.verification.check_ports import CheckRunHandle
 from lumora.services.verification.domain.check_runs import CheckRun, CheckRunStatus
@@ -110,7 +110,14 @@ async def await_check_run(
     raise AssertionError("Check polling requires a positive limit")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration("await_verification", "1", AwaitVerificationConfig, await_verification),
-    ApplicationRegistration("await_check_run", "1", AwaitVerificationConfig, await_check_run),
+COORDINATORS = (
+    CoordinatorRegistration(
+        "await_verification",
+        "1",
+        AwaitVerificationConfig,
+        CustomCoordinatorStrategy(await_verification),
+    ),
+    CoordinatorRegistration(
+        "await_check_run", "1", AwaitVerificationConfig, CustomCoordinatorStrategy(await_check_run)
+    ),
 )

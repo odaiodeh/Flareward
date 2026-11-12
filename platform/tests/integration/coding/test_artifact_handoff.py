@@ -13,16 +13,15 @@ from lumora.bootstrap.settings.platform_settings import PlatformSettings
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    LiteralBinding,
     OperationStep,
-    PathBinding,
 )
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
-from plugins.adlc.programs.coding import APPLICATION_PROGRAMS, CodingFileCandidateConfig
+from plugins.adlc.programs.coding import COORDINATORS, CodingFileCandidateConfig
 from plugins.artifacts.elements.specification import (
     ELEMENT_SPECIFICATIONS,
     LoadContentSpec,
@@ -41,7 +40,7 @@ async def test_coding_candidate_survives_workspace_removal_and_api_restart(
 ):
     for spec in (*ELEMENT_SPECIFICATIONS, CodexSpec):
         application.elements.register_spec_class(spec)
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     compute, durable = tmp_path / "compute", tmp_path / "durable"
     credentials = tmp_path / "credentials"
@@ -135,7 +134,7 @@ async def test_coding_candidate_survives_workspace_removal_and_api_restart(
         producer = await publish(
             platform,
             "coding-candidate",
-            ApplicationDefinition(
+            CustomCoordinatorDefinition(
                 implementation="coding_file_candidate",
                 version="1",
                 config=config.model_dump(mode="json"),
@@ -172,7 +171,7 @@ async def test_coding_candidate_survives_workspace_removal_and_api_restart(
     consumer = await publish(
         platform,
         "consume-artifact",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="placed_operation",
             version="1",
             config={"bundle": bundle.model_dump(mode="json"), "execution": {"profile": profile}},

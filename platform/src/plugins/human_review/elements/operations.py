@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from lumora.elements.operation import BaseOperation, OperationContext
 from lumora.services.reviews.contracts import (
     CloseReview,
+    ConfirmReview,
     OpenReview,
     ReviewHandle,
     ReviewSettings,
@@ -40,6 +41,14 @@ class InspectReviewOperation(BaseOperation[ReviewHandle, ReviewRecord]):
 
     async def execute(self, request: ReviewHandle, context: OperationContext) -> ReviewRecord:
         return await self._gateway.inspect(request.review_id)
+
+
+class ConfirmReviewOperation(BaseOperation[ConfirmReview, ReviewRecord]):
+    def __init__(self, gateway: ReviewGateway) -> None:
+        self._gateway = gateway
+
+    async def execute(self, request: ConfirmReview, context: OperationContext) -> ReviewRecord:
+        return await self._gateway.confirm(request)
 
 
 class CloseReviewOperation(BaseOperation[CloseReview, ReviewRecord]):

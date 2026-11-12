@@ -5,7 +5,7 @@ from typing import Protocol
 from lumora.executions.domain.models import ExecutionFailure, FailureKind
 from lumora.executions.ports import ExecutionError
 from lumora.services.identity.domain import Identity
-from lumora.services.reviews.contracts import CloseReview, OpenReview
+from lumora.services.reviews.contracts import CloseReview, ConfirmReview, OpenReview
 from lumora.services.reviews.domain.models import ReviewRecord
 
 
@@ -51,10 +51,14 @@ class ReviewRepository(Protocol):
 
 class ReviewExecutions(Protocol):
     async def active(self, execution_id: str, root_execution_id: str, owner: Identity) -> bool: ...
+    async def contains(
+        self, execution_id: str, ancestor_id: str, root_execution_id: str, owner: Identity
+    ) -> bool: ...
     async def wake(self, review: ReviewRecord) -> None: ...
 
 
 class ReviewGateway(Protocol):
     async def open(self, request: OpenReview) -> ReviewRecord: ...
     async def inspect(self, review_id: str) -> ReviewRecord: ...
+    async def confirm(self, request: ConfirmReview) -> ReviewRecord: ...
     async def close(self, request: CloseReview) -> ReviewRecord: ...

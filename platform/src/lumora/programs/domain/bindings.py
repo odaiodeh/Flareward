@@ -1,11 +1,32 @@
-"""Pure declarative projections shared by publication and execution."""
+"""Portable data projections shared by Program definitions and dependency contracts."""
 
-from typing import overload
+from enum import StrEnum
+from typing import Annotated, Literal, overload
 
-from pydantic import JsonValue, ValidationError
+from pydantic import AfterValidator, Field, JsonValue, ValidationError
 
 from lumora.json_values import portable_json
-from lumora.programs.domain.models import Binding, Bindings, LiteralBinding, Projection
+from lumora.models import Model
+
+
+class BindingKind(StrEnum):
+    PATH = "path"
+    LITERAL = "literal"
+
+
+class PathBinding(Model):
+    kind: Literal[BindingKind.PATH] = BindingKind.PATH
+    path: tuple[str | Annotated[int, Field(strict=True, ge=0)], ...]
+
+
+class LiteralBinding(Model):
+    kind: Literal[BindingKind.LITERAL] = BindingKind.LITERAL
+    value: Annotated[JsonValue, AfterValidator(portable_json)]
+
+
+type Binding = Annotated[PathBinding | LiteralBinding, Field(discriminator="kind")]
+type Bindings = dict[str, Binding]
+type Projection = Bindings | Binding
 
 
 class BindingError(ValueError):

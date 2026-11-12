@@ -2,7 +2,8 @@
 
 from datetime import timedelta
 
-from lumora.programs.domain.models import PathBinding, ProgramRef
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import ProgramRef
 from lumora.services.scheduling.models import ScheduleDefinition
 from lumora.services.scheduling.programs import CreateProgramSchedule
 from lumora.services.sessions.execution.program_sessions import CreateProgramSession

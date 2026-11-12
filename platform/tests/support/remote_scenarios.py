@@ -3,13 +3,8 @@
 from lumora.elements.catalog.element_registry import ElementRegistry
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import (
-    ElementStep,
-    GraphDefinition,
-    PathBinding,
-    ProgramCallStep,
-    ProgramRef,
-)
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import ElementStep, GraphDefinition, ProgramCallStep, ProgramRef
 from lumora.resources.domain.bundles import ElementBundle, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from support.elements import DependencySpec

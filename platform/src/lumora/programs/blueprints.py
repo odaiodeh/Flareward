@@ -5,13 +5,12 @@ from typing import Protocol
 from lumora.elements.catalog.element_registry import ElementRegistry
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.authoring import ProgramDraft
+from lumora.programs.domain.bindings import Bindings, PathBinding
 from lumora.programs.domain.models import (
-    Bindings,
     ConditionalRoute,
     ElementStep,
     GraphDefinition,
     GraphWritePolicy,
-    PathBinding,
     ProgramDefinition,
 )
 from lumora.programs.graph.plan_builder import PlanBuilder

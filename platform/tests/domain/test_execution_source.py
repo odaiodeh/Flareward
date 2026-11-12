@@ -18,6 +18,7 @@ def child():
         owner=owner,
         program=ProgramRef(program_id="root", revision=1),
         body_path=("map", "body"),
+        call_site="body",
         content_digest="a" * 64,
         inputs={"item": 1},
         parent_execution_id="root-run",
@@ -35,7 +36,11 @@ def child():
 def test_source_address_changes_request_identity_but_results_do_not(child):
     original = request_digest(child)
     assert request_digest(ExecutionRecord.model_validate_json(child.model_dump_json())) == original
-    for field, value in (("body_path", ("other", "body")), ("content_digest", "b" * 64)):
+    for field, value in (
+        ("body_path", ("other", "body")),
+        ("content_digest", "b" * 64),
+        ("call_site", "other"),
+    ):
         assert request_digest(child.model_copy(update={field: value})) != original
     completed = child.model_copy(
         update={"phase": ExecutionPhase.COMPLETED, "result": {"answer": 1}}
@@ -49,4 +54,11 @@ def test_inline_source_requires_parent_and_digest(child):
         ExecutionRecord.model_validate({**data, "content_digest": ""})
     data["parent_execution_id"] = None
     with pytest.raises(ValidationError, match="parent execution"):
+        ExecutionRecord.model_validate(data)
+
+
+def test_root_execution_cannot_claim_an_authored_parent_call_site(child):
+    data = child.model_dump(mode="json")
+    data.update(body_path=[], parent_execution_id=None)
+    with pytest.raises(ValidationError, match="call site requires a parent"):
         ExecutionRecord.model_validate(data)

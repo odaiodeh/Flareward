@@ -4,7 +4,7 @@ import httpx
 from support.scenarios import publish
 
 from lumora.api.app import create_app
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.identity.domain import Identity
 
 
@@ -12,7 +12,7 @@ async def test_fastapi_session_turn_uses_application_services_and_enforces_owner
     platform, sessions
 ):
     revision = await publish(
-        platform, "session-api", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "session-api", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     owner = platform.owner
 

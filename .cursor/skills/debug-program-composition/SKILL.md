@@ -15,7 +15,7 @@ versioned application programs, not a third workflow runtime. A reusable definit
 becomes a child when another execution calls it; operations need no child wrapper
 for ordinary graph/code invocation.
 
-Trace authored configuration → `ApplicationRegistration.configuration` → pinned
+Trace authored configuration → `CoordinatorRegistration.configuration` → pinned
 revision → prepared request → runtime ports. Core registrations are installed by
 `lumora.bootstrap.programs`; workers preload the same core module. New implementations
 must use the existing registry, publication and engine path, not compiler branches.
@@ -78,21 +78,45 @@ Owned `ProgramBody` targets are supported in graph calls/backend child aliases.
 They have no owner/library ID; use the enclosing published reference/digest plus
 the stable UID/alias `body_path`. Save/protect/publish recursively. A published
 reference resets the source address; paths must not traverse it. Resource source
-selections carry the graph scope's `body_path`. Inline profile defaults inherit,
+selections carry their owned scope's `body_path`; custom coordinator bundle targets
+also carry `configuration_path` (field names/keys and integer array indexes). Inline profile defaults inherit,
 published defaults remain independent, and environment imports stay explicit.
 Compilation uses the existing native child/runtime path. Keep prepared payloads
 scope-local instead of copying the enclosing revision into every child. Current
-entrypoint/prepared formats are `lumora-program-v6` / `runengine/request-v10`.
+entrypoint/prepared formats are `lumora-program-v12` / `runengine/request-v10`.
 Exercise `application/test_owned_programs.py`, `domain/test_program_bodies.py`,
-`domain/test_execution_source.py`, `adapters/lumora.executions.adapters.run_engine.shared/test_owned_compilation.py`
+`domain/test_execution_source.py`, `adapters/run_engine/test_owned_compilation.py`
 and shared Local composition/client scenarios. UI inline authoring and remote
 recovery are still outstanding; focused compilation is not a remote cleanup proof.
 
-Installed backend models are enforced centrally by application `ApplicationInvoker`.
+Published `ProgramRevision.interface` captures raw/model/canonical schemas and owned
+body interfaces. Revisions and idempotent publications include this snapshot; pinned
+calls use the target's stored interface. Admission checks installed-schema drift.
+Program v12 workers validate the selected body's installed models before coordinator
+code, then enforce frozen canonical schemas. Rebuild matched receivers at the remote
+gate; old payloads/revisions have no fallback. Use `test_published_interfaces.py`,
+shared repository contracts and the native changed-worker-model regression. Identical
+schemas do not prove unchanged Python validators; semantic changes require a version.
+`ConfiguredInterface.program_interface()` returns `ProgramSchemas`: raw-input and
+serialized-output refinements stay separately scoped and freeze with the revision.
+`ProgramInterface.dependencies` freezes custom `ChildContracts` projections and
+expected result schemas. Admission and workers re-resolve both before effects;
+static model checks alone cannot detect configuration/declaration drift. See
+[configured-contract evidence](../../../docs/evidence/2026-11-11-configured-contracts.md)
+and `test_configured_interfaces.py` / `test_child_contracts.py`. Binding values and
+pure projection live together in `programs/domain/bindings.py`; do not restore model
+import aliases. Rebuild matched v10 workers at the remote gate.
+For missing dependency names during authoring, use `/api/catalog/programs/interface`.
+It resolves one unsaved coordinator configuration without fetching targets or Resources.
+A successful preview is not publication readiness: missing targets must still fail
+with a binding diagnostic. Use `test_program_interface_preview.py` and the production
+client's preview/bind/publish journey. Keep configuration out of shared browser query
+caches and ignore superseded responses; full browser acceptance remains a later gate.
+Installed backend models are enforced centrally by application `CoordinatorInvoker`.
 Published input schemas check raw submitted intent; installed input models normalize
 the implementation request. Installed result models normalize output before the
 published output schema checks it. Preserve canonical serialized names/computed fields,
-finite portable JSON and safe errors. `ApplicationCall` groups installed function/model
+finite portable JSON and safe errors. `CoordinatorCall` groups installed function/model
 references in adapter payloads; no live registry crosses that boundary. Use shared
 `support/typed_programs.py`, application invocation, Local model and production client
 tests. RootModel arrays work directly and through graph/backend calls; separately
@@ -174,6 +198,17 @@ and retain/retry the old published revision. Tests use real thread/process work.
 The production TypeScript program suite checks the validation client independently
 of new screen work. The current goal prioritizes backend foundations/Engineering
 before substantial unified UI work; use small client/browser probes along the way.
+
+Saved-resource configuration capture uses the same resolver as graph blocks.
+`ConfigurationResources` validates actual `ElementBundle` fields after typed draft
+parsing, supports aliases/nesting and rejects arbitrary JSON lookalikes. Each bundle
+is its own construction scope. Replacement checks use the canonical field identity,
+so an alias cannot bypass them. Keep `ResourceSnapshotConflict` as HTTP 409.
+Use `application/test_configuration_resources.py`, shared snapshot tests and the
+Mongo graph/custom thread/process scenario. `resource-selections.ts` owns local
+pending-preview identity; remove that metadata from save commands. The existing
+picker previews then revalidates at save; stale roots fail and published revisions
+stay frozen. Static/client checks are not full browser acceptance.
 
 Saved-resource blocks send `ResourceSourceRef` markers, not browser configuration.
 `SavedResourceResolver` captures the authorized transitive closure through the
@@ -337,3 +372,35 @@ Definition expansion inspects a pinned revision; editing publishes a new revisio
 for explicit caller adoption. Runtime drill-down follows actual occurrences and
 observed code-program calls. Neither view may silently modify execution semantics
 or invent an editable graph for arbitrary Python.
+
+For generic result branches, inspect `ResultRoute` (`kind=result`) and its selection
+binding independently of condition Resources. It selects from post-source Program
+state; self-result reads are valid here but not in the source's invocation inputs.
+`GraphDataScope.after` preserves all other ordering/optional-producer checks.
+`evaluate_result` must not construct `GraphState` or invoke Element factories.
+Whole-selection validation rejects unknown/mixed labels before successor dispatch;
+never print selected values in diagnostics. Result-only graphs use `ProgramState`;
+explicit condition-Element/node adapters still select `AgentProgramState` and can
+coexist. Current serialized routes require `kind`; do not add old-format aliases.
+Use `application/test_result_routing.py`, native `test_result_routing.py`, retained
+`test_conditions.py`, and the production Programs client journey. These local/client
+checks do not prove Temporal recovery, a visual browser journey, or remote images.
+
+
+Child observation exposes `call_site`, stamped during dependency compilation.
+Combine it with the immediate parent execution/source to locate the authored block
+or dependency. Actual child IDs distinguish repeated calls; `body_path` identifies
+the called owned body. Do not decode engine-ID text or treat a dependency UID as a
+unique occurrence. Bounded Operation/graph-attempt snapshots are implemented;
+waits and full resumable observation remain open.
+
+
+For workbench occurrences inspect `/api/executions/{id}/occurrences` and
+`integration/run_engine/test_occurrences.py`. Graph events identify logical steps
+and attempts; some contract failures return without a terminal graph event, so
+check the recorded invocation outcome too. Runtime metadata identifies custom
+Operation sites. Native snapshots reconstruct the bounded projection after replay;
+use `temporal/test_reviews.py -k adlc` for current caller/reviewer recovery checks.
+`truncated` is retention loss, not an empty/full history claim. Missing snapshots
+must remain unavailable. The projection excludes work payloads and raw errors;
+it does not replace native graph checkpoints or business evidence.

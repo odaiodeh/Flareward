@@ -5,9 +5,9 @@ from pydantic import BaseModel, ConfigDict, JsonValue
 from lumora.elements.catalog.element_registry import ElementRegistry
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle, ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.verification.domain.models import CheckRequirement, VerificationSubject
@@ -18,8 +18,9 @@ from plugins.adlc.programs.program import (
     EngineeringConfig,
     EngineeringWork,
 )
+from plugins.adlc.programs.reviewer import ReviewDependency
 from plugins.artifacts.elements.operations import PublishedArtifact
-from support.review_programs import review_definition
+from support.review_programs import confirmation_bundle
 from support.verification_programs import check_resources
 
 
@@ -31,7 +32,6 @@ def engineering_configuration(
     runners: tuple[str, ...] = ("ci@1",),
     max_polls: int = 2,
     poll_interval_seconds: float = 5,
-    review_timeout_seconds: int = 60,
     requirements: tuple[CheckRequirement, ...] | None = None,
 ) -> EngineeringConfig:
     resolver, resources = ElementBundleResolver(registry), check_resources()
@@ -46,9 +46,11 @@ def engineering_configuration(
                 if requirements is not None
                 else (CheckRequirement(check="tests@1", verifiers=frozenset({"github-ci"})),),
                 runners=runners,
-                review=review_definition(
-                    registry, profile, timeout_seconds=review_timeout_seconds
-                ).config,
+                review=ReviewDependency(
+                    policy="release@1",
+                    confirmation=confirmation_bundle(registry),
+                    execution=ExecutionSelection(profile=profile),
+                ),
                 max_repairs=1,
             ),
         ),
@@ -77,7 +79,7 @@ def artifact_candidate_body(
         ),
     )
     return ProgramBody(
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="engineering_artifact_candidate",
             version="1",
             config=ArtifactCandidateConfig(
@@ -139,20 +141,20 @@ async def artifact_candidate(
     ).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "engineering_candidate",
         "1",
         CandidateConfig,
-        candidate,
+        CustomCoordinatorStrategy(candidate),
         input_model=EngineeringWork,
         result_model=EngineeringCandidate,
     ),
-    ApplicationRegistration(
+    CoordinatorRegistration(
         "engineering_artifact_candidate",
         "1",
         ArtifactCandidateConfig,
-        artifact_candidate,
+        CustomCoordinatorStrategy(artifact_candidate),
         input_model=EngineeringWork,
         result_model=EngineeringCandidate,
     ),

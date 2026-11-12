@@ -17,7 +17,7 @@ from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord, SubmissionState
 from lumora.executions.models import PreparedExecution, SubmissionClaim
 from lumora.executions.ports import ExecutionLocationUnavailable
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition, ProgramRef
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition, ProgramRef
 from lumora.services.identity.domain import Identity
 from lumora.services.sessions.adapters.mongo.session_store import MongoSessionStore
 from lumora.services.sessions.domain.status import SessionStatus
@@ -138,7 +138,7 @@ async def test_mongo_lifespan_reconciles_session_and_retains_result_across_resta
             program_id="persistent-leaf",
             name="Persistent leaf",
             owner=owner,
-            implementation=ApplicationDefinition(implementation="greeting", version="1"),
+            implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
         )
         await services.programs.save(leaf, owner)
         leaf_revision = await services.programs.publish(
@@ -150,7 +150,7 @@ async def test_mongo_lifespan_reconciles_session_and_retains_result_across_resta
             program_id="persistent",
             name="Persistent",
             owner=owner,
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": leaf_revision.reference}
             ),
         )

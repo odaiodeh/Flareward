@@ -3,7 +3,12 @@
 from collections.abc import Mapping, Set
 
 from lumora.elements.catalog.element_registry import ElementRegistry
-from lumora.programs.domain.models import ElementStep, GraphDefinition, GraphWritePolicy
+from lumora.programs.domain.models import (
+    ConditionalRoute,
+    ElementStep,
+    GraphDefinition,
+    GraphWritePolicy,
+)
 from lumora.programs.graph_elements import GraphElementSpec
 from lumora.programs.graph_flow import GraphFlow
 from lumora.programs.graph_state import graph_state_type
@@ -62,6 +67,8 @@ class StateContracts:
                     )
                 writers.setdefault(channel, []).append(step.uid)
         for index, route in enumerate(graph.conditions):
+            if not isinstance(route, ConditionalRoute):
+                continue
             path = ("implementation", "conditions", index)
             spec = self._spec(route.condition, resources, path)
             self._access(state, spec.reads, spec.writes, path)

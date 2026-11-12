@@ -20,9 +20,9 @@ from lumora.executions.domain.preferences import ExecutionSelection, ResourceExe
 from lumora.executions.service import ExecutionService
 from lumora.programs.adapters.memory.program_repository import MemoryProgramRepository
 from lumora.programs.blueprints import BlueprintProgramImporter
-from lumora.programs.domain.models import PathBinding
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.graph.state.graph_state import GraphState
-from lumora.programs.registry import ApplicationRegistry
+from lumora.programs.registry import CoordinatorRegistry
 from lumora.programs.service import ProgramService
 from lumora.programs.templates.resolver import BlueprintResolver
 from lumora.programs.templates.schema import blueprint_schemas
@@ -98,7 +98,7 @@ async def test_existing_blueprint_runs_with_factories_and_session_state(platform
     elements = ElementRegistry()
     elements.register_spec_class(MockAgentNodeElementSpec)
     elements.register_spec_class(MockLLMElementSpec)
-    applications = ApplicationRegistry()
+    applications = CoordinatorRegistry()
     programs = ProgramService(
         MemoryProgramRepository(),
         applications,
@@ -209,7 +209,7 @@ async def test_imported_resource_preference_obeys_step_program_and_platform_prec
         revision, platform.owner, ExecutionContext(identity=platform.owner)
     )
     payload = ProgramPayload.model_validate(compiled.input)
-    request = RunRequest.model_validate(payload.graph_request)
+    request = RunRequest.model_validate(payload.implementation.request)
     prepared = GraphProgramInput.model_validate(request.input)
     if expected is None:
         assert prepared.targets["respond"] == EnvironmentTarget(name="shared").model_dump(
@@ -293,7 +293,7 @@ async def test_blueprint_named_environment_preserves_ownership_and_validates_bac
     assert compiled.environments["workspace"].target == target
     payload = ProgramPayload.model_validate(compiled.input)
     prepared = GraphProgramInput.model_validate(
-        RunRequest.model_validate(payload.graph_request).input
+        RunRequest.model_validate(payload.implementation.request).input
     )
     assert prepared.targets["respond"] == EnvironmentTarget(name="workspace").model_dump(
         mode="json"
@@ -388,7 +388,7 @@ async def test_inline_condition_preference_is_imported_and_runs_in_a_process(
         revision, platform.owner, ExecutionContext(identity=platform.owner)
     )
     payload = ProgramPayload.model_validate(compiled.input)
-    request = RunRequest.model_validate(payload.graph_request)
+    request = RunRequest.model_validate(payload.implementation.request)
     prepared = GraphProgramInput.model_validate(request.input)
     assert prepared.targets["condition_respond"]["runner_type"] == "process"
     result = await run(

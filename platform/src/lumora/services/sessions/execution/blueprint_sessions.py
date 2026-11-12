@@ -3,7 +3,7 @@
 from uuid import uuid4
 
 from lumora.programs.blueprints import BlueprintProgramService
-from lumora.programs.domain.models import Bindings, PathBinding
+from lumora.programs.domain.bindings import Bindings, PathBinding
 from lumora.programs.graph.state.graph_state import GraphState
 from lumora.programs.service import ProgramService
 from lumora.services.identity.domain import Identity

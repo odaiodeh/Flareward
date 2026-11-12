@@ -3,7 +3,7 @@
 import asyncio
 
 import pytest
-from support.composition import APPLICATION_PROGRAMS as FIXTURE_PROGRAMS
+from support.composition import COORDINATORS as FIXTURE_PROGRAMS
 from support.composition import composition_graph, mapped_program, repeated_program
 from support.operations import operation_graph
 from support.scenarios import publish
@@ -11,13 +11,13 @@ from support.temporal import replay, worker_process, workflow_handle
 
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.models import StartExecution
-from lumora.programs.composition.programs import APPLICATION_PROGRAMS
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.composition.programs import COORDINATORS
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 
 
 @pytest.fixture
 def composition(application):
-    for registration in (*APPLICATION_PROGRAMS, *FIXTURE_PROGRAMS):
+    for registration in (*COORDINATORS, *FIXTURE_PROGRAMS):
         application.applications.register(registration)
 
 
@@ -73,7 +73,7 @@ async def test_nested_map_repeat_and_durable_wait_survive_worker_restart(
     body = await publish(
         application,
         "counter",
-        ApplicationDefinition(implementation="composition_counter", version="1"),
+        CustomCoordinatorDefinition(implementation="composition_counter", version="1"),
     )
     repeated = await publish(application, "repeated", repeated_program(body.reference))
     definition = mapped_program(repeated.reference).model_copy(
@@ -85,7 +85,7 @@ async def test_nested_map_repeat_and_durable_wait_survive_worker_restart(
     wait = await publish(
         application,
         "wait",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="wait", version="1", config={"channel": "answer", "timeout_seconds": 30}
         ),
     )

@@ -160,11 +160,23 @@ class MemoryReviewAccess:
 class ReviewExecutions:
     def __init__(self) -> None:
         self.executions = {("root", "root"), ("review-run", "root")}
+        self.parents = {"root": None, "review-run": "root"}
         self.messages: list[str] = []
         self.lose_ack = False
 
     async def active(self, execution_id: str, root_execution_id: str, owner: Identity) -> bool:
         return (execution_id, root_execution_id) in self.executions
+
+    async def contains(self, execution_id, ancestor_id, root_execution_id, owner):
+        visited = set()
+        while execution_id is not None and execution_id not in visited:
+            visited.add(execution_id)
+            if execution_id not in self.parents or root_execution_id != "root":
+                return False
+            if execution_id == ancestor_id:
+                return True
+            execution_id = self.parents.get(execution_id)
+        return False
 
     async def wake(self, review: ReviewRecord) -> None:
         self.messages.append(review.review_id)

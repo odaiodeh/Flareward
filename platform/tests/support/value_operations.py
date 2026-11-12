@@ -8,7 +8,8 @@ from lumora.elements.factory import BaseFactory
 from lumora.elements.operation import BaseOperation, OperationContext
 from lumora.elements.specification import BaseElementSpec
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import GraphDefinition, OperationStep, PathBinding
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import GraphDefinition, OperationStep
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from support.typed_programs import Numbers

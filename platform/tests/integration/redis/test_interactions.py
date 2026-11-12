@@ -17,11 +17,11 @@ from lumora.api.app import create_app
 from lumora.bootstrap.platform import compose_platform
 from lumora.bootstrap.settings.platform_settings import PlatformSettings
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     ElementStep,
     GraphDefinition,
-    PathBinding,
     ProgramCallStep,
     ProgramDefinition,
 )
@@ -602,7 +602,7 @@ async def test_cancelling_child_subtree_preserves_waiting_sibling(
         program_id="middle",
         name="middle",
         owner=owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="composed", version="1", children={"greet": revisions["left"]}
         ),
     )
@@ -618,7 +618,7 @@ async def test_cancelling_child_subtree_preserves_waiting_sibling(
         program_id="parallel",
         name="parallel",
         owner=owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="parallel_waiting", version="1", children=revisions
         ),
     )

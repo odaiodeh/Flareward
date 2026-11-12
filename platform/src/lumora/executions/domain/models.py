@@ -58,6 +58,7 @@ class ExecutionRecord(Model):
     owner: Identity
     program: ProgramRef
     body_path: BodyPath = ()
+    call_site: str | None = Field(default=None, min_length=1)
     content_digest: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
     inputs: JsonValue
     context: ExecutionContext
@@ -75,6 +76,8 @@ class ExecutionRecord(Model):
 
     @model_validator(mode="after")
     def validate_context(self) -> Self:
+        if self.call_site is not None and self.parent_execution_id is None:
+            raise ValueError("An authored call site requires a parent execution")
         approval = self.workflow_access_approval
         if approval is not None and (
             not approval.owner.owns(self.owner)

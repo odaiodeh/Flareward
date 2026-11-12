@@ -4,10 +4,11 @@ import asyncio
 from unittest.mock import create_autospec
 
 import pytest
+from support.program_interfaces import declared_interface
 from support.reporting import NOW, OWNER, TEAM
 
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     ProgramDefinition,
     ProgramRef,
     ProgramRevision,
@@ -80,9 +81,17 @@ async def test_reporting_uses_human_authority_and_the_executed_revision_name():
             program_id="build",
             name="Pinned name",
             owner=OWNER,
-            implementation=ApplicationDefinition(implementation="wait", version="1"),
+            implementation=CustomCoordinatorDefinition(implementation="wait", version="1"),
         ),
         revision=1,
+        interface=declared_interface(
+            ProgramDefinition(
+                program_id="build",
+                name="Pinned name",
+                owner=OWNER,
+                implementation=CustomCoordinatorDefinition(implementation="wait", version="1"),
+            )
+        ),
     )
     service = ReportingService(reader, AdministratorPolicy(directory), programs, clock=lambda: NOW)
     with pytest.raises(PermissionError):

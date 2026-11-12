@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { cancelProgramExecution, inspectProgramExecution, listProgramExecutionChildren, type ProgramExecution } from '@/api/programs';
+import ExecutionOccurrences from './ExecutionOccurrences';
 import ExecutionReviews from '@/components/reviews/ExecutionReviews';
 import ArtifactReferences from '@/components/artifacts/ArtifactReferences';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,7 @@ export default function ExecutionWorkbench({ id, scope, teamId, human }: {
         {children.data?.map(child => <Link key={child.execution_id} href={executionPath(child.execution_id)} className="block rounded border p-3 text-sm"><span className="font-medium">{child.program.program_id} / revision {child.program.revision}{child.body_path.length ? ` / ${child.body_path.join(' / ')}` : ''}</span><span className="ml-3">{child.phase}</span><span className="mt-1 block break-all text-xs text-muted-foreground">{child.execution_id}</span></Link>)}
         {children.data?.length === 0 && !children.isError && <p className="text-sm text-muted-foreground">No child executions observed.</p>}
       </section>
+      <ExecutionOccurrences id={id} scope={scope} teamId={teamId} active={!isExecutionTerminal(record)} />
       <ExecutionReviews key={record.context.root_execution_id} root={record.context.root_execution_id} scope={scope} teamId={teamId} human={human} />
       <ArtifactReferences values={[record.inputs, record.result]} scope={scope} teamId={teamId} />
       <details open><summary className="font-semibold">Inputs</summary><pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words rounded bg-muted p-3 text-sm">{JSON.stringify(record.inputs, null, 2)}</pre></details>

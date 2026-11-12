@@ -19,7 +19,7 @@ from lumora.executions.adapters.run_engine.shared.models import (
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.domain.preferences import ExecutionProfileCatalog, ExecutionSelection
 from lumora.executions.placement import PlacementRefused
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.identity.domain import Identity
 
@@ -93,7 +93,7 @@ async def test_injected_access_port_cannot_be_replaced_by_an_unrestricted_truthi
     application,
 ):
     revision = await publish(
-        application, "denied", ApplicationDefinition(implementation="greeting", version="1")
+        application, "denied", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     compiler = ProgramCompiler(
         application.programs,

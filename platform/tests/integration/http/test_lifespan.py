@@ -18,7 +18,7 @@ from lumora.bootstrap.settings.platform_settings import (
     PlatformSettings,
     StorageKind,
 )
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.services.identity.domain import Identity
 
 
@@ -84,7 +84,7 @@ async def test_lifespan_assembles_services_and_projects_results_without_reader()
                 program_id="lifecycle",
                 name="Lifecycle",
                 owner=Identity.user("alice"),
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
             )
             assert (
                 await client.put(

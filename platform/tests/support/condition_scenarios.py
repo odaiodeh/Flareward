@@ -3,12 +3,12 @@
 from pydantic import JsonValue
 
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
     ConditionalRoute,
     ElementStep,
     GraphDefinition,
     GraphWritePolicy,
-    PathBinding,
 )
 from lumora.resources.domain.categories import ResourceCategory
 from support.scenarios import resource

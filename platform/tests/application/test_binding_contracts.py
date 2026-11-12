@@ -8,10 +8,9 @@ from support.value_operations import ELEMENT_SPECIFICATIONS, ArraySpec, value_gr
 
 from lumora.programs.authoring import ProgramIssueCode
 from lumora.programs.contracts import BindingProjection
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
     GraphDefinition,
-    LiteralBinding,
-    PathBinding,
     ProgramBody,
     ProgramCallStep,
     ProgramDefinition,

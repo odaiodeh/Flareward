@@ -105,7 +105,7 @@ export default function ProgramGraphEditor({ graph, presentation, onChange, onPr
       </div>}
       {step.kind === 'program' && <JsonField key={`${step.uid}-imports`} label="Imported environments" value={step.environment_imports} objectOnly disabled={disabled} onChange={value => update({ ...step, environment_imports: value as Record<string, string> })} />}
       {step.kind !== 'program' && <ExecutionSelectionFields label="Block" value={step.execution} profiles={profiles} environments={Object.keys(graph.environments)} disabled={disabled} onChange={execution => update({ ...step, execution })} />}
-      <ConditionalRouteEditor graph={graph} source={step.uid} names={names} profiles={profiles} scope={scope} teamId={teamId} disabled={disabled} onChange={onChange} onResourceSelection={onResourceSelection} />
+      <ConditionalRouteEditor key={step.uid} graph={graph} source={step.uid} names={names} profiles={profiles} scope={scope} teamId={teamId} disabled={disabled} onChange={onChange} onResourceSelection={onResourceSelection} />
     </section>}
     <details className="space-y-3"><summary>Program data mappings</summary><JsonField label="Program input bindings" value={graph.inputs} objectOnly disabled={disabled} onChange={value => onChange({ ...graph, inputs: value as ProgramBindings })} />
       <JsonField label="Program output projection" value={graph.outputs} objectOnly disabled={disabled} onChange={value => onChange({ ...graph, outputs: value as ProgramProjection })} />

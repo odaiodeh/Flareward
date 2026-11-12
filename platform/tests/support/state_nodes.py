@@ -7,7 +7,8 @@ from pydantic import BaseModel, ConfigDict
 from lumora.elements.factory import BaseFactory
 from lumora.elements.node import BaseNode
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import ElementStep, GraphDefinition, PathBinding
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import ElementStep, GraphDefinition
 from lumora.programs.graph.state.state_view import StateView
 from lumora.programs.graph_elements import GraphElementSpec
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey

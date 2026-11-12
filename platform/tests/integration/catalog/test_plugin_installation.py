@@ -4,7 +4,8 @@ import pytest
 
 from lumora.bootstrap.elements import installed_elements
 from lumora.bootstrap.plugins import installed_plugins
-from lumora.bootstrap.programs import installed_applications
+from lumora.bootstrap.programs import installed_coordinators
+from lumora.programs.registry import CustomCoordinatorStrategy, NativeGraphStrategy
 from lumora.resources.domain.categories import ResourceCategory
 
 PLUGIN = "plugins.human_review.plugin"
@@ -17,9 +18,10 @@ def test_one_plugin_contributes_to_both_existing_catalogs():
     assert (
         elements.get_spec(ResourceCategory.PROVIDER, "review_service").type_key == "review_service"
     )
-    programs = installed_applications(plugins=plugins)
+    programs = installed_coordinators(plugins=plugins)
     assert programs.get("human_review", "1").config_schema is not None
-    assert programs.get("repeat", "1").execute is not None
+    assert isinstance(programs.get("repeat", "1").strategy, CustomCoordinatorStrategy)
+    assert isinstance(programs.get("graph", "1").strategy, NativeGraphStrategy)
     with pytest.raises(ValueError, match="not installed"):
-        installed_applications().get("human_review", "1")
+        installed_coordinators().get("human_review", "1")
     assert not installed_elements(plugins=()).get_categories_map()

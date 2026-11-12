@@ -8,6 +8,7 @@ import pytest
 from support.artifacts import chunks, inline_artifact
 from support.check_runs import check_policy, source_policy, source_request
 from support.program_checks import verifier_definition
+from support.program_interfaces import declared_interface
 from support.verification import MemoryVerificationRepository, VerificationClock
 
 from lumora.executions.domain.context import ExecutionContext
@@ -36,7 +37,11 @@ async def scenario():
         MemoryVerificationRepository(), {"source@1": source_policy(owner)}, clock=clock
     )
     plan = (await verification.start(source_request(), VerificationActor(owner))).state.plan
-    revision = ProgramRevision(definition=verifier_definition(operator), revision=1)
+    revision = ProgramRevision(
+        definition=verifier_definition(operator),
+        revision=1,
+        interface=declared_interface(verifier_definition(operator)),
+    )
     config = ProgramCheckConfiguration(
         policy=check_policy(owner),
         program_owner=operator,

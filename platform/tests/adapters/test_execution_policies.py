@@ -68,7 +68,7 @@ async def test_file_policy_is_pinned_in_compiled_work_without_mutating_settings(
         application.owner,
         ExecutionContext(identity=application.owner),
     )
-    graph_request = RunRequest.model_validate(request.input["graph_request"])
+    graph_request = RunRequest.model_validate(request.input["implementation"]["request"])
     graph = GraphProgramInput.model_validate(graph_request.input)
     assert graph.targets["echo"] == expected
     assert str(policy_file) not in request.model_dump_json()

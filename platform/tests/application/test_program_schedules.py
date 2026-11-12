@@ -15,7 +15,7 @@ from lumora.executions.domain.models import ExecutionPhase, SubmissionState
 from lumora.executions.domain.preferences import ExecutionProfileCatalog
 from lumora.executions.models import PreparedExecution
 from lumora.executions.ports import ProgramExecutionGateway
-from lumora.programs.domain.models import ApplicationDefinition, ProgramRef
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramRef
 from lumora.services.identity.domain import Identity
 from lumora.services.scheduling.admission import ScheduledAdmission, scheduled_execution_id
 from lumora.services.scheduling.models import ScheduleDefinition, ScheduleStatus
@@ -37,7 +37,9 @@ async def test_schedule_prepares_pinned_program_with_staged_identity_without_sub
     application,
 ):
     revision = await publish(
-        application, "scheduled", ApplicationDefinition(implementation="greeting", version="1")
+        application,
+        "scheduled",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     gateway = create_autospec(ProgramExecutionGateway, instance=True)
     gateway.prepare.return_value = PreparedExecution(
@@ -73,7 +75,9 @@ async def test_schedule_prepares_pinned_program_with_staged_identity_without_sub
 
 async def test_schedule_update_fences_versions_and_restarts_completed_budget(application):
     revision = await publish(
-        application, "scheduled", ApplicationDefinition(implementation="greeting", version="1")
+        application,
+        "scheduled",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     original = ProgramSchedule(
         schedule_id="schedule",
@@ -108,7 +112,7 @@ async def test_scheduled_admission_recovers_partial_session_creation_without_new
             await publish(
                 application,
                 "scheduled",
-                ApplicationDefinition(implementation="greeting", version="1"),
+                CustomCoordinatorDefinition(implementation="greeting", version="1"),
             )
         ).reference
     )
@@ -172,7 +176,9 @@ def test_schedule_time_bounds_normalize_to_utc_and_reject_unknown_configuration(
 
 async def test_schedule_creation_recovers_a_lost_reply_with_an_owner_scoped_key(application):
     revision = await publish(
-        application, "scheduled", ApplicationDefinition(implementation="greeting", version="1")
+        application,
+        "scheduled",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     gateway = create_autospec(ProgramExecutionGateway, instance=True)
     gateway.prepare.return_value = PreparedExecution(format="test", payload_json="{}")
@@ -223,7 +229,9 @@ async def test_schedule_creation_recovers_a_lost_reply_with_an_owner_scoped_key(
 
 async def test_schedule_update_snapshots_mutable_inputs_before_awaiting_storage(application):
     revision = await publish(
-        application, "scheduled", ApplicationDefinition(implementation="greeting", version="1")
+        application,
+        "scheduled",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     request = schedule_request(revision.reference)
     definition = ProgramSchedule(schedule_id="schedule", owner=application.owner, request=request)

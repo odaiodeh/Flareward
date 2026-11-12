@@ -3,7 +3,7 @@
 import pytest
 from support.application import Application, make_application
 from support.draft_configuration import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     ELEMENT_SPECIFICATIONS,
     complete_configuration,
     definition,
@@ -13,14 +13,14 @@ from support.draft_configuration import (
 from support.scenarios import publish, run
 from support.secrets import MemorySecretStore
 
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody
 from lumora.programs.service import ProgramContractError
 
 
 @pytest.fixture
 def application() -> Application:
     application = make_application(MemorySecretStore())
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
@@ -50,7 +50,7 @@ async def test_incomplete_configuration_completes_and_runs_owned_and_published(p
         caller = await publish(
             platform,
             "caller",
-            ApplicationDefinition(
+            CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": target}
             ),
         )

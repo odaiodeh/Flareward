@@ -28,7 +28,7 @@ from lumora.executions.ports import (
     SubmissionUnconfirmed,
 )
 from lumora.executions.service import ExecutionService
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.access.admission import WorkflowAccessIssuer, WorkflowAccessService
 from lumora.services.access.credentials import WorkflowCredentialUnavailable
 from lumora.services.identity.domain import Identity
@@ -39,7 +39,7 @@ async def execution_case(application):
     revision = await publish(
         application,
         "greeting",
-        ApplicationDefinition(implementation="greeting", version="1"),
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     gateway = create_autospec(ProgramExecutionGateway, instance=True)
     gateway.location = "test-coordination-location"

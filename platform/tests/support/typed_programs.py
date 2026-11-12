@@ -12,9 +12,10 @@ from pydantic import (
     field_validator,
 )
 
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.interfaces import ProgramSchemas
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.services.identity.domain import Identity
 
 __runengine_contract__ = "lumora-test-typed-programs-v1"
@@ -101,26 +102,55 @@ async def identity_program(
     return inputs
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+class BoundedEchoConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    limit: int = Field(default=5, ge=1)
+    output_limit: int = Field(default=5, ge=1)
+
+    def program_interface(self) -> ProgramSchemas:
+        return ProgramSchemas(
+            input_schema={
+                "type": "object",
+                "required": ["value"],
+                "properties": {"value": {"type": "integer", "maximum": self.limit}},
+            },
+            output_schema={
+                "type": "object",
+                "required": ["value"],
+                "properties": {"value": {"type": "integer", "maximum": self.output_limit}},
+            },
+        )
+
+
+COORDINATORS = (
+    CoordinatorRegistration(
         "typed_program",
         "1",
         TypedConfig,
-        typed_program,
+        CustomCoordinatorStrategy(typed_program),
         input_model=TypedInput,
         result_model=TypedResult,
     ),
-    ApplicationRegistration(
+    CoordinatorRegistration(
         "numbers_program",
         "1",
         TypedConfig,
-        numbers_program,
+        CustomCoordinatorStrategy(numbers_program),
         input_model=Numbers,
         result_model=Numbers,
     ),
-    ApplicationRegistration("nonfinite_program", "1", TypedConfig, nonfinite_program),
-    ApplicationRegistration("model_error_program", "1", TypedConfig, model_error_program),
-    ApplicationRegistration("identity_program", "1", TypedConfig, identity_program),
+    CoordinatorRegistration(
+        "nonfinite_program", "1", TypedConfig, CustomCoordinatorStrategy(nonfinite_program)
+    ),
+    CoordinatorRegistration(
+        "model_error_program", "1", TypedConfig, CustomCoordinatorStrategy(model_error_program)
+    ),
+    CoordinatorRegistration(
+        "identity_program", "1", TypedConfig, CustomCoordinatorStrategy(identity_program)
+    ),
+    CoordinatorRegistration(
+        "bounded_echo", "1", BoundedEchoConfig, CustomCoordinatorStrategy(identity_program)
+    ),
 )
 
 
@@ -134,7 +164,7 @@ def definition(
         program_id=implementation,
         name=implementation,
         owner=owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation=implementation, version="1", config=config or {}
         ),
     )

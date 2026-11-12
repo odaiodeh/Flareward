@@ -7,13 +7,14 @@ import pytest
 from pydantic import ValidationError
 from support.check_runs import MemoryCheckRunRepository, check_policy, source_policy
 from support.completion_contracts import CANDIDATES, FileCandidate, GitCandidate
-from support.engineering_programs import APPLICATION_PROGRAMS as PRODUCERS
+from support.engineering_programs import COORDINATORS as PRODUCERS
 from support.engineering_programs import engineering_configuration
 from support.engineering_runtime import ServiceRuntime
+from support.review_programs import review_body
 from support.scenarios import publish
 from support.verification import MemoryVerificationRepository
 
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody
 from lumora.programs.ports import ChildExecution
 from lumora.programs.service import ProgramContractError
 from lumora.services.reviews.domain.models import ReviewDecision
@@ -21,7 +22,7 @@ from lumora.services.verification.check_service import CheckRunService, Register
 from lumora.services.verification.domain.models import CheckVerdict
 from lumora.services.verification.service import VerificationService
 from plugins.adlc.programs.program import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     EngineeringConfig,
     EngineeringInput,
     EngineeringResult,
@@ -29,6 +30,7 @@ from plugins.adlc.programs.program import (
     engineering,
 )
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS as REVIEWS
+from plugins.human_review.programs.human_review import COORDINATORS as REVIEW_PROGRAMS
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS as CHECKS
 
 
@@ -95,6 +97,8 @@ def completion_runtime(candidate_values=None):
     )
 
     async def start_child(name, inputs, *, key, environment_imports=None):
+        if name == "reviewer":
+            return runtime.review_children.start(inputs, key)
         runtime.work.append((name, inputs))
         child = create_autospec(ChildExecution, instance=True)
         child.execution_id = "candidate"
@@ -158,7 +162,15 @@ async def test_invalid_worker_result_cannot_request_checks_or_review(completion_
 
 
 @pytest.mark.parametrize(
-    "invalid", ["duplicate-name", "missing-default", "remote-schema", "bad-schema", "shared-alias"]
+    "invalid",
+    [
+        "duplicate-name",
+        "missing-default",
+        "remote-schema",
+        "bad-schema",
+        "shared-alias",
+        "reviewer-alias",
+    ],
 )
 def test_invalid_completion_declarations_fail_closed(completion_config, invalid):
     config = completion_config.model_dump(mode="json")
@@ -172,6 +184,8 @@ def test_invalid_completion_declarations_fail_closed(completion_config, invalid)
         }
     elif invalid == "bad-schema":
         config["completions"][0]["candidate_schema"] = {"type": "not-a-type"}
+    elif invalid == "reviewer-alias":
+        config["completions"][0]["review"]["program"] = "files"
     else:
         config["completions"][1]["implementation"] = "files"
     with pytest.raises(ValidationError) as error:
@@ -183,13 +197,13 @@ def test_invalid_completion_declarations_fail_closed(completion_config, invalid)
 async def test_publication_checks_configured_candidate_contracts(
     application, completion_config, mismatch
 ):
-    for registration in (*APPLICATION_PROGRAMS, *PRODUCERS):
+    for registration in (*COORDINATORS, *PRODUCERS, *REVIEW_PROGRAMS):
         application.applications.register(registration)
     children = {}
     for choice in completion_config.completions:
         schema = FileCandidate.model_json_schema() if mismatch else choice.candidate_schema
         body = ProgramBody(
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="engineering_candidate", version="1"
             ),
             input_schema=EngineeringWork.model_json_schema(),
@@ -197,11 +211,11 @@ async def test_publication_checks_configured_candidate_contracts(
         )
         children[choice.implementation] = body
         children[choice.repair] = body
-    definition = ApplicationDefinition(
+    definition = CustomCoordinatorDefinition(
         implementation="engineering",
-        version="3",
+        version="4",
         config=completion_config.model_dump(mode="json"),
-        children=children,
+        children={**children, "reviewer": review_body(application.elements)},
     )
     if mismatch:
         with pytest.raises(ProgramContractError, match="cannot satisfy"):

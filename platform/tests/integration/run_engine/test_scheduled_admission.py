@@ -13,13 +13,13 @@ from lumora.executions.adapters.run_engine.inbound.schedules import execute_sche
 from lumora.executions.adapters.run_engine.shared.scheduling import ScheduledProgramInput
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.models import PreparedExecution
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.services.scheduling.programs import ProgramSchedule, ScheduleRegistration
 
 
 async def test_scheduled_entrypoint_carries_frozen_profiles_to_actual_tick_admission(platform):
     revision = await publish(
-        platform, "scheduled", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "scheduled", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     request = schedule_request(revision.reference)
     context = ExecutionContext(

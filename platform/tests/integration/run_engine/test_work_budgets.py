@@ -12,8 +12,8 @@ from lumora.executions.adapters.mongo.work_budgets import MongoWorkBudgets
 from lumora.executions.domain.budgets import WorkBudget, WorkLimits
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.service import ExecutionService
-from lumora.programs.composition.programs import APPLICATION_PROGRAMS
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.composition.programs import COORDINATORS
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.programs.service import ProgramService
 from lumora.services.identity.domain import Identity
 
@@ -32,7 +32,7 @@ class BudgetPlatform:
 async def test_shared_budget_across_concurrent_nested_graph_and_backend_programs(
     application, secret_settings, mongo_database, profile, override
 ):
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     limits = WorkLimits.model_validate(
         {"max_dispatches": 2, "max_children": 3, "max_depth": 2, **override}
@@ -83,7 +83,7 @@ async def test_backend_operation_cannot_bypass_zero_root_dispatch_allowance(
         settings, elements=application.elements, applications=application.applications
     ) as services:
         platform = BudgetPlatform(services.programs, services.executions, application.owner)
-        body = ApplicationDefinition(
+        body = CustomCoordinatorDefinition(
             implementation="operation",
             version="1",
             config={"bundle": operation_bundle(application.elements).model_dump(mode="json")},

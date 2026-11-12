@@ -3,15 +3,17 @@
 from pydantic import BaseModel, ConfigDict, JsonValue
 
 from lumora.elements.catalog.element_registry import ElementRegistry
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramRef
+from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody, ProgramRef
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from plugins.adlc.programs.design import (
     DesignProposal,
     DesignWork,
     FeatureDesignConfig,
 )
-from support.review_programs import review_definition
+from plugins.adlc.programs.reviewer import ReviewDependency
+from support.review_programs import confirmation_bundle, review_body
 
 
 class DesignerConfig(BaseModel):
@@ -28,7 +30,7 @@ async def designer(runtime: ProgramRuntime, inputs: JsonValue, config: BaseModel
 
 def designer_body() -> ProgramBody:
     return ProgramBody(
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="fixture_feature_designer", version="1"
         ),
         input_schema=DesignWork.model_json_schema(),
@@ -42,25 +44,34 @@ def design_definition(
     *,
     designer: ProgramRef | ProgramBody | None = None,
     review_timeout_seconds: int = 60,
-) -> ApplicationDefinition:
+    reviewer: ProgramRef | ProgramBody | None = None,
+) -> CustomCoordinatorDefinition:
     config = FeatureDesignConfig(
-        review=review_definition(registry, profile, timeout_seconds=review_timeout_seconds).config,
+        review=ReviewDependency(
+            policy="release@1",
+            confirmation=confirmation_bundle(registry),
+            execution=ExecutionSelection(profile=profile),
+        ),
         max_revisions=1,
     )
-    return ApplicationDefinition(
+    return CustomCoordinatorDefinition(
         implementation="feature_design",
-        version="1",
+        version="2",
         config=config.model_dump(mode="json"),
-        children={"design": designer or designer_body()},
+        children={
+            "design": designer or designer_body(),
+            "reviewer": reviewer
+            or review_body(registry, profile, timeout_seconds=review_timeout_seconds),
+        },
     )
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "fixture_feature_designer",
         "1",
         DesignerConfig,
-        designer,
+        CustomCoordinatorStrategy(designer),
         input_model=DesignWork,
         result_model=DesignProposal,
     ),

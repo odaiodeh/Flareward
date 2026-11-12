@@ -10,7 +10,7 @@ from temporalio.api.enums.v1 import EventType, TimeoutType
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.models import StartExecution
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 from lumora.resources.domain.categories import ResourceCategory
 
 
@@ -35,7 +35,7 @@ async def test_killed_invocation_is_redelivered_without_repeating_business_effec
     revision = await publish(
         application,
         "recovering",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="recovery",
             version="1",
             config={"bundle": bundle.model_dump(mode="json")},
@@ -89,7 +89,7 @@ async def test_message_wait_survives_worker_restart(durable, application, tmp_pa
     revision = await publish(
         application,
         "waiting",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="waiting",
             version="1",
         ),

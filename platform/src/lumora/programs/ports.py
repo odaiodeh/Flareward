@@ -8,13 +8,9 @@ from pydantic import BaseModel, JsonValue
 
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.authoring import ProgramDraft, ProgramPresentation
-from lumora.programs.domain.models import (
-    Bindings,
-    ProgramDefinition,
-    ProgramRef,
-    ProgramRevision,
-    Projection,
-)
+from lumora.programs.domain.bindings import Bindings, Projection
+from lumora.programs.domain.interfaces import ProgramInterface, ProgramSchemas
+from lumora.programs.domain.models import ProgramDefinition, ProgramRef, ProgramRevision
 from lumora.resources.domain.bundles import ElementBundle
 from lumora.services.identity.domain import Identity
 
@@ -31,7 +27,9 @@ class ProgramRepository(Protocol):
     async def list_drafts(
         self, owner: Identity, *, after: str, limit: int
     ) -> list[ProgramDraft]: ...
-    async def publish(self, draft: ProgramDraft) -> ProgramRevision: ...
+    async def publish(
+        self, draft: ProgramDraft, interface: ProgramInterface
+    ) -> ProgramRevision: ...
     async def get_publication(
         self, program_id: str, source_version: int
     ) -> ProgramRevision | None: ...
@@ -58,12 +56,25 @@ class ChildContract:
     result_model: type[BaseModel] | None = None
     result_schema: dict[str, JsonValue] | None = None
 
+    def __post_init__(self) -> None:
+        if self.result_model is not None and (
+            not isinstance(self.result_model, type) or not issubclass(self.result_model, BaseModel)
+        ):
+            raise ValueError("Dependency result models must be Pydantic model classes")
+
 
 @runtime_checkable
 class ChildContracts(Protocol):
     """Optional configuration interface; absent scope schemas use Program input."""
 
     def child_contracts(self) -> dict[str, ChildContract]: ...
+
+
+@runtime_checkable
+class ConfiguredInterface(Protocol):
+    """Pure interface refinement from validated coordinator configuration."""
+
+    def program_interface(self) -> ProgramSchemas: ...
 
 
 class ElementCalls(Protocol):
@@ -97,7 +108,7 @@ class ProgramRuntime(ElementCalls, Protocol):
     async def sleep(self, seconds: float) -> None: ...
 
 
-class ApplicationProgram(Protocol):
+class CoordinatorEntrypoint(Protocol):
     def __call__(
         self,
         runtime: ProgramRuntime,

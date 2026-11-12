@@ -15,7 +15,7 @@ from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord
 from lumora.executions.models import StartExecution
 from lumora.services.verification.domain.check_runs import CheckRun
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS
-from plugins.verification.programs.waiting import APPLICATION_PROGRAMS
+from plugins.verification.programs.waiting import COORDINATORS
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -30,7 +30,7 @@ async def test_registered_workflow_dispatches_once_and_records_exact_check_evide
 ):
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     waiter = await publish(
         application, "await-ci", check_wait_definition(application.elements, profile)

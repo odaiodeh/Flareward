@@ -62,8 +62,26 @@ class SavedResourceResolver:
         self._source, self._elements, self._configuration = source, elements, configuration
         self._bundles = ElementBundleResolver(elements)
 
-    async def bundle(self, selection: ResourceSelection, caller: Identity) -> ElementBundle:
-        resources = await self.materialize((), (selection,), caller)
+    async def bundle(
+        self,
+        selection: ResourceSelection,
+        caller: Identity,
+        *,
+        existing: ElementBundle | None = None,
+    ) -> ElementBundle:
+        if (
+            existing is not None
+            and existing.root != selection.source.key
+            and selection.adoption != ResourceAdoption.REPLACE
+        ):
+            raise ResourceSnapshotConflict(
+                "Changing a captured resource requires explicit replacement"
+            )
+        resources = await self.materialize(
+            tuple(entry.resource for entry in existing.entries) if existing else (),
+            (selection,),
+            caller,
+        )
         protected = tuple(
             [await self._configuration.protect_resource(resource, caller) for resource in resources]
         )

@@ -4,13 +4,14 @@ import pytest
 from pydantic import ValidationError
 from support.application import make_application
 from support.operations import operation_graph
+from support.program_interfaces import declared_interface
 from support.scenarios import publish
 from support.secrets import MemorySecretStore, secret_definition
 
 from lumora.programs.authoring import ProgramConflict, ProgramIssueCode
-from lumora.programs.composition.programs import APPLICATION_PROGRAMS
+from lumora.programs.composition.programs import COORDINATORS
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     ProgramCallStep,
     ProgramDefinition,
@@ -23,7 +24,7 @@ from lumora.services.identity.domain import Identity
 
 @pytest.fixture(autouse=True)
 def installed_controls(application):
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
 
 
@@ -49,10 +50,12 @@ async def test_empty_graph_can_be_saved_reopened_and_completed_before_publicatio
         )
     assert not (await application.programs.revisions("unfinished", application.owner)).revisions
     with pytest.raises(ValidationError):
-        ProgramRevision(definition=draft.definition, revision=1)
+        ProgramRevision(
+            definition=draft.definition, revision=1, interface=declared_interface(draft.definition)
+        )
 
     child = await publish(
-        application, "child", ApplicationDefinition(implementation="greeting", version="1")
+        application, "child", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     completed = definition.model_copy(
         update={
@@ -90,7 +93,7 @@ async def test_registered_program_can_save_before_required_child_binding(applica
         program_id="incomplete-map",
         name="Map in progress",
         owner=application.owner,
-        implementation=ApplicationDefinition(implementation="map", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="map", version="1"),
     )
     draft = await application.programs.save(definition, application.owner)
     report = await application.programs.validate(
@@ -102,7 +105,7 @@ async def test_registered_program_can_save_before_required_child_binding(applica
             definition.program_id, application.owner, expected_version=draft.version
         )
     child = await publish(
-        application, "body", ApplicationDefinition(implementation="greeting", version="1")
+        application, "body", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     bound = definition.model_copy(
         update={
@@ -133,7 +136,7 @@ async def test_draft_shape_and_configuration_still_reject_invalid_values(applica
         program_id="invalid-config",
         name="Invalid",
         owner=application.owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="map", version="1", config={"concurrency": 0}
         ),
     )
@@ -199,7 +202,7 @@ async def test_validation_of_foreign_children_returns_no_foreign_definition_deta
         program_id="foreign-child",
         name="Private title",
         owner=other,
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     saved = await application.programs.save(foreign, other)
     child = await application.programs.publish(

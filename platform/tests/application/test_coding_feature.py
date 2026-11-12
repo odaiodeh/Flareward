@@ -7,18 +7,19 @@ from unittest.mock import create_autospec
 import pytest
 from pydantic import ValidationError
 from support.design_runtime import DesignRuntime
-from support.engineering_programs import APPLICATION_PROGRAMS as CANDIDATE_PROGRAMS
+from support.engineering_programs import COORDINATORS as CANDIDATE_PROGRAMS
 from support.engineering_programs import engineering_configuration
 from support.engineering_runtime import ServiceRuntime
-from support.feature_design import APPLICATION_PROGRAMS as DESIGNERS
+from support.feature_design import COORDINATORS as DESIGNERS
 from support.feature_design import design_definition
 from support.operations import operation_resources
+from support.review_programs import review_body
 from support.scenarios import publish
 
+from lumora.programs.domain.bindings import LiteralBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    LiteralBinding,
     OperationStep,
     ProgramBody,
 )
@@ -26,7 +27,7 @@ from lumora.programs.ports import ChildExecution, ProgramRuntime
 from lumora.services.reviews.domain.models import ReviewDecision
 from lumora.services.verification.domain.models import CheckVerdict
 from plugins.adlc.programs.design import (
-    APPLICATION_PROGRAMS as DESIGN_PROGRAMS,
+    COORDINATORS as DESIGN_PROGRAMS,
 )
 from plugins.adlc.programs.design import (
     DesignResult,
@@ -35,7 +36,7 @@ from plugins.adlc.programs.design import (
     feature_design,
 )
 from plugins.adlc.programs.feature import (
-    APPLICATION_PROGRAMS as FEATURE_PROGRAMS,
+    COORDINATORS as FEATURE_PROGRAMS,
 )
 from plugins.adlc.programs.feature import (
     CodingFeatureConfig,
@@ -43,9 +44,10 @@ from plugins.adlc.programs.feature import (
     CodingFeatureResult,
     coding_feature,
 )
-from plugins.adlc.programs.program import APPLICATION_PROGRAMS as ENGINEERING_PROGRAMS
+from plugins.adlc.programs.program import COORDINATORS as ENGINEERING_PROGRAMS
 from plugins.adlc.programs.program import EngineeringInput, EngineeringResult, engineering
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS as REVIEWS
+from plugins.human_review.programs.human_review import COORDINATORS as REVIEW_PROGRAMS
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS as CHECKS
 
 
@@ -81,9 +83,6 @@ def feature_case(application):
     for spec in (*REVIEWS, *CHECKS):
         application.elements.register_spec_class(spec)
     design = FeatureDesignConfig.model_validate(design_definition(application.elements).config)
-    design = design.model_copy(
-        update={"review": design.review.model_copy(update={"max_checks": 2})}
-    )
     request = CodingFeatureInput(
         prompt="Implement an addition function",
         context="Preserve the API",
@@ -209,17 +208,24 @@ async def test_feature_publication_checks_consumed_results_without_requiring_opt
         *ENGINEERING_PROGRAMS,
         *CANDIDATE_PROGRAMS,
         *DESIGNERS,
+        *REVIEW_PROGRAMS,
     ):
         application.applications.register(registration)
     candidate = ProgramBody(
-        implementation=ApplicationDefinition(implementation="engineering_candidate", version="1")
+        implementation=CustomCoordinatorDefinition(
+            implementation="engineering_candidate", version="1"
+        )
     )
     engineering_body = ProgramBody(
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="engineering",
-            version="3",
+            version="4",
             config=config.model_dump(mode="json"),
-            children={"implementation": candidate, "repair": candidate},
+            children={
+                "implementation": candidate,
+                "repair": candidate,
+                "reviewer": review_body(application.elements),
+            },
         ),
         input_schema=EngineeringInput.model_json_schema(),
         output_schema=EngineeringResult.model_json_schema(),
@@ -254,7 +260,7 @@ async def test_feature_publication_checks_consumed_results_without_requiring_opt
     revision = await publish(
         application,
         "feature",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="coding_feature",
             version="1",
             children={

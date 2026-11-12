@@ -16,7 +16,8 @@ from temporalio.client import Client
 from lumora.bootstrap.settings.interaction_settings import InteractionBackend
 from lumora.bootstrap.settings.platform_settings import AuthenticationKind
 from lumora.bootstrap.settings.worker_settings import WorkerSettings
-from lumora.programs.domain.models import ApplicationDefinition, PathBinding, ProgramDefinition
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.programs.graph.state.graph_state import GraphState
 from lumora.services.connections.adapters.redis import owned_redis
 from lumora.services.identity.domain import Identity
@@ -164,7 +165,9 @@ async def test_deployed_authoring_session_restart_messages_and_cancellation(
                         program_id="network-wait",
                         name="Network wait",
                         owner=Identity.user("alice"),
-                        implementation=ApplicationDefinition(implementation="waiting", version="1"),
+                        implementation=CustomCoordinatorDefinition(
+                            implementation="waiting", version="1"
+                        ),
                     )
                     assert (
                         await http.put(

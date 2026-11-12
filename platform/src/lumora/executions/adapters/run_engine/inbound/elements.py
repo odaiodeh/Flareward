@@ -16,7 +16,6 @@ from runengine.invocation.errors import (
 
 from lumora.async_work import await_owned
 from lumora.elements.catalog.element_registry import ElementRegistry
-from lumora.elements.condition import ConditionResultError, normalize_condition_result
 from lumora.elements.construction.builder import BuiltElement, ElementBundleBuilder
 from lumora.elements.construction.context import ElementBuildContext
 from lumora.elements.construction.runtime import ElementRuntime
@@ -40,6 +39,7 @@ from lumora.executions.adapters.run_engine.shared.state import (
 from lumora.executions.context import ExecutionContextHolder
 from lumora.executions.ports import ExecutionError
 from lumora.programs.domain.bindings import project
+from lumora.programs.domain.routing import RouteSelectionError, normalize_route_selection
 from lumora.programs.graph.runtime_binder import NodeRuntimeBinder
 from lumora.programs.graph.state.graph_state import GraphState
 from lumora.programs.graph_elements import GraphElementSpec, SupportsStepContext
@@ -238,6 +238,6 @@ async def evaluate_condition(
             built.element, runtime.cancel, GraphState.model_validate(state.serialize())
         )
     try:
-        return normalize_condition_result(result, request.graph_step.branches)
-    except ConditionResultError as error:
+        return normalize_route_selection(result, request.graph_step.branches)
+    except RouteSelectionError as error:
         raise InvocationContractError(str(error)) from None

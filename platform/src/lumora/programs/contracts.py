@@ -1,19 +1,19 @@
 """Conservative interface checks: reject provable binding errors before dispatch."""
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 
 from jsonschema import SchemaError
-from pydantic import AliasChoices, AliasPath, BaseModel, JsonValue
+from pydantic import AliasChoices, AliasPath, BaseModel
 
 from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.programs.domain.bindings import LiteralBinding, Projection
+from lumora.programs.domain.interfaces import ProgramInterface
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
-    LiteralBinding,
+    CustomCoordinatorDefinition,
     OperationStep,
     ProgramBody,
     ProgramCallStep,
-    Projection,
+    ResultRoute,
 )
 from lumora.programs.graph_data import GraphDataScope
 from lumora.programs.graph_flow import GraphFlow
@@ -24,8 +24,8 @@ from lumora.programs.interfaces import (
     InterfaceContract,
     IssuePath,
 )
-from lumora.programs.ports import ChildContracts
-from lumora.programs.registry import ApplicationRegistry
+from lumora.programs.registry import CoordinatorRegistry
+from lumora.programs.signatures import InvocationInterface, ProgramInterfaces
 from lumora.programs.state_contracts import StateContracts
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 
@@ -147,22 +147,25 @@ class BindingProjection:
                 raise BindingContractError(str(error), (name, *error.path)) from None
 
 
-@dataclass(frozen=True)
-class CallInterface:
-    input_schema: dict[str, JsonValue] | None
-    input_model: type[BaseModel] | None
-    outputs: tuple[InterfaceContract, ...]
-
-
 class ProgramContracts:
-    def __init__(self, elements: ElementRegistry, applications: ApplicationRegistry) -> None:
+    def __init__(self, elements: ElementRegistry, applications: CoordinatorRegistry) -> None:
         self._elements, self._applications = elements, applications
+        self._interfaces = ProgramInterfaces(applications)
         self._projection = BindingProjection()
         self._state = StateContracts(elements)
 
-    def validate(self, body: ProgramBody, children: Mapping[str, ProgramBody]) -> None:
+    def validate(self, body: ProgramBody, children: Mapping[str, ProgramInterface]) -> None:
+        try:
+            local = self._interfaces.local(body)
+        except ValueError, TypeError, SchemaError:
+            raise BindingContractError(
+                "Invalid configured Program interface", ("implementation", "config")
+            ) from None
+        for schemas in (local.input_schemas, local.output_schemas):
+            for extra in schemas[1:]:
+                InterfaceContract.root(schemas[0]).check_overlap(InterfaceContract.root(extra))
         graph = body.implementation
-        if isinstance(graph, ApplicationDefinition):
+        if isinstance(graph, CustomCoordinatorDefinition):
             self._application(body, graph, children)
             return
         if graph.inputs.keys() & graph.READ_ONLY_CHANNELS:
@@ -206,15 +209,14 @@ class ProgramContracts:
                 raise BindingContractError(
                     "Graph input and result scopes are read-only", (*base, "outputs")
                 )
-            self._check(
-                step.inputs,
-                (*base, "inputs"),
-                source=source.at(step.uid),
-                target=InterfaceContract.root(interface.input_schema)
-                if interface.input_schema is not None
-                else None,
-                model=interface.input_model,
-            )
+            for target in interface.inputs or (None,):
+                self._check(
+                    step.inputs,
+                    (*base, "inputs"),
+                    source=source.at(step.uid),
+                    target=target,
+                    model=interface.input_model,
+                )
             for output in interface.outputs:
                 self._check(
                     step.outputs,
@@ -223,18 +225,37 @@ class ProgramContracts:
                     target=writable,
                 )
 
+        for index, route in enumerate(graph.conditions):
+            if isinstance(route, ResultRoute):
+                labels = list(route.branches)
+                outcomes = [
+                    {"type": "string", "enum": labels},
+                    {"type": "array", "items": {"type": "string", "enum": labels}},
+                ]
+                booleans = [
+                    value for value in (True, False) if str(value).lower() in route.branches
+                ]
+                if booleans:
+                    outcomes.append({"type": "boolean", "enum": booleans})
+                self._check(
+                    route.selection,
+                    ("implementation", "conditions", index, "selection"),
+                    source=source.after(route.source),
+                    target=InterfaceContract.root({"anyOf": outcomes}),
+                )
+
     def _interface(
         self,
         step: OperationStep | ProgramCallStep,
         resources: Mapping[ResourceKey, ResourceDefinition],
-        children: Mapping[str, ProgramBody],
-    ) -> CallInterface:
+        children: Mapping[str, ProgramInterface],
+    ) -> InvocationInterface:
         if isinstance(step, OperationStep):
             resource = resources[step.element]
             spec = self._elements.get_spec(resource.key.category, resource.type_key)
             assert spec.input_schema is not None and spec.result_schema is not None
-            return CallInterface(
-                None,
+            return InvocationInterface(
+                (),
                 spec.input_schema,
                 (
                     InterfaceContract.root(
@@ -242,43 +263,25 @@ class ProgramContracts:
                     ),
                 ),
             )
-        child = children[step.uid]
-        input_model: type[BaseModel] | None = None
-        outputs = [InterfaceContract.root(child.output_schema)]
-        if isinstance(child.implementation, ApplicationDefinition):
-            installed = self._applications.get(
-                child.implementation.implementation, child.implementation.version
-            )
-            input_model = installed.input_model
-            if installed.result_model is not None:
-                outputs.append(
-                    InterfaceContract.root(
-                        installed.result_model.model_json_schema(
-                            mode="serialization", by_alias=False
-                        )
-                    )
-                )
-        return CallInterface(child.input_schema, input_model, tuple(outputs))
+        return self._interfaces.resolve(children[step.uid])
 
     def _application(
         self,
         body: ProgramBody,
-        implementation: ApplicationDefinition,
-        children: Mapping[str, ProgramBody],
+        implementation: CustomCoordinatorDefinition,
+        children: Mapping[str, ProgramInterface],
     ) -> None:
         registration = self._applications.get(implementation.implementation, implementation.version)
         configuration = registration.configuration(implementation)
-        if not isinstance(configuration, ChildContracts):
-            return
-        for name, contract in configuration.child_contracts().items():
-            child = children[name]
-            input_model: type[BaseModel] | None = None
-            result_model: type[BaseModel] | None = None
-            if isinstance(child.implementation, ApplicationDefinition):
-                installed = self._applications.get(
-                    child.implementation.implementation, child.implementation.version
+        for name, contract in registration.dependency_contracts(configuration).items():
+            if name not in children:
+                raise BindingContractError(
+                    "Required Program dependency is not bound",
+                    ("implementation", "children", name),
                 )
-                input_model, result_model = installed.input_model, installed.result_model
+            child = children[name]
+            interface = self._interfaces.resolve(child)
+            input_model = interface.input_model
             schema = contract.scope_schema
             if schema is None:
                 schema = (
@@ -292,14 +295,16 @@ class ProgramContracts:
             except SchemaError, BindingContractError:
                 raise BindingContractError("Invalid declared child input scope", path) from None
             source = InterfaceContract.root(schema)
-            target = InterfaceContract.root(child.input_schema)
-            if contract.inputs is None:
-                try:
-                    self._projection.validate_identity(source, target=target, model=input_model)
-                except BindingContractError as error:
-                    raise BindingContractError(str(error), (*path, *error.path)) from None
-            else:
-                self._check(contract.inputs, path, source=source, target=target, model=input_model)
+            for target in interface.inputs:
+                if contract.inputs is None:
+                    try:
+                        self._projection.validate_identity(source, target=target, model=input_model)
+                    except BindingContractError as error:
+                        raise BindingContractError(str(error), (*path, *error.path)) from None
+                else:
+                    self._check(
+                        contract.inputs, path, source=source, target=target, model=input_model
+                    )
             output_target = (
                 InterfaceContract.root(contract.result_model.model_json_schema(by_alias=False))
                 if contract.result_model is not None
@@ -314,17 +319,12 @@ class ProgramContracts:
                         "Invalid declared child result schema", path
                     ) from None
                 targets.append(InterfaceContract.root(contract.result_schema))
-            output_schemas = [child.output_schema]
-            if result_model is not None:
-                output_schemas.append(
-                    result_model.model_json_schema(mode="serialization", by_alias=False)
-                )
-            for output_schema in output_schemas:
+            for output in interface.outputs:
                 for result_target in targets:
                     self._check(
                         contract.outputs,
                         path,
-                        source=InterfaceContract.root(output_schema),
+                        source=output,
                         target=result_target,
                         model=contract.result_model,
                     )

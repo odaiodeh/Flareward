@@ -12,7 +12,7 @@ from lumora.executions.adapters.run_engine.outbound.gateway import RunEngineGate
 from lumora.executions.domain.models import ExecutionPhase, SubmissionState
 from lumora.executions.models import StartExecution
 from lumora.executions.service import ExecutionService
-from lumora.programs.domain.models import ApplicationDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition
 
 
 class ReplyLossHost(RunHost):
@@ -82,7 +82,7 @@ async def request(platform):
     revision = await publish(
         platform,
         "recover",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="greeting",
             version="1",
             config={"prefix": "original "},
@@ -215,7 +215,7 @@ async def test_cancellation_before_native_acceptance_survives_the_original_submi
     waiting = await publish(
         platform,
         "cancel-before-native",
-        ApplicationDefinition(implementation="waiting", version="1"),
+        CustomCoordinatorDefinition(implementation="waiting", version="1"),
     )
     task = asyncio.create_task(
         service.start(
@@ -271,10 +271,12 @@ async def test_inputs_are_detached_before_async_compilation(platform, monkeypatc
 
 async def test_reconciliation_advances_past_waiting_and_broken_records(platform, monkeypatch):
     waiting = await publish(
-        platform, "scanner-wait", ApplicationDefinition(implementation="waiting", version="1")
+        platform, "scanner-wait", CustomCoordinatorDefinition(implementation="waiting", version="1")
     )
     greeting = await publish(
-        platform, "scanner-finish", ApplicationDefinition(implementation="greeting", version="1")
+        platform,
+        "scanner-finish",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     first = await platform.executions.start(
         StartExecution(program=waiting.reference, execution_id="a"),

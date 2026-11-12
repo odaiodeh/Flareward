@@ -15,11 +15,11 @@ from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.executions.models import StartExecution
 from lumora.executions.service import ExecutionService
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     ElementStep,
     GraphDefinition,
-    PathBinding,
     ProgramCallStep,
 )
 from lumora.resources.domain.categories import ResourceCategory
@@ -135,7 +135,7 @@ async def test_application_child_then_graph_keeps_immediate_parent_and_root(rece
     middle = await publish(
         platform,
         "middle",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             children={"greet": leaf.reference},
@@ -144,7 +144,7 @@ async def test_application_child_then_graph_keeps_immediate_parent_and_root(rece
     root = await publish(
         platform,
         "root",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             children={"greet": middle.reference},

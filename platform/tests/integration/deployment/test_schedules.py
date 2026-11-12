@@ -18,7 +18,7 @@ from temporalio.client import Client
 
 from lumora.bootstrap.scheduling import admit_scheduled_execution
 from lumora.executions.adapters.run_engine.shared.scheduling import ScheduledProgramInput
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.services.identity.domain import Identity
 from lumora.services.scheduling.adapters.temporal.programs import TemporalProgramSchedules
 from lumora.services.scheduling.models import (
@@ -37,7 +37,7 @@ async def test_scheduled_program_runs_in_owning_engine_run_across_api_restart(
     implementation = (
         echo_graph("process" if kind == "process" else "thread")
         if kind in {"graph", "process"}
-        else ApplicationDefinition(implementation="greeting", version="1")
+        else CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     async with api_process(deployment.settings, tmp_path / "api.log") as http:
         if kind == "composed":
@@ -47,10 +47,12 @@ async def test_scheduled_program_runs_in_owning_engine_run_across_api_restart(
                     program_id="leaf",
                     name="Scheduled child",
                     owner=Identity.user("owner"),
-                    implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                    implementation=CustomCoordinatorDefinition(
+                        implementation="greeting", version="1"
+                    ),
                 ),
             )
-            implementation = ApplicationDefinition(
+            implementation = CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": leaf}
             )
         reference = await publish_program(
@@ -90,7 +92,7 @@ async def test_scheduled_program_runs_in_owning_engine_run_across_api_restart(
                 program_id="scheduled",
                 name="Replacement program",
                 owner=Identity.user("owner"),
-                implementation=ApplicationDefinition(
+                implementation=CustomCoordinatorDefinition(
                     implementation="greeting", version="1", config={"prefix": "replacement:"}
                 ),
             ),
@@ -147,7 +149,7 @@ async def test_automatic_schedule_exhausts_and_rearms_its_finite_budget(
                 program_id="automatic",
                 name="Automatic program",
                 owner=Identity.user("owner"),
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
             ),
         )
         request = schedule_request(reference, enabled=True)
@@ -216,7 +218,7 @@ async def test_native_overlap_policy_controls_running_programs(
                 program_id="overlap",
                 name="Overlapping waits",
                 owner=Identity.user("owner"),
-                implementation=ApplicationDefinition(implementation="waiting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="waiting", version="1"),
             ),
         )
         request = schedule_request(reference)
@@ -271,7 +273,7 @@ async def test_native_schedule_update_fences_concurrent_writers(calendar_deploym
                 program_id="concurrent",
                 name="Concurrent schedule edits",
                 owner=Identity.user("owner"),
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
             ),
         )
         created = await http.post(
@@ -337,7 +339,7 @@ async def test_manual_runs_preserve_timer_budget_and_history_after_deletion(
                 program_id="manual-budget",
                 name="Manual budget",
                 owner=Identity.user("owner"),
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
             ),
         )
         request = schedule_request(reference)

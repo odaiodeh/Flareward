@@ -5,15 +5,18 @@ from collections.abc import Iterator, Mapping, Sequence
 from jsonschema import SchemaError
 
 from lumora.elements.catalog.element_registry import ElementRegistry
+from lumora.elements.construction.configuration_resources import ConfigurationResources
 from lumora.elements.construction.resolver import ElementBundleResolver
 from lumora.elements.construction.secrets import ConfigurationSecrets
 from lumora.elements.construction.snapshots import (
+    ResourceSnapshotConflict,
     ResourceSnapshotsUnavailable,
     SavedResourceResolver,
 )
 from lumora.programs.authoring import (
     ProgramConflict,
     ProgramDraft,
+    ProgramInterfacePreview,
     ProgramIssue,
     ProgramIssueCode,
     ProgramPage,
@@ -25,9 +28,11 @@ from lumora.programs.authoring import (
     RevisionSummary,
 )
 from lumora.programs.contracts import ProgramContracts
+from lumora.programs.domain.interfaces import ProgramInterface
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
     BodyPath,
+    ConditionalRoute,
+    CustomCoordinatorDefinition,
     GraphDefinition,
     ProgramBody,
     ProgramCallStep,
@@ -38,7 +43,8 @@ from lumora.programs.domain.models import (
 )
 from lumora.programs.interfaces import BindingContractError, InterfaceContract
 from lumora.programs.ports import ProgramRepository
-from lumora.programs.registry import ApplicationDescriptor, ApplicationRegistry
+from lumora.programs.registry import CoordinatorDescriptor, CoordinatorRegistry
+from lumora.programs.signatures import ProgramInterfaces
 from lumora.services.identity.domain import Identity
 
 
@@ -64,7 +70,7 @@ class ProgramService:
     def __init__(
         self,
         repository: ProgramRepository,
-        applications: ApplicationRegistry,
+        applications: CoordinatorRegistry,
         elements: ElementRegistry,
         configuration: ConfigurationSecrets,
         resource_snapshots: SavedResourceResolver | None = None,
@@ -73,11 +79,27 @@ class ProgramService:
         self._applications = applications
         self._bundles = ElementBundleResolver(elements)
         self._contracts = ProgramContracts(elements, applications)
+        self._interfaces = ProgramInterfaces(applications)
         self._configuration = configuration
         self._resource_snapshots = resource_snapshots
 
-    def implementations(self) -> list[ApplicationDescriptor]:
+    def implementations(self) -> list[CoordinatorDescriptor]:
         return self._applications.describe()
+
+    def preview_interface(self, body: ProgramBody) -> ProgramInterfacePreview:
+        """Resolve only this coordinator's contracts; do not fetch targets or build resources."""
+        try:
+            return ProgramInterfacePreview(interface=self._interfaces.local(body))
+        except ValueError, TypeError, SchemaError:
+            return ProgramInterfacePreview(
+                issues=(
+                    ProgramIssue(
+                        code=ProgramIssueCode.CONFIGURATION,
+                        message="Complete a valid coordinator configuration to resolve its interface",
+                        path=("implementation", "config"),
+                    ),
+                )
+            )
 
     @staticmethod
     def authorize(definition: ProgramDefinition, caller: Identity) -> None:
@@ -149,8 +171,12 @@ class ProgramService:
                 raise ProgramContractError(
                     "Resource selection identifies an unavailable owned body"
                 ) from None
-            if not isinstance(target.implementation, GraphDefinition):
-                raise ProgramContractError("Saved resource blocks require a visual composition")
+            if isinstance(target.implementation, GraphDefinition) != (
+                selection.configuration_path is None
+            ):
+                raise ProgramContractError(
+                    "Resource selection destination does not match the coordinator"
+                )
             selections.setdefault(selection.body_path, []).append(selection)
         definition = await self._protect_body(definition, caller, (), selections)
         return await self._repository.save_draft(
@@ -167,14 +193,8 @@ class ProgramService:
     def _calls(
         body: ProgramBody,
     ) -> Iterator[tuple[str, ProgramTarget, tuple[str | int, ...]]]:
-        implementation = body.implementation
-        if isinstance(implementation, GraphDefinition):
-            for index, step in enumerate(implementation.steps):
-                if isinstance(step, ProgramCallStep):
-                    yield step.uid, step.program, ("implementation", "steps", index, "program")
-        else:
-            for name, target in implementation.children.items():
-                yield name, target, ("implementation", "children", name)
+        for name, dependency in body.dependencies.items():
+            yield name, dependency.program, dependency.source
 
     async def _protect_body[Body: ProgramBody](
         self,
@@ -223,9 +243,27 @@ class ProgramService:
                     registration.config_schema, implementation.config, caller
                 )
             except ValueError:
-                raise ProgramContractError(
-                    f"Invalid configuration for application program {implementation.implementation}"
-                ) from None
+                raise ProgramContractError("Invalid coordinator configuration") from None
+            if scoped := selections.get(path):
+                if self._resource_snapshots is None:
+                    raise ResourceSnapshotsUnavailable("Saved-resource library is not configured")
+                destinations = {selection.configuration_path: selection for selection in scoped}
+                if len(destinations) != len(scoped) or None in destinations:
+                    raise ProgramContractError("Select each configuration resource field only once")
+                try:
+                    config = await ConfigurationResources(self._resource_snapshots).capture(
+                        registration.config_schema, config, destinations, caller
+                    )
+                except ResourceSnapshotConflict:
+                    raise
+                except ValueError as error:
+                    raise ProgramContractError(str(error)) from None
+                try:
+                    config = await self._configuration.protect_draft(
+                        registration.config_schema, config, caller
+                    )
+                except ValueError:
+                    raise ProgramContractError("Invalid coordinator configuration") from None
             implementation = implementation.model_copy(update={"config": config}, deep=True)
         return body.model_copy(update={"implementation": implementation}, deep=True)
 
@@ -257,7 +295,7 @@ class ProgramService:
         if draft.version != expected_version:
             raise ProgramConflict("Program draft changed; reload before publication")
         await self._validate_publication(draft.definition, caller)
-        return await self._repository.publish(draft)
+        return await self._repository.publish(draft, self._interfaces.snapshot(draft.definition))
 
     async def _validate_publication(self, definition: ProgramDefinition, caller: Identity) -> None:
         await self._validate_body(definition, caller, (), {}, ())
@@ -265,7 +303,18 @@ class ProgramService:
     async def validate_revision(self, revision: ProgramRevision, caller: Identity) -> None:
         """Recheck a frozen revision's application contracts before execution preparation."""
         self.authorize(revision.definition, caller)
+        self._check_interface(revision)
         await self._validate_publication(revision.definition, caller)
+
+    def _check_interface(self, revision: ProgramRevision) -> None:
+        try:
+            matches = self._interfaces.snapshot(revision.definition) == revision.interface
+        except ValueError, TypeError, SchemaError:
+            matches = False
+        if not matches:
+            raise ProgramContractError(
+                "Installed coordinator interface differs from the published contract"
+            )
 
     async def _validate_body(
         self,
@@ -296,35 +345,37 @@ class ProgramService:
                     if not isinstance(step, ProgramCallStep):
                         self._bundles.resolve(step.element, implementation.resources)
                 for condition in implementation.conditions:
-                    self._bundles.resolve(condition.condition, implementation.resources)
+                    if isinstance(condition, ConditionalRoute):
+                        self._bundles.resolve(condition.condition, implementation.resources)
             except ValueError, KeyError:
                 raise ProgramContractError(
                     "Missing or invalid construction resources",
                     code=ProgramIssueCode.CONSTRUCTION,
                     path=(*path, "implementation", "resources"),
                 ) from None
-        elif isinstance(implementation, ApplicationDefinition):
+        elif isinstance(implementation, CustomCoordinatorDefinition):
             try:
                 registration = self._applications.get(
                     implementation.implementation, implementation.version
                 )
                 configuration = registration.configuration(implementation)
+                registration.dependency_contracts(configuration)
                 self._bundles.validate_embedded(configuration)
             except ValueError:
                 raise ProgramContractError(
                     "Invalid configuration or missing required program dependencies",
                     path=(*path, "implementation", "config"),
                 ) from None
-        children: dict[str, ProgramBody] = {}
+        children: dict[str, ProgramInterface] = {}
         for name, target, source in self._calls(body):
             if isinstance(target, ProgramBody):
                 await self._validate_body(target, caller, ancestors, validated, (*path, *source))
-                children[name] = target
+                children[name] = self._interfaces.snapshot(target)
             else:
                 try:
                     children[name] = (
                         await self._validate_dependency(target, caller, ancestors, validated)
-                    ).definition
+                    ).interface
                 except ValueError, KeyError, PermissionError:
                     raise ProgramContractError(
                         "Referenced program is unavailable or recursive",
@@ -350,6 +401,7 @@ class ProgramService:
         if reference in validated:
             return validated[reference]
         revision = await self.revision(reference, caller)
+        self._check_interface(revision)
         await self._validate_body(
             revision.definition, caller, (*ancestors, reference), validated, ()
         )

@@ -5,7 +5,8 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, StrictBool, model_validator
 
-from lumora.programs.domain.models import Binding, PathBinding, Projection
+from lumora.programs.domain.bindings import Binding, PathBinding, Projection
+from lumora.programs.domain.interfaces import ProgramSchemas
 from lumora.programs.ports import ChildContract
 
 
@@ -29,6 +30,11 @@ class MapConfig(BodyConfig):
 
     concurrency: int = Field(default=4, ge=1, le=128)
     max_items: int = Field(default=1000, ge=1, le=10_000)
+
+    def program_interface(self) -> ProgramSchemas:
+        schema = MapInput.model_json_schema()
+        schema["properties"]["items"]["maxItems"] = self.max_items
+        return ProgramSchemas(input_schema=schema)
 
     def child_contracts(self) -> dict[str, ChildContract]:
         return {
@@ -69,6 +75,11 @@ class RepeatConfig(BodyConfig):
     max_iterations: int = Field(default=10, ge=1, le=10_000)
     state: Binding = Field(default_factory=lambda: PathBinding(path=("state",)))
     until: Binding = Field(default_factory=lambda: PathBinding(path=("done",)))
+
+    def program_interface(self) -> ProgramSchemas:
+        schema = RepeatResult.model_json_schema(mode="serialization", by_alias=False)
+        schema["properties"]["iterations"]["maximum"] = self.max_iterations
+        return ProgramSchemas(output_schema=schema)
 
     def child_contracts(self) -> dict[str, ChildContract]:
         return {

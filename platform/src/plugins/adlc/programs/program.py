@@ -17,13 +17,13 @@ from pydantic import (
 
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.composition.scope import ChildCalls
-from lumora.programs.domain.models import PathBinding
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.interfaces import BindingContractError, InterfaceContract
-from lumora.programs.ports import ChildContract, ChildExecution, ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.ports import ChildContract, ProgramRuntime
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
-from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.reviews.domain.models import ReviewDecision, ReviewResponse, ReviewStatus
+from lumora.services.reviews.domain.results import HumanReviewResult
 from lumora.services.verification.check_ports import CheckRunHandle, StartCheckRun
 from lumora.services.verification.domain.check_runs import CheckRun, CheckRunStatus
 from lumora.services.verification.domain.models import (
@@ -33,18 +33,15 @@ from lumora.services.verification.domain.models import (
     VerificationSubject,
 )
 from lumora.services.verification.models import VerificationView
+from plugins.adlc.programs.contracts import require_service_operation, validate_result
 from plugins.adlc.programs.review import EngineeringReviewSubject
-from plugins.human_review.programs.human_review import (
-    HumanReviewConfig,
-    HumanReviewResult,
-    human_review,
-)
+from plugins.adlc.programs.reviewer import ReviewDependency, Reviewer
 from plugins.verification.elements.operations import (
     RequestVerification,
     VerificationHandle,
 )
 
-__runengine_contract__ = "lumora-engineering-v3"
+__runengine_contract__ = "lumora-engineering-v4"
 
 type CompletionName = Annotated[str, Field(min_length=1, max_length=128)]
 
@@ -119,28 +116,6 @@ class EngineeringResult(BaseModel):
         return self
 
 
-def validate_result[T: BaseModel](model: type[T], value: JsonValue) -> T:
-    try:
-        return model.model_validate(value)
-    except ValidationError:
-        raise ValueError("Engineering effect violates its contract") from None
-
-
-def require_service_operation(bundle: ElementBundle, operation: str, service: str) -> None:
-    """Require the installed scoped adapter, not an arbitrary lookalike operation."""
-    root = next(entry for entry in bundle.entries if entry.resource.key == bundle.root)
-    by_key = {entry.resource.key: entry for entry in bundle.entries}
-    if (
-        root.resource.key.category != ResourceCategory.OPERATION
-        or root.resource.type_key != operation
-        or len(root.dependencies) != 1
-        or by_key[root.dependencies[0]].resource.key.category != ResourceCategory.PROVIDER
-        or by_key[root.dependencies[0]].resource.type_key != service
-        or len(bundle.entries) != 2
-    ):
-        raise ValueError("Engineering authority requires the registered scoped service operation")
-
-
 class EngineeringCompletion(BaseModel):
     """One published choice of deliverable, producers, checks and human acceptance."""
 
@@ -153,7 +128,7 @@ class EngineeringCompletion(BaseModel):
     verification_policy: str = Field(min_length=1, max_length=128)
     requirements: tuple[CheckRequirement, ...] = Field(min_length=1, max_length=32)
     runners: tuple[str, ...] = Field(min_length=1, max_length=32)
-    review: HumanReviewConfig
+    review: ReviewDependency
 
     @field_validator("candidate_schema")
     @classmethod
@@ -173,8 +148,6 @@ class EngineeringCompletion(BaseModel):
             not runner for runner in self.runners
         ):
             raise ValueError("Engineering runners must be nonempty and unique")
-        require_service_operation(self.review.opener, "open_human_review", "review_service")
-        require_service_operation(self.review.inspection, "inspect_human_review", "review_service")
         return self
 
     def validate_candidate(self, value: JsonValue) -> VerificationSubject:
@@ -233,48 +206,12 @@ class EngineeringConfig(BaseModel):
                 if alias in schemas and schemas[alias] != schema:
                     raise ValueError("A shared child alias requires the same candidate contract")
                 schemas[alias], children[alias] = schema, contract
+        for completion in self.completions:
+            alias = completion.review.program
+            if alias in schemas:
+                raise ValueError("Reviewer and producer require distinct Program dependencies")
+            children[alias] = completion.review.contract(EngineeringReviewSubject)
         return children
-
-
-class AttemptRuntime:
-    """Namespace review effects so each iteration has its own durable occurrence."""
-
-    def __init__(self, runtime: ProgramRuntime, attempt: int) -> None:
-        self._runtime, self._prefix = runtime, f"attempt-{attempt}-"
-
-    @property
-    def execution_id(self) -> str:
-        return self._runtime.execution_id
-
-    async def invoke_element(
-        self,
-        bundle: ElementBundle,
-        inputs: JsonValue,
-        *,
-        key: str,
-        execution: ExecutionSelection | None = None,
-    ) -> JsonValue:
-        return await self._runtime.invoke_element(
-            bundle, inputs, key=self._prefix + key, execution=execution
-        )
-
-    async def start_child(
-        self,
-        name: str,
-        inputs: JsonValue,
-        *,
-        key: str,
-        environment_imports: dict[str, str] | None = None,
-    ) -> ChildExecution:
-        return await self._runtime.start_child(
-            name, inputs, key=self._prefix + key, environment_imports=environment_imports
-        )
-
-    async def receive(self, name: str, *, timeout: float | None = None) -> JsonValue:
-        return await self._runtime.receive(name, timeout=timeout)
-
-    async def sleep(self, seconds: float) -> None:
-        await self._runtime.sleep(seconds)
 
 
 class EngineeringCoordinator:
@@ -379,17 +316,14 @@ class EngineeringCoordinator:
                 review = None
                 outcome = unresolved
                 if outcome is None and view.outcome == VerificationOutcome.ACCEPTED:
-                    review = validate_result(
-                        HumanReviewResult,
-                        await human_review(
-                            AttemptRuntime(self._runtime, attempt),
-                            EngineeringReviewSubject(
-                                completion=self._completion.name,
-                                candidate=candidate,
-                                verification=view,
-                            ).model_dump(mode="json"),
-                            self._completion.review,
+                    review = await Reviewer(self._runtime, self._completion.review).run(
+                        calls,
+                        EngineeringReviewSubject(
+                            completion=self._completion.name,
+                            candidate=candidate,
+                            verification=view,
                         ),
+                        key=f"attempt-{attempt}-review",
                     )
                     record = review.review
                     if record.status == ReviewStatus.DECIDED and record.response is not None:
@@ -435,12 +369,12 @@ async def engineering(runtime: ProgramRuntime, inputs: JsonValue, config: BaseMo
     ).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "engineering",
-        "3",
+        "4",
         EngineeringConfig,
-        engineering,
+        CustomCoordinatorStrategy(engineering),
         input_model=EngineeringInput,
         result_model=EngineeringResult,
     ),

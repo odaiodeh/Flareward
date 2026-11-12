@@ -18,7 +18,9 @@ from lumora.async_work import await_owned
 from lumora.elements.catalog.dto import CatalogListDTO, ElementDetailDTO
 from lumora.elements.catalog.service import CatalogService
 from lumora.executions.domain.preferences import ExecutionProfileCatalog
-from lumora.programs.registry import ApplicationDescriptor
+from lumora.programs.authoring import ProgramInterfacePreview
+from lumora.programs.domain.models import ProgramBody
+from lumora.programs.registry import CoordinatorDescriptor
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.access.catalog import WorkflowAccessDescriptor
 from lumora.services.identity.domain import Identity
@@ -41,11 +43,21 @@ async def workflow_access(
     return services.workflow_access.describe(principal.owner) if services.workflow_access else ()
 
 
-@router.get("/programs", response_model=list[ApplicationDescriptor])
+@router.get("/programs", response_model=list[CoordinatorDescriptor])
 async def programs(
     services: Annotated[HttpServices, Depends(get_services)],
-) -> list[ApplicationDescriptor]:
+) -> list[CoordinatorDescriptor]:
     return services.programs.implementations()
+
+
+@router.post("/programs/interface", response_model=ProgramInterfacePreview)
+async def program_interface(
+    body: ProgramBody,
+    response: Response,
+    services: Annotated[HttpServices, Depends(get_services)],
+) -> ProgramInterfacePreview:
+    response.headers["Cache-Control"] = "private, no-store"
+    return services.programs.preview_interface(body)
 
 
 @router.get("/execution-profiles", response_model=ExecutionProfileCatalog)

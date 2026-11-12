@@ -2,12 +2,18 @@
 
 import httpx
 import pytest
+from fastapi import HTTPException
 from support.program_authoring import assert_unfinished_program_lifecycle
 from support.resource_snapshots import MemoryResourceSources, saved_resource_graph
 from support.scenarios import publish
 
 from lumora.api.app import create_app
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramDefinition
+from lumora.programs.composition.programs import COORDINATORS as CONTROLS
+from lumora.programs.domain.models import (
+    CustomCoordinatorDefinition,
+    ProgramBody,
+    ProgramDefinition,
+)
 from lumora.services.identity.domain import Identity
 
 
@@ -23,12 +29,14 @@ async def test_owned_body_cannot_smuggle_independent_identity_or_echo_private_in
         program_id="invalid-owned",
         name="Invalid owned identity",
         owner=platform.owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             children={
                 "greet": ProgramBody(
-                    implementation=ApplicationDefinition(implementation="greeting", version="1")
+                    implementation=CustomCoordinatorDefinition(
+                        implementation="greeting", version="1"
+                    )
                 )
             },
         ),
@@ -74,7 +82,7 @@ async def test_api_publishes_submits_and_returns_program_result(platform):
             program_id="greeting",
             name="Greeting",
             owner=platform.owner,
-            implementation=ApplicationDefinition(implementation="greeting", version="1"),
+            implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
         )
         saved = await client.put(
             "/api/programs/greeting",
@@ -110,7 +118,7 @@ async def test_invalid_root_inputs_are_private_and_refused_before_execution_admi
         program_id="typed-root",
         name="Typed root",
         owner=platform.owner,
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
         input_schema={"type": "object", "properties": {"name": {"type": "integer"}}},
     )
     saved = await platform.programs.save(root, platform.owner)
@@ -140,7 +148,9 @@ async def test_nonfinite_json_is_rejected_instead_of_becoming_null_in_a_snapshot
         return platform.owner
 
     revision = await publish(
-        platform, "finite-input", ApplicationDefinition(implementation="greeting", version="1")
+        platform,
+        "finite-input",
+        CustomCoordinatorDefinition(implementation="greeting", version="1"),
     )
     app = create_app(platform.programs, platform.executions, authenticate)
     async with httpx.AsyncClient(
@@ -162,7 +172,7 @@ async def test_nonfinite_json_is_rejected_instead_of_becoming_null_in_a_snapshot
 
 async def test_api_authorization_and_missing_resources(platform):
     revision = await publish(
-        platform, "private", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "private", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
 
     async def authenticate(request):
@@ -205,7 +215,7 @@ async def test_library_edits_and_publication_are_fenced_by_observed_version(plat
         program_id="editable",
         name="Original",
         owner=platform.owner,
-        implementation=ApplicationDefinition(implementation="greeting", version="1"),
+        implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
     ).model_dump(mode="json")
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app), base_url="http://platform"
@@ -266,7 +276,7 @@ async def test_library_edits_and_publication_are_fenced_by_observed_version(plat
 
 async def test_api_cancels_a_waiting_program(platform):
     revision = await publish(
-        platform, "wait", ApplicationDefinition(implementation="waiting", version="1")
+        platform, "wait", CustomCoordinatorDefinition(implementation="waiting", version="1")
     )
 
     async def authenticate(request):
@@ -351,12 +361,12 @@ async def test_blueprint_import_requires_configured_library(platform):
 
 async def test_child_records_are_owner_scoped_and_cannot_be_adopted_as_root_submissions(platform):
     leaf = await publish(
-        platform, "leaf", ApplicationDefinition(implementation="greeting", version="1")
+        platform, "leaf", CustomCoordinatorDefinition(implementation="greeting", version="1")
     )
     parent = await publish(
         platform,
         "parent",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             children={"greet": leaf.reference},
@@ -407,3 +417,47 @@ async def test_child_records_are_owner_scoped_and_cannot_be_adopted_as_root_subm
     ) as http:
         assert (await http.get("/api/executions/parent-run/children")).status_code == 403
         assert (await http.get(f"/api/executions/{child['execution_id']}")).status_code == 403
+
+
+async def test_interface_preview_resolves_unbound_configuration_without_publication(
+    platform, application
+):
+    for registration in CONTROLS:
+        application.applications.register(registration)
+
+    async def authenticate(request):
+        return platform.owner
+
+    app = create_app(platform.programs, platform.executions, authenticate)
+    body = ProgramBody(
+        implementation=CustomCoordinatorDefinition(
+            implementation="map", version="1", config={"body": "reviewer", "max_items": 3}
+        )
+    ).model_dump(mode="json")
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app), base_url="http://platform"
+    ) as http:
+        response = await http.post("/api/catalog/programs/interface", json=body)
+        assert response.status_code == 200
+        assert response.headers["Cache-Control"] == "private, no-store"
+        interface = response.json()["interface"]
+        assert set(interface["dependencies"]) == {"reviewer"}
+        assert interface["configured"]["input_schema"]["properties"]["items"]["maxItems"] == 3
+        assert not (await platform.programs.list(platform.owner)).programs
+        body["implementation"]["config"]["max_items"] = "private-invalid-value"
+        invalid = await http.post("/api/catalog/programs/interface", json=body)
+        assert invalid.status_code == 200
+        assert invalid.json()["interface"] is None and invalid.json()["issues"]
+        assert "private-invalid-value" not in invalid.text
+
+
+async def test_interface_preview_requires_authentication(platform):
+    async def unauthenticated(request):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    app = create_app(platform.programs, platform.executions, unauthenticated)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app), base_url="http://platform"
+    ) as http:
+        response = await http.post("/api/catalog/programs/interface", json={})
+        assert response.status_code == 401

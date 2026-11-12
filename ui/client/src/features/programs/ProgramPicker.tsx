@@ -33,6 +33,6 @@ export default function ProgramPicker({ value, onChange, programs, teamId, scope
     {revisions.isSuccess && revisions.revisions.length === 0 && <p className="text-sm text-muted-foreground">Publish this program before using it here.</p>}
     {(revisions.error || pinned.error) && <p role="alert" className="text-destructive">{programError(revisions.error ?? pinned.error)}</p>}
     {value && <p className="text-xs text-muted-foreground">Pinned: {pinned.data?.definition.name ?? value.program_id} / revision {value.revision}{selected !== value.program_id ? '. Select a revision to replace this pin.' : ''}</p>}
-    {pinned.data && <details className="text-sm"><summary>Program interfaces</summary><pre className="max-h-48 overflow-auto text-xs">{JSON.stringify({ inputs: pinned.data.definition.input_schema, outputs: pinned.data.definition.output_schema }, null, 2)}</pre></details>}
+    {pinned.data && <details className="text-sm"><summary>Program interfaces</summary><pre className="max-h-48 overflow-auto text-xs">{JSON.stringify(pinned.data.interface, null, 2)}</pre></details>}
   </div>;
 }

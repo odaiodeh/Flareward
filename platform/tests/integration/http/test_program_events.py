@@ -12,7 +12,7 @@ from support.review_programs import review_definition
 from support.verification import verification_request
 
 from lumora.executions.domain.models import ExecutionRecord
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.services.access.issuance import CredentialReservation
 from lumora.services.reviews.domain.models import ReviewRecord
 from plugins.human_review.elements.specification import (
@@ -33,7 +33,7 @@ async def test_event_rotation_requires_human_and_never_returns_secrets_from_insp
                 program_id="event-rotation",
                 name="Rotation",
                 owner=api.owner,
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
             ),
             headers=api.human,
         )
@@ -244,7 +244,7 @@ async def test_event_schema_and_program_contract_errors_are_private_before_admis
                 program_id="event-contract",
                 name="Contract",
                 owner=api.owner,
-                implementation=ApplicationDefinition(implementation="greeting", version="1"),
+                implementation=CustomCoordinatorDefinition(implementation="greeting", version="1"),
                 input_schema={"type": "object", "required": ["name"]},
             ),
             headers=api.human,

@@ -11,6 +11,7 @@ def request_digest(record: ExecutionRecord) -> str:
         "owner": {"type": record.owner.type, "id": record.owner.id},
         "program": record.program.model_dump(mode="json"),
         "body_path": record.body_path,
+        "call_site": record.call_site,
         "content_digest": record.content_digest,
         "workflow_access_approval": record.workflow_access_approval.model_dump(mode="json")
         if record.workflow_access_approval

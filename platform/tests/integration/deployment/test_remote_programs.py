@@ -18,11 +18,11 @@ from support.telemetry import span_attributes
 from support.temporal import replay
 
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     ElementStep,
     GraphDefinition,
-    PathBinding,
     ProgramCallStep,
     ProgramDefinition,
 )
@@ -37,7 +37,7 @@ async def test_custom_program_selects_remote_operation_placement(deployed_remote
         program_id="remote-typed-operation",
         name="Remote typed operation",
         owner=deployment.owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="placed_operation",
             version="1",
             config={
@@ -70,7 +70,7 @@ async def test_custom_child_borrows_declared_environment_without_owning_deletion
             program_id="typed-borrower",
             name="Typed borrower",
             owner=deployment.owner,
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="placed_operation",
                 version="1",
                 config={"bundle": bundle, "execution": {"environment": "workspace"}},
@@ -83,7 +83,7 @@ async def test_custom_child_borrows_declared_environment_without_owning_deletion
             program_id="typed-owner",
             name="Typed owner",
             owner=deployment.owner,
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="borrowing_operation",
                 version="1",
                 config={"bundle": bundle, "execution": {"environment": "shared"}},
@@ -165,7 +165,7 @@ async def test_deployed_graph_calls_application_and_remote_child_graph(deployed_
             program_id="remote-application",
             name="Application child",
             owner=deployment.owner,
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": leaf}
             ),
         ),
@@ -330,7 +330,7 @@ async def test_child_owned_environment_is_released_while_parent_continues(deploy
     references = {}
     for name, implementation in (
         ("scoped-work", remote_graph(retained=True)),
-        ("waiting", ApplicationDefinition(implementation="waiting", version="1")),
+        ("waiting", CustomCoordinatorDefinition(implementation="waiting", version="1")),
     ):
         references[name] = await publish_program(
             deployment.http,

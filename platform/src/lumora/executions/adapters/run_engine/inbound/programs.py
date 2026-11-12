@@ -14,20 +14,22 @@ from runengine.programs.graph.inputs import GraphProgramInput
 
 from lumora.executions.adapters.run_engine.outbound.budgets import BudgetedOperations
 from lumora.executions.adapters.run_engine.outbound.errors import application_errors
+from lumora.executions.adapters.run_engine.outbound.observation import ObservedOperations
 from lumora.executions.adapters.run_engine.outbound.runtime import RunEngineProgramRuntime
 from lumora.executions.adapters.run_engine.shared.context import current_context, graph_context
 from lumora.executions.adapters.run_engine.shared.models import (
     MappingConfiguration,
+    PreparedGraph,
     ProgramPayload,
     ProjectionConfiguration,
 )
 from lumora.executions.adapters.run_engine.shared.state import ProgramGraphState
 from lumora.json_values import portable_json
 from lumora.programs.domain.bindings import BindingError, project
-from lumora.programs.invocation import ApplicationInvoker, ProgramInvocationContractError
+from lumora.programs.invocation import CoordinatorInvoker, ProgramInvocationContractError
 from lumora.programs.state import StateContractError
 
-__runengine_contract__ = "lumora-program-v6"
+__runengine_contract__ = "lumora-program-v12"
 
 
 @application_errors
@@ -40,37 +42,44 @@ async def execute_program(operations: CoordinationOperations, data: JsonValue) -
         )
         await budgeted.initialize()
         operations = budgeted
+    observed = ObservedOperations(
+        operations,
+        context.execution_id,
+        payload.implementation.sites if isinstance(payload.implementation, PreparedGraph) else None,
+    )
+    await observed.initialize()
+    operations = observed
     output: JsonValue
     try:
-        Draft202012Validator(payload.input_schema, registry=Registry()).validate(payload.inputs)
+        for schema in payload.interface.input_schemas:
+            Draft202012Validator(schema, registry=Registry()).validate(payload.inputs)
     except SchemaValidationError, Unresolvable, RecursionError:
         raise InvocationContractError("Program input violates its contract") from None
-    if payload.graph_request is not None:
-        request = RunRequest.model_validate(payload.graph_request)
+    implementation = payload.implementation
+    if isinstance(implementation, PreparedGraph):
+        request = RunRequest.model_validate(implementation.request)
         specification = graph_context(GraphProgramInput.model_validate(request.input), context)
         state_type = specification.state.resolve()
         if not issubclass(state_type, ProgramGraphState):
             raise InvocationContractError("Graph state requires an installed Program state adapter")
         initial = state_type.model_validate(
-            {**project(payload.graph_inputs, payload.inputs), "input": payload.inputs}
+            {**project(implementation.inputs, payload.inputs), "input": payload.inputs}
         )
         specification = specification.model_copy(
             update={"state": InstanceRef.from_instance(initial)}
         )
         result = await run_graph(operations, specification.model_dump(mode="json"))
-        output = project(payload.graph_outputs, result)
+        output = project(implementation.outputs, result)
     else:
-        if payload.application is None:
-            raise ValueError("Application program implementation is missing")
         try:
             # Installed declarations are preloaded by the worker. Resolving their
             # identities is deterministic; workflow coordination cannot spawn threads.
-            registration = payload.application.resolve()
+            registration = implementation.call.resolve()
         except ValueError, TypeError:
             raise InvocationContractError("Installed Program declaration is invalid") from None
         runtime = RunEngineProgramRuntime(
             operations,
-            payload.children,
+            implementation.children,
             payload.specifications,
             context,
             payload.placement,
@@ -78,8 +87,8 @@ async def execute_program(operations: CoordinationOperations, data: JsonValue) -
             payload.cancellation,
         )
         try:
-            output = await ApplicationInvoker(registration).invoke(
-                runtime, payload.inputs, payload.configuration
+            output = await CoordinatorInvoker(registration, payload.interface).invoke(
+                runtime, payload.inputs, implementation.configuration
             )
         except ProgramInvocationContractError as error:
             raise InvocationContractError(str(error)) from None
@@ -88,7 +97,8 @@ async def execute_program(operations: CoordinationOperations, data: JsonValue) -
     except ValidationError:
         raise InvocationContractError("Program output must be portable JSON") from None
     try:
-        Draft202012Validator(payload.output_schema, registry=Registry()).validate(output)
+        for schema in payload.interface.output_schemas:
+            Draft202012Validator(schema, registry=Registry()).validate(output)
     except SchemaValidationError, Unresolvable, RecursionError:
         raise InvocationContractError("Program output violates its contract") from None
     return output

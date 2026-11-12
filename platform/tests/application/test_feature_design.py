@@ -5,13 +5,13 @@ import asyncio
 import pytest
 from pydantic import ValidationError
 from support.design_runtime import DesignRuntime
-from support.feature_design import APPLICATION_PROGRAMS as DESIGNERS
+from support.feature_design import COORDINATORS as DESIGNERS
 from support.feature_design import design_definition
 from support.scenarios import publish
 
 from lumora.services.reviews.domain.models import ReviewDecision
 from plugins.adlc.programs.design import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     DesignOutcome,
     DesignResult,
     FeatureDesignConfig,
@@ -19,6 +19,7 @@ from plugins.adlc.programs.design import (
     feature_design,
 )
 from plugins.human_review.elements.specification import ELEMENT_SPECIFICATIONS
+from plugins.human_review.programs.human_review import COORDINATORS as REVIEW_PROGRAMS
 
 
 @pytest.fixture
@@ -27,9 +28,6 @@ def design_case(application):
         application.elements.register_spec_class(spec)
     definition = design_definition(application.elements)
     config = FeatureDesignConfig.model_validate(definition.config)
-    config = config.model_copy(
-        update={"review": config.review.model_copy(update={"max_checks": 2})}
-    )
     request = FeatureRequest(
         task={"description": "Add an operation"}, acceptance_criteria=("Works",)
     )
@@ -42,7 +40,7 @@ def design_case(application):
         (["approve"], DesignOutcome.APPROVED, 1),
         (["reject", "approve"], DesignOutcome.APPROVED, 2),
         (["reject", "reject"], DesignOutcome.REVISIONS_EXHAUSTED, 2),
-        (["pending"], DesignOutcome.REVIEW_UNRESOLVED, 1),
+        (["pending"], DesignOutcome.REVIEW_CLOSED, 1),
         (["expired"], DesignOutcome.REVIEW_CLOSED, 1),
     ],
 )
@@ -108,7 +106,7 @@ async def test_cancellation_owns_the_active_designer_and_does_not_open_review(de
 async def test_design_is_an_ordinary_published_program_with_declared_child_contracts(
     application, design_case
 ):
-    for registration in (*APPLICATION_PROGRAMS, *DESIGNERS):
+    for registration in (*COORDINATORS, *DESIGNERS, *REVIEW_PROGRAMS):
         application.applications.register(registration)
     revision = await publish(
         application,

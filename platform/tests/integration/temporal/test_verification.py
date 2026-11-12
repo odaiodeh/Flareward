@@ -14,7 +14,7 @@ from temporalio.api.enums.v1 import EventType
 from lumora.executions.domain.models import ExecutionPhase, ExecutionRecord
 from lumora.executions.models import StartExecution
 from plugins.verification.elements.specification import ELEMENT_SPECIFICATIONS
-from plugins.verification.programs.waiting import APPLICATION_PROGRAMS
+from plugins.verification.programs.waiting import COORDINATORS
 
 
 @pytest.mark.parametrize("profile", ["thread", "process"])
@@ -23,7 +23,7 @@ async def test_verification_wait_recovers_after_worker_restart_without_verifier_
 ):
     for specification in ELEMENT_SPECIFICATIONS:
         application.elements.register_spec_class(specification)
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     settings = durable.settings.model_copy(
         update={

@@ -6,10 +6,11 @@ from unittest.mock import create_autospec
 import pytest
 from support.python_checks import addition_cases, python_check_input
 
-from lumora.programs.invocation import ApplicationInvoker
+from lumora.programs.invocation import CoordinatorInvoker
 from lumora.programs.ports import ProgramRuntime
+from lumora.programs.signatures import ProgramInterfaces
 from plugins.testing.programs.python_check import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     FunctionCase,
     PythonFunctionCheck,
 )
@@ -38,9 +39,9 @@ async def test_comparator_validates_actual_values_and_does_not_accept_receiver_v
 ):
     runtime.invoke_element.return_value = actual
     request = python_check_input()
-    compared = await ApplicationInvoker(APPLICATION_PROGRAMS[0]).invoke(
-        runtime, request.model_dump(mode="json"), addition_cases().model_dump(mode="json")
-    )
+    compared = await CoordinatorInvoker(
+        COORDINATORS[0], ProgramInterfaces.capture(COORDINATORS[0], {}, {})
+    ).invoke(runtime, request.model_dump(mode="json"), addition_cases().model_dump(mode="json"))
     assert compared["verdict"] == verdict
     assert compared["subject_fingerprint"] == request.subject.fingerprint
 

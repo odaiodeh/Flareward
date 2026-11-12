@@ -5,6 +5,7 @@ from unittest.mock import create_autospec
 
 import pytest
 
+from lumora.programs.authoring import ProgramIssueCode
 from lumora.programs.composition.models import (
     ChooseConfig,
     MapConfig,
@@ -12,15 +13,16 @@ from lumora.programs.composition.models import (
     WaitConfig,
 )
 from lumora.programs.composition.programs import (
-    APPLICATION_PROGRAMS,
+    COORDINATORS,
     CompositionContractError,
     choose_program,
     map_program,
     repeat_program,
     wait_program,
 )
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.programs.ports import ChildExecution, ProgramRuntime
+from lumora.programs.service import ProgramContractError
 
 
 @pytest.fixture
@@ -160,12 +162,14 @@ async def test_missing_composition_children_fail_before_publication(application)
         program_id="invalid",
         name="invalid",
         owner=application.owner,
-        implementation=ApplicationDefinition(implementation="map", version="1", config={}),
+        implementation=CustomCoordinatorDefinition(implementation="map", version="1", config={}),
     )
-    for registration in APPLICATION_PROGRAMS:
+    for registration in COORDINATORS:
         application.applications.register(registration)
     draft = await application.programs.save(from_missing, application.owner)
-    with pytest.raises(ValueError, match="Invalid configuration"):
+    with pytest.raises(ProgramContractError) as refused:
         await application.programs.publish(
             from_missing.program_id, application.owner, expected_version=draft.version
         )
+    assert refused.value.issue.code == ProgramIssueCode.BINDING
+    assert refused.value.issue.path == ("implementation", "children", "body")

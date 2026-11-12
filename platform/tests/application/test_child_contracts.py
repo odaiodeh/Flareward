@@ -1,33 +1,36 @@
 """Declared backend calls share publication contracts with graph Program calls."""
 
+from dataclasses import replace
+
 import pytest
+from pydantic import ValidationError
 from support.programs import ComposedConfig, composed_program
-from support.typed_programs import APPLICATION_PROGRAMS as TYPED_PROGRAMS
+from support.typed_programs import COORDINATORS as TYPED_PROGRAMS
 from support.typed_programs import TypedInput
 
 from lumora.programs.authoring import ProgramIssueCode
-from lumora.programs.composition.programs import APPLICATION_PROGRAMS
+from lumora.programs.composition.models import MapConfig
+from lumora.programs.composition.programs import COORDINATORS
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
-    LiteralBinding,
-    PathBinding,
+    CustomCoordinatorDefinition,
     ProgramBody,
     ProgramDefinition,
 )
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.programs.service import ProgramContractError
 
 
 @pytest.fixture(autouse=True)
 def installed(application):
-    for registration in (*APPLICATION_PROGRAMS, *TYPED_PROGRAMS):
+    for registration in (*COORDINATORS, *TYPED_PROGRAMS):
         application.applications.register(registration)
 
 
 @pytest.fixture
 def child():
     return ProgramBody(
-        implementation=ApplicationDefinition(implementation="typed_program", version="1")
+        implementation=CustomCoordinatorDefinition(implementation="typed_program", version="1")
     )
 
 
@@ -36,7 +39,7 @@ def control(application, child, kind, config, **values):
         program_id="control",
         name="Control",
         owner=application.owner,
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation=kind, version="1", children={"body": child}, config=config
         ),
         **values,
@@ -197,8 +200,12 @@ async def test_unknown_choose_input_keeps_runtime_validation_instead_of_guessing
 
 async def test_custom_backend_contract_uses_normalized_parent_input_schema(application, child):
     application.applications.register(
-        ApplicationRegistration(
-            "typed_coordinator", "1", ComposedConfig, composed_program, input_model=TypedInput
+        CoordinatorRegistration(
+            "typed_coordinator",
+            "1",
+            ComposedConfig,
+            CustomCoordinatorStrategy(composed_program),
+            input_model=TypedInput,
         )
     )
     root = ProgramDefinition(
@@ -206,7 +213,7 @@ async def test_custom_backend_contract_uses_normalized_parent_input_schema(appli
         name="Coordinator",
         owner=application.owner,
         input_schema=TypedInput.model_json_schema(),
-        implementation=ApplicationDefinition(
+        implementation=CustomCoordinatorDefinition(
             implementation="typed_coordinator",
             version="1",
             children={
@@ -226,3 +233,73 @@ async def test_custom_backend_contract_uses_normalized_parent_input_schema(appli
             "coordinator", application.owner, expected_version=saved.version
         )
     ).valid
+
+
+@pytest.fixture
+async def mapped_revision(application, child):
+    config = {
+        "inputs": {
+            "amountAlias": PathBinding(path=("item",)).model_dump(mode="json"),
+            "label": LiteralBinding(value="mapped").model_dump(mode="json"),
+        }
+    }
+    draft = await application.programs.save(
+        control(application, child, "map", config), application.owner
+    )
+    return await application.programs.publish(
+        "control", application.owner, expected_version=draft.version
+    )
+
+
+async def test_dependency_expectations_are_frozen_and_detached(application, mapped_revision):
+    declaration = mapped_revision.interface.dependencies["body"]
+    assert declaration.inputs["amountAlias"] == PathBinding(path=("item",))
+    assert "item" in declaration.scope_schema["required"]
+    declaration.scope_schema["properties"].clear()
+    reloaded = await application.programs.revision(mapped_revision.reference, application.owner)
+    assert "item" in reloaded.interface.dependencies["body"].scope_schema["properties"]
+
+
+@pytest.mark.parametrize("change", ["inputs", "outputs", "scope_schema", "result_schema"])
+async def test_dependency_expectation_drift_rejects_admission(
+    application, mapped_revision, monkeypatch, change
+):
+    original = MapConfig.child_contracts
+    changed = {
+        "inputs": {"amountAlias": LiteralBinding(value=2), "label": LiteralBinding(value="mapped")},
+        "outputs": {"value": PathBinding(path=())},
+        "scope_schema": {"type": "array"},
+        "result_schema": {"type": "array"},
+    }
+
+    def declarations(config):
+        contracts = original(config)
+        return {
+            name: replace(contract, **{change: changed[change]})
+            for name, contract in contracts.items()
+        }
+
+    monkeypatch.setattr(MapConfig, "child_contracts", declarations)
+    with pytest.raises(ProgramContractError, match="published contract"):
+        await application.programs.validate_revision(mapped_revision, application.owner)
+
+
+@pytest.mark.parametrize("declarations", [None, {"body": {}}, {"": {}}])
+async def test_invalid_installed_dependency_declarations_have_safe_diagnostics(
+    application, mapped_revision, monkeypatch, declarations
+):
+    monkeypatch.setattr(MapConfig, "child_contracts", lambda self: declarations)
+    draft = await application.programs.draft("control", application.owner)
+    report = await application.programs.validate(
+        "control", application.owner, expected_version=draft.version
+    )
+    assert not report.valid
+    assert report.issues[0].code == ProgramIssueCode.CONFIGURATION
+
+
+async def test_restored_dependency_declaration_requires_a_bound_target(mapped_revision):
+    document = mapped_revision.model_dump(mode="json")
+    document["interface"]["dependencies"]["unbound"] = document["interface"]["dependencies"]["body"]
+    document["content_digest"] = ""
+    with pytest.raises(ValidationError, match="interface"):
+        type(mapped_revision).model_validate(document)

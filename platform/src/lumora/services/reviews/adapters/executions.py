@@ -35,6 +35,27 @@ class ExecutionReviews:
         except KeyError, ExecutionMissing, ExecutionError:
             raise ReviewUnavailable() from None
 
+    async def contains(
+        self, execution_id: str, ancestor_id: str, root_execution_id: str, owner: Identity
+    ) -> bool:
+        """Check persisted ancestry, including completed nested reviewer executions."""
+        visited: set[str] = set()
+        current: str | None = execution_id
+        try:
+            while current is not None and current not in visited:
+                visited.add(current)
+                record = await self._executions.get(current, owner)
+                if record.context.root_execution_id != root_execution_id:
+                    return False
+                if current == ancestor_id:
+                    return True
+                current = record.parent_execution_id
+            return False
+        except PermissionError:
+            raise ReviewMissing("Review execution not found") from None
+        except KeyError, ExecutionMissing, ExecutionError:
+            raise ReviewUnavailable() from None
+
     async def wake(self, review: ReviewRecord) -> None:
         await self._executions.send(
             review.execution_id, review.message_name, {"review_id": review.review_id}, review.owner

@@ -1,7 +1,8 @@
 /** Canonical program clients publish and run pinned composition through native services. */
 import assert from 'node:assert/strict';
+import { isAxiosError } from 'axios';
 import api from '../client/src/http/axiosAgentConfig';
-import { cancelProgramExecution, getProgramDraft, getProgramRevision, inspectProgramExecution, listProgramExecutionChildren, listProgramRevisions, listPrograms, programImplementations, publishProgram, saveProgram, startProgram, validateProgramDraft, type ProgramBody, type ProgramDefinition } from '../client/src/api/programs';
+import { cancelProgramExecution, getProgramDraft, getProgramRevision, inspectProgramExecution, inspectExecutionOccurrences, listProgramExecutionChildren, listProgramRevisions, listPrograms, programImplementations, previewProgramInterface, publishProgram, saveProgram, startProgram, validateProgramDraft, type ProgramBody, type ProgramDefinition } from '../client/src/api/programs';
 import { captureResourceSnapshot, createResource, listResourcePage, updateResource } from '../client/src/api/resources';
 import type { JsonValue } from '../shared/json';
 import { catalogService } from '../client/src/api/catalog';
@@ -38,6 +39,13 @@ async function verifyInstalledProgramModels(base: Pick<ProgramDefinition, 'owner
   } };
   const saved = await saveProgram({ definition, expected_version: 0 });
   const published = await publishProgram(definition.program_id, saved.version);
+  assert.deepEqual(published.interface.coordinator, { key: 'typed_program', version: '1' });
+  assert.deepEqual(published.interface.input_schema, definition.input_schema);
+  assert.deepEqual(published.interface.normalized_output_schema, descriptor.output_schema);
+  assert.ok(isRecord(published.interface.input_model_schema?.properties));
+  assert.ok(Object.hasOwn(published.interface.input_model_schema.properties, 'amountAlias'));
+  await saveProgram({ definition: { ...definition, input_schema: { type: 'array' } }, expected_version: saved.version });
+  assert.deepEqual((await getProgramRevision({ program_id: definition.program_id, revision: published.revision })).interface, published.interface);
   const program = { program_id: definition.program_id, revision: published.revision };
   await startProgram({ execution_id: 'client-installed-models', program, inputs: { amountAlias: 3, label: 'client' } });
   const result = await completed('client-installed-models');
@@ -48,7 +56,7 @@ async function verifyInstalledProgramModels(base: Pick<ProgramDefinition, 'owner
   assert.equal(invalid.failure?.kind, 'contract');
   assert.ok(!invalid.failure?.message.includes('private-model-input'));
   const map: ProgramDefinition = { ...base, program_id: 'client-typed-map', name: 'Typed Map', implementation: {
-    kind: 'application', implementation: 'map', version: '1', config: { inputs: { label: { kind: 'literal', value: 'mapped' } } }, children: { body: program }, environments: {}, child_environment_imports: {},
+    kind: 'application', implementation: 'map', version: '1', config: { max_items: 2, inputs: { label: { kind: 'literal', value: 'mapped' } } }, children: { body: program }, environments: {}, child_environment_imports: {},
   } };
   const draft = await saveProgram({ definition: map, expected_version: 0 });
   const report = await validateProgramDraft(map.program_id, draft.version);
@@ -61,6 +69,11 @@ async function verifyInstalledProgramModels(base: Pick<ProgramDefinition, 'owner
   const fixed = await saveProgram({ definition: map, expected_version: draft.version });
   assert.equal((await validateProgramDraft(map.program_id, fixed.version)).valid, true);
   const mapped = await publishProgram(map.program_id, fixed.version);
+  assert.ok(isRecord(mapped.interface.configured?.input_schema?.properties));
+  const itemShape = mapped.interface.configured.input_schema.properties.items;
+  assert.ok(isRecord(itemShape));
+  assert.equal(itemShape.maxItems, 2);
+  await assert.rejects(startProgram({ execution_id: 'client-map-too-large', program: { program_id: map.program_id, revision: mapped.revision }, inputs: { items: [1, 2, 3] } }), error => isAxiosError(error) && error.response?.status === 422);
   await startProgram({ execution_id: 'client-typed-map', program: { program_id: map.program_id, revision: mapped.revision }, inputs: { items: [2, 3] } });
   const observed = await completed('client-typed-map');
   assert.ok(isRecord(observed.result) && Array.isArray(observed.result.items));
@@ -192,7 +205,14 @@ async function verifyOwnedBodies(base: Pick<ProgramDefinition, 'owner' | 'input_
   const children = await listProgramExecutionChildren(result.execution_id);
   assert.equal(children.length, 2);
   assert.equal(new Set(children.map(child => child.execution_id)).size, 2);
+  const observation = await inspectExecutionOccurrences(result.execution_id, undefined);
+  assert.equal(observation.execution_id, result.execution_id);
+  assert.equal(observation.total, 2);
+  assert.deepEqual(new Set(observation.occurrences.map(call => call.child_execution_id)), new Set(children.map(child => child.execution_id)));
+  assert.ok(observation.occurrences.every(call => call.kind === 'program' && call.call_site === 'body' && call.status === 'completed'));
   for (const child of children) {
+    const calls = await inspectExecutionOccurrences(child.execution_id, undefined);
+    assert.ok(calls.occurrences.some(call => call.kind === 'operation' && call.call_site === 'work' && call.status === 'completed'));
     assert.deepEqual(child.program, reference);
     assert.deepEqual(child.body_path, ['body']);
     assert.equal(child.content_digest, published.content_digest);
@@ -206,9 +226,9 @@ async function verifySavedResources(base: Pick<ProgramDefinition, 'owner' | 'inp
   const snapshot = await captureResourceSnapshot(coding.source);
   assert.equal(snapshot.schema_version, 2);
   const numeric: ProgramDefinition = { ...base, program_id: 'numeric-snapshot', name: 'Numeric snapshot', implementation: {
-    kind: 'application', implementation: 'placed_operation', version: '1', config: { bundle: snapshot as unknown as JsonValue, execution: { profile: 'process' } }, children: {}, environments: {}, child_environment_imports: {},
+    kind: 'application', implementation: 'placed_operation', version: '1', config: { execution: { profile: 'process' } }, children: {}, environments: {}, child_environment_imports: {},
   } };
-  const numericDraft = await saveProgram({ definition: numeric, expected_version: 0 });
+  const numericDraft = await saveProgram({ definition: numeric, expected_version: 0, resource_selections: [{ source: coding.source, adoption: 'reject', configuration_path: ['bundle'] }] });
   assert.ok(numericDraft.definition.implementation.kind === 'application');
   const retainedBundle = numericDraft.definition.implementation.config.bundle;
   assert.ok(isRecord(retainedBundle));
@@ -252,6 +272,33 @@ async function verifySavedResources(base: Pick<ProgramDefinition, 'owner' | 'inp
   assert.deepEqual((await completed('saved-op-adopted')).result, { answer: 'changed:client-middle:adopted' });
 }
 
+async function verifyResultRouting(base: Pick<ProgramDefinition, 'owner' | 'input_schema' | 'output_schema' | 'execution_profile'>) {
+  const identity = { input_schema: {}, output_schema: {}, execution_profile: null, implementation: { kind: 'application' as const, implementation: 'identity_program', version: '1', config: {}, children: {}, environments: {}, child_environment_imports: {} } };
+  const graph: Extract<ProgramDefinition['implementation'], { kind: 'graph' }> = {
+    kind: 'graph', resources: [], steps: ['decide', 'yes', 'no', 'finish'].map(uid => ({ kind: 'program' as const, uid, program: identity, inputs: uid === 'decide' ? { kind: 'path' as const, path: ['input'] } : { kind: 'literal' as const, value: uid }, outputs: {}, environment_imports: {}, max_attempts: 1, metadata: {} })),
+    edges: { yes: ['finish'], no: ['finish'] }, conditions: [{ kind: 'result', source: 'decide', selection: { kind: 'path', path: ['results', 'decide'] }, branches: { approved: 'yes', rejected: 'no' }, execution: { profile: 'process' } }],
+    entry: 'decide', exit: 'finish', inputs: {}, outputs: { kind: 'path', path: ['results'] }, environments: {}, recursion_limit: 20,
+  };
+  const definition: ProgramDefinition = { ...base, program_id: 'client-result-routing', name: 'Result routing', input_schema: {}, output_schema: {}, implementation: graph };
+  const draft = await saveProgram({ definition, expected_version: 0 });
+  assert.equal((await validateProgramDraft(definition.program_id, draft.version)).valid, true);
+  const published = await publishProgram(definition.program_id, draft.version);
+  const program = { program_id: definition.program_id, revision: published.revision };
+  for (const [label, branch] of [['approved', 'yes'], ['rejected', 'no']]) {
+    const id = `client-result-${label}`;
+    await startProgram({ execution_id: id, program, inputs: label });
+    const result = (await completed(id)).result;
+    assert.ok(isRecord(result));
+    assert.deepEqual(Object.keys(result).sort(), ['decide', 'finish', branch].sort());
+  }
+  await startProgram({ execution_id: 'client-invalid-route', program, inputs: ['approved', 'private-unmapped-label'] });
+  const failed = await terminal('client-invalid-route');
+  assert.equal(failed.phase, 'failed');
+  assert.equal(failed.failure?.kind, 'contract');
+  assert.ok(!failed.failure?.message.includes('private-unmapped-label'));
+  assert.equal((await listProgramExecutionChildren('client-invalid-route')).length, 1);
+}
+
 async function verifySavedCondition(base: Pick<ProgramDefinition, 'owner' | 'input_schema' | 'output_schema' | 'execution_profile'>) {
   const root = (await listResourcePage({ category: 'operations' })).resources.find(value => value.name === 'Client operation')!;
   assert.ok(root.source);
@@ -268,7 +315,7 @@ async function verifySavedCondition(base: Pick<ProgramDefinition, 'owner' | 'inp
       { kind: 'program', uid: 'score', program: pin, inputs: { name: { kind: 'path', path: ['user_prompt'] } }, outputs: { output: { kind: 'path', path: ['answer'] } }, environment_imports: {}, max_attempts: 1, metadata: {} },
       ...['yes', 'no'].map(uid => ({ kind: 'operation' as const, uid, element: root.source!.key, execution: { profile: 'process' }, inputs: { text: { kind: 'literal' as const, value: uid } }, outputs: { values: { kind: 'path' as const, path: [] } }, max_attempts: 1, metadata: {} })),
       { kind: 'program', uid: 'finish', program: pin, inputs: { name: { kind: 'literal', value: 'done' } }, outputs: {}, environment_imports: {}, max_attempts: 1, metadata: {} },
-    ], write_policy: 'reduce', edges: { score: ['no'], yes: ['finish'], no: ['finish'] }, conditions: [{ source: 'score', condition: condition.source.key, branches: { true: 'yes', false: 'no' }, execution: { profile: 'process' } }],
+    ], write_policy: 'reduce', edges: { score: ['no'], yes: ['finish'], no: ['finish'] }, conditions: [{ kind: 'condition', source: 'score', condition: condition.source.key, branches: { true: 'yes', false: 'no' }, execution: { profile: 'process' } }],
     entry: 'score', exit: 'finish', inputs: { user_prompt: { kind: 'path', path: ['name'] } }, outputs: { answer: { kind: 'path', path: ['values', 'text'] }, selected: { kind: 'path', path: ['values', 'key'] } }, environments: {}, recursion_limit: 100,
   };
   const definition: ProgramDefinition = { ...base, program_id: 'client-routing', name: 'Routed operations', implementation: graph };
@@ -329,8 +376,18 @@ export default async function verifyComposition() {
   const reference = { program_id: body.program_id, revision: publishedBody.revision };
   assert.equal((await getProgramRevision(reference)).definition.name, body.name);
   const definition: ProgramDefinition = { ...base, program_id: 'client-map', name: 'Client map', input_schema: mapped.input_schema!, output_schema: mapped.output_schema!, implementation: { kind: 'application', implementation: 'map', version: '1', config: { concurrency: 2, max_items: 10, inputs: { name: { kind: 'path', path: ['item'] } } }, children: { body: reference }, environments: {}, child_environment_imports: {} } };
-  const draft = await saveProgram({ definition, expected_version: 0 });
+  const unbound = { ...definition, implementation: { ...definition.implementation, children: {} } };
+  const preview = await previewProgramInterface(unbound);
+  assert.deepEqual(Object.keys(preview.interface!.dependencies), ['body']);
+  assert.deepEqual(preview.issues, []);
+  assert.deepEqual((await listPrograms()).programs.map(value => value.program_id), ['client-body']);
+  const unfinished = await saveProgram({ definition: unbound, expected_version: 0 });
+  const missing = await validateProgramDraft(definition.program_id, unfinished.version);
+  assert.equal(missing.valid, false);
+  assert.deepEqual(missing.issues[0].path, ['implementation', 'children', 'body']);
+  const draft = await saveProgram({ definition, expected_version: unfinished.version });
   const published = await publishProgram(definition.program_id, draft.version);
+  assert.deepEqual(published.interface.dependencies, preview.interface!.dependencies);
   assert.deepEqual(await getProgramDraft(body.program_id), bodyDraft);
   assert.deepEqual((await listPrograms()).programs.map(value => value.program_id), ['client-body', 'client-map']);
   const edited = await saveProgram({ definition: { ...bodyDraft.definition, name: 'Edited child' }, expected_version: bodyDraft.version });
@@ -364,6 +421,7 @@ export default async function verifyComposition() {
   assert.equal(cancelled.phase, 'cancelled');
   await verifySavedResources(base);
   await verifySavedCondition(base);
+  await verifyResultRouting(base);
   await verifyUnfinishedDraft(base);
   await verifyOwnedBodies(base);
   await verifyIncompleteConfiguration(base);

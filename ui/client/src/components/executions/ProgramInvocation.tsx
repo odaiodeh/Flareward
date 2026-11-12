@@ -30,7 +30,7 @@ export default function ProgramInvocation({ program, scope, teamId, onBusyChange
 function InvocationInputs({ revision, scope, teamId, onBusyChange }: {
   revision: ProgramRevision; scope: string; teamId?: string; onBusyChange: (busy: boolean) => void;
 }) {
-  const schema = revision.definition.input_schema;
+  const schema = revision.interface.configured?.input_schema ?? revision.interface.input_schema;
   const [inputs, setInputs] = useState<JsonValue>(() => initialSchemaInput(schema));
   const [advanced, setAdvanced] = useState(false);
   const [intent, setIntent] = useState<StartProgram | null>(null);

@@ -11,7 +11,7 @@ from support.http_programs import publish_program
 from support.program_check_api import prepared_verifier
 from support.python_checks import ADDITION, SUBTRACTION, addition_cases
 
-from lumora.programs.domain.models import ApplicationDefinition, ProgramDefinition
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramDefinition
 from lumora.services.verification.domain.models import VerificationSubject
 
 
@@ -98,7 +98,7 @@ async def test_plan_or_owning_root_cancellation_closes_actual_checker_and_collec
                             program_id="owning-workflow",
                             name="Owning workflow",
                             owner=api.owner,
-                            implementation=ApplicationDefinition(
+                            implementation=CustomCoordinatorDefinition(
                                 implementation="waiting", version="1"
                             ),
                         ),

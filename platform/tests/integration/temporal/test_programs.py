@@ -12,10 +12,10 @@ from temporalio.api.enums.v1 import EventType
 from lumora.bootstrap.worker import compose_worker
 from lumora.executions.domain.models import ExecutionPhase
 from lumora.executions.models import StartExecution
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     GraphDefinition,
-    PathBinding,
     ProgramCallStep,
 )
 
@@ -26,7 +26,7 @@ async def test_graph_application_graph_composition_and_replay(durable, applicati
     middle = await publish(
         application,
         "middle",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             children={"greet": leaf.reference},

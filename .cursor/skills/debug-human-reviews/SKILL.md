@@ -15,7 +15,31 @@ do not add a dedicated review scheduler, worker or graph step kind.
 Trace `ReviewService` through its application-owned repository/execution ports.
 Mongo atomically accepts the human response and notification intent. `ExecutionReviews`
 binds the actual accepted root/child and delegates native status/messages to the
-execution service. The coordinator invokes open/inspect effects and waits through
+execution service. For replaceable reviewer Programs, do not trust the returned
+approval-shaped record alone. `confirm_human_review` re-reads the persisted record
+through `ReviewService.confirm`, checks expected policy and exact subject, then
+checks the invoked reviewer's execution subtree. Use the child ID obtained from
+the runtime, not an ID asserted by the review result. Descendants permit graph
+wrappers; siblings are different occurrences. Completed child ancestry is valid;
+unknown records fail unavailable. Confirmation preserves pending/rejected/closed
+state and does not grant human decision authority. See
+[focused evidence](../../../docs/evidence/2026-11-11-review-confirmation.md),
+`test_review_ancestry.py` and native `reviews/test_confirmation.py`.
+ADLC Design 2 / Engineering 4 configure `ReviewDependency` and invoke a reviewer
+Program; the reviewer configuration owns its prompt/template and waiting bounds.
+Inspect the child binding as well as the caller's confirmation capability. A
+returned forged approval cannot replace a persisted rejection. After a reviewer
+exits at its check limit, reconciliation may cancel a pending review; expect the
+caller to report the persisted closed state. Generic review result models belong
+to `services/reviews/domain/results.py`, not the concrete coordinator module.
+The migrated ADLC recovery gate is `integration/temporal/test_reviews.py -k adlc`.
+It observes the actual review timer before stopping the worker, persists rejection
+while stopped, restarts the API on a borrowed stable listener, then resumes into
+revision two or cancellation. Replaying a generic review alone does not prove the
+ADLC caller's post-child confirmation. Published reviewer executions and owned
+bodies share a revision: use `body_path` as well as the Program reference when
+counting them. Require terminal native descendants before replaying final histories.
+The coordinator invokes open/inspect effects and waits through
 `ProgramRuntime.receive`; message data is never an approval.
 
 For lost issuance responses, use the existing human endpoint with `Idempotency-Key`

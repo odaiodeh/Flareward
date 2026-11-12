@@ -6,12 +6,8 @@ from support.conditions import ELEMENT_SPECIFICATIONS
 from support.operations import operation_graph
 
 from lumora.programs.authoring import ProgramIssueCode
-from lumora.programs.domain.models import (
-    GraphWritePolicy,
-    LiteralBinding,
-    PathBinding,
-    ProgramDefinition,
-)
+from lumora.programs.domain.bindings import LiteralBinding, PathBinding
+from lumora.programs.domain.models import GraphWritePolicy, ProgramDefinition
 from lumora.programs.service import ProgramContractError
 
 

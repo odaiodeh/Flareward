@@ -10,12 +10,8 @@ from lumora.elements.operation import BaseOperation, OperationContext
 from lumora.elements.specification import BaseElementSpec
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.models import Model
-from lumora.programs.domain.models import (
-    GraphDefinition,
-    OperationStep,
-    PathBinding,
-    ProgramDefinition,
-)
+from lumora.programs.domain.bindings import PathBinding
+from lumora.programs.domain.models import GraphDefinition, OperationStep, ProgramDefinition
 from lumora.resources.domain.bundles import ResourceDefinition, ResourceKey
 from lumora.resources.domain.categories import ResourceCategory
 from lumora.services.identity.domain import Identity

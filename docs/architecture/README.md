@@ -38,6 +38,7 @@ are superseded. Safe cancellation and cleanup of current owned work still apply.
 All diagrams below describe the target; implementation status is called out
 separately. The full diagrams from the design discussion are retained here.
 
+- [Detailed coordinator milestone and acceptance](coordinator-programs/README.md)
 - [Overall architecture and ownership](#architecture-and-ownership)
 - [Definitions, configuration, and runtime hierarchy](#definitions-configuration-and-runtime-hierarchy)
 - [Program model and callable components](#programs-and-composition)
@@ -161,10 +162,24 @@ outcomes. Run Engine owns execution mechanics. ADLC-specific work management and
 acceptance sit above generic program composition. Other kinds of programs must
 not be forced to adopt software-engineering concepts.
 
+## Coordinator model clarified 2026-11-11
+
+The [unified coordinator milestone](coordinator-programs/README.md) is the detailed
+specification for the currently authorized work. It contains the mental model,
+contracts, ownership, ASCII architecture/sequence diagrams, UI behavior, delivery
+order and C1-C10 acceptance criteria. It refines the Program model in this parent
+architecture; the full platform obligations below remain required.
+
+A Program selects and configures a coordinator implementation. Run Engine supplies
+native graph coordination; plugins supply other coordinator behavior. Both share
+one catalog and Program lifecycle, with typed implementation-specific validation
+and adapter integration. The existing foundation is an intermediate checkpoint;
+see [current status](../status.md) for implemented and pending capabilities.
+
 ## Canonical public model
 
 The public terms are **Element -> Resource -> Program -> Execution**. A graph is
-an implementation of a Program, never another executable product or lifecycle.
+a Program configured with the native graph coordinator.
 A registered backend coordinator implements the same Program contract. Preserve
 implementation-specific validation and editing internally; never create separate
 publication, invocation, review, placement or observation APIs for these variants.
@@ -215,7 +230,10 @@ explicit instead of making a scheduler responsible for constructing provider cli
 Ordinary graph Programs use portable data channels (`input`, `results`, `values`,
 `output`). State-based MAS node/condition capabilities select an agent-state adapter
 with their typed conversation/workload channels; those channels do not belong to
-generic operation or backend Program contracts. Inline bodies are owned Program
+generic operation or backend Program contracts. Graph routes can select typed
+Operation/Program results through ordinary bindings without constructing a MAS
+condition. Reusable decision logic stays in capabilities; native graph coordination
+owns branching and joins. Inline bodies are owned Program
 composition, not independently published resources or additional product types.
 
 ## Fundamental components

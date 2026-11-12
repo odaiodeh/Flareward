@@ -20,11 +20,11 @@ from temporalio.client import Client
 from lumora.bootstrap.settings.platform_settings import PlatformSettings
 from lumora.bootstrap.settings.worker_settings import WorkerSettings
 from lumora.executions.domain.preferences import ExecutionSelection
+from lumora.programs.domain.bindings import PathBinding
 from lumora.programs.domain.models import (
-    ApplicationDefinition,
+    CustomCoordinatorDefinition,
     ElementStep,
     GraphDefinition,
-    PathBinding,
     ProgramDefinition,
 )
 from lumora.resources.domain.categories import ResourceCategory
@@ -102,7 +102,7 @@ async def test_composed_concurrent_executions_export_correct_session_and_child_i
             program_id="traced-parent",
             name="Traced application",
             owner=Identity.user("owner"),
-            implementation=ApplicationDefinition(
+            implementation=CustomCoordinatorDefinition(
                 implementation="composed", version="1", children={"greet": leaf}
             ),
         ),

@@ -17,7 +17,7 @@ from lumora.services.access.credentials import (
     WorkflowCredentialUnavailable,
 )
 from lumora.services.reviews.access import ReviewGrant, review_credential_key
-from lumora.services.reviews.contracts import CloseReview, OpenReview
+from lumora.services.reviews.contracts import CloseReview, ConfirmReview, OpenReview
 from lumora.services.reviews.domain.models import ReviewRecord
 from lumora.services.reviews.ports import (
     ReviewConflict,
@@ -186,6 +186,21 @@ class HTTPReviewGateway:
         review = self._view(await self._request("GET", "/api/reviews/" + review_id))
         if review.review_id != review_id:
             raise ValueError("Review response identifies a different occurrence")
+        return review
+
+    async def confirm(self, request: ConfirmReview) -> ReviewRecord:
+        review = self._view(
+            await self._request(
+                "POST", "/api/reviews/confirmations", request.model_dump_json().encode()
+            )
+        )
+        expected = review.specification.model_copy(update={"subject": request.subject})
+        if (
+            review.review_id != request.review_id
+            or review.policy != request.policy
+            or review.specification.fingerprint != expected.fingerprint
+        ):
+            raise ValueError("Review confirmation identifies different work")
         return review
 
     async def close(self, request: CloseReview) -> ReviewRecord:

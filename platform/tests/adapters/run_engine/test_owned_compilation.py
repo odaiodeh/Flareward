@@ -4,13 +4,14 @@ import pytest
 from runengine.coordination.models import RunRequest
 from runengine.invocation.config import K8sRunnerConfig, ProcessRunnerConfig, ThreadRunnerConfig
 from support.operations import operation_graph
+from support.program_interfaces import declared_interface
 from support.scenarios import publish
 
 from lumora.executions.adapters.run_engine.outbound.compiler import ProgramCompiler
 from lumora.executions.adapters.run_engine.shared.models import ProgramPayload
 from lumora.executions.domain.context import ExecutionContext
 from lumora.executions.domain.preferences import ExecutionSelection
-from lumora.programs.domain.models import ApplicationDefinition, ProgramBody, ProgramRevision
+from lumora.programs.domain.models import CustomCoordinatorDefinition, ProgramBody, ProgramRevision
 
 
 @pytest.fixture
@@ -40,7 +41,7 @@ def compiler(application):
 async def test_owned_default_inherits_but_published_default_is_independent(
     application, compiler, target_kind, override, expected
 ):
-    implementation = ApplicationDefinition(implementation="greeting", version="1")
+    implementation = CustomCoordinatorDefinition(implementation="greeting", version="1")
     if target_kind == "owned":
         target = ProgramBody(implementation=implementation, execution_profile=override)
     else:
@@ -49,7 +50,9 @@ async def test_owned_default_inherits_but_published_default_is_independent(
     root = await publish(
         application,
         "root",
-        ApplicationDefinition(implementation="composed", version="1", children={"greet": target}),
+        CustomCoordinatorDefinition(
+            implementation="composed", version="1", children={"greet": target}
+        ),
         execution_profile="process",
     )
     request = await compiler.compile(
@@ -57,7 +60,7 @@ async def test_owned_default_inherits_but_published_default_is_independent(
     )
     payload = ProgramPayload.model_validate(request.input)
     child_payload = ProgramPayload.model_validate(
-        RunRequest.model_validate(payload.children["greet"]).input
+        RunRequest.model_validate(payload.implementation.children["greet"]).input
     )
     assert payload.placement.default_profile == "process"
     assert child_payload.placement.default_profile == expected
@@ -79,7 +82,7 @@ async def test_containment_does_not_grant_parent_environment(application, compil
     root = await publish(
         application,
         "root",
-        ApplicationDefinition(
+        CustomCoordinatorDefinition(
             implementation="composed",
             version="1",
             environments={"parent": "sandbox"},
@@ -94,7 +97,7 @@ async def test_containment_does_not_grant_parent_environment(application, compil
         return
     request = await compiler.compile(root, application.owner, context)
     payload = ProgramPayload.model_validate(request.input)
-    child = RunRequest.model_validate(payload.children["greet"])
+    child = RunRequest.model_validate(payload.implementation.children["greet"])
     assert request.environments["parent"].kind == "owned"
     assert not child.environments
     child_payload = ProgramPayload.model_validate(child.input)
@@ -123,6 +126,11 @@ async def test_restored_revision_rechecks_bindings_before_native_preparation(app
             update={"implementation": graph.model_copy(update={"steps": (step,)})}
         ),
         revision=original.revision,
+        interface=declared_interface(
+            original.definition.model_copy(
+                update={"implementation": graph.model_copy(update={"steps": (step,)})}
+            )
+        ),
     )
     with pytest.raises(ValueError, match="Required invocation input"):
         await compiler.compile(

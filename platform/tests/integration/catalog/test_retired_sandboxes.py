@@ -97,7 +97,7 @@ async def test_openshell_profile_keeps_network_policy(platform, application):
         platform.owner,
         ExecutionContext(identity=platform.owner),
     )
-    graph_request = RunRequest.model_validate(request.input["graph_request"])
+    graph_request = RunRequest.model_validate(request.input["implementation"]["request"])
     graph = GraphProgramInput.model_validate(graph_request.input)
     assert graph.targets["echo"] == expected
     assert not application.elements.has_spec(ResourceCategory.SANDBOX, "openshell_sandbox")

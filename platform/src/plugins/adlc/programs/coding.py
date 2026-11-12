@@ -8,7 +8,7 @@ from lumora.elements.coding.contracts import CodingInput, CodingOutcome
 from lumora.executions.domain.preferences import ExecutionSelection
 from lumora.programs.files import ProgramFileInputs
 from lumora.programs.ports import ProgramRuntime
-from lumora.programs.registry import ApplicationRegistration
+from lumora.programs.registry import CoordinatorRegistration, CustomCoordinatorStrategy
 from lumora.resources.domain.bundles import ElementBundle
 from lumora.services.artifacts.domain.models import BlobArtifactRef
 from lumora.services.verification.domain.models import VerificationSubject
@@ -18,10 +18,10 @@ from lumora.services.workspaces.domain.files import (
     InputFile,
     WorkspaceFile,
 )
+from plugins.adlc.programs.contracts import validate_result
 from plugins.adlc.programs.program import (
     EngineeringCandidate,
     EngineeringWork,
-    validate_result,
 )
 from plugins.artifacts.elements.operations import PublishedArtifact
 
@@ -140,12 +140,12 @@ async def coding_file_candidate(
     ).model_dump(mode="json")
 
 
-APPLICATION_PROGRAMS = (
-    ApplicationRegistration(
+COORDINATORS = (
+    CoordinatorRegistration(
         "coding_file_candidate",
         "1",
         CodingFileCandidateConfig,
-        coding_file_candidate,
+        CustomCoordinatorStrategy(coding_file_candidate),
         input_model=CodingFileWork,
         result_model=EngineeringCandidate,
     ),
